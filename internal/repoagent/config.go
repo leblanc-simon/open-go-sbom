@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -75,9 +76,13 @@ type CatchupConfig struct {
 }
 
 // Forge décrit une forge. GitHub : app_id, private_key_file et facultativement
-// installation_id ; GitLab : token_file.
+// installation_id ; GitLab : token_file. AllowedNamespaces borne les dépôts que l'agent
+// accepte d'analyser (propriétaires GitHub, groupes GitLab, « * » pour tous) : le choix
+// des dépôts vient du serveur, c'est-à-dire des administrateurs d'organisation ; c'est à
+// l'exploitant de l'agent de dire ce que ses identifiants peuvent lire pour eux (SEC-10).
 type Forge struct {
 	Name              string        `yaml:"name"`
+	AllowedNamespaces []string      `yaml:"allowed_namespaces"`
 	Kind              forge.Kind    `yaml:"kind"`
 	URL               string        `yaml:"url"`
 	APIURL            string        `yaml:"api_url"`
@@ -206,6 +211,14 @@ func (f Forge) validate() error {
 	if f.Timeout < 0 {
 		return errors.New("timeout négatif")
 	}
+	if len(f.AllowedNamespaces) == 0 {
+		return errors.New(`allowed_namespaces obligatoire : propriétaires ou groupes autorisés, ou "*" pour tous`)
+	}
+	for _, ns := range f.AllowedNamespaces {
+		if ns != "*" && (ns == "" || strings.HasPrefix(ns, "/") || strings.HasSuffix(ns, "/") || strings.Contains(ns, "//") || strings.Contains(ns, "*")) {
+			return fmt.Errorf("allowed_namespaces : %q n'est ni « * » ni un chemin de propriétaire ou de groupe", ns)
+		}
+	}
 	switch f.Kind {
 	case forge.KindGitHub:
 		if f.AppID == "" || f.PrivateKeyFile == "" {
@@ -235,9 +248,42 @@ func (c Config) Providers() ([]forge.Provider, error) {
 		if err != nil {
 			return nil, fmt.Errorf("forge %s : %w", f.Name, err)
 		}
-		out = append(out, p)
+		out = append(out, Scoped(p, f.AllowedNamespaces))
 	}
 	return out, nil
+}
+
+// Scoped borne p aux dépôts des espaces allowed (« * » : tous) : un dépôt hors périmètre
+// n'est pas reconnu (Repo faux), donc jamais cloné ni analysé, quelle que soit l'URL de
+// forge que le serveur envoie.
+func Scoped(p forge.Provider, allowed []string) forge.Provider {
+	if slices.Contains(allowed, "*") {
+		return p
+	}
+	lower := make([]string, len(allowed))
+	for i, ns := range allowed {
+		lower[i] = strings.ToLower(ns)
+	}
+	return scopedProvider{Provider: p, allowed: lower}
+}
+
+type scopedProvider struct {
+	forge.Provider
+	allowed []string
+}
+
+func (s scopedProvider) Repo(forgeURL string) (string, bool) {
+	repo, ok := s.Provider.Repo(forgeURL)
+	if !ok {
+		return "", false
+	}
+	r := strings.ToLower(repo)
+	for _, ns := range s.allowed {
+		if strings.HasPrefix(r, ns+"/") {
+			return repo, true
+		}
+	}
+	return "", false
 }
 
 func (f Forge) provider() (forge.Provider, error) {

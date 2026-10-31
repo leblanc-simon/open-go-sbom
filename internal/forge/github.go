@@ -53,8 +53,8 @@ type GitHub struct {
 	now    func() time.Time
 
 	mu            sync.Mutex
-	installations map[string]int64 // dépôt (minuscules) → installation
-	tokens        map[int64]installationToken
+	installations map[string]int64             // dépôt (minuscules) → installation
+	tokens        map[string]installationToken // dépôt (minuscules) → jeton restreint à lui
 }
 
 var _ Provider = (*GitHub)(nil)
@@ -90,7 +90,7 @@ func NewGitHub(cfg GitHubConfig) (*GitHub, error) {
 	}
 	return &GitHub{
 		cfg: cfg, web: web, api: api.String(), client: defaultClient(cfg.HTTPClient), now: now,
-		installations: map[string]int64{}, tokens: map[int64]installationToken{},
+		installations: map[string]int64{}, tokens: map[string]installationToken{},
 	}, nil
 }
 
@@ -225,8 +225,10 @@ func (g *GitHub) headers(auth string) http.Header {
 }
 
 // token renvoie un jeton d'installation valable, limité à la lecture du contenu
-// (« contents: read » ; « metadata: read » est toujours accordé par GitHub), et le met en
-// cache par installation jusqu'à peu avant son expiration.
+// (« contents: read » ; « metadata: read » est toujours accordé par GitHub) et au seul
+// dépôt repo, et le met en cache par dépôt jusqu'à peu avant son expiration. Un jeton qui
+// fuit (il passe dans l'environnement de git) n'ouvre ainsi qu'un dépôt, pas toute
+// l'installation (SEC-10).
 func (g *GitHub) token(ctx context.Context, repo string) (string, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -234,8 +236,13 @@ func (g *GitHub) token(ctx context.Context, repo string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if t, ok := g.tokens[id]; ok && g.now().Add(tokenMargin).Before(t.expires) {
+	key := strings.ToLower(repo)
+	if t, ok := g.tokens[key]; ok && g.now().Add(tokenMargin).Before(t.expires) {
 		return t.value, nil
+	}
+	_, name, ok := strings.Cut(repo, "/")
+	if !ok || name == "" {
+		return "", fmt.Errorf("forge: GitHub : dépôt %q invalide", repo)
 	}
 	jwt, err := appJWT(g.cfg.PrivateKey, g.cfg.AppID, g.now())
 	if err != nil {
@@ -245,7 +252,7 @@ func (g *GitHub) token(ctx context.Context, repo string) (string, error) {
 		Token     string    `json:"token"`
 		ExpiresAt time.Time `json:"expires_at"`
 	}
-	body := map[string]any{"permissions": map[string]string{"contents": "read"}}
+	body := map[string]any{"permissions": map[string]string{"contents": "read"}, "repositories": []string{name}}
 	path := "/app/installations/" + strconv.FormatInt(id, 10) + "/access_tokens"
 	if err := call(ctx, g.client, http.MethodPost, g.api+path, g.headers("Bearer "+jwt), body, &out); err != nil {
 		if errors.Is(err, ErrNotFound) && g.cfg.InstallationID == 0 {
@@ -256,7 +263,7 @@ func (g *GitHub) token(ctx context.Context, repo string) (string, error) {
 	if out.Token == "" || out.ExpiresAt.IsZero() {
 		return "", errors.New("forge: GitHub : jeton d'installation illisible")
 	}
-	g.tokens[id] = installationToken{value: out.Token, expires: out.ExpiresAt}
+	g.tokens[key] = installationToken{value: out.Token, expires: out.ExpiresAt}
 	return out.Token, nil
 }
 

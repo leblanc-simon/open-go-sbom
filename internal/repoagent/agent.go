@@ -188,7 +188,7 @@ func (a *Agent) refresh(projects []Project) []refKey {
 	for _, p := range projects {
 		f, repo, ok := a.forgeOf(p.ForgeURL)
 		if !ok {
-			a.log.Warn("dépôt sans forge configurée", "project", p.Slug)
+			a.log.Warn("dépôt sans forge configurée ou hors de allowed_namespaces", "project", p.Slug)
 			continue
 		}
 		for _, r := range p.Refs {

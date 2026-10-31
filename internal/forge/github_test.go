@@ -27,6 +27,7 @@ type fakeGitHub struct {
 	tokenCalls   int
 	installCalls int
 	permissions  map[string]string
+	repositories []string
 	expires      time.Time
 	paths        []string
 }
@@ -44,14 +45,15 @@ func newFakeGitHub(t *testing.T, key *rsa.PrivateKey) *fakeGitHub {
 	mux.HandleFunc("POST /app/installations/42/access_tokens", func(w http.ResponseWriter, r *http.Request) {
 		f.checkJWT(r)
 		var body struct {
-			Permissions map[string]string `json:"permissions"`
+			Permissions  map[string]string `json:"permissions"`
+			Repositories []string          `json:"repositories"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			t.Error(err)
 		}
 		f.mu.Lock()
 		f.tokenCalls++
-		f.permissions = body.Permissions
+		f.permissions, f.repositories = body.Permissions, body.Repositories
 		n, exp := f.tokenCalls, f.expires
 		f.mu.Unlock()
 		w.WriteHeader(http.StatusCreated)
@@ -189,6 +191,9 @@ func TestGitHubTokenCachedUntilExpiry(t *testing.T) {
 	}
 	if f.permissions["contents"] != "read" || len(f.permissions) != 1 {
 		t.Fatalf("permissions demandées %v : la lecture du contenu seule est attendue", f.permissions)
+	}
+	if len(f.repositories) != 1 || f.repositories[0] != "app" {
+		t.Fatalf("dépôts demandés %v : le jeton doit être restreint au seul dépôt (SEC-10)", f.repositories)
 	}
 	// Second appel, autre casse : même installation, même jeton, sans appel.
 	if c2, err := g.Credentials(ctx, "ACME/app"); err != nil || c2.Password != "ghs_token1" {
