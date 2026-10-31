@@ -1,0 +1,23 @@
+// Commande ogsbom-host-agent. Le câblage complet arrive avec les lots qui la concernent ;
+// en attendant, elle n'affiche que sa version.
+package main
+
+import (
+	"flag"
+	"fmt"
+	"os"
+)
+
+// version est injectée à la construction : -ldflags "-X 'main.version=…'".
+var version = "develop"
+
+func main() {
+	showVersion := flag.Bool("version", false, "affiche la version et quitte")
+	flag.Parse()
+	if *showVersion {
+		fmt.Printf("ogsbom-host-agent %s\n", version)
+		os.Exit(0)
+	}
+	fmt.Fprintln(os.Stderr, "ogsbom-host-agent: pas encore implémenté")
+	os.Exit(1)
+}
