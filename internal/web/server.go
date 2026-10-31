@@ -130,7 +130,8 @@ func (s *Server) Run(ctx context.Context) error {
 
 // TLSConfig charge le certificat de l'écoute publique et, si clientCA est donné,
 // l'autorité des certificats clients des agents : un certificat présenté est vérifié,
-// son absence reste permise (l'API agent l'exigera selon la configuration, T04).
+// son absence reste permise ici : l'interface web n'en demande pas, et l'API des agents
+// refuse une requête sans certificat vérifié (api.AgentOptions.RequireClientCert).
 func TLSConfig(certFile, keyFile, clientCA string) (*tls.Config, error) {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {

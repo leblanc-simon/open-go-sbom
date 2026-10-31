@@ -122,8 +122,10 @@ Le serveur refuse aussi de démarrer si :
 Deux modes :
 
 - **TLS natif** : `tls.cert_file` et `tls.key_file` (PEM). TLS 1.2 minimum.
-  `tls.client_ca_file` active la vérification des certificats clients des agents
-  (mTLS) : un certificat présenté doit être signé par cette autorité.
+  `tls.client_ca_file` active le mTLS des agents : un certificat présenté doit être
+  signé par cette autorité, et toute requête de l'API des agents (`/api/v1/agent/*`) sans
+  certificat client vérifié est refusée (401 `error.client_cert_required`), avant la
+  lecture du jeton. L'interface web, servie par la même écoute, n'en demande pas.
 - **Derrière un mandataire inverse** qui termine TLS (nginx, HAProxy, Caddy…) : le serveur
   écoute en HTTP sur `web.host:web.port`. Déclarer le mandataire dans
   `web.trusted_proxies` (CIDR) : seuls les mandataires listés peuvent indiquer l'IP du
@@ -266,7 +268,80 @@ Les écrans **Projets** et **Agents** d'une organisation (`/o/<slug>/projects`,
 - **Limitation** : `agent_api.rate_limit` (120 par défaut) borne les requêtes par minute et
   **par jeton**, `agent_api.failure_rate_limit` (30) les jetons refusés par minute et par
   IP. Au-delà : 429 avec `Retry-After`. Ces compteurs sont propres à chaque instance.
-- Un agent est dit **muet** après 3 jours sans contact.
+- Un agent est dit **muet** après 3 jours : sans inventaire de son hôte pour un agent
+  serveur (même s'il répond encore : envois refusés, scans en échec), sans contact pour un
+  agent dépôt.
+
+## Agent serveur
+
+`ogsbom-host-agent` inventorie un hôte Linux (amd64, arm64) avec Syft et n'envoie un SBOM
+que lorsque l'inventaire a changé (ADR 0020, 0021).
+
+### Installation
+
+1. Installer le paquet (`make packages` produit dans `dist/` les paquets deb et rpm des
+   deux architectures, non signés) : `sudo apt install ./ogsbom-host-agent_<version>_amd64.deb`
+   ou `sudo dnf install ./ogsbom-host-agent-<version>.x86_64.rpm`. Le paquet crée
+   l'utilisateur système `ogsbom-agent`, `/etc/ogsbom-host-agent/config.yaml`, les unités
+   systemd ; il n'en active aucune.
+2. Renseigner `server.url` (`https://…` seulement) dans la configuration, et au besoin
+   `server.ca_file` (autorité privée, qui remplace celles du système), `server.proxy`,
+   `server.client_cert_file` (mTLS), `labels`, `scan.exclude`. Chaque clé a sa variable
+   `OGSBOM_HOST_AGENT_*` (`ogsbom-host-agent --help`).
+3. Déposer le **jeton d'inscription** (« Inscrire des serveurs », l'écran qui l'affiche
+   donne ces commandes), lisible du seul agent :
+   `printf '%s' '<jeton>' | sudo install -m 0600 -o ogsbom-agent -g ogsbom-agent /dev/stdin /etc/ogsbom-host-agent/enrollment-token`.
+   Variante chiffrée : `printf '%s' '<jeton>' | sudo systemd-creds encrypt --name=enrollment-token - /etc/ogsbom-host-agent/enrollment-token.cred`,
+   puis `sudo systemctl edit ogsbom-host-agent` et
+   `LoadCredentialEncrypted=enrollment-token:/etc/ogsbom-host-agent/enrollment-token.cred`.
+   La clé du certificat client suit le même chemin (fichier `server.client_key_file` en
+   `0600`, ou credential `client-key`). Un fichier secret lisible par le groupe ou les
+   autres est refusé.
+4. Démarrer **une** des deux formes : `sudo systemctl enable --now ogsbom-host-agent.service`
+   (démon : un scan par `scan.interval`, 24 h, et un signal de vie par
+   `scan.poll_interval`, 5 min, qui reçoit les demandes « Scanner maintenant ») ou
+   `sudo systemctl enable --now ogsbom-host-agent-oneshot.timer` (un scan par jour vers 2 h,
+   heure tirée dans l'heure ; une demande de scan attend le passage suivant).
+5. Au premier cycle, l'agent s'inscrit et garde son jeton d'agent dans
+   `/var/lib/ogsbom-host-agent/agent-token` (`0600`) ; supprimer ensuite le jeton
+   d'inscription. L'hôte apparaît dans les projets avec son contexte (système, noyau,
+   architecture, durée du scan).
+
+### Fonctionnement
+
+- **Scan** de `/` avec les catalogueurs d'un système installé (dpkg, rpm, apk, paquets
+  Python, Ruby, Node.js installés, archives Java, binaires Go et Rust), sans catalogage de
+  fichiers. **Exclus** : `/proc`, `/sys`, `/dev`, `/run`, `/var/run`, les stockages de
+  Docker, Podman (y compris sans root, `~/.local/share/containers`), containerd, kubelet,
+  LXC/LXD, Rancher, les montages réseau (NFS, CIFS, sshfs, Ceph…), de conteneurs
+  (overlay…) et autofs, plus `scan.exclude`. Les images de conteneurs relèvent de T13.
+- **Envoi conditionnel** : l'empreinte d'inventaire du SBOM est calculée comme par le
+  serveur. Inchangée, l'agent envoie un signal de vie avec son empreinte ; le serveur
+  avance la date de dernière analyse, ou réclame le SBOM s'il ne connaît pas cet
+  inventaire. Changée, le SBOM part (Syft JSON compressé) et l'agent attend son rangement.
+- **Réessais** : `server.retries` tentatives (erreurs réseau, 429, 5xx), délai
+  exponentiel, `Retry-After` respecté. Un SBOM refusé (`error.ingest.*`) est renvoyé au
+  cycle suivant ; un jeton refusé (401) demande une intervention (nouvelle inscription).
+- **Sobriété** : `resources.max_procs` (1) borne `GOMAXPROCS` et les catalogueurs
+  simultanés, `resources.memory_limit_mib` (512) la mémoire du runtime (limite douce),
+  `scan.max_duration` (1 h) le scan ; l'unité ajoute `Nice=19`, `IOSchedulingClass=idle`,
+  `MemoryMax=1G`, et propose `CPUQuota=` (à décommenter, au prix d'un scan plus long).
+- **Moindre privilège** : utilisateur `ogsbom-agent`, seule capacité
+  `CAP_DAC_READ_SEARCH` (lecture de tout fichier), écriture limitée au répertoire d'état,
+  unité durcie (`systemd-analyze security` : 1,9).
+- **Mise à jour** : installer le nouveau paquet ; le démon redémarre, l'état est gardé.
+  **Désinstallation** : arrête les unités ; `/var/lib/ogsbom-host-agent` et l'utilisateur
+  restent (à supprimer à la main pour une réinscription propre, après avoir désactivé
+  l'agent dans l'interface).
+- **Journaux** : `journalctl -u ogsbom-host-agent` ; ni jeton ni contenu de SBOM.
+
+### Mesures
+
+Protocole (root requis, hors CI) : `make build GOARCH=amd64`, puis
+`OGSBOM_HOST_AGENT_BINARY=$PWD/bin/ogsbom-host-agent go test -tags measure -count=1 -v -run 'TestMeasure|TestLeastPrivilege' ./internal/hostagent/`
+(agent sous `nobody` avec `CAP_DAC_READ_SEARCH`, contre un faux serveur ;
+`OGSBOM_MEASURE_ROOT` choisit la racine). Résultats et cibles : Journal de T07 et cahier
+des charges.
 
 ## Ingestion
 

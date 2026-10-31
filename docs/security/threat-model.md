@@ -101,10 +101,13 @@ parades prévues, et le lot qui les porte.
 
 | Menace | Parade | Lot |
 | --- | --- | --- |
-| Lecture de l'hôte au-delà du nécessaire | lecture seule ; unité systemd durcie (`ProtectSystem`, `NoNewPrivileges`…) | T07 |
-| Jeton lisible par d'autres comptes | répertoire d'état en `0700`, fichier en `0600`, ou credentials systemd chiffrés | T07 |
+| Lecture de l'hôte au-delà du nécessaire | utilisateur dédié, seule capacité `CAP_DAC_READ_SEARCH` (lecture), unité systemd durcie (`ProtectSystem=strict`, `NoNewPrivileges`, filtre d'appels système ; `systemd-analyze security` 1,9) ; rien d'autre ne sort que le SBOM et le contexte de l'hôte | T07 |
+| Jeton lisible par d'autres comptes | répertoire d'état en `0700`, fichier en `0600` écrit atomiquement, ou credentials systemd chiffrés ; un fichier secret ouvert au groupe ou aux autres est refusé | T07 |
+| Jeton envoyé à un tiers | HTTPS seulement, aucune redirection suivie, jeton jamais journalisé | T07 |
+| Saturation de l'hôte par le scan | `GOMAXPROCS` et `GOMEMLIMIT` bas, `Nice=19`, `IOSchedulingClass=idle`, `MemoryMax`, durée maximale de scan ; montages réseau et autofs non parcourus | T07 |
+| Confirmation d'inventaire usurpée | un compte rendu n'avance que la date de dernière analyse d'une référence d'hôte confiée à l'agent, et seulement si l'empreinte est celle de l'ensemble courant | T07 |
 | Socket Docker = root | accès désactivé par défaut et documenté comme tel | T13 |
-| Serveur usurpé | TLS vérifié, mTLS facultatif | T07 |
+| Serveur usurpé | TLS vérifié (autorité privée possible) ; mTLS facultatif, exigé alors sur toute l'API des agents avant la lecture du jeton | T07 |
 
 ### Agent dépôt
 

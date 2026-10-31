@@ -45,6 +45,11 @@ embarqués (`sbom/schema`), adaptateur Syft (`sbom/syft`), inventaire
 0016), écrans des instantanés ; jeux d'essai dans `testdata/sbom/`. Prochains lots, en
 parallèle : [T06](specs/lots/T06-analyse-vulnerabilites.md),
 [T07](specs/lots/T07-agent-serveur.md) et [T08](specs/lots/T08-agent-depot.md).
+T07 terminé : agent serveur `ogsbom-host-agent` (`internal/hostagent`, ADR 0020, 0021),
+client commun des agents `internal/agentclient` (réessais, mTLS, envoi gzip, suivi d'une
+ingestion : voir son `doc.go`, à adopter par l'agent dépôt), compte rendu d'inventaire et
+demande de scan par le signal de vie, mTLS exigé sur l'API des agents avec
+`tls.client_ca_file`, unités systemd et paquets deb et rpm (`make packages`).
 
 ## Règles de travail
 
@@ -95,7 +100,7 @@ parallèle : [T06](specs/lots/T06-analyse-vulnerabilites.md),
 
 ```bash
 make help               # liste des cibles
-make ci                 # fmt-check, generate-check, vet, lint, test-race, test-integration, vuln, build
+make ci                 # fmt-check, generate-check, vet, lint, test-race, test-integration, vuln, build, packages
 make test-race          # tests unitaires
 make test-integration   # tests étiquetés integration ; PostgreSQL : docker compose -f deploy/compose.yaml up -d
                         # (OGSBOM_TEST_DATABASE_DSN, par défaut postgres://postgres:postgres@localhost:5432/postgres)
@@ -103,6 +108,7 @@ make lint               # staticcheck (go tool)
 make vuln               # govulncheck (go tool)
 make generate           # code généré depuis api/openapi.yaml (à committer avant make ci)
 make build              # bin/ogsbom-server, bin/ogsbom-host-agent, bin/ogsbom-repo-agent (CGO_ENABLED=0)
+make packages           # ogsbom-host-agent amd64 et arm64, paquets deb et rpm dans dist/ (nfpm)
 make run                # serveur avec config.yaml (cp config.example.yaml config.yaml)
 ```
 

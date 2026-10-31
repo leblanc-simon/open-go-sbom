@@ -25,7 +25,7 @@ http:
 tls:
   cert_file: ""          # chaîne de certificats PEM
   key_file: ""           # clé privée PEM
-  client_ca_file: ""     # autorité des certificats clients des agents (mTLS)
+  client_ca_file: ""     # autorité des certificats clients des agents : mTLS exigé sur /api/v1/agent/*
 
 # Écoute de gestion, séparée : /healthz, /readyz, /metrics. À ne pas exposer publiquement.
 management:

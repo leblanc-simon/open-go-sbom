@@ -49,7 +49,7 @@ sur les choix techniques ; une fiche de lot précise le quoi et le comment d'une
 | [T04](lots/T04-projets-agents.md) | Projets, agents et jetons | 1 | T03 | Terminé |
 | [T05](lots/T05-ingestion.md) | Ingestion des SBOM et inventaire | 1 | T02, T04 | Terminé |
 | [T06](lots/T06-analyse-vulnerabilites.md) | Analyse de vulnérabilités | 1 | T05 | À faire |
-| [T07](lots/T07-agent-serveur.md) | Agent serveur Linux | 1 | T05 | À faire |
+| [T07](lots/T07-agent-serveur.md) | Agent serveur Linux | 1 | T05 | Terminé |
 | [T08](lots/T08-agent-depot.md) | Agent dépôt sans IA et forges | 1 | T05 | À faire |
 | [T09](lots/T09-recherche.md) | Recherche transverse | 1 | T06 | À faire |
 | [T10](lots/T10-tableau-de-bord.md) | Tableau de bord d'organisation | 1 | T06 | À faire |
