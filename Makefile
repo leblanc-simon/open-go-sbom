@@ -59,13 +59,20 @@ fmt: ## Formate le code
 fmt-check: ## Échoue si un fichier n'est pas formaté
 	@out=$$(gofmt -l $$(git ls-files '*.go')); if [ -n "$$out" ]; then echo "fichiers non formatés :"; echo "$$out"; exit 1; fi
 
+# Étiquettes de test qui compilent en CI : vet et staticcheck passent sur chacune, pour
+# que les fichiers étiquetés (tests d'intégration, base Grype réelle, mesures) soient
+# analysés comme le reste.
+TEST_TAGS := integration integration,grypedb measure
+
 .PHONY: vet
-vet: ## go vet
+vet: ## go vet (sans étiquette, puis avec chaque étiquette de test)
 	$(GO) vet ./...
+	@set -e; for tags in $(TEST_TAGS); do echo "go vet -tags $$tags"; $(GO) vet -tags "$$tags" ./...; done
 
 .PHONY: lint
-lint: ## staticcheck
+lint: ## staticcheck (sans étiquette, puis avec chaque étiquette de test)
 	$(GO) tool staticcheck ./...
+	@set -e; for tags in $(TEST_TAGS); do echo "staticcheck -tags $$tags"; $(GO) tool staticcheck -tags "$$tags" ./...; done
 
 .PHONY: vuln
 vuln: ## govulncheck
