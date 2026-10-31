@@ -91,6 +91,37 @@ test-race: ## Tests unitaires avec le détecteur de concurrence
 test-integration: ## Tests d'intégration (PostgreSQL : docker compose -f deploy/compose.yaml up -d)
 	$(GO) test -race -count=1 -tags integration ./...
 
+.PHONY: test-grypedb
+test-grypedb: ## Tests avec la vraie base Grype (OGSBOM_TEST_GRYPEDB_DIR : base v6 installée)
+	@test -n "$(OGSBOM_TEST_GRYPEDB_DIR)" || { echo "OGSBOM_TEST_GRYPEDB_DIR : répertoire d'une base Grype v6 installée"; exit 1; }
+	$(GO) test -count=1 -timeout 30m -tags 'integration grypedb' ./internal/vuln/grype/ ./internal/benchdata/
+
+.PHONY: bench
+bench: ## Mesures sur le jeu de référence (docs/benchmarks.md)
+	OGSBOM_BENCH=1 $(GO) test -count=1 -timeout 30m -tags integration -run TestReferenceDataset -v ./internal/benchdata/
+
+# Autoanalyse : SBOM des binaires par Syft, analyse par Grype, mêmes versions que les
+# bibliothèques du projet (go.mod). Grype télécharge sa base, sauf GRYPE_DB_CACHE_DIR et
+# GRYPE_DB_AUTO_UPDATE=false.
+SYFT  := $(GO) run github.com/anchore/syft/cmd/syft@$(shell $(GO) list -m -f '{{.Version}}' github.com/anchore/syft)
+GRYPE := $(GO) run github.com/anchore/grype/cmd/grype@$(shell $(GO) list -m -f '{{.Version}}' github.com/anchore/grype)
+
+.PHONY: sbom
+sbom: build ## SBOM CycloneDX des trois binaires (bin/<binaire>.cdx.json)
+	@for b in $(BINARIES); do \
+		echo "sbom $$b"; \
+		$(SYFT) scan file:bin/$$b -q -o cyclonedx-json=bin/$$b.cdx.json || exit 1; \
+	done
+
+.PHONY: selfscan
+selfscan: sbom ## Analyse les SBOM des binaires ; échec sur une vulnérabilité activement exploitée (KEV)
+	@status=0; for b in $(BINARIES); do \
+		$(GRYPE) sbom:bin/$$b.cdx.json --by-cve -q -o json --file bin/$$b.grype.json || exit 1; \
+		echo "$$b : $$(jq '.matches | length' bin/$$b.grype.json) vulnérabilités, $$(jq '[.matches[] | select((.vulnerability.knownExploited // []) | length > 0)] | length' bin/$$b.grype.json) KEV"; \
+		kev=$$(jq -r '.matches[] | select((.vulnerability.knownExploited // []) | length > 0) | "  KEV : \(.vulnerability.id) dans \(.artifact.name) \(.artifact.version)"' bin/$$b.grype.json); \
+		if [ -n "$$kev" ]; then echo "$$kev"; status=1; fi; \
+	done; exit $$status
+
 .PHONY: ci
 ci: fmt-check generate-check vet lint test-race test-integration vuln build packages ## Toutes les vérifications de la CI
 

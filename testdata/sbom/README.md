@@ -17,8 +17,12 @@ fichiers attendus (`golden/*.golden.json`) sont le `sbom.Document` que produit
 | `ubuntu-24.04.syft.json` | Syft JSON | Même inventaire Ubuntu |
 | `portail-client.cdx16.json` | CycloneDX 1.6 | Dépôt : npm (dont `@babel/runtime`), PyPI, modules Go |
 | `portail-client-ia.cdx16.json` | CycloneDX 1.6 | Le même dépôt enrichi par l'IA (voir plus bas) |
+| `log4shell.cdx16.json` | CycloneDX 1.6 | Application Java : `log4j-core` et `log4j-api` 2.14.1, `guava` (analyse, T06) |
 
 ## Provenance
+
+`log4shell.cdx16.json` est écrit à la main (T06) : trois composants Maven de purl
+canonique, pour le critère « log4j-core 2.14.1 produit CVE-2021-44228 marquée KEV ».
 
 Tous les fichiers sauf `portail-client-ia.cdx16.json` sont produits par **Syft v1.55.0**
 (bibliothèque, catalogueurs par défaut, source « répertoire »), le 31 octobre 2026, par un

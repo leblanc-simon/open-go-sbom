@@ -1,0 +1,28 @@
+{{define "sev" -}}
+<span class="{{.Class}}"><span>{{T .LabelKey}}</span>{{with .Score}}<span class="sev__score">{{decimal . 1}}</span>{{end}}</span>
+{{- end}}
+
+{{define "sevcounts" -}}
+<ul class="sevcounts">
+  {{- range .}}<li class="{{.Class}}"><span class="visually-hidden">{{T .LabelKey}}</span>{{.Count}}</li>{{end -}}
+</ul>
+{{- end}}
+
+{{define "kev" -}}
+<span class="kev"><span>{{T "badge.kev"}}</span><span class="visually-hidden">{{T "badge.kev_long"}}</span></span>
+{{- end}}
+
+{{define "epss" -}}
+<span class="epss"><span class="epss__label">{{T "badge.epss"}}</span><span class="epss__value">{{percent . 1}}</span>
+<svg class="epss__bar" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="bar__track" width="100" height="6"></rect><rect class="bar__fill" width="{{barWidth .}}" height="6"></rect></svg></span>
+{{- end}}
+
+{{define "risk" -}}
+<span class="risk">{{.}}<svg class="risk__bar" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="bar__track" width="100" height="6"></rect><rect class="bar__fill" width="{{.}}" height="6"></rect></svg></span>
+{{- end}}
+
+{{define "fixed" -}}
+{{- if .Fixed}}<span class="cluster">{{range .Fixed}}<span class="version">{{.}}</span>{{end}}</span>
+{{- else if eq .FixState "wont-fix"}}<span class="muted">{{T "findings.wont_fix"}}</span>
+{{- else}}<span class="muted">{{T "findings.no_fix"}}</span>{{end}}
+{{- end}}

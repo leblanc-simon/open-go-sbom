@@ -1,0 +1,76 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T "admin_vulndb.heading"}}</h1>
+    <p class="page-head__lead">{{T "admin_vulndb.lead"}}</p>
+  </div>
+  {{template "single_admin" .SingleAdmin}}
+  {{template "vulndb_alert" .VulnDBAlert}}
+  <div class="layout layout--halves">
+    <section class="panel" aria-labelledby="target-title">
+      <div class="panel__head"><h2 class="panel__title" id="target-title">{{T "admin_vulndb.target_title"}}</h2></div>
+      <div class="panel__body">
+        {{- with .Target}}
+        <dl class="kv">
+          <dt>{{T "admin_vulndb.built"}}</dt><dd>{{template "stamp" .Built}}</dd>
+          <dt>{{T "admin_vulndb.schema"}}</dt><dd class="mono">{{.Schema}}</dd>
+          <dt>{{T "admin_vulndb.size"}}</dt><dd>{{T "admin_vulndb.size_mib" "Size" (decimal .SizeMiB 1)}}</dd>
+          <dt>{{T "admin_vulndb.origin"}}</dt><dd>{{T (print "admin_vulndb.origin_" .Origin)}}</dd>
+          <dt>{{T "admin_vulndb.sha256"}}</dt><dd class="mono hash">{{.SHA256}}</dd>
+          <dt>{{T "admin_vulndb.targeted"}}</dt><dd>{{template "stamp" .Targeted}}</dd>
+        </dl>
+        {{- else}}
+        <p class="muted">{{T "admin_vulndb.no_target"}}</p>
+        {{- end}}
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="check-title">
+      <div class="panel__head"><h2 class="panel__title" id="check-title">{{T "admin_vulndb.check_title"}}</h2></div>
+      <div class="panel__body">
+        <dl class="kv">
+          <dt>{{T "admin_vulndb.mode"}}</dt><dd>{{if .Offline}}{{T "admin_vulndb.mode_offline"}}{{else}}{{T "admin_vulndb.mode_online"}}{{end}}</dd>
+          {{- if not .Offline}}<dt>{{T "admin_vulndb.listing"}}</dt><dd class="mono hash">{{.ListingURL}}</dd>{{end}}
+          <dt>{{T "admin_vulndb.last_check"}}</dt><dd>{{template "stamp" .LastCheck}}</dd>
+          <dt>{{T "admin_vulndb.last_error"}}</dt><dd>{{with .CheckError}}<span class="status status--danger">{{T "admin_vulndb.check_failed"}}</span> <span class="mono hash">{{.}}</span>{{else}}<span class="muted">{{T "common.none"}}</span>{{end}}</dd>
+          <dt>{{T "admin_vulndb.max_age"}}</dt><dd>{{Tn "admin_vulndb.max_age_hours" .MaxAgeHours}}</dd>
+        </dl>
+      </div>
+    </section>
+  </div>
+  <section class="panel" aria-labelledby="archives-title">
+    <div class="panel__head"><h2 class="panel__title" id="archives-title">{{T "admin_vulndb.archives_title"}}</h2></div>
+    {{- if .Archives}}
+    <div class="panel__body panel__body--flush">
+      <div class="table-wrap" role="region" aria-labelledby="archives-title" tabindex="0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">{{T "admin_vulndb.built"}}</th>
+              <th scope="col">{{T "admin_vulndb.schema"}}</th>
+              <th scope="col">{{T "admin_vulndb.origin"}}</th>
+              <th scope="col" class="num">{{T "admin_vulndb.size"}}</th>
+              <th scope="col">{{T "admin_vulndb.stored"}}</th>
+              <th scope="col">{{T "admin_vulndb.state"}}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{- range .Archives}}
+            <tr{{if .IsTarget}} class="row--selected"{{end}}>
+              <th scope="row">{{template "stamp" .Built}}</th>
+              <td class="mono">{{.Schema}}</td>
+              <td>{{T (print "admin_vulndb.origin_" .Origin)}}</td>
+              <td class="num">{{T "admin_vulndb.size_mib" "Size" (decimal .SizeMiB 1)}}</td>
+              <td>{{template "stamp" .Created}}</td>
+              <td>{{if .IsTarget}}<span class="status status--active">{{T "admin_vulndb.is_target"}}</span>{{else}}<span class="muted">{{T "admin_vulndb.previous"}}</span>{{end}}</td>
+            </tr>
+            {{- end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {{- else}}
+    <div class="panel__body"><p class="muted">{{T "admin_vulndb.no_archives"}}</p></div>
+    {{- end}}
+  </section>
+</div>
+{{- end}}

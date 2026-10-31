@@ -7,6 +7,9 @@ layout:
   home_link: Home
 
 nav:
+  vulnerabilities: Vulnerabilities
+  components: Components
+  admin_vulndb: Vulnerability database
   label: Main navigation
   profile: My account
   password: Password
@@ -306,6 +309,17 @@ audit:
     enrollment_token_revoked: "Enrollment token {{.Target}} ({{.D_prefix}}) revoked"
 
 admin:
+  vulndb_missing_title: No vulnerability database
+  vulndb_missing_text: >-
+    No analysis can run until the first database is downloaded (online) or imported
+    (isolated site).
+  vulndb_stale_title:
+    one: "Vulnerability database {{.Count}} day old"
+    other: "Vulnerability database {{.Count}} days old"
+  vulndb_stale_text: >-
+    Vulnerabilities published since are not detected. Check access to the distribution
+    listing, or import a recent database.
+  vulndb_open: See the database state
   single_admin_title: Only one instance administrator
   single_admin_text: >-
     If they lost access to their account, only the rescue procedure would restore it.
@@ -480,6 +494,7 @@ footer:
   source: Source code
 
 common:
+  none: None
   all: All
   filter: Filter
   never: Never
@@ -535,6 +550,7 @@ projects:
   empty_archived: No archived project matches.
 
 project:
+  tab_findings: Findings
   title: "{{.Name}}"
   tabs: Project sections
   tab_overview: Overview
@@ -818,3 +834,201 @@ host_install:
   start: "Start the agent: it enrolls, inventories the host and sends its first SBOM."
   start_hint: For one scan a day without a daemon, enable ogsbom-host-agent-oneshot.timer instead.
   cleanup: Once the host shows up in the projects, delete the enrollment token; the agent keeps its own token.
+
+severity:
+  critical: Critical
+  high: High
+  medium: Medium
+  low: Low
+  negligible: Negligible
+  unknown: Unknown
+
+badge:
+  kev: KEV
+  kev_long: actively exploited
+  epss: EPSS
+
+cvss:
+  metric_av: Attack vector
+  metric_ac: Complexity
+  metric_pr: Privileges required
+  metric_ui: User interaction
+  metric_s: Scope
+  metric_c: Confidentiality
+  metric_i: Integrity
+  metric_a: Availability
+  av_n: Network
+  av_a: Adjacent network
+  av_l: Local
+  av_p: Physical
+  ac_l: Low
+  ac_h: High
+  pr_n: None
+  pr_l: Low
+  pr_h: High
+  ui_n: None
+  ui_r: Required
+  s_u: Unchanged
+  s_c: Changed
+  c_n: None
+  c_l: Low
+  c_h: High
+  i_n: None
+  i_l: Low
+  i_h: High
+  a_n: None
+  a_l: Low
+  a_h: High
+
+finding_resolution:
+  component_removed: Component removed or updated
+  not_matched: No longer reported by the database
+
+findings:
+  title: "Findings — {{.Name}}"
+  refs_title: Tracked references
+  refs_caption: References of the project and their open findings
+  col_open: Open findings
+  of_ref: "Findings of {{.Ref}}"
+  analyzed: Analyzed
+  db_built: "database of {{.Date}}"
+  not_analyzed: Not analyzed yet
+  filter_state: Filter by state
+  state_open: Open
+  state_resolved: Resolved
+  severity: Severity
+  kev_only: Actively exploited (KEV) only
+  apply: Filter
+  col_vulnerability: Vulnerability
+  col_severity: Severity
+  col_epss: EPSS
+  col_component: Component
+  col_fixed_in: Fixed in
+  col_first_seen: Detected on
+  col_resolved: Resolved on
+  col_risk: Risk
+  no_fix: No known fix
+  wont_fix: Won't be fixed
+  none: No open finding on this reference.
+  none_resolved: No resolved finding on this reference.
+  none_filtered: No finding matches the filters.
+
+vulnerability:
+  title: "{{.ID}}"
+  source: "Source: {{.Source}}"
+  db_built: "Database of {{.Date}}"
+  aliases: Aliases
+  summary_title: Summary
+  source_language: Text of the source
+  no_summary: The source gives no summary.
+  cvss: CVSS
+  cvss_version: "CVSS {{.Version}}"
+  no_cvss: No CVSS score.
+  other_scores:
+    one: "{{.Count}} other score"
+    other: "{{.Count}} other scores"
+  exploitation: Exploitation
+  epss_explain: "Probability of exploitation in the next 30 days: {{.P}}, percentile {{.Pct}}."
+  epss_date: "Score of {{.Date}}."
+  no_epss: No EPSS score.
+  kev_added: Added to the catalog
+  kev_due: CISA due date
+  kev_ransomware: Ransomware
+  kev_ransomware_known: Known use
+  kev_ransomware_unknown: Not reported
+  not_kev: Not in the CISA KEV catalog.
+  references: Weaknesses and references
+  no_references: No reference.
+  affected_projects: Affected projects
+  open_findings:
+    one: "{{.Count}} open finding"
+    other: "{{.Count}} open findings"
+  projects_count:
+    one: "{{.Count}} project"
+    other: "{{.Count}} projects"
+  filter_state: Filter by state
+  state_open: Open
+  state_resolved: Resolved
+  col_project: Project
+  col_ref: Reference
+  col_component: Component
+  col_fixed_in: Fixed in
+  none_open: No open finding in the organization.
+  none_resolved: No resolved finding in the organization.
+  truncated: List limited to the 500 riskiest findings.
+
+component:
+  title: "{{.Name}}"
+  projects_count:
+    one: "{{.Count}} project"
+    other: "{{.Count}} projects"
+  versions_count:
+    one: "{{.Count}} version"
+    other: "{{.Count}} versions"
+  occurrences_count:
+    one: "{{.Count}} occurrence"
+    other: "{{.Count}} occurrences"
+  type: "Type: {{.Type}}"
+  licenses: Licenses
+  truncated: This component is very widespread; only the first 500 occurrences are taken into account.
+  version_distribution: Versions across the organization
+  col_version: Version
+  col_share: Share
+  col_occurrences: Occurrences
+  legend_vulnerable: Vulnerable version
+  legend_clean: No known vulnerability
+  vulns_by_version: Vulnerabilities by version
+  col_vulnerability: Vulnerability
+  col_severity: Severity
+  col_fixed_in: Fixed in
+  version_vulnerable: Vulnerable
+  version_clear: Not affected
+  no_vulns: No open vulnerability on this component.
+  used_by: Projects using it
+  used_by_meta: Current inventory of each tracked reference
+  col_project: Project
+  col_ref: Reference
+  col_origin: Origin
+  col_findings: Open findings
+  col_snapshot: Snapshot
+  open_findings:
+    one: "{{.Count}} finding"
+    other: "{{.Count}} findings"
+  no_findings: None
+  unused: No active reference contains this component.
+
+admin_vulndb:
+  title: Vulnerability database
+  heading: Vulnerability database
+  lead: >-
+    Grype database shared by all instances: one instance downloads and verifies it, each
+    worker instance keeps a synchronized local copy.
+  target_title: Target database
+  no_target: No database has been obtained yet.
+  built: Built on
+  schema: Schema
+  size: Size
+  size_mib: "{{.Size}} MiB"
+  origin: Origin
+  origin_download: Downloaded
+  origin_import: Imported
+  sha256: Archive SHA-256
+  targeted: Target since
+  check_title: Listing check
+  mode: Mode
+  mode_online: Online
+  mode_offline: Offline (import only)
+  listing: Distribution listing
+  last_check: Last check
+  last_error: Last error
+  check_failed: Failed
+  max_age: Alert beyond
+  max_age_hours:
+    one: "{{.Count}} hour"
+    other: "{{.Count}} hours"
+  archives_title: Stored archives
+  stored: Stored on
+  state: State
+  is_target: Target
+  previous: Previous
+  no_archives: No stored archive.

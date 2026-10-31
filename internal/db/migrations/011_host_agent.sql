@@ -1,4 +1,4 @@
--- 009_host_agent : agent serveur (T07). Demande de scan depuis l'interface, transmise au
+-- 011_host_agent : agent serveur (T07). Demande de scan depuis l'interface, transmise au
 -- prochain signal de vie, et dernier contexte d'hôte annoncé par l'agent (système,
 -- noyau, architecture, durée du scan), affiché sur la fiche de l'agent et de son hôte.
 -- Ces deux colonnes n'ont de sens que pour un agent serveur.

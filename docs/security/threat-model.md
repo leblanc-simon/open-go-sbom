@@ -96,6 +96,9 @@ parades prévues, et le lot qui les porte.
 | Archive altérée en transit | HTTPS, somme de contrôle de la liste de distribution vérifiée, ouverture validée avant bascule | T06 |
 | Base périmée qui masque de nouvelles CVE | alerte d'administration au-delà de 5 jours | T06 |
 | Base différente selon les instances | version cible commune en base, synchronisation avant toute analyse | T06 |
+| Archive altérée dans PostgreSQL | SHA-256 et taille revérifiées à chaque synchronisation, avant toute installation ; une archive altérée n'est jamais installée | T06 |
+| Archive démesurée (épuisement du disque ou de la mémoire) | taille bornée (`vulndb.max_archive_mib`), téléchargement en flux sur disque, lecture par blocs de 8 Mio | T06 |
+| Contenu de la base injecté dans les écrans (description, références) | échappement de `html/template`, références limitées aux adresses http(s), texte de la source affiché sans interprétation | T06 |
 
 ### Agent serveur
 
@@ -127,6 +130,7 @@ parades prévues, et le lot qui les porte.
 | Menace | Parade | Lot |
 | --- | --- | --- |
 | Dépendance Go vulnérable | `govulncheck` en CI, dépendances validées une à une | T00 → |
+| Vulnérabilité activement exploitée dans un binaire publié | SBOM des trois binaires analysés par Grype à chaque build, échec sur une vulnérabilité KEV | T06 |
 | Action GitHub détournée | actions épinglées par SHA, permissions `contents: read` | T00 |
 | Binaire publié altéré | sommes de contrôle publiées ; signature au lot 3 | T11, T24 |
 

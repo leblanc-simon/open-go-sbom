@@ -35,7 +35,7 @@ de l'hôte, comment remettre une demande de scan, et sur quoi fonder l'état « 
 - **Format envoyé : Syft JSON**, compressé en gzip. C'est le format natif de Syft et de
   Grype, qui reçoit le SBOM d'origine (§ 12) : distribution, métadonnées des paquets et
   emplacements y sont complets. Le serveur l'accepte depuis T05.
-- **Scan à la demande** : `agents.scan_requested_at` (migration 009), posé par le bouton
+- **Scan à la demande** : `agents.scan_requested_at` (migration 011), posé par le bouton
   « Scanner maintenant » de la fiche d'un projet d'hôte (analyste ou administrateur,
   journalisé `agent.scan_requested`) ; une demande en attente garde sa date. Le signal
   de vie suivant la **remet une seule fois** (lue et effacée dans sa transaction) et

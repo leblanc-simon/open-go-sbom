@@ -49,6 +49,12 @@ T08 terminé : forges (`internal/forge` : GitHub App, GitLab par compte de servi
 webhooks vérifiés), agent dépôt (`internal/repoagent` : récepteur de webhooks,
 rattrapage, file en mémoire, git sous environnement maîtrisé, Syft hors ligne, SBOM
 déterministe), `ogsbom-repo-agent` et `deploy/ogsbom-repo-agent/` (ADR 0023).
+T06 terminé : base Grype commune (`internal/vuln`, `internal/vuln/grype`, ADR 0017 :
+archives en blocs dans PostgreSQL, cible, copie locale par instance, `/readyz` des
+workers), analyse et constats (`internal/finding`, ADR 0018), téléchargements par
+`internal/download`, écrans des constats, des vulnérabilités et des composants, jeu de
+mesure `internal/benchdata` et `docs/benchmarks.md` (ADR 0019), autoanalyse des binaires
+en CI (`make selfscan`).
 T07 terminé : agent serveur `ogsbom-host-agent` (`internal/hostagent`, ADR 0020, 0021),
 client commun des agents `internal/agentclient` (réessais, mTLS, envoi gzip, suivi d'une
 ingestion : voir son `doc.go`, à adopter par l'agent dépôt), compte rendu d'inventaire et
@@ -111,6 +117,9 @@ make test-integration   # tests étiquetés integration ; PostgreSQL : docker co
 make lint               # staticcheck (go tool)
 make vuln               # govulncheck (go tool)
 make generate           # code généré depuis api/openapi.yaml (à committer avant make ci)
+make test-grypedb       # vraie base Grype (OGSBOM_TEST_GRYPEDB_DIR : base v6 installée)
+make bench              # mesures sur le jeu de référence (docs/benchmarks.md)
+make selfscan           # SBOM des binaires (Syft) et analyse (Grype) ; échec sur une KEV
 make build              # bin/ogsbom-server, bin/ogsbom-host-agent, bin/ogsbom-repo-agent (CGO_ENABLED=0)
 make packages           # ogsbom-host-agent amd64 et arm64, paquets deb et rpm dans dist/ (nfpm)
 make run                # serveur avec config.yaml (cp config.example.yaml config.yaml)

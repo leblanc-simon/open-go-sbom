@@ -30,6 +30,22 @@ type Config struct {
 	Bootstrap  Bootstrap       `yaml:"bootstrap"  env-prefix:"OGSBOM_"`
 	Workers    Workers         `yaml:"workers"    env-prefix:"OGSBOM_"`
 	Ingest     Ingest          `yaml:"ingest"     env-prefix:"OGSBOM_"`
+	VulnDB     VulnDB          `yaml:"vulndb"     env-prefix:"OGSBOM_"`
+}
+
+// VulnDB règle la base de vulnérabilités (§ 12 de l'architecture, ADR 0017) : liste de
+// distribution interrogée par l'échéance vulndb.check, copie locale de chaque instance
+// worker, alerte d'âge.
+type VulnDB struct {
+	ListingURL      string        `yaml:"listing_url"      env:"VULNDB_LISTING_URL"      env-default:"https://grype.anchore.io/databases/v6/latest.json" env-description:"Grype database listing (latest.json, or a mirror of it)"`
+	Dir             string        `yaml:"dir"              env:"VULNDB_DIR"              env-default:"/var/lib/ogsbom/vulndb" env-description:"Local directory of the vulnerability database of this worker instance (about 7 GiB free during a switch)"`
+	Offline         bool          `yaml:"offline"          env:"VULNDB_OFFLINE"          env-description:"Never query the listing: databases are only imported (isolated sites)"`
+	CheckInterval   time.Duration `yaml:"check_interval"   env:"VULNDB_CHECK_INTERVAL"   env-default:"6h"    env-description:"How often one instance queries the listing for a newer database"`
+	SyncInterval    time.Duration `yaml:"sync_interval"    env:"VULNDB_SYNC_INTERVAL"    env-default:"1m"    env-description:"How often a worker instance checks that its local copy is the shared target"`
+	MaxAge          time.Duration `yaml:"max_age"          env:"VULNDB_MAX_AGE"          env-default:"120h"  env-description:"Age beyond which the target database raises an administration alert"`
+	DownloadTimeout time.Duration `yaml:"download_timeout" env:"VULNDB_DOWNLOAD_TIMEOUT" env-default:"30m"   env-description:"Maximum duration of one listing query or archive download"`
+	MaxArchiveMiB   int           `yaml:"max_archive_mib"  env:"VULNDB_MAX_ARCHIVE_MIB"  env-default:"2048"  env-description:"Maximum size of a database archive, downloaded or imported, in MiB"`
+	AnalysisTimeout time.Duration `yaml:"analysis_timeout" env:"VULNDB_ANALYSIS_TIMEOUT" env-default:"10m"   env-description:"Maximum duration of one analysis job, local database synchronisation included"`
 }
 
 // Ingest borne la réception et le décodage des SBOM (§ 11 de l'architecture). Les tailles

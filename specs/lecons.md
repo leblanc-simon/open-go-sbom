@@ -246,6 +246,50 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   suppressions : écrire dans un nouveau dossier plutôt que vider l'ancien, et supprimer un
   fichier par son chemin absolu.
 
+## Analyse de vulnérabilités et base Grype (T06)
+
+- **Le client de distribution de Grype décompresse au téléchargement** : `Download` passe
+  par go-getter en mode répertoire, qui extrait le tar.zst ; il ne reste aucune archive à
+  stocker, et l'appel ne prend pas de contexte. Règle : télécharger par un `vuln.Fetcher`
+  injecté (`internal/download`, `net/http`) et n'utiliser de Grype que la lecture de
+  `latest.json` (`NewLatestFromReader`) et `ResolveArchiveURL`.
+- **Une vraie base Grype sans 3 Gio** : `v6.NewWriter` + `SetDBMetadata` + `Close` donne
+  une base v6 vide mais valide, qu'une archive tar.gz (bibliothèque standard) rend
+  installable par le curateur. Règle : `grypetest.TinyArchive` pour tout test
+  d'installation, d'ouverture ou de bout en bout ; la vraie base reste sous `grypedb`.
+- **Dates relues de PostgreSQL** : `timestamptz` arrondit à la microseconde ; comparer une
+  date Go (nanosecondes) à sa relecture échouait (« base locale du …027, attendue du
+  … »). Règle : arrondir (`Round(time.Microsecond)`) avant d'écrire une date qu'on
+  comparera, et comparer après arrondi.
+- **`NormalizeByCVE` ne remplace pas les métadonnées** : Grype change l'identifiant (GHSA
+  → CVE) mais laisse la fiche de la source d'origine sur la correspondance. Règle : lire la
+  fiche NVD du CVE (`VulnerabilityMetadata`, espace `nvd:cpe`) pour le catalogue ; une
+  fiche absente revient comme une souche (sans CVSS ni description), à détecter.
+- **Les attributs de gabarit numériques** : une largeur de jauge par `style="--p: 94%"`
+  est refusée par la CSP. Règle : jauges en SVG, largeur en attribut (`<rect width>`),
+  calculée par la fonction `barWidth` ; nombres localisés par `decimal` et `percent`
+  (`golang.org/x/text/number`), jamais formatés en Go dans la vue.
+- **Valeur d'attribut en dur** : le test de `render` refuse `value="resolved"` dans un
+  gabarit. Règle : la valeur vient de la vue (`StatusValue`).
+- **Nouveau SBOM d'exemple** : `TestGolden` parcourt tout `testdata/sbom/` ; un fichier
+  ajouté sans attendu fait échouer `make ci`. Règle : `go test ./internal/sbom/syft -run
+  TestGolden -update`, relire l'attendu, compléter `testdata/sbom/README.md`.
+- **Instances worker et `/readyz`** : depuis T06, une instance à workers n'est prête
+  qu'avec une base de vulnérabilités chargée ; le test de bout en bout du binaire importe
+  une base (`grypetest`) et passe `OGSBOM_VULNDB_OFFLINE=true` pour ne jamais sortir sur le
+  réseau. Règle : tout nouveau test qui attend `/readyz` sur une instance à workers fait de
+  même (ou `OGSBOM_WORKERS_ENABLED=false`).
+- **Commandes Anchore en CI sans action tierce** : `go run github.com/anchore/syft/cmd/syft@<version>`
+  (et grype) fonctionne (aucune directive `replace`), compile en une quinzaine de secondes
+  et reprend les versions de `go.mod` (`go list -m -f '{{.Version}}'`). Le champ KEV du
+  JSON de grype est `.matches[].vulnerability.knownExploited`.
+- **Tests concurrents d'une bascule** : un crochet (`Hook`) dans la fausse base qui bloque
+  les correspondances sur un canal permet de prouver qu'une bascule attend les
+  correspondances en cours, sans `time.Sleep` fragile pour la synchronisation.
+- **Outil d'isolement des agents (suite)** : refusés aussi `cat >> fichier <<EOF` et
+  `python3 script && git …` dans la même commande. Règle : écrire par l'outil d'écriture,
+  une commande git seule par appel.
+
 ## Agent dépôt et forges (T08)
 
 - **Syft exécute la chaîne Go par défaut** : `golang.DefaultCatalogerConfig()` met

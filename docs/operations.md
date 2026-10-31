@@ -144,8 +144,8 @@ pas exposer publiquement :
 | Chemin | Rôle |
 | --- | --- |
 | `/healthz` | vivacité : le processus répond (200), indépendamment de la base |
-| `/readyz` | disponibilité : 200 si la base répond et si le schéma est à jour ; 503 sinon, avec la vérification en échec, et 503 dès le début d'un arrêt. La base Grype s'y ajoutera pour les instances à workers (T06). |
-| `/metrics` | métriques Prometheus : `ogsbom_http_requests_total` et `ogsbom_http_request_duration_seconds` (par groupe de routes, méthode, motif de route, statut), file de traitements (`ogsbom_jobs`, `ogsbom_job_*`, voir « Traitements »), pool de connexions (`go_sql_*`), processus et moteur Go |
+| `/readyz` | disponibilité : 200 si la base répond et si le schéma est à jour ; 503 sinon, avec la vérification en échec, et 503 dès le début d'un arrêt. Sur une instance à workers (`workers.enabled`), 503 aussi tant qu'aucune base de vulnérabilités n'est chargée (vérification `vulndb`). |
+| `/metrics` | métriques Prometheus : `ogsbom_http_requests_total` et `ogsbom_http_request_duration_seconds` (par groupe de routes, méthode, motif de route, statut), file de traitements (`ogsbom_jobs`, `ogsbom_job_*`, voir « Traitements »), base de vulnérabilités (`ogsbom_vulndb_target_age_seconds`, `ogsbom_vulndb_stale`, `ogsbom_vulndb_loaded`, voir « Base de vulnérabilités »), pool de connexions (`go_sql_*`), processus et moteur Go |
 
 ## Traitements
 
@@ -379,6 +379,67 @@ Bornes (`ingest.*`) :
   d'erreur et le nombre de composants le sont.
 - Décision de conception : ADR 0015 (décodage dans le worker) et ADR 0016 (règles de
   l'inventaire).
+
+## Base de vulnérabilités
+
+Les SBOM sont confrontés à la base de vulnérabilités de **Grype** (schéma v6, environ
+200 Mio compressée, 3,2 Gio installée), **commune à toutes les instances** (ADR 0017) :
+
+1. **Vérification** (échéance `vulndb.check`, toutes les `vulndb.check_interval`, une seule
+   instance à la fois) : lecture de la liste de distribution (`vulndb.listing_url`), et si
+   elle annonce une base plus récente que la cible, téléchargement, vérification de la
+   SHA-256 annoncée, installation complète pour valider l'ouverture, stockage de l'archive
+   dans PostgreSQL (`vulndb_archives`, par blocs de 8 Mio), puis la base devient la
+   **cible** (`vulndb_state`). Une archive corrompue ou dont la somme diffère n'est jamais
+   stockée ni activée ; l'erreur est notée et affichée.
+2. **Synchronisation** : chaque instance worker installe la cible dans `vulndb.dir` depuis
+   PostgreSQL (jamais depuis Internet) au démarrage, toutes les `vulndb.sync_interval` et
+   avant chaque analyse, puis bascule sans interrompre les analyses en cours. Deux workers
+   ne produisent donc jamais de constats contradictoires.
+3. **Réanalyse** : chaque nouvelle cible met en file la réanalyse de toutes les
+   références actives, en priorité basse ; une ingestion fraîche passe devant.
+
+L'écran **Administration → Base de vulnérabilités** montre la cible (date de
+construction, schéma, taille, origine, somme), la dernière vérification et son erreur,
+les archives stockées. Au-delà de `vulndb.max_age` (5 jours par défaut), ou sans base, un
+avertissement apparaît sur toutes les pages d'administration et `ogsbom_vulndb_stale`
+vaut 1 : à surveiller (alerte Prometheus conseillée sur `ogsbom_vulndb_stale == 1`).
+
+| Réglage | Défaut | Rôle |
+| --- | --- | --- |
+| `listing_url` | liste d'Anchore | `latest.json` de Grype, ou d'un miroir interne (même arborescence) |
+| `dir` | `/var/lib/ogsbom/vulndb` | copie locale de l'instance (chemin absolu) |
+| `offline` | `false` | `true` : aucune interrogation de la liste (site isolé) |
+| `check_interval` | 6 h | fréquence de vérification (au moins 10 min ; Anchore publie chaque jour) |
+| `sync_interval` | 1 min | fréquence de contrôle de la copie locale |
+| `max_age` | 120 h | âge déclenchant l'avertissement |
+| `download_timeout` | 30 min | interrogation ou téléchargement ; le job de vérification a le double |
+| `max_archive_mib` | 2 048 | taille maximale d'une archive |
+| `analysis_timeout` | 10 min | durée maximale d'une analyse, synchronisation locale comprise |
+
+- **Espace disque** : sur chaque instance worker, environ **3,5 Gio** pour la base
+  installée et **le double pendant une bascule** (ancienne et nouvelle), plus l'archive
+  le temps de l'installer : prévoir 8 Gio libres dans `vulndb.dir`. L'instance qui vérifie
+  la liste a besoin du même espace. Côté PostgreSQL, environ 200 Mio par archive
+  conservée (purge des anciennes archives avec l'écran d'import, T11).
+- **Mémoire et CPU** : une analyse de 5 000 composants prend environ 6 s sur 4 cœurs
+  (`docs/benchmarks.md`) ; la base est ouverte une seule fois par instance et partagée par
+  les analyses simultanées (`workers.concurrency`, au plus `workers.org_limit` par
+  organisation).
+- **Plusieurs instances** : toutes lisent la même cible ; une instance purement web
+  (`workers.enabled: false`) n'a pas de copie locale et reste prête sans base. Le premier
+  démarrage d'un parc neuf n'a aucune base : les instances worker ne sont pas prêtes
+  (`/readyz` 503) jusqu'à la fin de la première vérification (téléchargement et
+  installation : quelques minutes). Les analyses demandées entre-temps se terminent sans
+  rien écrire ; la première cible réanalyse tout.
+- **Accès réseau** : seule l'instance qui exécute la vérification sort, vers
+  `listing_url` et l'adresse de l'archive qu'elle annonce (`grype.anchore.io` par défaut),
+  en HTTPS, par le mandataire de l'environnement (`HTTPS_PROXY`).
+- **Hors ligne** : `vulndb.offline: true`, et soit un **miroir interne** de la liste
+  (`listing_url` vers lui, `offline: false`), soit l'**import** d'une archive téléchargée
+  ailleurs (`vulnerability-db_v6.*.tar.zst`, liste d'Anchore), par l'écran d'import
+  d'administration (T11). L'archive importée passe les mêmes contrôles d'installation.
+- Rien du contenu des SBOM n'est journalisé par l'analyse.
 
 ## Agent dépôt
 

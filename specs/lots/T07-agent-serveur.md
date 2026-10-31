@@ -106,7 +106,7 @@ Réalisé le 31 octobre 2026, branche `lot/T07-agent-serveur`, en parallèle de 
   compte rendu, modes `daemon` (`Run` : intervalle, signaux de vie avec gigue, scan à la
   demande, reprise après échec à 15 min) et `oneshot` (`RunOnce`) ; `GOMAXPROCS` et
   `GOMEMLIMIT` posés par `main`. Couverture 83 %.
-- **Serveur** : migration **009** (`agents.scan_requested_at`, `host_context`,
+- **Serveur** : migration **011** (`agents.scan_requested_at`, `host_context`,
   `host_context_at`, contraintes « agent serveur seulement ») ; `agent.Heartbeat`
   (demande de scan remise une fois, contexte d'hôte, compte rendu d'inventaire),
   `agent.RecordHost`, `agent.RequestScan` (journal `agent.scan_requested`),
@@ -173,8 +173,8 @@ Réalisé le 31 octobre 2026, branche `lot/T07-agent-serveur`, en parallèle de 
 
 ### Écarts
 
-- Numéro de migration : 011 attribué, devenu **009** (règle de l'orchestrateur : premier
-  numéro libre et contigu, `main` à 008).
+- Numéro de migration : 011 attribué, provisoirement 009 puis de nouveau **011** après la fusion de T06 (règle de l'orchestrateur : premier
+  numéro libre et contigu après la dernière migration de `main`, 010 de T06).
 - « L'agent tourne sans root avec l'unité fournie » : pas de systemd dans l'environnement
   de réalisation ; vérifié par `systemd-analyze verify` et `security` (unités), et par
   `TestLeastPrivilege` (binaire réel sous `nobody`, `CAP_DAC_READ_SEARCH` seule, comme

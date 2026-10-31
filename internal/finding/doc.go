@@ -1,2 +1,13 @@
-// Package finding gère le cycle de vie des constats (référence × composant × vulnérabilité).
+// Package finding analyse les références et tient les constats (référence × composant ×
+// vulnérabilité), § 12 de l'architecture, ADR 0018.
+//
+//   - Analyzer est le handler d'analysis.ref : correspondance du SBOM d'origine de
+//     l'ensemble courant hors transaction, puis écriture sous verrou de ligne de la
+//     référence après contrôle de l'ensemble et de la base cible ; idempotent (même
+//     ensemble, même base : rien à faire). Il porte aussi analysis.rescan_all et
+//     analysis.rescan_org (réanalyse du parc après un changement de cible).
+//   - Cycle de vie : création, prolongation, résolution (composant retiré ou plus
+//     signalé) et réouverture, historique dans finding_events.
+//   - Service sert les lectures des écrans (onglet « Constats », fiches vulnérabilité et
+//     composant).
 package finding

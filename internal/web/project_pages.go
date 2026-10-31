@@ -281,8 +281,7 @@ func (id *identity) loadProject(w http.ResponseWriter, r *http.Request) (project
 	return p, true
 }
 
-// projectTab est un onglet de la fiche projet. Les constats (T06) s'ajoutent à
-// projectTabs.
+// projectTab est un onglet de la fiche projet.
 type projectTab struct {
 	LabelKey string
 	Href     string
@@ -293,6 +292,7 @@ func projectTabs(acc tenant.Access, p project.Project, current string) []project
 	base := orgBase(acc) + "/projects/" + p.Slug
 	tabs := []projectTab{
 		{LabelKey: "project.tab_overview", Href: base, Current: current == "overview"},
+		{LabelKey: "project.tab_findings", Href: base + "/findings", Current: current == "findings"},
 		{LabelKey: "project.tab_snapshots", Href: base + "/snapshots", Current: current == "snapshots"},
 	}
 	if acc.Role.AtLeast(tenant.RoleAdmin) {

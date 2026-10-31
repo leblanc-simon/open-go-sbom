@@ -138,3 +138,17 @@ ingest:
   max_depth: 64              # profondeur d'imbrication du JSON
   max_components: 50000      # composants CycloneDX, paquets SPDX, artefacts Syft
   decode_timeout: 5m         # durée maximale d'un job de décodage
+
+# Base de vulnérabilités Grype (docs/operations.md, « Base de vulnérabilités »). Une seule
+# instance interroge la liste ; l'archive vérifiée est stockée dans PostgreSQL et chaque
+# instance worker en tient une copie locale, synchronisée sur la cible commune.
+vulndb:
+  listing_url: https://grype.anchore.io/databases/v6/latest.json # liste de distribution, ou son miroir
+  dir: /var/lib/ogsbom/vulndb # copie locale (environ 3,5 Gio, le double pendant une bascule)
+  offline: false              # true : jamais de liste, bases importées seulement (site isolé)
+  check_interval: 6h          # fréquence d'interrogation de la liste
+  sync_interval: 1m           # fréquence à laquelle une instance worker vérifie sa copie
+  max_age: 120h               # au-delà, alerte d'administration (5 jours)
+  download_timeout: 30m       # durée maximale d'une interrogation ou d'un téléchargement
+  max_archive_mib: 2048       # taille maximale d'une archive
+  analysis_timeout: 10m       # durée maximale d'un job d'analyse, synchronisation comprise

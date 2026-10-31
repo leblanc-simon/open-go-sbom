@@ -14,21 +14,25 @@ import (
 	"leblanc.io/open-go-sbom/internal/pagination"
 	"leblanc.io/open-go-sbom/internal/render"
 	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/open-go-sbom/internal/vuln"
 )
 
 func adminNav(current string) []render.NavItem {
 	return []render.NavItem{
 		{LabelKey: "nav.admin_users", Href: "/admin/users", Current: current == "users"},
 		{LabelKey: "nav.admin_orgs", Href: "/admin/orgs", Current: current == "orgs"},
+		{LabelKey: "nav.admin_vulndb", Href: "/admin/vulndb", Current: current == "vulndb"},
 		{LabelKey: "nav.audit", Href: "/admin/audit", Current: current == "audit"},
 	}
 }
 
-// adminPage est l'en-tête commun de l'administration : l'avertissement « un seul
-// administrateur d'instance » y figure sur chaque page (§ 10 de l'architecture).
+// adminPage est l'en-tête commun de l'administration : les avertissements « un seul
+// administrateur d'instance » (§ 10 de l'architecture) et « base de vulnérabilités trop
+// ancienne » (§ 12) y figurent sur chaque page.
 type adminPage struct {
 	render.Page
 	SingleAdmin bool
+	VulnDBAlert *vulnDBAlert
 	FlashKey    string
 	Error       formError
 }
@@ -38,7 +42,12 @@ func (id *identity) adminPage(r *http.Request, title, nav string) (adminPage, er
 	if err != nil {
 		return adminPage{}, err
 	}
-	return adminPage{Page: render.Page{TitleKey: title, Nav: adminNav(nav)}, SingleAdmin: n < 2, FlashKey: flashKey(r)}, nil
+	st, err := vuln.ReadState(r.Context(), id.Pool.DB())
+	if err != nil {
+		return adminPage{}, err
+	}
+	return adminPage{Page: render.Page{TitleKey: title, Nav: adminNav(nav)}, SingleAdmin: n < 2, VulnDBAlert: id.vulnDBAlert(st),
+		FlashKey: flashKey(r)}, nil
 }
 
 type usersView struct {

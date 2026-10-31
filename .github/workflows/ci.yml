@@ -60,3 +60,18 @@ jobs:
         run: make build GOARCH=arm64
       - name: Paquets de l'agent serveur
         run: make packages
+
+  # Autoanalyse : SBOM des trois binaires par Syft, analyse par Grype (base téléchargée à
+  # chaque passage) ; échec sur une vulnérabilité activement exploitée (KEV).
+  selfscan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: SBOM et analyse des binaires
+        run: make selfscan GOARCH=amd64
