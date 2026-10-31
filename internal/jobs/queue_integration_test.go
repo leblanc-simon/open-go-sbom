@@ -108,22 +108,26 @@ func TestLoadTenThousandJobs(t *testing.T) {
 
 // Le bail est renouvelé tant que le handler tourne : un second runner ne prend pas le
 // job, même au-delà de la durée initiale du bail.
+//
+// Le handler dure plus de deux baux. Un bail de 1,5 s (renouvelé toutes les 500 ms)
+// laisse passer un renouvellement retardé d'une seconde sur une machine chargée ; avec
+// 300 ms, un retard de 200 ms suffisait à perdre le bail (échec en CI, T11).
 func TestLeaseIsRenewedWhileHandlerRuns(t *testing.T) {
 	t.Parallel()
 	tdb := dbtest.New(t)
 	var runs atomic.Int32
 	h := func(context.Context, Execution) error {
 		runs.Add(1)
-		time.Sleep(1200 * time.Millisecond)
+		time.Sleep(4 * time.Second)
 		return nil
 	}
 	for range 2 {
-		startRunner(t, tdb.App, RunnerOptions{Lease: 300 * time.Millisecond}, func(r *Runner) {
+		startRunner(t, tdb.App, RunnerOptions{Lease: 1500 * time.Millisecond}, func(r *Runner) {
 			mustRegister(t, r, "test.long", h)
 		})
 	}
 	id := enqueue(t, tdb.App, Job{Kind: "test.long"})
-	waitFor(t, 10*time.Second, "job terminé", func() bool { return status(t, tdb.App, id) == "done" })
+	waitFor(t, 20*time.Second, "job terminé", func() bool { return status(t, tdb.App, id) == "done" })
 	if r := readJob(t, tdb.App, id); runs.Load() != 1 || r.Attempts != 1 {
 		t.Fatalf("%d exécutions, %d tentatives : bail non renouvelé", runs.Load(), r.Attempts)
 	}

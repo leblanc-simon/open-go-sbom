@@ -451,8 +451,8 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   pose son jeton **et** son bail ; un test attend un événement observable (métrique
   `ogsbom_job_runs_total{outcome="lost"}`, canal) au lieu de dormir ; un bail de test se
   dimensionne pour qu'un renouvellement retardé de plusieurs centaines de millisecondes ne
-  le perde pas (3 s). `TestLeaseIsRenewedWhileHandlerRuns` (bail de 300 ms) reste à
-  surveiller.
+  le perde pas (3 s). `TestLeaseIsRenewedWhileHandlerRuns` (bail de 300 ms) a fini par échouer
+  en CI (revue de sécurité de T11) : bail porté à 1,5 s, handler de 4 s.
 - **Reproduire une instabilité de charge** : `GOMAXPROCS=1 taskset -c 0` seul ne suffit
   pas (50 passages verts) ; il faut partager le cœur avec des boucles actives
   (`taskset -c 0 sh -c 'while :; do :; done'` ×40) : 3 échecs sur 30. Un test de
