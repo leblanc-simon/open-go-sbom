@@ -25,7 +25,12 @@ offre recherche transverse, triage et tableaux de bord. Multi-organisation, en G
 
 ## État actuel
 
-Squelette en place (T00 terminé). Prochain lot : [T01 — Socle du serveur](specs/lots/T01-socle-serveur.md).
+T00 et T01 terminés : `ogsbom-server` démarre, migre, sert une page d'accueil traduite,
+ses sondes et ses métriques. Prochains lots, en parallèle :
+[T02 — File de traitements](specs/lots/T02-file-de-traitements.md) et
+[T03 — Comptes et organisations](specs/lots/T03-comptes-organisations.md). Le socle
+réutilisable (config, `db.InOrg`, `dbtest`, rendu, i18n, problèmes RFC 9457, pagination,
+`webtest`) est décrit dans les `doc.go` et dans le Journal de T01.
 
 ## Règles de travail
 
@@ -82,6 +87,9 @@ make test-integration   # tests étiquetés integration ; PostgreSQL : docker co
                         # (OGSBOM_TEST_DATABASE_DSN, par défaut postgres://postgres:postgres@localhost:5432/postgres)
 make lint               # staticcheck (go tool)
 make vuln               # govulncheck (go tool)
-make generate           # code généré depuis api/openapi.yaml
+make generate           # code généré depuis api/openapi.yaml (à committer avant make ci)
 make build              # bin/ogsbom-server, bin/ogsbom-host-agent, bin/ogsbom-repo-agent (CGO_ENABLED=0)
+make run                # serveur avec config.yaml (cp config.example.yaml config.yaml)
 ```
+
+Exploitation (configuration, rôles PostgreSQL, TLS, sondes) : [`docs/operations.md`](docs/operations.md).

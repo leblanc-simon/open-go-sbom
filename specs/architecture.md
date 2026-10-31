@@ -50,9 +50,12 @@ cmd/
   ogsbom-repo-agent/
 internal/
   config/                # Config composée : fragments appconf + fragments propres
-  db/                    # pool, transactions (InTx, InOrg), verrous, migrations
+  db/                    # pool, transactions (InTx, InOrg), démarrage, migrations
     crossorg/            # seules fonctions inter-organisations (SECURITY DEFINER), § 9
+    dbtest/              # base et rôles jetables pour chaque test d'intégration
     migrations/          # NNN_<sujet>.sql, immuables une fois publiées
+  locale/                # traductions embarquées, choix de la langue (§ 18), sans HTTP
+  pagination/            # curseurs opaques et pages bornées (§ 15)
   jobs/                  # file de traitements PostgreSQL + planificateur
   secret/                # chiffrement des secrets stockés (AES-256-GCM, clés versionnées)
   ratelimit/             # limiteur par jeton pour l'API agent (en complément d'open-go-base)
@@ -76,9 +79,12 @@ internal/
   triage/ policy/ notify/ # lot 2
   license/
     grant/               # lot 3
-  web/                   # routeur chi, middlewares, handlers HTML par écran
+  web/                   # routeur chi, handlers HTML par écran, gestion, serveurs
+    middleware/          # identifiant de requête, journal, en-têtes, langue, métriques
+    webtest/             # assistant de test : accessibilité, absence de code en ligne
   api/                   # handlers REST (interfaces générées depuis api/openapi.yaml)
     gen/                 # code généré, jamais modifié à la main
+    problem/             # erreurs RFC 9457
   render/                # moteur de gabarits, FuncMap, empreinte des assets, SVG
   agentclient/           # client de l'API agent (généré), partagé par les deux agents
   hostagent/             # pipeline de l'agent serveur
@@ -87,11 +93,13 @@ internal/
   llm/                   # fournisseurs de modèles (lot 2)
   archtest/              # tests d'architecture (§ 4)
 api/openapi.yaml         # contrat de l'API, source unique
-web/
+web/                     # paquet Go qui embarque gabarits et fichiers statiques
   templates/             # layout, partials, un dossier par écran
-  static/css/            # tokens.css, base.css, components/*.css, screens/*.css
+  static/css/            # tokens.css, fonts.css, base.css, components/*.css, screens/*.css
   static/js/             # modules ES, un par écran, sans build
-locales/                 # en.yaml, fr.yaml (embarqués)
+  static/fonts/          # Atkinson Hyperlegible Next et Mono (WOFF2, licence OFL)
+locales/                 # en.yaml, fr.yaml (paquet Go qui les embarque)
+config.example.yaml      # configuration commentée du serveur
 deploy/                  # compose.yaml (dev), unités systemd, configs de paquets, Containerfile
 docs/                    # cahier des charges, adr/, operations.md, benchmarks.md, security/
 specs/                   # ce document, index des lots, fiches de lots
@@ -157,14 +165,19 @@ confinement des fichiers (`os.Root`).
 ## 6. Configuration
 
 `internal/config.Config` compose les fragments d'`appconf` avec le préfixe `OGSBOM_` :
-`Web`, `Logging`, `I18n`, `Database`, `Auth`, `MFA`, `CORS`. Fragments propres au projet :
+`Web`, `Logging`, `I18n`, `Database` (complété par les réglages du pool et l'attente au
+démarrage), `Auth` et `MFA` (avec authx et mfax, T03), `CORS` (API utilisateur). Fragments
+propres au projet : `HTTP` (délais des serveurs, délai d'arrêt propre),
 `TLS` (certificat, clé, autorité des certificats clients pour le mTLS des agents),
 `Management` (écoute séparée métriques et sondes), `Workers`, `Ingest` (bornes),
 `VulnDB` (URL de la liste, répertoire local, fréquence, mode hors ligne), `Secrets` (clés
 de chiffrement versionnées), `Bootstrap` (premier administrateur), `Migration`
 (`migration_dsn` : connexion du rôle propriétaire, utilisée uniquement pour migrer).
 `Database.DSN` est la connexion du rôle d'exécution. `--help` liste toutes les variables
-d'environnement. Un `config.example.yaml` commenté accompagne chaque binaire.
+d'environnement. Un `config.example.yaml` commenté accompagne chaque binaire. Un fragment
+n'entre dans `Config` qu'avec le lot qui l'utilise : aucune variable sans effet. Défauts
+propres au projet, posés avant le chargement : pilote `postgres`, langue `fr`, journaux
+`info`.
 
 Contrôles au démarrage :
 
@@ -203,7 +216,11 @@ Contrôles au démarrage :
   (`LOCK TABLE ogsbom_schema_migrations IN EXCLUSIVE MODE`) sur une connexion dédiée →
   authx → mfax → projet (dont politiques RLS, droits du rôle d'exécution et fonctions de
   `crossorg`) → validation. Une seconde instance attend le verrou puis constate qu'il n'y a
-  rien à faire.
+  rien à faire. Les migrations du projet, leur enregistrement et la validation partagent
+  la transaction du verrou (tout ou rien, donc pas de `CREATE INDEX CONCURRENTLY`) ; le
+  rôle d'exécution, lu dans `database.dsn`, leur est déclaré dans `ogsbom.app_role` ; la
+  validation refuse toute table d'organisation sans la RLS standard (ADR 0010). Sans
+  `migration.dsn`, une instance ne migre pas et refuse un schéma en retard.
 - Accès : un « store » par paquet métier, qui ne renvoie que des types du domaine.
 - Transactions : `db.InOrg(ctx, orgID, func(tx) error)` pour toute donnée d'organisation
   (§ 9), `db.InTx(ctx, func(tx) error)` pour les seules tables globales ; aucune transaction
@@ -266,7 +283,10 @@ rétention supprime les ensembles orphelins.
 - Toute table d'organisation a `ENABLE` et `FORCE ROW LEVEL SECURITY`, et une politique
   `USING (org_id = current_setting('ogsbom.org_id')::uuid)` avec la même condition en
   `WITH CHECK` (pour `organizations`, la colonne est `id`). PostgreSQL limite ainsi lecture
-  et écriture à l'organisation déclarée, même si une requête oublie son filtre.
+  et écriture à l'organisation déclarée, même si une requête oublie son filtre. Une
+  migration la pose par `CALL ogsbom_enforce_org_rls('table')` (ou
+  `('organizations', 'id')`) ; le démarrage refuse une table à `org_id NOT NULL` qui ne
+  l'a pas, ou qui a en plus une politique permissive étrangère à `ogsbom.org_id`.
 - `db.InOrg(ctx, orgID, fn)` ouvre une transaction et y déclare l'organisation par
   `set_config('ogsbom.org_id', $1, true)` : portée limitée à la transaction, donc
   compatible avec un pool de connexions et avec pgbouncer. C'est le seul accès aux tables
@@ -424,16 +444,21 @@ isolation en sous-processus est étudiée en ADR pendant T05.
   - API utilisateur (`/api/v1/orgs/{org}/`) : jeton personnel sans CSRF, ou session avec
     en-tête CSRF pour le JavaScript de l'interface.
 - CSP : `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;
-  frame-ancestors 'none'; form-action 'self'`. Aucun script ni style en ligne.
+  frame-ancestors 'none'; form-action 'self'; base-uri 'none'`. Aucun script ni style en
+  ligne. Réponses d'API : `default-src 'none'; frame-ancestors 'none'; base-uri 'none'`.
 - Gabarits `html/template` : un layout, des partials, un dossier par écran. Chaque écran a
   un modèle de vue typé construit dans `internal/web/<écran>` ; les gabarits ne font que de
-  l'affichage. Les fonctions qui dépendent de la requête (`T`, `Tn`, `csrfField`) imposent
-  soit un clonage par requête d'un jeu de gabarits jamais exécuté, soit le passage du
-  traducteur dans les données : ADR en T01.
+  l'affichage. Les fonctions de traduction sont liées à un jeu de gabarits par page et par
+  langue, préparé au démarrage ; ce qui dépend de la requête (jeton CSRF, thème,
+  identifiant de requête) passe par `render.Page`, que le rendu remplit (ADR 0009).
 - CSS natif imbriqué, sans préprocesseur : `tokens.css` (propriétés personnalisées, thèmes
-  clair et sombre via `prefers-color-scheme` et `[data-theme]`), `base.css`, un fichier par
+  clair et sombre : couleurs en `light-dark()`, qui suit `prefers-color-scheme`, et
+  `color-scheme` imposé par `[data-theme]`), `fonts.css`, `base.css`, un fichier par
   composant et par écran. Modificateurs BEM écrits `&.bloc--modificateur`. Au démarrage, le
-  serveur concatène les fichiers embarqués en une feuille dont l'URL porte l'empreinte.
+  serveur concatène les feuilles embarquées en `css/app.css` et sert tous les fichiers
+  statiques sous `/static/<empreinte>/` (immuables, un an de cache). La bascule de thème
+  mémorise le choix dans `localStorage` et dans le cookie `ogsbom_theme`, que le serveur
+  lit pour rendre `data-theme` dès la première peinture, sans script en ligne.
 - JavaScript : modules ES natifs, un par écran, amélioration progressive ; chaque page
   fonctionne sans JS. Les libellés arrivent traduits via des attributs `data-`.
 - Graphiques en SVG produits côté serveur, avec titre, description et tableau de données.
@@ -451,7 +476,9 @@ isolation en sous-processus est étudiée en ADR pendant T05.
   `/api/v1/orgs/{org}/`. Le point compatible Dependency-Track (T19) vit sous `/dt/` pour ne
   pas mêler son espace d'URL au nôtre.
 - Erreurs au format RFC 9457 (`application/problem+json`) : `type` porte une clé stable
-  (`error.ingest.too_large`), `detail` le message traduit selon la langue de la requête.
+  (`error.ingest.too_large`), `title` et `detail` les messages traduits de
+  `<clé>.title` et `<clé>.text` selon la langue de la requête, `instance` le chemin et
+  `request_id` l'identifiant de requête (`internal/api/problem`).
 - Pagination par curseur opaque. Toute réponse liste est bornée.
 
 ## 16. File de traitements
@@ -496,7 +523,10 @@ isolation en sous-processus est étudiée en ADR pendant T05.
 
 - `locales/en.yaml` et `locales/fr.yaml`, embarqués (`i18n.NewFS`). Langue choisie dans cet
   ordre : `?lang=`, préférence du compte, `Accept-Language`, langue de l'organisation, langue
-  par défaut de l'instance.
+  par défaut de l'instance. Le middleware de langue précède la garde d'organisation
+  (§ 14) : celle-ci (T03) recalcule la langue avec la langue de l'organisation
+  (`middleware.ResolveLanguage`). Hors requête, `locale.Catalog` donne le localiseur
+  d'une langue.
 - Clés en anglais `écran.élément` (`login.email`, `search.placeholder`). Racines
   transverses : `format.*`, `status.*`, `severity.*`, `validation.*`, `error.*`, `nav.*`.
 - Le code serveur ne concatène jamais de fragments traduits : il renvoie une clé et des
@@ -530,7 +560,7 @@ isolation en sous-processus est étudiée en ADR pendant T05.
 - Écoute de gestion séparée : `/metrics` (Prometheus), `/healthz`, `/readyz`. `/readyz`
   vérifie la base et les migrations sur toutes les instances, et la base Grype chargée
   seulement si `workers.enabled` : une instance purement web reste disponible, y compris
-  pour importer une base sur un site isolé.
+  pour importer une base sur un site isolé. Dès le début d'un arrêt, `/readyz` répond 503.
 - Arrêt propre sur SIGTERM : fin des requêtes en cours, libération des baux de jobs.
 - `docs/operations.md` : installation, configuration, sauvegarde, mise à jour, rotation des
   clés, sites isolés, procédure de secours des administrateurs.

@@ -74,7 +74,7 @@ parades prévues, et le lot qui les porte.
 | Ligne qui référence une autre organisation | clés étrangères composites | T03 → |
 | Rôle d'exécution trop puissant | refus de démarrer si superutilisateur, `BYPASSRLS` ou propriétaire des tables | T01 |
 | Migration altérée après publication | somme SHA-256 vérifiée au démarrage | T01 |
-| Fuite de secrets stockés | AES-256-GCM, clé hors base, rotation | T01 |
+| Fuite de secrets stockés | AES-256-GCM, clé hors base, rotation ; données associées liant chaque chiffré à sa ligne (un chiffré recopié ailleurs ne se déchiffre plus) | T01 |
 | Fuite par les journaux | jamais de mot de passe, jeton, secret ni contenu de SBOM dans les journaux | tous |
 
 ### Base de vulnérabilités

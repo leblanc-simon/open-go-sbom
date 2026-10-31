@@ -43,7 +43,7 @@ sur les choix techniques ; une fiche de lot précise le quoi et le comment d'une
 | Id | Lot technique | Lot fonctionnel | Dépend de | Statut |
 | --- | --- | --- | --- | --- |
 | [T00](lots/T00-fondations.md) | Fondations du dépôt et outillage qualité | 1 | — | Terminé |
-| [T01](lots/T01-socle-serveur.md) | Socle du serveur | 1 | T00 | À faire |
+| [T01](lots/T01-socle-serveur.md) | Socle du serveur | 1 | T00 | Terminé |
 | [T02](lots/T02-file-de-traitements.md) | File de traitements PostgreSQL | 1 | T01 | À faire |
 | [T03](lots/T03-comptes-organisations.md) | Comptes, TOTP et organisations | 1 | T01 | À faire |
 | [T04](lots/T04-projets-agents.md) | Projets, agents et jetons | 1 | T03 | À faire |
