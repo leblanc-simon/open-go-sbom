@@ -108,7 +108,7 @@
   <section class="panel" aria-labelledby="affected-title">
     <div class="panel__head">
       <h2 class="panel__title" id="affected-title">{{T "vulnerability.affected_projects"}}</h2>
-      <span class="panel__meta">{{T "vulnerability.affected_meta" "Findings" .Counts.Open "Projects" .Counts.Projects}}</span>
+      <span class="panel__meta">{{Tn "vulnerability.open_findings" .Counts.Open}} · {{Tn "vulnerability.projects_count" .Counts.Projects}}</span>
       <nav class="segmented panel__action" aria-label="{{T "vulnerability.filter_state"}}">
         {{- range .States}}<a href="{{.Href}}"{{if .Current}} aria-current="true"{{end}}><span>{{T .LabelKey}}</span> {{.Count}}</a>{{end}}
       </nav>

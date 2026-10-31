@@ -907,7 +907,12 @@ vulnerability:
   references: Weaknesses and references
   no_references: No reference.
   affected_projects: Affected projects
-  affected_meta: "{{.Findings}} open findings in {{.Projects}} projects"
+  open_findings:
+    one: "{{.Count}} open finding"
+    other: "{{.Count}} open findings"
+  projects_count:
+    one: "{{.Count}} project"
+    other: "{{.Count}} projects"
   filter_state: Filter by state
   state_open: Open
   state_resolved: Resolved
@@ -921,7 +926,15 @@ vulnerability:
 
 component:
   title: "{{.Name}}"
-  summary: "{{.Projects}} projects · {{.Versions}} versions · {{.Occurrences}} occurrences"
+  projects_count:
+    one: "{{.Count}} project"
+    other: "{{.Count}} projects"
+  versions_count:
+    one: "{{.Count}} version"
+    other: "{{.Count}} versions"
+  occurrences_count:
+    one: "{{.Count}} occurrence"
+    other: "{{.Count}} occurrences"
   type: "Type: {{.Type}}"
   licenses: Licenses
   truncated: This component is very widespread; only the first 500 occurrences are taken into account.
@@ -929,7 +942,6 @@ component:
   col_version: Version
   col_share: Share
   col_occurrences: Occurrences
-  occurrences_in_projects: "{{.Occurrences}} occurrences · {{.Projects}} projects"
   legend_vulnerable: Vulnerable version
   legend_clean: No known vulnerability
   vulns_by_version: Vulnerabilities by version

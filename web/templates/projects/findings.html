@@ -57,7 +57,7 @@
           <form class="form-row" method="get" action="{{$.Base}}/projects/{{$p.Slug}}/findings">
             <input type="hidden" name="ref" value="{{.ID}}">
             {{- with $.StatusValue}}<input type="hidden" name="status" value="{{.}}">{{end}}
-            <div class="field">
+            <div class="field field--narrow">
               <label class="field__label" for="findings-severity">{{T "findings.severity"}}</label>
               <select class="select" id="findings-severity" name="severity">
                 {{- range $.Severities}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>{{end}}

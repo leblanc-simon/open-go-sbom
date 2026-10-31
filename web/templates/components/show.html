@@ -14,7 +14,9 @@
       <code class="muted">{{$c.PURLBase}}</code>
     </div>
     <p class="page-head__meta">
-      <span>{{T "component.summary" "Projects" .Projects "Versions" (len .Versions) "Occurrences" (len .Usage)}}</span>
+      <span>{{Tn "component.projects_count" .Projects}}</span>
+      <span>{{Tn "component.versions_count" (len .Versions)}}</span>
+      <span>{{Tn "component.occurrences_count" (len .Usage)}}</span>
       <span>{{T "component.type" "Type" $c.Type}}</span>
       {{- if .Licenses}}<span>{{T "component.licenses"}}</span>{{range .Licenses}}<span class="chip">{{.}}</span>{{end}}{{end}}
     </p>
@@ -39,7 +41,7 @@
             <tr>
               <th scope="row" class="version">{{.Version}}</th>
               <td><svg class="bars__track{{if .Vulnerable}} bars__track--vulnerable{{end}}" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="bar__track" width="100" height="8"></rect><rect class="bar__fill" width="{{.Width}}" height="8"></rect></svg>{{if .Vulnerable}}<span class="visually-hidden">{{T "component.legend_vulnerable"}}</span>{{end}}</td>
-              <td>{{T "component.occurrences_in_projects" "Occurrences" .Count "Projects" .Projects}}</td>
+              <td>{{Tn "component.occurrences_count" .Count}} · {{Tn "component.projects_count" .Projects}}</td>
             </tr>
             {{- end}}
           </tbody>

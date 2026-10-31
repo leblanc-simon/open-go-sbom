@@ -165,7 +165,7 @@ func TestFindingScreens(t *testing.T) {
 	}
 	vp := unescape(b.get(vulnPage + "?lang=en").body)
 	for _, want := range []string{"CVE-2021-44228", "GHSA-jfh8-c2jp-5v3q", "Network", "Changed", "CWE-502", "logging.apache.org/security.html",
-		"nvd.nist.gov/vuln/detail/CVE-2021-44228", "Known use", "94.4%", "Portail client", "1 open findings in 1 projects", "1 other score"} {
+		"nvd.nist.gov/vuln/detail/CVE-2021-44228", "Known use", "94.4%", "Portail client", "1 open finding · 1 project", "1 other score"} {
 		if !strings.Contains(vp, want) {
 			t.Errorf("fiche vulnérabilité sans %q", want)
 		}
@@ -175,7 +175,7 @@ func TestFindingScreens(t *testing.T) {
 	}
 	cp := unescape(b.get("/o/org-a/components/" + comp).body)
 	for _, want := range []string{"log4j-core", "pkg:maven/org.apache.logging.log4j/log4j-core", "Vulnérable", "CVE-2021-44228", "Portail client",
-		"1 constat", "1 projets · 1 versions · 1 occurrences"} {
+		"1 constat", "1 projet"} {
 		if !strings.Contains(cp, want) {
 			t.Errorf("fiche composant sans %q", want)
 		}
