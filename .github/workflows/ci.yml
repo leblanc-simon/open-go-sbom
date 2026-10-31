@@ -58,3 +58,5 @@ jobs:
         run: make build GOARCH=amd64
       - name: Construction arm64
         run: make build GOARCH=arm64
+      - name: Paquets de l'agent serveur
+        run: make packages

@@ -29,6 +29,24 @@ build: ## Construit les trois binaires dans bin/
 		CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/$$b ./cmd/$$b || exit 1; \
 	done
 
+# Agent serveur : architectures livrées et version des paquets : celle de l'étiquette sans
+# son « v », sinon 0.0.0~<commit> (une version deb ou rpm commence par un chiffre).
+AGENT_ARCHES := amd64 arm64
+PKG_VERSION  := $(shell echo '$(VERSION)' | sed -E 's/^v//; /^[0-9]+[.][0-9]/!s/^/0.0.0~/; s/-/./g')
+
+.PHONY: packages
+packages: ## Binaires de l'agent serveur (amd64, arm64) et paquets deb et rpm dans dist/
+	@mkdir -p dist
+	@for a in $(AGENT_ARCHES); do \
+		echo "build ogsbom-host-agent (linux/$$a, $(VERSION))"; \
+		CGO_ENABLED=0 GOOS=linux GOARCH=$$a $(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/linux-$$a/ogsbom-host-agent ./cmd/ogsbom-host-agent || exit 1; \
+		mkdir -p bin/package && cp bin/linux-$$a/ogsbom-host-agent bin/package/ogsbom-host-agent || exit 1; \
+		for p in deb rpm; do \
+			PKG_ARCH=$$a PKG_VERSION=$(PKG_VERSION) $(GO) tool nfpm package --config deploy/nfpm/host-agent.yaml --packager $$p --target dist/ || exit 1; \
+		done; \
+	done
+	@ls -l bin/linux-*/ogsbom-host-agent dist/
+
 .PHONY: run
 run: build ## Lance le serveur avec config.yaml
 	./bin/ogsbom-server -c config.yaml
@@ -74,7 +92,7 @@ test-integration: ## Tests d'intégration (PostgreSQL : docker compose -f deploy
 	$(GO) test -race -count=1 -tags integration ./...
 
 .PHONY: ci
-ci: fmt-check generate-check vet lint test-race test-integration vuln build ## Toutes les vérifications de la CI
+ci: fmt-check generate-check vet lint test-race test-integration vuln build packages ## Toutes les vérifications de la CI
 
 .PHONY: clean
 clean: ## Supprime les artefacts

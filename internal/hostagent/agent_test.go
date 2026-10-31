@@ -35,6 +35,10 @@ type fakeServer struct {
 	scanPending bool
 	lastContext gen.IngestionContext
 	sbom        []byte
+	// fingerprintOf calcule l'empreinte rangée d'après le SBOM reçu (gzip) ; nil :
+	// pendingFingerprint.
+	fingerprintOf func([]byte) string
+	pending       string
 }
 
 func (f *fakeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -88,6 +92,10 @@ func (f *fakeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		p, _ = mr.NextPart()
 		f.sbom, _ = io.ReadAll(p)
 		f.uploads++
+		f.pending = pendingFingerprint
+		if f.fingerprintOf != nil {
+			f.pending = f.fingerprintOf(f.sbom)
+		}
 		id := uuid.New()
 		write(http.StatusAccepted, gen.Ingestion{Id: id, Status: gen.Queued, ProjectId: f.projectID})
 		if f.failNext {
@@ -103,7 +111,7 @@ func (f *fakeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			in.Status, in.Error = gen.Failed, &gen.IngestionError{Key: "error.ingest.schema_invalid"}
 			f.current = ""
 		} else if f.current == "attente:"+id {
-			f.current = pendingFingerprint
+			f.current = f.pending
 		}
 		write(http.StatusOK, in)
 	default:
