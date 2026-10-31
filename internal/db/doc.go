@@ -42,6 +42,6 @@
 // Migrate applique les fichiers de internal/db/migrations sous un verrou (LOCK TABLE
 // ogsbom_schema_migrations IN EXCLUSIVE MODE, sur une connexion dédiée), dans une seule
 // transaction, enregistre leur somme SHA-256 et refuse une migration publiée modifiée.
-// Les migrations d'authx et de mfax s'y branchent par MigrateOptions.Before (T03). Avant
+// Les migrations d'authx puis de mfax sont jouées sous ce verrou, avant celles du projet. Avant
 // de valider, CheckOrgIsolation refuse toute table d'organisation sans la RLS standard.
 package db

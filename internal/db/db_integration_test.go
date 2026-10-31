@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -35,6 +36,16 @@ func withMigrations(t *testing.T, extra map[string]string) fstest.MapFS {
 		fsys[name] = &fstest.MapFile{Data: []byte(body)}
 	}
 	return fsys
+}
+
+// nextMigration nomme la offset-ième migration de test après celles du projet.
+func nextMigration(t *testing.T, offset int, subject string) string {
+	t.Helper()
+	all, err := db.LoadMigrations(migrations.FS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return fmt.Sprintf("%03d_%s.sql", len(all)+offset, subject)
 }
 
 func countMigrations(t *testing.T, q db.Querier) int {
@@ -136,12 +147,13 @@ func TestMigrateRefusesNewerDatabase(t *testing.T) {
 	ctx := context.Background()
 	tdb := dbtest.New(t, dbtest.WithoutMigrations())
 	owner := tdb.Owner(t)
-	newer := withMigrations(t, map[string]string{"002_future.sql": "SELECT 1"})
+	future := nextMigration(t, 1, "future")
+	newer := withMigrations(t, map[string]string{future: "SELECT 1"})
 	if _, err := db.Migrate(ctx, owner, db.MigrateOptions{AppRole: tdb.AppRole, Migrations: newer}); err != nil {
 		t.Fatal(err)
 	}
 	_, err := db.Migrate(ctx, owner, db.MigrateOptions{AppRole: tdb.AppRole})
-	if !errors.Is(err, db.ErrUnknownMigration) || !strings.Contains(err.Error(), "002_future.sql") {
+	if !errors.Is(err, db.ErrUnknownMigration) || !strings.Contains(err.Error(), future) {
 		t.Fatalf("err = %v, attendu ErrUnknownMigration", err)
 	}
 }
@@ -151,8 +163,8 @@ func TestMigrateIsAllOrNothing(t *testing.T) {
 	ctx := context.Background()
 	tdb := dbtest.New(t, dbtest.WithoutMigrations())
 	broken := withMigrations(t, map[string]string{
-		"002_table.sql":  "CREATE TABLE t_ok (id int)",
-		"003_broken.sql": "CREATE TABLE t_broken (id int, oops)",
+		nextMigration(t, 1, "table"):  "CREATE TABLE t_ok (id int)",
+		nextMigration(t, 2, "broken"): "CREATE TABLE t_broken (id int, oops)",
 	})
 	if _, err := db.Migrate(ctx, tdb.Owner(t), db.MigrateOptions{AppRole: tdb.AppRole, Migrations: broken}); err == nil {
 		t.Fatal("migration invalide acceptée")
@@ -231,16 +243,20 @@ func TestMigrateRefusesUnprotectedOrgTable(t *testing.T) {
 		"politique restrictive en plus": {`CREATE TABLE things (org_id uuid NOT NULL, v text);
 			CALL ogsbom_enforce_org_rls('things');
 			CREATE POLICY not_empty ON things AS RESTRICTIVE USING (v <> '')`, false},
-		"organizations sans RLS": {"CREATE TABLE organizations (id uuid PRIMARY KEY)", true},
-		"organizations protégée": {`CREATE TABLE organizations (id uuid PRIMARY KEY);
-			CALL ogsbom_enforce_org_rls('organizations', 'id')`, false},
+		// La table organizations du projet existe déjà (004) : le contrôle porte sur le nom
+		// dans tout schéma utilisateur.
+		"organizations sans RLS": {`CREATE SCHEMA other;
+			CREATE TABLE other.organizations (id uuid PRIMARY KEY)`, true},
+		"organizations protégée": {`CREATE SCHEMA other;
+			CREATE TABLE other.organizations (id uuid PRIMARY KEY);
+			CALL ogsbom_enforce_org_rls('other.organizations', 'id')`, false},
 		"table globale à org_id facultatif": {"CREATE TABLE jobs (org_id uuid, kind text)", false},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			tdb := dbtest.New(t, dbtest.WithoutMigrations())
-			fsys := withMigrations(t, map[string]string{"002_test.sql": c.sql})
+			fsys := withMigrations(t, map[string]string{nextMigration(t, 1, "test"): c.sql})
 			_, err := db.Migrate(context.Background(), tdb.Owner(t), db.MigrateOptions{AppRole: tdb.AppRole, Migrations: fsys})
 			if c.wantErr != errors.Is(err, db.ErrUnprotectedOrgTable) {
 				t.Fatalf("err = %v, attendu en erreur : %v", err, c.wantErr)
@@ -338,7 +354,7 @@ func quote(s string) string { return `"` + s + `"` }
 func rlsDB(t *testing.T) *dbtest.DB {
 	t.Helper()
 	tdb := dbtest.New(t, dbtest.WithoutMigrations())
-	fsys := withMigrations(t, map[string]string{"002_probe.sql": `
+	fsys := withMigrations(t, map[string]string{nextMigration(t, 1, "probe"): `
 		CREATE TABLE probe (org_id uuid NOT NULL, v text NOT NULL);
 		CALL ogsbom_enforce_org_rls('probe');`})
 	if _, err := db.Migrate(context.Background(), tdb.Owner(t), db.MigrateOptions{AppRole: tdb.AppRole, Migrations: fsys}); err != nil {

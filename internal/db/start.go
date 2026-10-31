@@ -20,7 +20,7 @@ type StartOptions struct {
 	MigrationDSN      string
 	MigrationMaxConns int
 	LockTimeout       time.Duration
-	// Before est passé à Migrate (authx, mfax en T03).
+	// Before est passé à Migrate (après authx et mfax, toujours joués).
 	Before []Step
 	Logger *slog.Logger
 }
