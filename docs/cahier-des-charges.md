@@ -74,7 +74,7 @@ Deux agents envoient leurs SBOM à une API d'ingestion unique ; le serveur analy
 
 ```mermaid
 flowchart TB
-    repos["Dépôts git<br/>GitHub, GitLab, Forgejo"]
+    repos["Dépôts git<br/>GitHub, GitLab"]
     servers["Serveurs Linux<br/>hôte et conteneurs"]
     model["Modèle IA<br/>Claude ou Ollama"]
     agentAI["Agent IA dépôts<br/>Syft, puis IA avec preuves<br/>service externe planifié"]
@@ -130,7 +130,7 @@ L'agent IA part d'un SBOM produit de façon déterministe par Syft, puis comble 
 
 **Exigences**
 
-- Service externe aux projets, sur la machine du serveur ou une machine dédiée : il clone lui-même les dépôts déclarés, selon un calendrier ou sur les webhooks de push des forges (GitHub, GitLab, Forgejo). Accès par une application installée sur la forge, en lecture seule : GitHub App sur GitHub ; sur GitLab et Forgejo, qui n'ont pas d'équivalent, un compte de service au niveau du groupe ou de l'organisation. Elle fournit aussi les webhooks et le droit de publier les statuts de commit ; ses secrets sont chiffrés au repos.
+- Service externe aux projets, sur la machine du serveur ou une machine dédiée : il clone lui-même les dépôts déclarés, selon un calendrier ou sur les webhooks de push des forges (GitHub et GitLab ; Forgejo plus tard). Accès par une application installée sur la forge, en lecture seule : GitHub App sur GitHub ; sur GitLab, qui n'a pas d'équivalent, un compte de service au niveau du groupe ou de l'organisation. Elle fournit aussi les webhooks et le droit de publier les statuts de commit ; ses secrets sont chiffrés au repos.
 - Fournisseur de modèle configurable : API Claude ou modèle local (Ollama) pour le code qui ne doit pas sortir de l'organisation.
 - Repli sans IA : sans modèle configuré ou en cas d'erreur, l'agent envoie le SBOM Syft seul et le signale.
 - Coût borné : budget de jetons par analyse ; l'IA ne relit que les fichiers modifiés depuis le dernier instantané.
@@ -200,7 +200,7 @@ Le serveur reçoit les SBOM, les range dans un inventaire unique indexé par pur
 
 - Règles déclaratives, par exemple : vulnérabilité KEV sur un projet de production ; critique avec correctif disponible depuis plus de 30 jours ; licence AGPL dans un produit distribué ; agent muet depuis 7 jours.
 - Canaux : e-mail, webhook générique, Matrix, Mattermost, Slack ; résumé quotidien ou alerte immédiate selon la règle.
-- Statut de commit : le verdict des politiques est publié sur la forge (GitHub, GitLab, Forgejo) une fois l'analyse d'un commit terminée.
+- Statut de commit : le verdict des politiques est publié sur la forge (GitHub et GitLab) une fois l'analyse d'un commit terminée.
 
 ## 8. Tableau de bord et recherche
 
