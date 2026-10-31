@@ -165,7 +165,10 @@ prend n'importe quel job, et un job survit au redémarrage de toutes les instanc
   40 s…), plafonné à `workers.retry_max` (30 min), plus une gigue de 0 à 20 %. Après son
   nombre maximal de tentatives (10 par défaut), ou sur une erreur définitive, il passe au
   statut `dead` avec sa dernière erreur ; il y reste jusqu'à ce qu'un administrateur le
-  relance ou le supprime (écran d'administration, T11).
+  relance ou l'abandonne depuis **Administration → Traitements** (liste des traitements
+  en échec avec leur organisation, leurs tentatives et leur dernière erreur ; compteurs de
+  la file). Relancer remet le job en attente avec toutes ses tentatives ; abandonner le
+  supprime. Chaque action est inscrite au journal d'audit de l'instance.
 - **Priorités et plafonds** : un job prioritaire (une ingestion fraîche) passe avant le
   travail de fond (réanalyse de toutes les références). Les types lourds (décodage des
   SBOM, analyses) sont plafonnés à `workers.org_limit` (2) jobs simultanés par
@@ -400,8 +403,11 @@ Les SBOM sont confrontés à la base de vulnérabilités de **Grype** (schéma v
    références actives, en priorité basse ; une ingestion fraîche passe devant.
 
 L'écran **Administration → Base de vulnérabilités** montre la cible (date de
-construction, schéma, taille, origine, somme), la dernière vérification et son erreur,
-les archives stockées. Au-delà de `vulndb.max_age` (5 jours par défaut), ou sans base, un
+construction, âge, schéma, taille, origine, somme), la dernière vérification et son
+erreur, la **version chargée par chaque instance worker** (à jour, en retard, aucune base,
+ou sans nouvelles depuis 15 min ou trois `vulndb.sync_interval` ; table
+`vulndb_instances`, rapportée à chaque synchronisation, retirée à l'arrêt propre, oubliée
+après 7 jours sans nouvelles), les derniers imports et les archives stockées. Au-delà de `vulndb.max_age` (5 jours par défaut), ou sans base, un
 avertissement apparaît sur toutes les pages d'administration et `ogsbom_vulndb_stale`
 vaut 1 : à surveiller (alerte Prometheus conseillée sur `ogsbom_vulndb_stale == 1`).
 
@@ -413,7 +419,7 @@ vaut 1 : à surveiller (alerte Prometheus conseillée sur `ogsbom_vulndb_stale =
 | `check_interval` | 6 h | fréquence de vérification (au moins 10 min ; Anchore publie chaque jour) |
 | `sync_interval` | 1 min | fréquence de contrôle de la copie locale |
 | `max_age` | 120 h | âge déclenchant l'avertissement |
-| `download_timeout` | 30 min | interrogation ou téléchargement ; le job de vérification a le double |
+| `download_timeout` | 30 min | interrogation, téléchargement ou téléversement d'une archive ; les jobs de vérification et d'import ont le double |
 | `max_archive_mib` | 2 048 | taille maximale d'une archive |
 | `analysis_timeout` | 10 min | durée maximale d'une analyse, synchronisation locale comprise |
 
@@ -421,7 +427,8 @@ vaut 1 : à surveiller (alerte Prometheus conseillée sur `ogsbom_vulndb_stale =
   installée et **le double pendant une bascule** (ancienne et nouvelle), plus l'archive
   le temps de l'installer : prévoir 8 Gio libres dans `vulndb.dir`. L'instance qui vérifie
   la liste a besoin du même espace. Côté PostgreSQL, environ 200 Mio par archive
-  conservée (purge des anciennes archives avec l'écran d'import, T11).
+  conservée : **Purger les archives précédentes** (même écran, case de confirmation)
+  supprime toutes les archives qui ne sont pas la cible ; la purge est journalisée.
 - **Mémoire et CPU** : une analyse de 5 000 composants prend environ 6 s sur 4 cœurs
   (`docs/benchmarks.md`) ; la base est ouverte une seule fois par instance et partagée par
   les analyses simultanées (`workers.concurrency`, au plus `workers.org_limit` par
@@ -437,8 +444,22 @@ vaut 1 : à surveiller (alerte Prometheus conseillée sur `ogsbom_vulndb_stale =
   en HTTPS, par le mandataire de l'environnement (`HTTPS_PROXY`).
 - **Hors ligne** : `vulndb.offline: true`, et soit un **miroir interne** de la liste
   (`listing_url` vers lui, `offline: false`), soit l'**import** d'une archive téléchargée
-  ailleurs (`vulnerability-db_v6.*.tar.zst`, liste d'Anchore), par l'écran d'import
-  d'administration (T11). L'archive importée passe les mêmes contrôles d'installation.
+  ailleurs (`vulnerability-db_v6.*.tar.zst`, liste d'Anchore) par **Import manuel** sur
+  l'écran de la base (ADR 0028) :
+  - le fichier (au plus `vulndb.max_archive_mib`) est lu en flux et rangé par blocs dans
+    PostgreSQL (`vulndb_imports`, `vulndb_import_chunks`), sans passer par le disque de
+    l'instance web ; le téléversement dispose de `vulndb.download_timeout` (les délais
+    `http.read_timeout` et `http.write_timeout` sont repoussés pour lui seul) ; un
+    mandataire inverse doit accepter un corps de cette taille (`client_max_body_size`
+    pour nginx) et la même durée ;
+  - un job `vulndb.import` installe ensuite l'archive sur une instance worker (mêmes
+    contrôles d'installation qu'un téléchargement, sans somme annoncée) et en fait la
+    cible, **même si elle est plus ancienne** que la cible actuelle (retour arrière
+    volontaire) ; il faut donc au moins une instance à workers ; les blocs sont supprimés
+    à la fin ;
+  - un seul import à la fois ; une archive invalide est refusée sans nouvel essai, une
+    autre erreur est réessayée trois fois au plus ; l'état et l'erreur s'affichent sur
+    l'écran, la demande et son issue au journal d'audit.
 - Rien du contenu des SBOM n'est journalisé par l'analyse.
 
 ## Recherche et API utilisateur

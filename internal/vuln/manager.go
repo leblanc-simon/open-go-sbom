@@ -24,12 +24,18 @@ type ManagerOptions struct {
 	Dir string
 	// SyncInterval est la période de synchronisation de fond sur la cible (Run).
 	SyncInterval time.Duration
-	Logger       *slog.Logger
+	// Instance nomme l'instance dans vulndb_instances (défaut : hôte et PID, comme la
+	// colonne worker de jobs).
+	Instance string
+	Logger   *slog.Logger
+	// Now date les rapports d'état (défaut : time.Now).
+	Now func() time.Time
 }
 
 type loaded struct {
 	version Version
 	db      Database
+	at      time.Time
 }
 
 // Manager tient la copie locale de la base d'une instance worker : il la synchronise sur
@@ -52,6 +58,12 @@ func NewManager(o ManagerOptions) *Manager {
 	if o.SyncInterval <= 0 {
 		o.SyncInterval = time.Minute
 	}
+	if o.Instance == "" {
+		o.Instance = defaultInstance()
+	}
+	if o.Now == nil {
+		o.Now = time.Now
+	}
 	return &Manager{o: o}
 }
 
@@ -63,6 +75,16 @@ func (m *Manager) Loaded() (Version, bool) {
 		return Version{}, false
 	}
 	return m.cur.version, true
+}
+
+// loadedAt renvoie la version chargée et la date de son chargement.
+func (m *Manager) loadedAt() (Version, time.Time, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if m.cur == nil {
+		return Version{}, time.Time{}, false
+	}
+	return m.cur.version, m.cur.at, true
 }
 
 // Ready échoue tant qu'aucune base n'est chargée (sonde /readyz d'une instance worker).
@@ -101,7 +123,7 @@ func (m *Manager) Ensure(ctx context.Context) (Version, error) {
 	if err != nil {
 		return Version{}, err
 	}
-	m.swap(&loaded{version: a.Version(), db: d})
+	m.swap(&loaded{version: a.Version(), db: d, at: m.o.Now().UTC().Round(time.Microsecond)})
 	m.o.Logger.Info("base de vulnérabilités chargée", "archive", a.ID, "built", a.Built)
 	return a.Version(), nil
 }
@@ -211,22 +233,41 @@ func (m *Manager) Match(ctx context.Context, blob []byte) (Result, error) {
 }
 
 // Run synchronise la base locale au démarrage puis toutes les SyncInterval, jusqu'à
-// l'annulation de ctx ; il ferme alors la base.
+// l'annulation de ctx ; il ferme alors la base. Après chaque synchronisation, il rapporte
+// la version chargée dans vulndb_instances (écran d'administration) ; à l'arrêt, il en
+// retire l'instance.
 func (m *Manager) Run(ctx context.Context) error {
 	t := time.NewTicker(m.o.SyncInterval)
 	defer t.Stop()
 	for {
-		if _, err := m.Ensure(ctx); err != nil && !errors.Is(err, ErrNoDatabase) && ctx.Err() == nil {
+		_, err := m.Ensure(ctx)
+		if errors.Is(err, ErrNoDatabase) {
+			err = nil
+		}
+		if err != nil && ctx.Err() == nil {
 			m.o.Logger.Error("synchronisation de la base de vulnérabilités", "err", err)
+		}
+		if ctx.Err() == nil {
+			if rerr := m.report(ctx, err); rerr != nil && ctx.Err() == nil {
+				m.o.Logger.Warn("rapport de l'état de la base de vulnérabilités", "err", rerr)
+			}
 		}
 		select {
 		case <-ctx.Done():
 			m.close()
+			stop, cancel := context.WithTimeout(context.WithoutCancel(ctx), forgetTimeout)
+			if err := m.forget(stop); err != nil {
+				m.o.Logger.Warn("retrait de l'instance", "err", err)
+			}
+			cancel()
 			return nil
 		case <-t.C:
 		}
 	}
 }
+
+// forgetTimeout borne le retrait de l'instance à l'arrêt.
+const forgetTimeout = 5 * time.Second
 
 func (m *Manager) close() {
 	m.mu.Lock()

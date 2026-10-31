@@ -1,0 +1,17 @@
+{{define "vulndb_age" -}}
+{{- if .Days}}{{Tn "admin_vulndb.age_days" .Days}}{{else}}{{Tn "admin_vulndb.age_hours" .Hours}}{{end}}
+{{- end}}
+
+{{define "vulndb_instance_state" -}}
+{{- if eq . "current"}}<span class="status status--active">{{T "admin_vulndb.instance_current"}}</span>
+{{- else if eq . "behind"}}<span class="status status--warning">{{T "admin_vulndb.instance_behind"}}</span>
+{{- else if eq . "none"}}<span class="status status--warning">{{T "admin_vulndb.instance_none"}}</span>
+{{- else}}<span class="status status--danger">{{T "admin_vulndb.instance_silent"}}</span>{{end}}
+{{- end}}
+
+{{define "vulndb_import_state" -}}
+{{- if eq (print .) "done"}}<span class="status status--active">{{T "admin_vulndb.import_done"}}</span>
+{{- else if eq (print .) "failed"}}<span class="status status--danger">{{T "admin_vulndb.import_failed"}}</span>
+{{- else if eq (print .) "queued"}}<span class="status status--warning">{{T "admin_vulndb.import_queued"}}</span>
+{{- else}}<span class="status status--warning">{{T "admin_vulndb.import_uploading"}}</span>{{end}}
+{{- end}}

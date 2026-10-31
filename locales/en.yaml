@@ -12,6 +12,7 @@ nav:
   vulnerabilities: Vulnerabilities
   components: Components
   admin_vulndb: Vulnerability database
+  admin_jobs: Jobs
   label: Main navigation
   profile: My account
   password: Password
@@ -86,6 +87,10 @@ flash:
   token_revoked: The token is revoked; the next request that presents it will be refused.
   agent_disabled: The agent is disabled; its tokens are revoked and its projects taken away.
   enrollment_revoked: The enrollment token is revoked.
+  job_retried: The job is queued again; a worker will pick it up shortly.
+  job_discarded: The job is discarded and removed from the queue.
+  vulndb_import_queued: "Archive received: a worker instance verifies and installs it, which takes several minutes."
+  vulndb_purged: The archives that are not the target are deleted.
 
 table:
   actions: Actions
@@ -373,6 +378,12 @@ audit:
     enrollment_token_revoked: "Enrollment token {{.Target}} ({{.D_prefix}}) revoked"
     personal_token_created: "Personal access token {{.Target}} ({{.D_prefix}}) created"
     personal_token_revoked: "Personal access token {{.Target}} ({{.D_prefix}}) revoked"
+    job_retried: "Job {{.Target}} retried"
+    job_discarded: "Job {{.Target}} discarded"
+    vulndb_import_requested: "Vulnerability database import requested ({{.Target}}, SHA-256 {{.D_sha256}})"
+    vulndb_imported: "Vulnerability database imported ({{.Target}}, built {{.D_built}})"
+    vulndb_import_failed: "Vulnerability database import rejected ({{.Target}}): {{.D_error}}"
+    vulndb_archives_purged: "Vulnerability database archives purged: {{.D_archives}}"
 
 admin:
   vulndb_missing_title: No vulnerability database
@@ -1149,6 +1160,81 @@ admin_vulndb:
   is_target: Target
   previous: Previous
   no_archives: No stored archive.
+  age: Age
+  age_hours:
+    one: "{{.Count}} hour"
+    other: "{{.Count}} hours"
+  age_days:
+    one: "{{.Count}} day"
+    other: "{{.Count}} days"
+  instances_title: Worker instances
+  no_instances: >-
+    No worker instance has reported yet. Each one reports the database it has loaded on
+    every synchronization.
+  instance: Instance
+  loaded_built: Loaded database, built
+  loaded_at: Loaded
+  seen_at: Last report
+  instance_current: Up to date
+  instance_behind: Behind the target
+  instance_none: No database loaded
+  instance_silent: Not reporting
+  import_title: Manual import
+  import_hint: >-
+    For an isolated site: upload a Grype database archive (the tar.zst file of the
+    distribution listing), {{.Max}} MiB at most. A worker instance verifies it with a
+    full installation, then it becomes the target of every instance, even if it is older
+    than the current target.
+  import_file: Database archive
+  import_submit: Import
+  import_running: An import is in progress; wait for it to finish before starting another one.
+  imports_title: Latest imports
+  import_name: File
+  requested_by: Requested by
+  requested_at: Requested
+  finished_at: Finished
+  import_uploading: Uploading
+  import_queued: Waiting for installation
+  import_done: Imported
+  import_failed: Rejected
+  import_missing: Choose the archive file to import.
+  import_too_large: The archive exceeds the allowed size (vulndb.max_archive_mib).
+  import_in_progress: Another import is already in progress.
+  import_empty: The archive is empty.
+  purge_hint: >-
+    Each stored archive takes its size in PostgreSQL. The purge deletes every archive that
+    is not the target; going back to one of them will require downloading or importing it
+    again.
+  purge_confirm: I confirm the deletion of the previous archives
+  purge_submit: Purge previous archives
+  purge_confirm_required: Tick the confirmation to purge the archives.
+
+admin_jobs:
+  title: Jobs
+  heading: Failed jobs
+  lead: >-
+    Jobs abandoned after their last attempt or on a permanent error. Retry them once the
+    cause is fixed, or discard them.
+  queue_title: Job queue
+  pending: Pending
+  running: Running
+  dead: Failed
+  dead_title: Failed jobs
+  dead_hint: >-
+    Retrying queues the job again with all its attempts; discarding deletes it. Each
+    action is recorded in the instance audit log.
+  no_dead: No failed job.
+  kind: Job
+  org: Organization
+  instance: Instance
+  org_missing: Deleted organization
+  attempts: Attempts
+  attempts_of: "{{.Attempts}} of {{.Max}}"
+  failed_at: Abandoned
+  last_error: Last error
+  retry: Retry
+  discard: Discard
+  not_found: This job is no longer failed (already retried or discarded).
 
 search:
   title: Search

@@ -15,6 +15,14 @@
     }
   }
 
+  /* Sous 64rem, la navigation occupe sa propre ligne : sans flex-start, les deux lignes se
+     partagent la hauteur libre (flex: 1 dans un body à hauteur d'écran) et une bande vide
+     apparaît sous la navigation. Au-dessus, une seule ligne étirée garde la navigation sur
+     toute la hauteur. */
+  @container ogsbom (width < 64rem) {
+    align-content: flex-start;
+  }
+
   @container ogsbom (width < 48rem) {
     .shell__main {
       padding: var(--space-4) var(--space-4) var(--space-10);
@@ -88,6 +96,8 @@
 
   @container ogsbom (width < 64rem) {
     flex-basis: 100%;
+    /* Sans elle, la liste en ligne élargit la page au lieu de défiler. */
+    min-width: 0;
     padding: var(--space-2) var(--space-4);
     border-inline-end: 0;
     border-bottom: 1px solid var(--color-border);

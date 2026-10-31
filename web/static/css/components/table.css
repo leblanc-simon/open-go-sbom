@@ -1,5 +1,7 @@
 /* Tableau de données et sa pagination par curseur. */
 .table-wrap {
+  /* Contient les .visually-hidden (position: absolute) dans la zone qui défile. */
+  position: relative;
   overflow-x: auto;
   background: var(--color-surface);
   border: 1px solid var(--color-border);

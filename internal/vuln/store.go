@@ -9,10 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
 
+	"leblanc.io/open-go-sbom/internal/audit"
 	"leblanc.io/open-go-sbom/internal/db"
 	"leblanc.io/open-go-sbom/internal/jobs"
 )
@@ -250,40 +252,87 @@ func setTarget(ctx context.Context, tx *db.Tx, id uuid.UUID, now time.Time) (boo
 func recordCheck(ctx context.Context, q db.Querier, now time.Time, checkErr error) error {
 	msg := ""
 	if checkErr != nil {
-		msg = checkErr.Error()
-		if len(msg) > 500 {
-			msg = msg[:500]
-		}
+		msg = clipText(checkErr.Error(), 500)
 	}
 	_, err := q.ExecContext(ctx, `UPDATE vulndb_state SET last_check_at = $1, last_check_error = $2`, now, msg)
 	return err
 }
 
-// copyArchive écrit l'archive id dans w, bloc par bloc (une requête par bloc : la mémoire
-// reste bornée à un bloc), et vérifie sa taille et sa somme.
+// copyArchive écrit l'archive a dans w et vérifie sa taille et sa somme.
 func copyArchive(ctx context.Context, pool *db.Pool, a Archive, w io.Writer) error {
+	return copyChunks(ctx, pool, `SELECT data FROM vulndb_archive_chunks WHERE archive_id = $1 AND seq = $2`,
+		chunkSet{id: a.ID, count: a.Chunks, size: a.Size, sha256: a.SHA256}, w)
+}
+
+// chunkSet décrit un fichier rangé par blocs (archive ou import).
+type chunkSet struct {
+	id     uuid.UUID
+	count  int
+	size   int64
+	sha256 string // hexadécimal
+}
+
+// copyChunks écrit les blocs de c dans w, lus par query ($1 : identifiant, $2 : rang),
+// une requête par bloc (la mémoire reste bornée à un bloc), et vérifie taille et somme.
+func copyChunks(ctx context.Context, pool *db.Pool, query string, c chunkSet, w io.Writer) error {
 	h := sha256.New()
 	out := io.MultiWriter(w, h)
 	var total int64
-	for seq := 0; seq < a.Chunks; seq++ {
+	for seq := 0; seq < c.count; seq++ {
 		var data []byte
 		err := pool.InTx(ctx, func(tx *db.Tx) error {
-			return tx.QueryRowContext(ctx, `SELECT data FROM vulndb_archive_chunks WHERE archive_id = $1 AND seq = $2`,
-				a.ID, seq).Scan(&data)
+			return tx.QueryRowContext(ctx, query, c.id, seq).Scan(&data)
 		}, db.ReadOnly())
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("%w : bloc %d manquant", ErrChecksum, seq)
 		}
 		if err != nil {
-			return fmt.Errorf("vuln: bloc %d de l'archive %s : %w", seq, a.ID, err)
+			return fmt.Errorf("vuln: bloc %d de %s : %w", seq, c.id, err)
 		}
 		if _, err := out.Write(data); err != nil {
 			return err
 		}
 		total += int64(len(data))
 	}
-	if total != a.Size || hex.EncodeToString(h.Sum(nil)) != a.SHA256 {
+	if total != c.size || hex.EncodeToString(h.Sum(nil)) != c.sha256 {
 		return ErrChecksum
 	}
 	return nil
+}
+
+// Purged résume une purge des archives.
+type Purged struct {
+	Archives int
+	Bytes    int64
+}
+
+// PurgeArchives supprime toutes les archives qui ne sont pas la cible et journalise la
+// purge, dans une transaction. La ligne d'état est verrouillée d'abord : une nouvelle
+// cible fixée en même temps (vérification, import) attend la fin de la purge, et
+// l'archive cible n'est jamais supprimée. Les constats gardent l'identifiant de l'archive
+// qui les a produits, sans clé étrangère ; une instance encore sur une ancienne base se
+// synchronise sur la cible.
+func PurgeArchives(ctx context.Context, pool *db.Pool, actor audit.Actor) (Purged, error) {
+	var p Purged
+	err := pool.InTx(ctx, func(tx *db.Tx) error {
+		if _, err := tx.ExecContext(ctx, `SELECT 1 FROM vulndb_state FOR UPDATE`); err != nil {
+			return fmt.Errorf("vuln: verrou de l'état : %w", err)
+		}
+		err := tx.QueryRowContext(ctx, `
+			WITH gone AS (
+				DELETE FROM vulndb_archives a USING vulndb_state s
+				WHERE a.id IS DISTINCT FROM s.target_archive_id
+				RETURNING a.size
+			)
+			SELECT count(*), COALESCE(sum(size), 0) FROM gone`).Scan(&p.Archives, &p.Bytes)
+		if err != nil {
+			return fmt.Errorf("vuln: purge des archives : %w", err)
+		}
+		return audit.RecordInstance(ctx, tx, actor, audit.Event{Action: audit.VulnDBArchivesPurged, TargetType: "vulndb",
+			Details: map[string]string{"archives": strconv.Itoa(p.Archives), "bytes": strconv.FormatInt(p.Bytes, 10)}})
+	})
+	if err != nil {
+		return Purged{}, err
+	}
+	return p, nil
 }

@@ -1,0 +1,63 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T "admin_jobs.heading"}}</h1>
+    <p class="page-head__lead">{{T "admin_jobs.lead"}}</p>
+  </div>
+  {{template "single_admin" .SingleAdmin}}
+  {{template "vulndb_alert" .VulnDBAlert}}
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  <section class="stack stack--sm" aria-labelledby="queue-title">
+    <h2 class="section-title" id="queue-title">{{T "admin_jobs.queue_title"}}</h2>
+    <ul class="stat-grid">
+      <li class="stat"><span class="stat__label">{{T "admin_jobs.pending"}}</span><span class="stat__value">{{.Counts.Pending}}</span></li>
+      <li class="stat"><span class="stat__label">{{T "admin_jobs.running"}}</span><span class="stat__value">{{.Counts.Running}}</span></li>
+      <li class="stat"><span class="stat__label">{{T "admin_jobs.dead"}}</span><span class="stat__value">{{.Counts.Dead}}</span></li>
+    </ul>
+  </section>
+  <section class="panel" aria-labelledby="dead-title">
+    <div class="panel__head"><h2 class="panel__title" id="dead-title">{{T "admin_jobs.dead_title"}}</h2></div>
+    {{- if .Jobs}}
+    <div class="panel__body"><p class="muted">{{T "admin_jobs.dead_hint"}}</p></div>
+    <div class="panel__body panel__body--flush">
+      <div class="table-wrap" role="region" aria-labelledby="dead-title" tabindex="0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">{{T "admin_jobs.kind"}}</th>
+              <th scope="col">{{T "admin_jobs.org"}}</th>
+              <th scope="col" class="num">{{T "admin_jobs.attempts"}}</th>
+              <th scope="col">{{T "admin_jobs.failed_at"}}</th>
+              <th scope="col">{{T "admin_jobs.last_error"}}</th>
+              <th scope="col">{{T "table.actions"}}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{- $csrf := .Page.CSRFToken}}
+            {{- range .Jobs}}
+            <tr>
+              <th scope="row"><span class="mono">{{.Kind}}</span>{{with .UniqueKey}}<br><span class="mono hash muted">{{.}}</span>{{end}}</th>
+              <td>{{with .Org}}<a href="/admin/orgs/{{.Slug}}">{{.Name}}</a>{{else}}{{if .OrgMissing}}<span class="muted">{{T "admin_jobs.org_missing"}}</span>{{else}}<span class="muted">{{T "admin_jobs.instance"}}</span>{{end}}{{end}}</td>
+              <td class="num">{{T "admin_jobs.attempts_of" "Attempts" .Attempts "Max" .MaxAttempts}}</td>
+              <td>{{template "stamp" .Finished}}</td>
+              <td>{{with .LastError}}<span class="mono hash">{{.}}</span>{{else}}<span class="muted">{{T "common.none"}}</span>{{end}}</td>
+              <td>
+                <div class="cluster">
+                  <form method="post" action="/admin/jobs/{{.ID}}/retry">{{csrfField $csrf}}<button type="submit" class="btn btn--sm">{{T "admin_jobs.retry"}}<span class="visually-hidden"> {{.Kind}}</span></button></form>
+                  <form method="post" action="/admin/jobs/{{.ID}}/discard">{{csrfField $csrf}}<button type="submit" class="btn btn--sm btn--danger">{{T "admin_jobs.discard"}}<span class="visually-hidden"> {{.Kind}}</span></button></form>
+                </div>
+              </td>
+            </tr>
+            {{- end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {{template "next_page" .NextCursor}}
+    {{- else}}
+    <div class="panel__body"><p class="muted">{{T "admin_jobs.no_dead"}}</p></div>
+    {{- end}}
+  </section>
+</div>
+{{- end}}

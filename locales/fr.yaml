@@ -12,6 +12,7 @@ nav:
   vulnerabilities: Vulnérabilités
   components: Composants
   admin_vulndb: Base de vulnérabilités
+  admin_jobs: Traitements
   label: Navigation principale
   profile: Mon compte
   password: Mot de passe
@@ -86,6 +87,10 @@ flash:
   token_revoked: Le jeton est révoqué ; la prochaine requête qui le présente sera refusée.
   agent_disabled: L'agent est désactivé ; ses jetons sont révoqués et ses projets lui sont retirés.
   enrollment_revoked: Le jeton d'inscription est révoqué.
+  job_retried: Le traitement est remis en file ; un worker le reprendra sous peu.
+  job_discarded: Le traitement est abandonné et supprimé de la file.
+  vulndb_import_queued: "Archive reçue : une instance worker la vérifie et l'installe, ce qui prend plusieurs minutes."
+  vulndb_purged: Les archives qui ne sont pas la cible sont supprimées.
 
 table:
   actions: Actions
@@ -373,6 +378,12 @@ audit:
     enrollment_token_revoked: "Jeton d'inscription {{.Target}} ({{.D_prefix}}) révoqué"
     personal_token_created: "Jeton d'accès personnel {{.Target}} ({{.D_prefix}}) créé"
     personal_token_revoked: "Jeton d'accès personnel {{.Target}} ({{.D_prefix}}) révoqué"
+    job_retried: "Traitement {{.Target}} relancé"
+    job_discarded: "Traitement {{.Target}} abandonné"
+    vulndb_import_requested: "Import de la base de vulnérabilités demandé ({{.Target}}, SHA-256 {{.D_sha256}})"
+    vulndb_imported: "Base de vulnérabilités importée ({{.Target}}, construite le {{.D_built}})"
+    vulndb_import_failed: "Import de la base de vulnérabilités refusé ({{.Target}}) : {{.D_error}}"
+    vulndb_archives_purged: "Archives de la base de vulnérabilités purgées : {{.D_archives}}"
 
 admin:
   vulndb_missing_title: Aucune base de vulnérabilités
@@ -1149,6 +1160,81 @@ admin_vulndb:
   is_target: Cible
   previous: Précédente
   no_archives: Aucune archive stockée.
+  age: Âge
+  age_hours:
+    one: "{{.Count}} heure"
+    other: "{{.Count}} heures"
+  age_days:
+    one: "{{.Count}} jour"
+    other: "{{.Count}} jours"
+  instances_title: Instances worker
+  no_instances: >-
+    Aucune instance worker ne s'est encore signalée. Chacune rapporte la base qu'elle a
+    chargée à chaque synchronisation.
+  instance: Instance
+  loaded_built: Base chargée, construite le
+  loaded_at: Chargée le
+  seen_at: Dernier signal
+  instance_current: À jour
+  instance_behind: En retard sur la cible
+  instance_none: Aucune base chargée
+  instance_silent: Sans nouvelles
+  import_title: Import manuel
+  import_hint: >-
+    Pour un site isolé : téléversez une archive de la base Grype (fichier tar.zst de la
+    liste de distribution), {{.Max}} Mio au plus. Elle est vérifiée par une installation
+    complète sur une instance worker, puis devient la cible de toutes les instances, même
+    si elle est plus ancienne que la cible actuelle.
+  import_file: Archive de la base
+  import_submit: Importer
+  import_running: Un import est en cours ; attendez sa fin pour en lancer un autre.
+  imports_title: Derniers imports
+  import_name: Fichier
+  requested_by: Demandé par
+  requested_at: Demandé le
+  finished_at: Terminé le
+  import_uploading: Téléversement
+  import_queued: En attente d'installation
+  import_done: Importée
+  import_failed: Refusée
+  import_missing: Choisissez le fichier de l'archive à importer.
+  import_too_large: L'archive dépasse la taille autorisée (vulndb.max_archive_mib).
+  import_in_progress: Un autre import est déjà en cours.
+  import_empty: L'archive est vide.
+  purge_hint: >-
+    Chaque archive conservée occupe sa taille dans PostgreSQL. La purge supprime toutes
+    les archives qui ne sont pas la cible ; un retour à l'une d'elles demandera de la
+    télécharger ou de l'importer de nouveau.
+  purge_confirm: Je confirme la suppression des archives précédentes
+  purge_submit: Purger les archives précédentes
+  purge_confirm_required: Cochez la confirmation pour purger les archives.
+
+admin_jobs:
+  title: Traitements
+  heading: Traitements en échec
+  lead: >-
+    Traitements abandonnés après leur dernière tentative ou sur une erreur définitive.
+    Relancez-les une fois la cause corrigée, ou abandonnez-les.
+  queue_title: File de traitements
+  pending: En attente
+  running: En cours
+  dead: En échec
+  dead_title: Traitements en échec
+  dead_hint: >-
+    Relancer remet le traitement en file avec toutes ses tentatives ; abandonner le
+    supprime. Chaque action est inscrite au journal d'audit de l'instance.
+  no_dead: Aucun traitement en échec.
+  kind: Traitement
+  org: Organisation
+  instance: Instance
+  org_missing: Organisation supprimée
+  attempts: Tentatives
+  attempts_of: "{{.Attempts}} sur {{.Max}}"
+  failed_at: Abandonné le
+  last_error: Dernière erreur
+  retry: Relancer
+  discard: Abandonner
+  not_found: Ce traitement n'est plus en échec (déjà relancé ou abandonné).
 
 search:
   title: Recherche

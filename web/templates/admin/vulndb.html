@@ -6,6 +6,8 @@
   </div>
   {{template "single_admin" .SingleAdmin}}
   {{template "vulndb_alert" .VulnDBAlert}}
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
   <div class="layout layout--halves">
     <section class="panel" aria-labelledby="target-title">
       <div class="panel__head"><h2 class="panel__title" id="target-title">{{T "admin_vulndb.target_title"}}</h2></div>
@@ -13,6 +15,7 @@
         {{- with .Target}}
         <dl class="kv">
           <dt>{{T "admin_vulndb.built"}}</dt><dd>{{template "stamp" .Built}}</dd>
+          <dt>{{T "admin_vulndb.age"}}</dt><dd>{{template "vulndb_age" $.TargetAge}}</dd>
           <dt>{{T "admin_vulndb.schema"}}</dt><dd class="mono">{{.Schema}}</dd>
           <dt>{{T "admin_vulndb.size"}}</dt><dd>{{T "admin_vulndb.size_mib" "Size" (decimal .SizeMiB 1)}}</dd>
           <dt>{{T "admin_vulndb.origin"}}</dt><dd>{{T (print "admin_vulndb.origin_" .Origin)}}</dd>
@@ -37,6 +40,91 @@
       </div>
     </section>
   </div>
+  <section class="panel" aria-labelledby="instances-title">
+    <div class="panel__head"><h2 class="panel__title" id="instances-title">{{T "admin_vulndb.instances_title"}}</h2></div>
+    {{- if .Instances}}
+    <div class="panel__body panel__body--flush">
+      <div class="table-wrap" role="region" aria-labelledby="instances-title" tabindex="0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">{{T "admin_vulndb.instance"}}</th>
+              <th scope="col">{{T "admin_vulndb.state"}}</th>
+              <th scope="col">{{T "admin_vulndb.loaded_built"}}</th>
+              <th scope="col">{{T "admin_vulndb.age"}}</th>
+              <th scope="col">{{T "admin_vulndb.loaded_at"}}</th>
+              <th scope="col">{{T "admin_vulndb.seen_at"}}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{- range .Instances}}
+            <tr>
+              <th scope="row" class="mono">{{.Name}}</th>
+              <td>{{template "vulndb_instance_state" .State}}{{with .SyncError}} <span class="mono hash">{{.}}</span>{{end}}</td>
+              <td>{{with .Built}}{{template "stamp" .}}{{else}}<span class="muted">{{T "common.none"}}</span>{{end}}</td>
+              <td>{{with .Age}}{{template "vulndb_age" .}}{{else}}<span class="muted">{{T "common.none"}}</span>{{end}}</td>
+              <td>{{template "stamp" .Loaded}}</td>
+              <td>{{template "stamp" .Seen}}</td>
+            </tr>
+            {{- end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {{- else}}
+    <div class="panel__body"><p class="muted">{{T "admin_vulndb.no_instances"}}</p></div>
+    {{- end}}
+  </section>
+  <section class="panel" aria-labelledby="import-title">
+    <div class="panel__head"><h2 class="panel__title" id="import-title">{{T "admin_vulndb.import_title"}}</h2></div>
+    <div class="panel__body stack">
+      <p class="muted">{{T "admin_vulndb.import_hint" "Max" (decimal .MaxArchive 0)}}</p>
+      {{- if .Importing}}
+      <p><span class="status status--warning">{{T "admin_vulndb.import_running"}}</span></p>
+      {{- else}}
+      {{- /* Le jeton CSRF doit précéder le fichier : le serveur le lit avant le fichier, en flux. */}}
+      <form class="form form--inline" method="post" action="/admin/vulndb/import" enctype="multipart/form-data">
+        {{csrfField .Page.CSRFToken}}
+        <div class="field">
+          <label class="field__label" for="vulndb-archive">{{T "admin_vulndb.import_file"}}</label>
+          <input class="input input--file" id="vulndb-archive" name="archive" type="file" required{{if eq .Error.Field "archive"}} aria-invalid="true"{{end}}>
+        </div>
+        <button type="submit" class="btn btn--primary">{{T "admin_vulndb.import_submit"}}</button>
+      </form>
+      {{- end}}
+    </div>
+    {{- if .Imports}}
+    <div class="panel__body panel__body--flush">
+      <div class="table-wrap" role="region" aria-labelledby="imports-title" tabindex="0">
+        <table class="data-table">
+          <caption class="visually-hidden" id="imports-title">{{T "admin_vulndb.imports_title"}}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{{T "admin_vulndb.import_name"}}</th>
+              <th scope="col">{{T "admin_vulndb.state"}}</th>
+              <th scope="col" class="num">{{T "admin_vulndb.size"}}</th>
+              <th scope="col">{{T "admin_vulndb.requested_by"}}</th>
+              <th scope="col">{{T "admin_vulndb.requested_at"}}</th>
+              <th scope="col">{{T "admin_vulndb.finished_at"}}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{- range .Imports}}
+            <tr>
+              <th scope="row">{{with .FileName}}<span class="mono hash">{{.}}</span>{{else}}<span class="muted">{{T "common.none"}}</span>{{end}}</th>
+              <td>{{template "vulndb_import_state" .Status}}{{with .Error}} <span class="mono hash">{{.}}</span>{{end}}</td>
+              <td class="num">{{T "admin_vulndb.size_mib" "Size" (decimal .SizeMiB 1)}}</td>
+              <td>{{.RequestedBy}}</td>
+              <td>{{template "stamp" .Created}}</td>
+              <td>{{template "stamp" .Finished}}</td>
+            </tr>
+            {{- end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {{- end}}
+  </section>
   <section class="panel" aria-labelledby="archives-title">
     <div class="panel__head"><h2 class="panel__title" id="archives-title">{{T "admin_vulndb.archives_title"}}</h2></div>
     {{- if .Archives}}
@@ -68,6 +156,16 @@
         </table>
       </div>
     </div>
+    {{- if .Purgeable}}
+    <div class="panel__body stack">
+      <p class="muted">{{T "admin_vulndb.purge_hint"}}</p>
+      <form class="form form--inline" method="post" action="/admin/vulndb/purge">
+        {{csrfField .Page.CSRFToken}}
+        <label class="check"><input type="checkbox" name="confirm" required{{if eq .Error.Field "confirm"}} aria-invalid="true"{{end}}> {{T "admin_vulndb.purge_confirm"}}</label>
+        <button type="submit" class="btn btn--danger">{{T "admin_vulndb.purge_submit"}}</button>
+      </form>
+    </div>
+    {{- end}}
     {{- else}}
     <div class="panel__body"><p class="muted">{{T "admin_vulndb.no_archives"}}</p></div>
     {{- end}}

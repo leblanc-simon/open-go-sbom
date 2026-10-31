@@ -65,8 +65,9 @@
 //
 // # Administration
 //
-// ListDead, Retry et Discard servent l'écran d'administration (T11), dans la transaction
-// de l'appelant. Les jobs terminés sont purgés au-delà de RunnerOptions.Retention ; les
+// ListDead, GetDead, Retry, Discard et CountJobs servent l'écran des traitements en échec
+// (T11), dans la transaction de l'appelant, qui y écrit son entrée d'audit ; Active dit si
+// un job d'une clé donnée attend ou tourne encore. Les jobs terminés sont purgés au-delà de RunnerOptions.Retention ; les
 // jobs morts restent jusqu'à leur relance ou leur suppression.
 //
 // # Horloge

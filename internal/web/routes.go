@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -57,6 +58,10 @@ func registerUI(r chi.Router, h *handlers, loginLimit func(http.Handler) http.Ha
 			r.Post("/orgs/{slug}/{action}", id.adminOrgAction)
 			r.Get("/audit", id.adminAudit)
 			r.Get("/vulndb", id.vulnDB)
+			r.Post(strings.TrimPrefix(pathVulnDBImport, "/admin"), id.importVulnDB)
+			r.Post("/vulndb/purge", id.purgeVulnDB)
+			r.Get("/jobs", id.adminJobs)
+			r.Post("/jobs/{jobID}/{action}", id.jobAction)
 		})
 
 		r.Route("/o/{slug}", func(r chi.Router) {

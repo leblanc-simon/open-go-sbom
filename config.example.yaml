@@ -159,6 +159,6 @@ vulndb:
   check_interval: 6h          # fréquence d'interrogation de la liste
   sync_interval: 1m           # fréquence à laquelle une instance worker vérifie sa copie
   max_age: 120h               # au-delà, alerte d'administration (5 jours)
-  download_timeout: 30m       # durée maximale d'une interrogation ou d'un téléchargement
+  download_timeout: 30m       # durée maximale d'une interrogation, d'un téléchargement ou d'un import téléversé
   max_archive_mib: 2048       # taille maximale d'une archive
   analysis_timeout: 10m       # durée maximale d'un job d'analyse, synchronisation comprise
