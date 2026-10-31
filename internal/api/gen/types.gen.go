@@ -47,19 +47,19 @@ func (e HeartbeatStatusInventory) Valid() bool {
 
 // Defines values for IngestionFormat.
 const (
-	Cyclonedx IngestionFormat = "cyclonedx"
-	Spdx      IngestionFormat = "spdx"
-	Syft      IngestionFormat = "syft"
+	IngestionFormatCyclonedx IngestionFormat = "cyclonedx"
+	IngestionFormatSpdx      IngestionFormat = "spdx"
+	IngestionFormatSyft      IngestionFormat = "syft"
 )
 
 // Valid indicates whether the value is a known member of the IngestionFormat enum.
 func (e IngestionFormat) Valid() bool {
 	switch e {
-	case Cyclonedx:
+	case IngestionFormatCyclonedx:
 		return true
-	case Spdx:
+	case IngestionFormatSpdx:
 		return true
-	case Syft:
+	case IngestionFormatSyft:
 		return true
 	default:
 		return false
@@ -147,6 +147,162 @@ func (e InventoryReportRefKind) Valid() bool {
 	}
 }
 
+// Defines values for SearchHitMaxSeverity.
+const (
+	SearchHitMaxSeverityCritical   SearchHitMaxSeverity = "critical"
+	SearchHitMaxSeverityHigh       SearchHitMaxSeverity = "high"
+	SearchHitMaxSeverityLow        SearchHitMaxSeverity = "low"
+	SearchHitMaxSeverityMedium     SearchHitMaxSeverity = "medium"
+	SearchHitMaxSeverityNegligible SearchHitMaxSeverity = "negligible"
+	SearchHitMaxSeverityUnknown    SearchHitMaxSeverity = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the SearchHitMaxSeverity enum.
+func (e SearchHitMaxSeverity) Valid() bool {
+	switch e {
+	case SearchHitMaxSeverityCritical:
+		return true
+	case SearchHitMaxSeverityHigh:
+		return true
+	case SearchHitMaxSeverityLow:
+		return true
+	case SearchHitMaxSeverityMedium:
+		return true
+	case SearchHitMaxSeverityNegligible:
+		return true
+	case SearchHitMaxSeverityUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchHitOrigin.
+const (
+	SearchHitOriginIa   SearchHitOrigin = "ia"
+	SearchHitOriginSyft SearchHitOrigin = "syft"
+)
+
+// Valid indicates whether the value is a known member of the SearchHitOrigin enum.
+func (e SearchHitOrigin) Valid() bool {
+	switch e {
+	case SearchHitOriginIa:
+		return true
+	case SearchHitOriginSyft:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchHitStatus.
+const (
+	Open     SearchHitStatus = "open"
+	Resolved SearchHitStatus = "resolved"
+)
+
+// Valid indicates whether the value is a known member of the SearchHitStatus enum.
+func (e SearchHitStatus) Valid() bool {
+	switch e {
+	case Open:
+		return true
+	case Resolved:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchProjectKind.
+const (
+	SearchProjectKindHost SearchProjectKind = "host"
+	SearchProjectKindRepo SearchProjectKind = "repo"
+)
+
+// Valid indicates whether the value is a known member of the SearchProjectKind enum.
+func (e SearchProjectKind) Valid() bool {
+	switch e {
+	case SearchProjectKindHost:
+		return true
+	case SearchProjectKindRepo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchRefKind.
+const (
+	SearchRefKindBranch SearchRefKind = "branch"
+	SearchRefKindHost   SearchRefKind = "host"
+	SearchRefKindTag    SearchRefKind = "tag"
+)
+
+// Valid indicates whether the value is a known member of the SearchRefKind enum.
+func (e SearchRefKind) Valid() bool {
+	switch e {
+	case SearchRefKindBranch:
+		return true
+	case SearchRefKindHost:
+		return true
+	case SearchRefKindTag:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchResultKind.
+const (
+	SearchResultKindHash          SearchResultKind = "hash"
+	SearchResultKindName          SearchResultKind = "name"
+	SearchResultKindPurl          SearchResultKind = "purl"
+	SearchResultKindVulnerability SearchResultKind = "vulnerability"
+)
+
+// Valid indicates whether the value is a known member of the SearchResultKind enum.
+func (e SearchResultKind) Valid() bool {
+	switch e {
+	case SearchResultKindHash:
+		return true
+	case SearchResultKindName:
+		return true
+	case SearchResultKindPurl:
+		return true
+	case SearchResultKindVulnerability:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchTokenKind.
+const (
+	SearchTokenKindHash          SearchTokenKind = "hash"
+	SearchTokenKindName          SearchTokenKind = "name"
+	SearchTokenKindPurl          SearchTokenKind = "purl"
+	SearchTokenKindRange         SearchTokenKind = "range"
+	SearchTokenKindVulnerability SearchTokenKind = "vulnerability"
+)
+
+// Valid indicates whether the value is a known member of the SearchTokenKind enum.
+func (e SearchTokenKind) Valid() bool {
+	switch e {
+	case SearchTokenKindHash:
+		return true
+	case SearchTokenKindName:
+		return true
+	case SearchTokenKindPurl:
+		return true
+	case SearchTokenKindRange:
+		return true
+	case SearchTokenKindVulnerability:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TrackedRefKind.
 const (
 	TrackedRefKindBranch TrackedRefKind = "branch"
@@ -162,6 +318,294 @@ func (e TrackedRefKind) Valid() bool {
 	case TrackedRefKindHost:
 		return true
 	case TrackedRefKindTag:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchKEV.
+const (
+	SearchKEVN1 SearchKEV = "1"
+)
+
+// Valid indicates whether the value is a known member of the SearchKEV enum.
+func (e SearchKEV) Valid() bool {
+	switch e {
+	case SearchKEVN1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchResolved.
+const (
+	SearchResolvedN1 SearchResolved = "1"
+)
+
+// Valid indicates whether the value is a known member of the SearchResolved enum.
+func (e SearchResolved) Valid() bool {
+	switch e {
+	case SearchResolvedN1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchSort.
+const (
+	SearchSortName     SearchSort = "name"
+	SearchSortRisk     SearchSort = "risk"
+	SearchSortSnapshot SearchSort = "snapshot"
+)
+
+// Valid indicates whether the value is a known member of the SearchSort enum.
+func (e SearchSort) Valid() bool {
+	switch e {
+	case SearchSortName:
+		return true
+	case SearchSortRisk:
+		return true
+	case SearchSortSnapshot:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchOrganizationParamsType.
+const (
+	SearchOrganizationParamsTypeHost SearchOrganizationParamsType = "host"
+	SearchOrganizationParamsTypeRepo SearchOrganizationParamsType = "repo"
+)
+
+// Valid indicates whether the value is a known member of the SearchOrganizationParamsType enum.
+func (e SearchOrganizationParamsType) Valid() bool {
+	switch e {
+	case SearchOrganizationParamsTypeHost:
+		return true
+	case SearchOrganizationParamsTypeRepo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchOrganizationParamsOrigin.
+const (
+	SearchOrganizationParamsOriginIa   SearchOrganizationParamsOrigin = "ia"
+	SearchOrganizationParamsOriginSyft SearchOrganizationParamsOrigin = "syft"
+)
+
+// Valid indicates whether the value is a known member of the SearchOrganizationParamsOrigin enum.
+func (e SearchOrganizationParamsOrigin) Valid() bool {
+	switch e {
+	case SearchOrganizationParamsOriginIa:
+		return true
+	case SearchOrganizationParamsOriginSyft:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchOrganizationParamsKev.
+const (
+	SearchOrganizationParamsKevN1 SearchOrganizationParamsKev = "1"
+)
+
+// Valid indicates whether the value is a known member of the SearchOrganizationParamsKev enum.
+func (e SearchOrganizationParamsKev) Valid() bool {
+	switch e {
+	case SearchOrganizationParamsKevN1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchOrganizationParamsSeverity.
+const (
+	SearchOrganizationParamsSeverityCritical   SearchOrganizationParamsSeverity = "critical"
+	SearchOrganizationParamsSeverityHigh       SearchOrganizationParamsSeverity = "high"
+	SearchOrganizationParamsSeverityLow        SearchOrganizationParamsSeverity = "low"
+	SearchOrganizationParamsSeverityMedium     SearchOrganizationParamsSeverity = "medium"
+	SearchOrganizationParamsSeverityNegligible SearchOrganizationParamsSeverity = "negligible"
+	SearchOrganizationParamsSeverityNone       SearchOrganizationParamsSeverity = "none"
+	SearchOrganizationParamsSeverityUnknown    SearchOrganizationParamsSeverity = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the SearchOrganizationParamsSeverity enum.
+func (e SearchOrganizationParamsSeverity) Valid() bool {
+	switch e {
+	case SearchOrganizationParamsSeverityCritical:
+		return true
+	case SearchOrganizationParamsSeverityHigh:
+		return true
+	case SearchOrganizationParamsSeverityLow:
+		return true
+	case SearchOrganizationParamsSeverityMedium:
+		return true
+	case SearchOrganizationParamsSeverityNegligible:
+		return true
+	case SearchOrganizationParamsSeverityNone:
+		return true
+	case SearchOrganizationParamsSeverityUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchOrganizationParamsResolved.
+const (
+	SearchOrganizationParamsResolvedN1 SearchOrganizationParamsResolved = "1"
+)
+
+// Valid indicates whether the value is a known member of the SearchOrganizationParamsResolved enum.
+func (e SearchOrganizationParamsResolved) Valid() bool {
+	switch e {
+	case SearchOrganizationParamsResolvedN1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchOrganizationParamsSort.
+const (
+	SearchOrganizationParamsSortName     SearchOrganizationParamsSort = "name"
+	SearchOrganizationParamsSortRisk     SearchOrganizationParamsSort = "risk"
+	SearchOrganizationParamsSortSnapshot SearchOrganizationParamsSort = "snapshot"
+)
+
+// Valid indicates whether the value is a known member of the SearchOrganizationParamsSort enum.
+func (e SearchOrganizationParamsSort) Valid() bool {
+	switch e {
+	case SearchOrganizationParamsSortName:
+		return true
+	case SearchOrganizationParamsSortRisk:
+		return true
+	case SearchOrganizationParamsSortSnapshot:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportSearchParamsFormat.
+const (
+	Csv  ExportSearchParamsFormat = "csv"
+	Json ExportSearchParamsFormat = "json"
+)
+
+// Valid indicates whether the value is a known member of the ExportSearchParamsFormat enum.
+func (e ExportSearchParamsFormat) Valid() bool {
+	switch e {
+	case Csv:
+		return true
+	case Json:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportSearchParamsType.
+const (
+	ExportSearchParamsTypeHost ExportSearchParamsType = "host"
+	ExportSearchParamsTypeRepo ExportSearchParamsType = "repo"
+)
+
+// Valid indicates whether the value is a known member of the ExportSearchParamsType enum.
+func (e ExportSearchParamsType) Valid() bool {
+	switch e {
+	case ExportSearchParamsTypeHost:
+		return true
+	case ExportSearchParamsTypeRepo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportSearchParamsOrigin.
+const (
+	ExportSearchParamsOriginIa   ExportSearchParamsOrigin = "ia"
+	ExportSearchParamsOriginSyft ExportSearchParamsOrigin = "syft"
+)
+
+// Valid indicates whether the value is a known member of the ExportSearchParamsOrigin enum.
+func (e ExportSearchParamsOrigin) Valid() bool {
+	switch e {
+	case ExportSearchParamsOriginIa:
+		return true
+	case ExportSearchParamsOriginSyft:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportSearchParamsKev.
+const (
+	ExportSearchParamsKevN1 ExportSearchParamsKev = "1"
+)
+
+// Valid indicates whether the value is a known member of the ExportSearchParamsKev enum.
+func (e ExportSearchParamsKev) Valid() bool {
+	switch e {
+	case ExportSearchParamsKevN1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportSearchParamsSeverity.
+const (
+	ExportSearchParamsSeverityCritical   ExportSearchParamsSeverity = "critical"
+	ExportSearchParamsSeverityHigh       ExportSearchParamsSeverity = "high"
+	ExportSearchParamsSeverityLow        ExportSearchParamsSeverity = "low"
+	ExportSearchParamsSeverityMedium     ExportSearchParamsSeverity = "medium"
+	ExportSearchParamsSeverityNegligible ExportSearchParamsSeverity = "negligible"
+	ExportSearchParamsSeverityNone       ExportSearchParamsSeverity = "none"
+	ExportSearchParamsSeverityUnknown    ExportSearchParamsSeverity = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the ExportSearchParamsSeverity enum.
+func (e ExportSearchParamsSeverity) Valid() bool {
+	switch e {
+	case ExportSearchParamsSeverityCritical:
+		return true
+	case ExportSearchParamsSeverityHigh:
+		return true
+	case ExportSearchParamsSeverityLow:
+		return true
+	case ExportSearchParamsSeverityMedium:
+		return true
+	case ExportSearchParamsSeverityNegligible:
+		return true
+	case ExportSearchParamsSeverityNone:
+		return true
+	case ExportSearchParamsSeverityUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportSearchParamsResolved.
+const (
+	ExportSearchParamsResolvedN1 ExportSearchParamsResolved = "1"
+)
+
+// Valid indicates whether the value is a known member of the ExportSearchParamsResolved enum.
+func (e ExportSearchParamsResolved) Valid() bool {
+	switch e {
+	case ExportSearchParamsResolvedN1:
 		return true
 	default:
 		return false
@@ -396,6 +840,139 @@ type ProjectRef struct {
 	Slug string             `json:"slug"`
 }
 
+// SearchComponent defines model for SearchComponent.
+type SearchComponent struct {
+	Id      openapi_types.UUID `json:"id"`
+	Name    string             `json:"name"`
+	Purl    string             `json:"purl"`
+	Type    string             `json:"type"`
+	Version string             `json:"version"`
+}
+
+// SearchExport defines model for SearchExport.
+type SearchExport struct {
+	Kind      string                   `json:"kind"`
+	Query     string                   `json:"query"`
+	Results   []map[string]interface{} `json:"results"`
+	Truncated bool                     `json:"truncated"`
+}
+
+// SearchGroup defines model for SearchGroup.
+type SearchGroup struct {
+	Hits          []SearchHit   `json:"hits"`
+	LastScannedAt *time.Time    `json:"last_scanned_at,omitempty"`
+	MaxRisk       float64       `json:"max_risk"`
+	Occurrences   int           `json:"occurrences"`
+	Project       SearchProject `json:"project"`
+
+	// Truncated Plus de 100 occurrences dans ce projet ; l'export les donne toutes.
+	Truncated bool `json:"truncated"`
+}
+
+// SearchHit defines model for SearchHit.
+type SearchHit struct {
+	Commit              *string               `json:"commit,omitempty"`
+	Component           SearchComponent       `json:"component"`
+	Confidence          *float64              `json:"confidence,omitempty"`
+	FixedVersions       []string              `json:"fixed_versions"`
+	Kev                 bool                  `json:"kev"`
+	MaxSeverity         *SearchHitMaxSeverity `json:"max_severity,omitempty"`
+	OpenVulnerabilities int                   `json:"open_vulnerabilities"`
+	Origin              *SearchHitOrigin      `json:"origin,omitempty"`
+	Ref                 SearchRef             `json:"ref"`
+	Risk                float64               `json:"risk"`
+	ScannedAt           *time.Time            `json:"scanned_at,omitempty"`
+	SnapshotId          *openapi_types.UUID   `json:"snapshot_id,omitempty"`
+
+	// Status Recherche par vulnérabilité : état du constat.
+	Status *SearchHitStatus `json:"status,omitempty"`
+
+	// Vulnerability Recherche par vulnérabilité : identifiant du constat.
+	Vulnerability      *string `json:"vulnerability,omitempty"`
+	WeakIdentification bool    `json:"weak_identification"`
+}
+
+// SearchHitMaxSeverity defines model for SearchHit.MaxSeverity.
+type SearchHitMaxSeverity string
+
+// SearchHitOrigin defines model for SearchHit.Origin.
+type SearchHitOrigin string
+
+// SearchHitStatus Recherche par vulnérabilité : état du constat.
+type SearchHitStatus string
+
+// SearchProject defines model for SearchProject.
+type SearchProject struct {
+	Id     openapi_types.UUID `json:"id"`
+	Kind   SearchProjectKind  `json:"kind"`
+	Labels map[string]string  `json:"labels"`
+	Name   string             `json:"name"`
+	Slug   string             `json:"slug"`
+}
+
+// SearchProjectKind defines model for SearchProject.Kind.
+type SearchProjectKind string
+
+// SearchRef defines model for SearchRef.
+type SearchRef struct {
+	Id   openapi_types.UUID `json:"id"`
+	Kind SearchRefKind      `json:"kind"`
+	Name string             `json:"name"`
+}
+
+// SearchRefKind defines model for SearchRef.Kind.
+type SearchRefKind string
+
+// SearchResult defines model for SearchResult.
+type SearchResult struct {
+	// Approximate Aucun nom ne contient la requête ; les composants sont ceux dont le nom lui ressemble.
+	Approximate bool             `json:"approximate"`
+	Groups      []SearchGroup    `json:"groups"`
+	Kind        SearchResultKind `json:"kind"`
+
+	// Occurrences Occurrences, toutes pages.
+	Occurrences int `json:"occurrences"`
+
+	// OutOfRange Occurrences du paquet hors de la version ou de la plage demandées (non renvoyées).
+	OutOfRange int `json:"out_of_range"`
+
+	// Page Pagination d'une liste.
+	Page PageInfo `json:"page"`
+
+	// Projects Projets concernés, toutes pages.
+	Projects int `json:"projects"`
+
+	// Query Requête normalisée (espaces ramenés à un seul).
+	Query string `json:"query"`
+
+	// Tokens La requête telle qu'elle a été comprise.
+	Tokens []SearchToken `json:"tokens"`
+
+	// Truncated La requête désigne plus de composants que la borne (1 000 par nom ou empreinte, 5 000 par paquet).
+	Truncated bool `json:"truncated"`
+
+	// UnreadableVersions Versions du paquet illisibles dans son écosystème, ni dans la plage ni hors d'elle (non renvoyées).
+	UnreadableVersions []SearchVersionCount `json:"unreadable_versions"`
+}
+
+// SearchResultKind defines model for SearchResult.Kind.
+type SearchResultKind string
+
+// SearchToken defines model for SearchToken.
+type SearchToken struct {
+	Kind  SearchTokenKind `json:"kind"`
+	Value string          `json:"value"`
+}
+
+// SearchTokenKind defines model for SearchToken.Kind.
+type SearchTokenKind string
+
+// SearchVersionCount defines model for SearchVersionCount.
+type SearchVersionCount struct {
+	Occurrences int    `json:"occurrences"`
+	Version     string `json:"version"`
+}
+
 // SnapshotRef Instantané courant d'une référence (le plus récent par date de scan) ; absent tant
 // qu'aucun SBOM n'a été rangé. L'agent dépôt s'en sert pour son rattrapage.
 type SnapshotRef struct {
@@ -425,6 +1002,33 @@ type Cursor = string
 // Limit defines model for Limit.
 type Limit = int
 
+// Org defines model for Org.
+type Org = string
+
+// SearchKEV defines model for SearchKEV.
+type SearchKEV string
+
+// SearchLabel defines model for SearchLabel.
+type SearchLabel = []string
+
+// SearchOrigin defines model for SearchOrigin.
+type SearchOrigin = []string
+
+// SearchQuery defines model for SearchQuery.
+type SearchQuery = string
+
+// SearchResolved defines model for SearchResolved.
+type SearchResolved string
+
+// SearchSeverity defines model for SearchSeverity.
+type SearchSeverity = []string
+
+// SearchSort defines model for SearchSort.
+type SearchSort string
+
+// SearchType defines model for SearchType.
+type SearchType = []string
+
 // CreateIngestionMultipartBody defines parameters for CreateIngestion.
 type CreateIngestionMultipartBody struct {
 	Context IngestionContext `json:"context"`
@@ -441,6 +1045,103 @@ type ListAgentProjectsParams struct {
 	// Limit Taille de page (100 par défaut, 200 au plus).
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
+
+// SearchOrganizationParams defines parameters for SearchOrganization.
+type SearchOrganizationParams struct {
+	// Q Requête de recherche (1 024 octets au plus).
+	Q SearchQuery `form:"q" json:"q"`
+
+	// Type Types de projet retenus (l'un ou l'autre).
+	Type *SearchType `form:"type,omitempty" json:"type,omitempty"`
+
+	// Label Étiquettes de projet retenues, `clé=valeur` ou `clé` (l'une ou l'autre).
+	Label *SearchLabel `form:"label,omitempty" json:"label,omitempty"`
+
+	// Origin Origines de la détection retenues.
+	Origin *SearchOrigin `form:"origin,omitempty" json:"origin,omitempty"`
+
+	// Kev `1` : seulement les occurrences d'une vulnérabilité activement exploitée.
+	Kev *SearchOrganizationParamsKev `form:"kev,omitempty" json:"kev,omitempty"`
+
+	// Severity Sévérité maximale des vulnérabilités ouvertes de l'occurrence (pour une recherche
+	// par vulnérabilité, sa sévérité) ; `none` : sans vulnérabilité ouverte.
+	Severity *SearchSeverity `form:"severity,omitempty" json:"severity,omitempty"`
+
+	// Resolved `1` : une recherche par vulnérabilité montre aussi les constats résolus.
+	Resolved *SearchOrganizationParamsResolved `form:"resolved,omitempty" json:"resolved,omitempty"`
+
+	// Sort Ordre des projets (risque maximal décroissant par défaut).
+	Sort *SearchOrganizationParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+
+	// Cursor Curseur renvoyé par la page précédente (`next_cursor`).
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Projets par page (20 par défaut, 100 au plus).
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// SearchOrganizationParamsType defines parameters for SearchOrganization.
+type SearchOrganizationParamsType string
+
+// SearchOrganizationParamsOrigin defines parameters for SearchOrganization.
+type SearchOrganizationParamsOrigin string
+
+// SearchOrganizationParamsKev defines parameters for SearchOrganization.
+type SearchOrganizationParamsKev string
+
+// SearchOrganizationParamsSeverity defines parameters for SearchOrganization.
+type SearchOrganizationParamsSeverity string
+
+// SearchOrganizationParamsResolved defines parameters for SearchOrganization.
+type SearchOrganizationParamsResolved string
+
+// SearchOrganizationParamsSort defines parameters for SearchOrganization.
+type SearchOrganizationParamsSort string
+
+// ExportSearchParams defines parameters for ExportSearch.
+type ExportSearchParams struct {
+	Format ExportSearchParamsFormat `form:"format" json:"format"`
+
+	// Q Requête de recherche (1 024 octets au plus).
+	Q SearchQuery `form:"q" json:"q"`
+
+	// Type Types de projet retenus (l'un ou l'autre).
+	Type *SearchType `form:"type,omitempty" json:"type,omitempty"`
+
+	// Label Étiquettes de projet retenues, `clé=valeur` ou `clé` (l'une ou l'autre).
+	Label *SearchLabel `form:"label,omitempty" json:"label,omitempty"`
+
+	// Origin Origines de la détection retenues.
+	Origin *SearchOrigin `form:"origin,omitempty" json:"origin,omitempty"`
+
+	// Kev `1` : seulement les occurrences d'une vulnérabilité activement exploitée.
+	Kev *ExportSearchParamsKev `form:"kev,omitempty" json:"kev,omitempty"`
+
+	// Severity Sévérité maximale des vulnérabilités ouvertes de l'occurrence (pour une recherche
+	// par vulnérabilité, sa sévérité) ; `none` : sans vulnérabilité ouverte.
+	Severity *SearchSeverity `form:"severity,omitempty" json:"severity,omitempty"`
+
+	// Resolved `1` : une recherche par vulnérabilité montre aussi les constats résolus.
+	Resolved *ExportSearchParamsResolved `form:"resolved,omitempty" json:"resolved,omitempty"`
+}
+
+// ExportSearchParamsFormat defines parameters for ExportSearch.
+type ExportSearchParamsFormat string
+
+// ExportSearchParamsType defines parameters for ExportSearch.
+type ExportSearchParamsType string
+
+// ExportSearchParamsOrigin defines parameters for ExportSearch.
+type ExportSearchParamsOrigin string
+
+// ExportSearchParamsKev defines parameters for ExportSearch.
+type ExportSearchParamsKev string
+
+// ExportSearchParamsSeverity defines parameters for ExportSearch.
+type ExportSearchParamsSeverity string
+
+// ExportSearchParamsResolved defines parameters for ExportSearch.
+type ExportSearchParamsResolved string
 
 // EnrollJSONRequestBody defines body for Enroll for application/json ContentType.
 type EnrollJSONRequestBody = EnrollRequest

@@ -20,6 +20,8 @@ servers:
 tags:
   - name: agent
     description: API des agents (jeton d'agent ou, pour l'inscription, jeton d'inscription).
+  - name: user
+    description: API utilisateur d'une organisation (jeton d'accès personnel, lecture seule).
 paths:
   /agent/enroll:
     post:
@@ -218,6 +220,99 @@ paths:
           $ref: "#/components/responses/Problem"
         "429":
           $ref: "#/components/responses/Problem"
+  /orgs/{org}/search:
+    get:
+      operationId: searchOrganization
+      tags: [user]
+      summary: Recherche transverse dans une organisation
+      description: |
+        Mêmes requête, filtres, ordre et résultats que l'écran de recherche
+        (`/o/{org}/search`) : une page de projets, chacun avec ses occurrences (100 au plus
+        par projet, toutes dans l'export). La requête est un nom de composant, un purl
+        éventuellement suivi d'une plage `vers` (`pkg:npm/lodash vers:npm/<4.17.21`), un
+        identifiant `CVE-…` ou `GHSA-…`, ou une empreinte SHA-256. Une organisation dont le
+        propriétaire du jeton n'est pas membre répond 404.
+      security:
+        - personalToken: []
+      parameters:
+        - $ref: "#/components/parameters/Org"
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/SearchType"
+        - $ref: "#/components/parameters/SearchLabel"
+        - $ref: "#/components/parameters/SearchOrigin"
+        - $ref: "#/components/parameters/SearchKEV"
+        - $ref: "#/components/parameters/SearchSeverity"
+        - $ref: "#/components/parameters/SearchResolved"
+        - $ref: "#/components/parameters/SearchSort"
+        - $ref: "#/components/parameters/Cursor"
+        - name: limit
+          in: query
+          description: Projets par page (20 par défaut, 100 au plus).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Une page de résultats.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResult"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+  /orgs/{org}/search/export:
+    get:
+      operationId: exportSearch
+      tags: [user]
+      summary: Export de toutes les occurrences d'une recherche
+      description: |
+        Toutes les occurrences, par projet, référence et composant, écrites en flux. CSV :
+        une ligne d'en-tête puis une ligne par occurrence (une cellule qui commencerait
+        par `=`, `+`, `-` ou `@` est préfixée d'une apostrophe). JSON : un objet
+        `{query, kind, truncated, results}`. Les exports simultanés sont bornés par
+        instance (429 au-delà).
+      security:
+        - personalToken: []
+      parameters:
+        - $ref: "#/components/parameters/Org"
+        - name: format
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [csv, json]
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/SearchType"
+        - $ref: "#/components/parameters/SearchLabel"
+        - $ref: "#/components/parameters/SearchOrigin"
+        - $ref: "#/components/parameters/SearchKEV"
+        - $ref: "#/components/parameters/SearchSeverity"
+        - $ref: "#/components/parameters/SearchResolved"
+      responses:
+        "200":
+          description: L'export.
+          content:
+            text/csv:
+              schema:
+                type: string
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchExport"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
 components:
   securitySchemes:
     enrollmentToken:
@@ -233,6 +328,94 @@ components:
       scheme: bearer
       description: Jeton d'accès personnel (`ogsbom_pat_…`).
   parameters:
+    Org:
+      name: org
+      in: path
+      required: true
+      description: Slug de l'organisation.
+      schema:
+        type: string
+        maxLength: 64
+    SearchQuery:
+      name: q
+      in: query
+      required: true
+      description: Requête de recherche (1 024 octets au plus).
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 1024
+    SearchType:
+      name: type
+      in: query
+      description: Types de projet retenus (l'un ou l'autre).
+      style: form
+      explode: true
+      schema:
+        type: array
+        maxItems: 32
+        items:
+          type: string
+          enum: [repo, host]
+    SearchLabel:
+      name: label
+      in: query
+      description: Étiquettes de projet retenues, `clé=valeur` ou `clé` (l'une ou l'autre).
+      style: form
+      explode: true
+      schema:
+        type: array
+        maxItems: 32
+        items:
+          type: string
+          maxLength: 200
+    SearchOrigin:
+      name: origin
+      in: query
+      description: Origines de la détection retenues.
+      style: form
+      explode: true
+      schema:
+        type: array
+        maxItems: 32
+        items:
+          type: string
+          enum: [syft, ia]
+    SearchKEV:
+      name: kev
+      in: query
+      description: "`1` : seulement les occurrences d'une vulnérabilité activement exploitée."
+      schema:
+        type: string
+        enum: ["1"]
+    SearchSeverity:
+      name: severity
+      in: query
+      description: |
+        Sévérité maximale des vulnérabilités ouvertes de l'occurrence (pour une recherche
+        par vulnérabilité, sa sévérité) ; `none` : sans vulnérabilité ouverte.
+      style: form
+      explode: true
+      schema:
+        type: array
+        maxItems: 32
+        items:
+          type: string
+          enum: [critical, high, medium, low, negligible, unknown, none]
+    SearchResolved:
+      name: resolved
+      in: query
+      description: "`1` : une recherche par vulnérabilité montre aussi les constats résolus."
+      schema:
+        type: string
+        enum: ["1"]
+    SearchSort:
+      name: sort
+      in: query
+      description: Ordre des projets (risque maximal décroissant par défaut).
+      schema:
+        type: string
+        enum: [risk, name, snapshot]
     Cursor:
       name: cursor
       in: query
@@ -588,3 +771,187 @@ components:
         pointer:
           type: string
           description: Pointeur JSON de la violation, pour `error.ingest.schema_invalid`.
+    SearchResult:
+      type: object
+      required: [query, kind, tokens, projects, occurrences, truncated, approximate, out_of_range,
+        unreadable_versions, groups, page]
+      properties:
+        query:
+          type: string
+          description: Requête normalisée (espaces ramenés à un seul).
+        kind:
+          type: string
+          enum: [name, purl, vulnerability, hash]
+        tokens:
+          type: array
+          description: La requête telle qu'elle a été comprise.
+          items:
+            $ref: "#/components/schemas/SearchToken"
+        projects:
+          type: integer
+          description: Projets concernés, toutes pages.
+        occurrences:
+          type: integer
+          description: Occurrences, toutes pages.
+        truncated:
+          type: boolean
+          description: La requête désigne plus de composants que la borne (1 000 par nom ou empreinte, 5 000 par paquet).
+        approximate:
+          type: boolean
+          description: Aucun nom ne contient la requête ; les composants sont ceux dont le nom lui ressemble.
+        out_of_range:
+          type: integer
+          description: Occurrences du paquet hors de la version ou de la plage demandées (non renvoyées).
+        unreadable_versions:
+          type: array
+          description: Versions du paquet illisibles dans son écosystème, ni dans la plage ni hors d'elle (non renvoyées).
+          items:
+            $ref: "#/components/schemas/SearchVersionCount"
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchGroup"
+        page:
+          $ref: "#/components/schemas/PageInfo"
+    SearchToken:
+      type: object
+      required: [kind, value]
+      properties:
+        kind:
+          type: string
+          enum: [name, purl, range, vulnerability, hash]
+        value:
+          type: string
+    SearchVersionCount:
+      type: object
+      required: [version, occurrences]
+      properties:
+        version:
+          type: string
+        occurrences:
+          type: integer
+    SearchGroup:
+      type: object
+      required: [project, occurrences, max_risk, truncated, hits]
+      properties:
+        project:
+          $ref: "#/components/schemas/SearchProject"
+        occurrences:
+          type: integer
+        max_risk:
+          type: number
+          format: double
+        last_scanned_at:
+          type: string
+          format: date-time
+        truncated:
+          type: boolean
+          description: Plus de 100 occurrences dans ce projet ; l'export les donne toutes.
+        hits:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchHit"
+    SearchProject:
+      type: object
+      required: [id, slug, name, kind, labels]
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [repo, host]
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+    SearchHit:
+      type: object
+      required: [ref, component, weak_identification, open_vulnerabilities, kev, risk, fixed_versions]
+      properties:
+        ref:
+          $ref: "#/components/schemas/SearchRef"
+        snapshot_id:
+          type: string
+          format: uuid
+        scanned_at:
+          type: string
+          format: date-time
+        commit:
+          type: string
+        component:
+          $ref: "#/components/schemas/SearchComponent"
+        origin:
+          type: string
+          enum: [syft, ia]
+        confidence:
+          type: number
+          format: double
+        weak_identification:
+          type: boolean
+        open_vulnerabilities:
+          type: integer
+        max_severity:
+          type: string
+          enum: [critical, high, medium, low, negligible, unknown]
+        kev:
+          type: boolean
+        risk:
+          type: number
+          format: double
+        fixed_versions:
+          type: array
+          items:
+            type: string
+        vulnerability:
+          type: string
+          description: "Recherche par vulnérabilité : identifiant du constat."
+        status:
+          type: string
+          enum: [open, resolved]
+          description: "Recherche par vulnérabilité : état du constat."
+    SearchRef:
+      type: object
+      required: [id, kind, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum: [branch, tag, host]
+        name:
+          type: string
+    SearchComponent:
+      type: object
+      required: [id, purl, name, version, type]
+      properties:
+        id:
+          type: string
+          format: uuid
+        purl:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        type:
+          type: string
+    SearchExport:
+      type: object
+      required: [query, kind, truncated, results]
+      properties:
+        query:
+          type: string
+        kind:
+          type: string
+        truncated:
+          type: boolean
+        results:
+          type: array
+          items:
+            type: object

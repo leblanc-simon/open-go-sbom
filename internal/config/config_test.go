@@ -41,6 +41,7 @@ func valid() Config {
 	c.MFA.ChallengeTTL, c.MFA.MaxAttempts = time.Minute, 5
 	c.Login.RateLimit = 10
 	c.AgentAPI = AgentAPI{RateLimit: 120, FailureRateLimit: 30}
+	c.UserAPI = UserAPI{RateLimit: 60, FailureRateLimit: 30, ExportTimeout: 5 * time.Minute, MaxExports: 4}
 	c.Workers = Workers{Enabled: true, Concurrency: 4, PollInterval: time.Second, Lease: 30 * time.Second,
 		RetryBase: 10 * time.Second, RetryMax: 30 * time.Minute, Retention: time.Hour,
 		ScheduleInterval: 10 * time.Second, ShutdownTimeout: 30 * time.Second, OrgLimit: 2}
@@ -194,6 +195,10 @@ func TestValidate(t *testing.T) {
 		{"limite de connexion", "login.rate_limit", func(c *Config) { c.Login.RateLimit = -1 }},
 		{"limite de l'API des agents", "agent_api.rate_limit", func(c *Config) { c.AgentAPI.RateLimit = -1 }},
 		{"limite des jetons refusés", "agent_api.failure_rate_limit", func(c *Config) { c.AgentAPI.FailureRateLimit = -1 }},
+		{"limite de l'API utilisateur", "user_api.rate_limit", func(c *Config) { c.UserAPI.RateLimit = -1 }},
+		{"limite des jetons personnels refusés", "user_api.failure_rate_limit", func(c *Config) { c.UserAPI.FailureRateLimit = -1 }},
+		{"durée d'un export", "user_api.export_timeout", func(c *Config) { c.UserAPI.ExportTimeout = 0 }},
+		{"exports simultanés", "user_api.max_exports", func(c *Config) { c.UserAPI.MaxExports = 0 }},
 		{"bootstrap sans mot de passe", "bootstrap.admin_password", func(c *Config) { c.Bootstrap.AdminEmail = "a@example.org" }},
 		{"bootstrap e-mail invalide", "bootstrap.admin_email", func(c *Config) {
 			c.Bootstrap.AdminEmail, c.Bootstrap.AdminPassword = "pas une adresse", "un mot de passe assez long"
