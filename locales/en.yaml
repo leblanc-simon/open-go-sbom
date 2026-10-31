@@ -607,7 +607,7 @@ project_form:
 agents:
   title: Agents
   heading: Agents
-  lead: "The agents that send SBOMs: one server agent per host, and repository agents to which repositories are entrusted. An agent is silent after 3 days without contact."
+  lead: "The agents that send SBOMs: one server agent per host, and repository agents to which repositories are entrusted. An agent is silent after 7 days without contact."
   new_repo: New repository agent
   new_enrollment: Enroll servers
   list_title: Active agents

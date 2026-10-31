@@ -46,9 +46,10 @@ const (
 	StateDisabled State = "disabled" // désactivé : jetons révoqués, projets retirés
 )
 
-// SilentAfter est la durée sans contact au-delà de laquelle un agent est muet. T05
-// pourra la fonder sur le dernier instantané plutôt que sur le dernier contact.
-const SilentAfter = 72 * time.Hour
+// SilentAfter est la durée sans contact au-delà de laquelle un agent est muet : 7 jours
+// (décision de T10). T05 pourra la fonder sur le dernier instantané plutôt que sur le
+// dernier contact.
+const SilentAfter = 7 * 24 * time.Hour
 
 // Clés de validation.
 const (

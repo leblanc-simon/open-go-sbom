@@ -136,6 +136,19 @@ var orgTables = []orgTable{
 			tx.OrgID(), uuid.Must(uuid.NewV7()), publicID(tx, "e"))
 		return err
 	}},
+	{"org_daily_stats", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO org_daily_stats (org_id, day, open_critical, open_high, open_medium, open_low,
+			open_negligible, open_unknown, open_kev, kev_vulns, projects, silent_agents, fixed_critical, fixed_high, fixed_medium,
+			fixed_low, fixed_negligible, fixed_unknown, recorded_at)
+			VALUES ($1, current_date, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, now())`, tx.OrgID())
+		return err
+	}},
+	{"project_daily_stats", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO project_daily_stats (org_id, project_id, day, open_critical, open_high,
+			open_medium, open_low, open_negligible, open_unknown, open_kev, recorded_at)
+			VALUES ($1, $2, current_date, 1, 0, 0, 0, 0, 0, 1, now())`, tx.OrgID(), seedID(tx, "project"))
+		return err
+	}},
 }
 
 // seedID dérive un identifiant stable de l'organisation et d'un nom, pour relier les

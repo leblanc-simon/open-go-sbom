@@ -607,7 +607,7 @@ project_form:
 agents:
   title: Agents
   heading: Agents
-  lead: "Les agents qui envoient les SBOM : un agent serveur par hôte, et des agents dépôt auxquels les dépôts sont confiés. Un agent est muet après 3 jours sans contact."
+  lead: "Les agents qui envoient les SBOM : un agent serveur par hôte, et des agents dépôt auxquels les dépôts sont confiés. Un agent est muet après 7 jours sans contact."
   new_repo: Nouvel agent dépôt
   new_enrollment: Inscrire des serveurs
   list_title: Agents actifs
