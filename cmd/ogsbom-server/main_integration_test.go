@@ -95,6 +95,11 @@ func start(t *testing.T, tdb *dbtest.DB, env ...string) *instance {
 		"OGSBOM_MIGRATION_DSN=" + tdb.OwnerDSN,
 		"OGSBOM_HTTP_SHUTDOWN_TIMEOUT=5s",
 		"OGSBOM_LOG_FORMAT=json",
+		// Clé de test (32 octets à 0x07) : les secrets TOTP sont chiffrés.
+		"OGSBOM_SECRETS_KEYS=test:BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=",
+		"OGSBOM_SECRETS_ACTIVE_KEY=test",
+		"OGSBOM_BOOTSTRAP_ADMIN_EMAIL=admin@example.org",
+		"OGSBOM_BOOTSTRAP_ADMIN_PASSWORD=mot de passe temporaire",
 	}, env...)
 	out := &output{}
 	cmd.Stdout, cmd.Stderr = out, out
@@ -158,8 +163,14 @@ func TestServerEndToEnd(t *testing.T) {
 		t.Fatalf("migrations appliquées par les deux instances = %d, attendu %d\nA:\n%s\nB:\n%s", applied, len(all), a.out, b.out)
 	}
 
-	for lang, heading := range map[string]string{"fr": "Bienvenue sur open-go-sbom", "en": "Welcome to open-go-sbom"} {
-		resp, err := http.Get(a.public + "/?lang=" + lang)
+	// Le premier administrateur n'est créé qu'une fois, même par deux instances simultanées.
+	if n := strings.Count(a.out.String()+b.out.String(), "premier administrateur créé"); n != 1 {
+		t.Fatalf("premier administrateur créé %d fois\nA:\n%s\nB:\n%s", n, a.out, b.out)
+	}
+
+	// L'accueil d'un visiteur anonyme mène à la connexion, traduite.
+	for lang, heading := range map[string]string{"fr": "Connectez-vous avec votre adresse e-mail", "en": "Sign in with your e-mail address"} {
+		resp, err := http.Get(a.public + "/login?lang=" + lang)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -188,6 +199,9 @@ func TestServerEndToEnd(t *testing.T) {
 		}
 		if code := i.exit(t); code != 0 {
 			t.Fatalf("code de sortie %d après SIGTERM :\n%s", code, i.out)
+		}
+		if out := i.out.String(); !strings.Contains(out, `"msg":"workers démarrés"`) || !strings.Contains(out, `"msg":"workers arrêtés"`) {
+			t.Fatalf("workers non démarrés ou non arrêtés :\n%s", out)
 		}
 		if !strings.Contains(i.out.String(), "arrêt terminé") {
 			t.Fatalf("arrêt non journalisé :\n%s", i.out)
