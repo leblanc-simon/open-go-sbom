@@ -70,7 +70,39 @@ migration:
 # Clés de chiffrement des secrets stockés en base (AES-256-GCM). Une clé : 32 octets en
 # base64 (openssl rand -base64 32). La clé active chiffre, les autres déchiffrent encore
 # (rotation : voir docs/operations.md). Variables : OGSBOM_SECRETS_KEYS=id:base64,id2:base64
-# et OGSBOM_SECRETS_ACTIVE_KEY. À fournir hors du fichier en production.
+# et OGSBOM_SECRETS_ACTIVE_KEY. Obligatoire : les secrets TOTP sont chiffrés. La clé
+# ci-dessous ne sert qu'au développement ; en production, en générer une et la fournir
+# hors du fichier.
 secrets:
-  keys: {}
-  active_key: ""
+  keys:
+    dev: vUzs1bzBzg7NxWGK9RpCQAivA86ZbMXVS2cD1qJ/kJw=
+  active_key: dev
+
+# Sessions (authx).
+auth:
+  session_ttl: 12h       # durée glissante d'une session
+  cookie_name: ogsbom_session
+  cookie_secure: auto    # auto (Secure en HTTPS) | on | off
+  bcrypt_cost: 12        # coût bcrypt des mots de passe (10 à 31)
+
+# Second facteur TOTP (mfax), obligatoire pour tout compte local.
+mfa:
+  issuer: open-go-sbom   # nom affiché dans l'application d'authentification
+  challenge_ttl: 10m     # délai pour saisir le code après le mot de passe
+  max_attempts: 5        # codes faux tolérés avant de reprendre au mot de passe
+
+# Connexion : tentatives (POST /login et /login/2fa) par minute et par IP.
+login:
+  rate_limit: 10
+
+# Premier démarrage et secours, lus au démarrage puis à retirer (docs/operations.md).
+bootstrap:
+  # Premier administrateur d'instance, créé seulement si aucun compte n'existe. Mot de
+  # passe temporaire (12 caractères au moins), changé à la première connexion avec
+  # l'enrôlement du TOTP. Préférer OGSBOM_BOOTSTRAP_ADMIN_PASSWORD au fichier.
+  admin_email: ""
+  admin_password: ""
+  # Procédure de secours : retire au démarrage le TOTP de cet administrateur d'instance
+  # (audité), une seule fois par ticket (référence d'incident, 8 caractères au moins).
+  rescue_totp_email: ""
+  rescue_ticket: ""

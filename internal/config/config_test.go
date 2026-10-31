@@ -36,6 +36,10 @@ func valid() Config {
 	c.Database.MaxOpenConns, c.Database.MaxIdleConns = 10, 5
 	c.Database.StartupTimeout = time.Second
 	c.Migration.MaxConns = 2
+	c.Secrets = Secrets{Keys: map[string]string{"k1": base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{1}, 32))}, ActiveKey: "k1"}
+	c.Auth.SessionTTL, c.Auth.CookieSecure, c.Auth.BcryptCost = time.Hour, "auto", 12
+	c.MFA.ChallengeTTL, c.MFA.MaxAttempts = time.Minute, 5
+	c.Login.RateLimit = 10
 	return c
 }
 
@@ -75,6 +79,10 @@ i18n:
   default_language: en
 http:
   shutdown_timeout: 5s
+secrets:
+  keys:
+    k1: ` + base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{2}, 32)) + `
+  active_key: k1
 `
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatal(err)
@@ -142,7 +150,30 @@ func TestValidate(t *testing.T) {
 			c.TLS.CertFile, c.TLS.KeyFile = filepath.Join(dir, "absent.pem"), certFile
 		}},
 		{"CORS", "cors.max_age", func(c *Config) { c.CORS.MaxAge = -1 }},
-		{"clé active absente", "secrets.keys", func(c *Config) { c.Secrets.ActiveKey = "k1" }},
+		{"clé absente", "secrets.keys", func(c *Config) { c.Secrets = Secrets{} }},
+		{"clé active absente", "secrets.keys", func(c *Config) { c.Secrets.ActiveKey = "k2" }},
+		{"durée de session", "auth.session_ttl", func(c *Config) { c.Auth.SessionTTL = 0 }},
+		{"nom du cookie", "auth.cookie_name", func(c *Config) { c.Auth.CookieName = "" }},
+		{"cookie Secure", "auth.cookie_secure", func(c *Config) { c.Auth.CookieSecure = "yes" }},
+		{"coût bcrypt", "auth.bcrypt_cost", func(c *Config) { c.Auth.BcryptCost = 4 }},
+		{"émetteur TOTP", "mfa.issuer", func(c *Config) { c.MFA.Issuer = "" }},
+		{"durée du défi", "mfa.challenge_ttl", func(c *Config) { c.MFA.ChallengeTTL = 0 }},
+		{"tentatives TOTP", "mfa.max_attempts", func(c *Config) { c.MFA.MaxAttempts = 0 }},
+		{"limite de connexion", "login.rate_limit", func(c *Config) { c.Login.RateLimit = -1 }},
+		{"bootstrap sans mot de passe", "bootstrap.admin_password", func(c *Config) { c.Bootstrap.AdminEmail = "a@example.org" }},
+		{"bootstrap e-mail invalide", "bootstrap.admin_email", func(c *Config) {
+			c.Bootstrap.AdminEmail, c.Bootstrap.AdminPassword = "pas une adresse", "un mot de passe assez long"
+		}},
+		{"bootstrap mot de passe court", "bootstrap.admin_password", func(c *Config) {
+			c.Bootstrap.AdminEmail, c.Bootstrap.AdminPassword = "a@example.org", "court"
+		}},
+		{"secours sans ticket", "bootstrap.rescue_ticket", func(c *Config) { c.Bootstrap.RescueEmail = "a@example.org" }},
+		{"secours ticket court", "bootstrap.rescue_ticket", func(c *Config) {
+			c.Bootstrap.RescueEmail, c.Bootstrap.RescueTicket = "a@example.org", "court"
+		}},
+		{"secours e-mail invalide", "bootstrap.rescue_totp_email", func(c *Config) {
+			c.Bootstrap.RescueEmail, c.Bootstrap.RescueTicket = "x", "INC-2026-1031"
+		}},
 		{"clé trop courte", "secrets.keys", func(c *Config) {
 			c.Secrets = Secrets{Keys: map[string]string{"k1": "c2hvcnQ="}, ActiveKey: "k1"}
 		}},

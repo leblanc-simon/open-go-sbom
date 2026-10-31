@@ -6,9 +6,11 @@ import (
 	"net/netip"
 	"os"
 	"slices"
+	"strings"
 
 	"golang.org/x/text/language"
 
+	"leblanc.io/open-go-sbom/internal/account"
 	"leblanc.io/open-go-sbom/internal/db"
 	"leblanc.io/open-go-sbom/internal/secret"
 )
@@ -145,11 +147,52 @@ func (c Config) Validate() error {
 	}
 	v.nonNegative("migration.lock_timeout", int64(c.Migration.LockTimeout))
 
-	if len(c.Secrets.Keys) > 0 || c.Secrets.ActiveKey != "" {
-		if _, err := secret.Parse(c.Secrets.Keys, c.Secrets.ActiveKey); err != nil {
-			v.fail("secrets.keys", "%v", err)
-		}
+	// Les secrets TOTP sont chiffrés en base : une clé est obligatoire.
+	if len(c.Secrets.Keys) == 0 {
+		v.fail("secrets.keys", "obligatoire : les secrets TOTP sont chiffrés en base (openssl rand -base64 32)")
+	} else if _, err := secret.Parse(c.Secrets.Keys, c.Secrets.ActiveKey); err != nil {
+		v.fail("secrets.keys", "%v", err)
 	}
 
+	v.positive("auth.session_ttl", int64(c.Auth.SessionTTL))
+	if c.Auth.CookieName == "" {
+		v.fail("auth.cookie_name", "obligatoire")
+	}
+	v.oneOf("auth.cookie_secure", c.Auth.CookieSecure, "auto", "on", "off")
+	if c.Auth.BcryptCost < 10 || c.Auth.BcryptCost > 31 {
+		v.fail("auth.bcrypt_cost", "doit être compris entre 10 et 31 (reçu %d)", c.Auth.BcryptCost)
+	}
+	if c.MFA.Issuer == "" {
+		v.fail("mfa.issuer", "obligatoire")
+	}
+	v.positive("mfa.challenge_ttl", int64(c.MFA.ChallengeTTL))
+	if c.MFA.MaxAttempts < 1 || c.MFA.MaxAttempts > 20 {
+		v.fail("mfa.max_attempts", "doit être compris entre 1 et 20 (reçu %d)", c.MFA.MaxAttempts)
+	}
+	v.nonNegative("login.rate_limit", int64(c.Login.RateLimit))
+	c.Bootstrap.validate(&v)
+
 	return errors.Join(v.errs...)
+}
+
+func (b Bootstrap) validate(v *validator) {
+	if (b.AdminEmail == "") != (b.AdminPassword == "") {
+		v.fail("bootstrap.admin_password", "bootstrap.admin_email et bootstrap.admin_password vont ensemble")
+	} else if b.AdminEmail != "" {
+		if _, err := account.NormalizeEmail(b.AdminEmail); err != nil {
+			v.fail("bootstrap.admin_email", "adresse invalide")
+		} else if err := account.ValidatePassword(b.AdminPassword, b.AdminEmail); err != nil {
+			v.fail("bootstrap.admin_password", "refusé par la politique de mot de passe (%d caractères au moins, différent de l'e-mail)", account.MinPasswordLength)
+		}
+	}
+	if (b.RescueEmail == "") != (b.RescueTicket == "") {
+		v.fail("bootstrap.rescue_ticket", "bootstrap.rescue_totp_email et bootstrap.rescue_ticket vont ensemble")
+	} else if b.RescueEmail != "" {
+		if _, err := account.NormalizeEmail(b.RescueEmail); err != nil {
+			v.fail("bootstrap.rescue_totp_email", "adresse invalide")
+		}
+		if len([]rune(strings.TrimSpace(b.RescueTicket))) < account.MinRescueTicket {
+			v.fail("bootstrap.rescue_ticket", "%d caractères au moins", account.MinRescueTicket)
+		}
+	}
 }
