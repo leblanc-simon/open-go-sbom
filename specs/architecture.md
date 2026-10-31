@@ -138,7 +138,7 @@ relevées en T00 (une montée de version ultérieure ne demande pas de nouvelle 
 
 | Besoin | Choix | Version (T00) | Statut |
 | --- | --- | --- | --- |
-| Configuration, journaux, i18n, CSRF, limitation de débit par IP, CORS, comptes, sessions, TOTP | `leblanc.io/open-go-base` | v1.0.1 | Décidé |
+| Configuration, journaux, i18n, CSRF, limitation de débit par IP, CORS, comptes, sessions, TOTP | `leblanc.io/open-go-base` | v1.0.1, puis commit de v1.1.0 en T03 (étiquette à pousser) | Décidé |
 | Pilote PostgreSQL | `github.com/jackc/pgx/v5/stdlib` via `database/sql` (partagé avec les stores d'authx et mfax) | v5.12.0 | Validé (ADR 0002) |
 | Routeur HTTP | `github.com/go-chi/chi/v5` (comme open-go-canivet) | v5.5.0 | Validé (ADR 0003) |
 | SBOM, vulnérabilités, licences | `github.com/anchore/syft`, `grype`, `grant` | v1.55.0, v0.121.0, v0.6.8 | Décidé (ADR 0007) |
@@ -172,7 +172,9 @@ propres au projet : `HTTP` (délais des serveurs, délai d'arrêt propre),
 `Management` (écoute séparée métriques et sondes), `Workers` (activation, nombre de
 workers, scrutation, bail, réessais, rétention, planificateur, délai d'arrêt), `Ingest` (bornes),
 `VulnDB` (URL de la liste, répertoire local, fréquence, mode hors ligne), `Secrets` (clés
-de chiffrement versionnées), `Bootstrap` (premier administrateur), `Migration`
+de chiffrement versionnées, obligatoires depuis T03 : les secrets TOTP sont chiffrés),
+`Bootstrap` (premier administrateur et procédure de secours, T03), `Login` (débit des
+tentatives de connexion, T03), `Migration`
 (`migration_dsn` : connexion du rôle propriétaire, utilisée uniquement pour migrer).
 `Database.DSN` est la connexion du rôle d'exécution. `--help` liste toutes les variables
 d'environnement. Un `config.example.yaml` commenté accompagne chaque binaire. Un fragment
@@ -197,7 +199,9 @@ Contrôles au démarrage :
   session (le mode transaction est incompatible avec les migrations et les verrous).
 - Deux rôles PostgreSQL (noms par défaut) :
   - `ogsbom_owner` possède le schéma, applique les migrations (y compris celles d'authx et
-    de mfax) et possède les fonctions de `crossorg` ;
+    de mfax) et possède les fonctions de `crossorg` ; il a l'attribut `BYPASSRLS`, sans
+    lequel ces fonctions ne verraient rien sous la RLS forcée (ADR 0012) — il ne lui
+    donne aucun pouvoir nouveau sur des tables qu'il possède ;
   - `ogsbom_app` exécute l'application : `SELECT`, `INSERT`, `UPDATE`, `DELETE` accordés
     par les migrations (privilèges par défaut sur les tables futures), rien d'autre.
 - En fonctionnement, un pool `*sql.DB` unique sur `ogsbom_app`, partagé par les stores
@@ -301,7 +305,8 @@ rétention supprime les ensembles orphelins.
   liste des organisations pour les statistiques quotidiennes. Ce sont des fonctions
   `SECURITY DEFINER` du rôle propriétaire, à `search_path` fixé, qui ne renvoient que le
   strict nécessaire. Elles vivent toutes dans `internal/db/crossorg`, sont listées dans un
-  ADR, et tout ajout est relu comme un changement de sécurité.
+  ADR (0012 : `ogsbom_org_access`, `ogsbom_user_orgs`, `ogsbom_list_organizations`,
+  `ogsbom_org_id_by_slug`), et tout ajout est relu comme un changement de sécurité.
 - La RLS s'ajoute aux autres protections sans les remplacer : PostgreSQL ne l'applique pas
   aux contrôles de clés étrangères (d'où les clés composites), et `tenant.OrgID` garde des
   erreurs claires et des plans de requête prévisibles.
@@ -313,7 +318,7 @@ rétention supprime les ensembles orphelins.
 
 ### Pourquoi pas un schéma par organisation
 
-Écarté (ADR en T03). Tant qu'un seul rôle accède à tous les schémas, l'isolement reposerait
+Écarté (ADR 0012). Tant qu'un seul rôle accède à tous les schémas, l'isolement reposerait
 sur un `search_path` correctement positionné, soit la même discipline qu'un filtre oublié ;
 un rôle par organisation imposerait un pool par organisation. Les migrations seraient
 rejouées une fois par organisation, la création d'une organisation demanderait de créer des
@@ -340,8 +345,11 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
 - Administrateur d'instance : rôle privilégié assumé (il peut réinitialiser le mot de passe
   et le TOTP d'un compte, chaque fois audité) ; deux administrateurs au moins sont
   recommandés et l'interface avertit s'il n'y en a qu'un. Procédure de secours documentée
-  pour un administrateur unique qui perd son TOTP (variable d'environnement lue au
-  démarrage, auditée, à retirer ensuite).
+  pour un administrateur unique qui perd son TOTP : `bootstrap.rescue_totp_email` et
+  `bootstrap.rescue_ticket`, lus au démarrage, appliqués une fois par ticket, audités, à
+  retirer ensuite (ADR 0013).
+- Secrets TOTP chiffrés en base par `internal/secret` (enveloppe du store de mfax),
+  rechiffrés par la clé active au démarrage (ADR 0013).
 - Pas d'envoi de courriel avant T15 : les comptes sont créés avec un mot de passe temporaire.
 - Rôles d'organisation : `viewer`, `analyst` (trie les constats), `admin`. Les équipes (T16)
   restreignent ensuite la visibilité par projet.
@@ -612,8 +620,8 @@ dupliquer.
 
 | Évolution | Pourquoi | Avant |
 | --- | --- | --- |
-| Erreurs d'authx, mfax et csrfx exposées comme clés plutôt qu'en texte français | Messages traduits (« Identifiants invalides », « Code invalide », « Accès interdit », réponse 403 de csrfx) | T03 |
-| Gestionnaire d'échec configurable dans csrfx | Page 403 traduite et au format du projet | T03 |
+| Erreurs d'authx, mfax et csrfx exposées comme clés plutôt qu'en texte français | Messages traduits (« Identifiants invalides », « Code invalide », « Accès interdit », réponse 403 de csrfx) | Fait en T03 (PR #1 d'open-go-base) |
+| Gestionnaire d'échec configurable dans csrfx | Page 403 traduite et au format du projet | Fait en T03 (PR #1 d'open-go-base) |
 | Clé de limitation configurable dans `ratelimit` (par jeton) | Évite le limiteur maison de `internal/ratelimit` | T04 |
 | Codes de secours dans mfax | Récupération sans administrateur d'instance | T11 |
 | Composant `oidcx` | SSO réutilisable par les projets open-go | T25 |

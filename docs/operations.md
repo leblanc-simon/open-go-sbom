@@ -51,7 +51,9 @@ variables d'environnement, par exemple depuis un fichier d'environnement de syst
 Deux rôles PostgreSQL :
 
 - le **propriétaire** possède la base et le schéma ; il n'est utilisé que pour migrer
-  (`migration.dsn`), au démarrage ;
+  (`migration.dsn`), au démarrage. Il a l'attribut `BYPASSRLS` : les fonctions
+  inter-organisations qu'il possède (garde d'organisation, sélecteur) en dépendent, la
+  RLS étant forcée jusque pour lui (ADR 0012). La migration échoue sans lui ;
 - le **rôle d'exécution** fait tourner l'application (`database.dsn`) avec `SELECT`,
   `INSERT`, `UPDATE`, `DELETE` seulement. Il ne doit être ni superutilisateur, ni
   `BYPASSRLS`, ni propriétaire des tables, ni membre d'un rôle qui l'est : le serveur
@@ -61,7 +63,8 @@ Deux rôles PostgreSQL :
 Création sur un PostgreSQL existant (en superutilisateur) :
 
 ```sql
-CREATE ROLE ogsbom_owner LOGIN PASSWORD '…';
+CREATE ROLE ogsbom_owner LOGIN BYPASSRLS PASSWORD '…';
+-- base existante créée avant T03 : ALTER ROLE ogsbom_owner BYPASSRLS;
 CREATE ROLE ogsbom_app LOGIN PASSWORD '…' NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB;
 CREATE DATABASE ogsbom OWNER ogsbom_owner;
 REVOKE ALL ON DATABASE ogsbom FROM PUBLIC;
@@ -197,6 +200,48 @@ sans que la tentative compte, pour qu'une autre instance les reprenne aussitôt.
 sortie 0 après un arrêt propre. Côté systemd, `TimeoutStopSec` doit dépasser le plus grand
 de `http.shutdown_timeout` et `workers.shutdown_timeout`.
 
+## Comptes et connexion
+
+Tout compte local se connecte par mot de passe **et** code TOTP (enrôlement obligatoire à
+la première connexion). Les mots de passe comptent 12 caractères au moins.
+
+**Premier administrateur.** Sur une base sans compte, définir au premier démarrage
+`OGSBOM_BOOTSTRAP_ADMIN_EMAIL` et `OGSBOM_BOOTSTRAP_ADMIN_PASSWORD` (mot de passe
+temporaire). Le compte est créé administrateur d'instance ; à sa connexion, il enrôle son
+TOTP puis choisit un nouveau mot de passe. Les variables sont ignorées dès qu'un compte
+existe : les retirer ensuite (le journal le rappelle). Deux instances qui démarrent
+ensemble ne créent qu'un compte.
+
+**Comptes.** L'administration (`/admin`) crée les comptes avec un mot de passe temporaire
+affiché une seule fois, les désactive, réinitialise leur mot de passe ou leur TOTP
+(sessions fermées), nomme les administrateurs d'instance, crée et archive les
+organisations. Chaque action est journalisée (`/admin/audit`). Garder **deux
+administrateurs d'instance au moins** : l'interface avertit s'il n'y en a qu'un.
+
+**Procédure de secours** (administrateur unique qui a perdu son TOTP) :
+
+1. Ouvrir un ticket d'incident et choisir sa référence (8 caractères au moins, par
+   exemple `INC-2026-0042`).
+2. Redémarrer le serveur avec `OGSBOM_BOOTSTRAP_RESCUE_TOTP_EMAIL=<e-mail de
+   l'administrateur>` et `OGSBOM_BOOTSTRAP_RESCUE_TICKET=<référence>`. Le TOTP de ce
+   compte est retiré et ses sessions fermées ; l'événement « procédure de secours » entre
+   au journal d'audit avec la référence. Le compte doit être un administrateur d'instance
+   actif, sinon le serveur refuse de démarrer.
+3. L'administrateur se connecte avec son mot de passe et enrôle un nouveau TOTP.
+4. Retirer les deux variables. Laissées en place, elles n'ont plus d'effet (un ticket ne
+   s'applique qu'une fois) et le journal le signale à chaque démarrage. Un nouvel incident
+   demande une nouvelle référence.
+
+Un administrateur qui a perdu son mot de passe se le fait réinitialiser par un autre
+administrateur. La procédure de secours ne couvre que le TOTP : un administrateur unique
+qui perd aussi son mot de passe relève d'une intervention en base, hors de l'application
+(à éviter en gardant deux administrateurs).
+
+**Limitation.** `login.rate_limit` (10 par défaut) borne les `POST` de `/login` et
+`/login/2fa` par minute et par IP, en plus de `web.rate_limit`. Un défi TOTP tolère
+`mfa.max_attempts` codes faux. Les sessions et défis expirés sont purgés toutes les
+heures (job `auth.purge`, instances à workers).
+
 ## Clés de chiffrement des secrets
 
 Les secrets stockés en base (canaux de notification, OIDC, dans les lots qui les
@@ -205,10 +250,13 @@ introduisent) sont chiffrés en AES-256-GCM par des clés nommées :
 clé : `openssl rand -base64 32`. Un nom de clé : minuscules, chiffres, `-` et `_`, 32
 caractères au plus (par exemple la date : `2026-10`).
 
+Les clés sont **obligatoires** : les secrets TOTP des comptes sont chiffrés en base. Les
+perdre toutes impose de réinitialiser le TOTP de chaque compte.
+
 Rotation : ajouter la nouvelle clé à côté de l'ancienne, la désigner comme active,
 redémarrer ; les nouveaux secrets sont chiffrés avec elle, les anciens restent lisibles.
-Une fois les secrets existants rechiffrés (traitement fourni par le premier lot qui stocke
-des secrets), retirer l'ancienne clé.
+Au démarrage, le serveur rechiffre les secrets TOTP avec la clé active (le journal donne
+leur nombre) : l'ancienne clé peut être retirée au démarrage suivant.
 
 ## Journaux
 
