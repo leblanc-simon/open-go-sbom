@@ -130,12 +130,25 @@ func TestLeaseIsRenewedWhileHandlerRuns(t *testing.T) {
 }
 
 // Un bail perdu (repris ailleurs) annule le handler et son résultat est ignoré.
+//
+// L'autre worker est simulé comme un vrai : il pose son propre jeton et son propre bail.
+// Le bail de 3 s laisse au renouvellement (toutes les secondes) le temps de passer sur une
+// machine chargée. Avec un bail de 300 ms et le seul jeton changé, ce runner reprenait le
+// job dont il venait de laisser expirer le bail, avant la vérification (échec en CI, T11).
 func TestLostLeaseCancelsHandler(t *testing.T) {
 	t.Parallel()
 	tdb := dbtest.New(t)
+	m, err := NewMetrics(prometheus.NewRegistry(), tdb.App, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var runs atomic.Int32
 	started, canceled := make(chan struct{}), make(chan struct{})
-	startRunner(t, tdb.App, RunnerOptions{Lease: 300 * time.Millisecond}, func(r *Runner) {
+	startRunner(t, tdb.App, RunnerOptions{Lease: 3 * time.Second, Metrics: m}, func(r *Runner) {
 		mustRegister(t, r, "test.lost", func(ctx context.Context, _ Execution) error {
+			if runs.Add(1) > 1 {
+				return errors.New("job repris par le runner qui a perdu son bail")
+			}
 			close(started)
 			<-ctx.Done()
 			close(canceled)
@@ -144,16 +157,24 @@ func TestLostLeaseCancelsHandler(t *testing.T) {
 	})
 	id := enqueue(t, tdb.App, Job{Kind: "test.lost"})
 	<-started
-	// Un autre worker a repris le job : le jeton du bail a changé.
-	execSQL(t, tdb.App, `UPDATE jobs SET lease_token = $2 WHERE id = $1`, id, uuid.New())
+	// Un autre worker a repris le job : nouveau jeton, nouveau bail.
+	other, until := uuid.New(), time.Now().Add(time.Hour).Truncate(time.Microsecond)
+	execSQL(t, tdb.App, `UPDATE jobs SET lease_token = $2, locked_until = $3 WHERE id = $1`, id, other, until)
 	select {
 	case <-canceled:
-	case <-time.After(5 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("handler non annulé après la perte du bail")
 	}
-	time.Sleep(50 * time.Millisecond)
-	if s := status(t, tdb.App, id); s != "running" {
-		t.Fatalf("statut %s : le résultat d'un bail perdu a été enregistré", s)
+	// Le runner a fini de traiter la perte : plus rien ne peut écrire après ce point.
+	waitFor(t, 10*time.Second, "issue « bail perdu »", func() bool {
+		return testutil.ToFloat64(m.runs.WithLabelValues("test.lost", outcomeLost)) == 1
+	})
+	r := readJob(t, tdb.App, id)
+	if r.Status != "running" || r.LeaseToken.UUID != other || !r.LockedUntil.Time.Equal(until) || r.Attempts != 1 || r.LastError.Valid {
+		t.Fatalf("job %+v : le résultat d'un bail perdu a été enregistré", r)
+	}
+	if n := runs.Load(); n != 1 {
+		t.Fatalf("%d exécutions, attendu 1", n)
 	}
 }
 
