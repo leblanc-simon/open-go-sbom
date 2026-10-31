@@ -413,6 +413,12 @@ commentée et unité systemd durcie : `deploy/ogsbom-repo-agent/`.
   appel d'API de forge par référence et par passage (plus une comparaison s'il y a du
   neuf) ; 500 références toutes les 15 minutes font environ 2 000 appels par heure, sous la
   limite de 5 000 par heure d'une installation de GitHub App.
+- **Serveur** : client commun des agents (`internal/agentclient`) ; `server.retries`
+  tentatives pour une erreur réseau, 429 ou 5xx, délai exponentiel, `Retry-After`
+  respecté ; un refus 4xx (référence inconnue, SBOM trop gros) est définitif jusqu'au
+  redémarrage. HTTPS seulement ; `server.ca_file` pour une autorité privée,
+  `server.client_cert_file` et `server.client_key_file` (`credential:<nom>` ou fichier en
+  `0600`) quand le serveur exige le mTLS, `server.proxy` pour un mandataire.
 - **Analyse** : un sous-répertoire de `work.dir` par commit, supprimé à la fin quoi qu'il
   arrive (et au démarrage s'il en reste après un arrêt brutal). git est lancé avec un
   environnement maîtrisé : ni configuration système ni globale, aucune invite, crochets

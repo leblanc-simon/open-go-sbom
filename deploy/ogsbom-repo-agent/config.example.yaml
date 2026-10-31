@@ -19,7 +19,11 @@ server:
   url: https://sbom.example.org          # OGSBOM_REPO_SERVER_URL
   token_file: credential:agent-token     # OGSBOM_REPO_SERVER_TOKEN_FILE
   ca_file: ""            # autorité du certificat du serveur (racines du système si vide)
-  timeout: 2m            # durée maximale d'une requête, envoi du SBOM compris
+  timeout: 2m            # durée maximale d'une tentative, envoi du SBOM compris
+  retries: 5             # tentatives (erreurs réseau, 429, 5xx ; Retry-After respecté)
+  proxy: ""              # http://proxy:3128 ; vide : HTTPS_PROXY et NO_PROXY
+  client_cert_file: ""   # certificat client (mTLS, si le serveur l'exige)
+  client_key_file: ""    # sa clé : credential:<nom> ou fichier en 0600
 
 # Récepteur de webhooks, exposé aux forges : POST https://<hôte public>/webhooks/<nom de
 # la forge>. Placé derrière un mandataire inverse qui termine TLS, ou en TLS natif.
