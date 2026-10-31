@@ -179,6 +179,8 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Ingest:           ingester,
 			RateLimit:        cfg.AgentAPI.RateLimit,
 			FailureRateLimit: cfg.AgentAPI.FailureRateLimit,
+			// La validation de la configuration garantit le TLS natif avec client_ca_file.
+			RequireClientCert: cfg.TLS.ClientCAFile != "",
 		},
 	})
 	if err != nil {

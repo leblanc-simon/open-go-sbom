@@ -46,15 +46,21 @@ func dateOf(t *time.Time) *stamp {
 // agentStatus est l'état d'un agent prêt à afficher.
 type agentStatus struct {
 	State agent.State
-	Days  int // jours sans contact (agent muet)
+	Days  int // jours de silence (agent muet)
 }
 
-func statusOf(lastSeen *time.Time, disabled bool, now time.Time) agentStatus {
-	s := agentStatus{State: agent.StateOf(lastSeen, disabled, now)}
+func statusOf(a agent.Activity, now time.Time) agentStatus {
+	s := agentStatus{State: a.State(now)}
 	if s.State == agent.StateSilent {
-		s.Days = int(now.Sub(*lastSeen) / (24 * time.Hour))
+		s.Days = int(now.Sub(a.Since()) / (24 * time.Hour))
 	}
 	return s
+}
+
+// activityOf est l'activité de l'agent d'un projet.
+func activityOf(a *project.AgentRef) agent.Activity {
+	return agent.Activity{Kind: agent.Kind(a.Kind), LastSeen: a.LastSeenAt, LastInventory: a.LastInventoryAt,
+		Created: a.CreatedAt, Disabled: a.Disabled}
 }
 
 func projectKindOptions(selected project.Kind, withAll bool) []option {
@@ -80,7 +86,7 @@ type projectRow struct {
 func (id *identity) projectRow(p project.Project, now time.Time) projectRow {
 	row := projectRow{Project: p, Labels: p.Labels.Pairs()}
 	if p.Agent != nil {
-		st := statusOf(p.Agent.LastSeenAt, p.Agent.Disabled, now)
+		st := statusOf(activityOf(p.Agent), now)
 		row.AgentStatus, row.LastSeen = &st, stampOf(p.Agent.LastSeenAt)
 	}
 	return row
@@ -312,6 +318,28 @@ type projectView struct {
 	// Period et Summary : indicateurs du projet en tête de sa fiche (T10).
 	Period  periodForm
 	Summary summaryView
+	// Host : agent serveur du projet (contexte de l'hôte, demande de scan).
+	Host *hostAgentView
+}
+
+// hostAgentView est ce que la fiche d'un hôte montre de son agent serveur.
+type hostAgentView struct {
+	Context       *agent.HostContext
+	ContextAt     *stamp
+	ScanDuration  string
+	ScanRequested *stamp
+	LastInventory *stamp
+	// CanScan : le visiteur peut demander un scan (analyste ou administrateur, agent actif).
+	CanScan bool
+}
+
+func newHostAgentView(a agent.Agent, canScan bool) *hostAgentView {
+	v := &hostAgentView{Context: a.Host, ContextAt: stampOf(a.HostAt), ScanRequested: stampOf(a.ScanRequestedAt),
+		LastInventory: stampOf(a.LastInventoryAt), CanScan: canScan && a.DisabledAt == nil}
+	if a.Host != nil && a.Host.ScanDuration > 0 {
+		v.ScanDuration = a.Host.ScanDurationValue().Round(time.Second).String()
+	}
+	return v
 }
 
 func (id *identity) projectPage(w http.ResponseWriter, r *http.Request) {
@@ -337,6 +365,14 @@ func (id *identity) renderProject(w http.ResponseWriter, r *http.Request, status
 		return
 	}
 	view.Period, view.Summary = periodFormOf(orgBase(acc)+"/projects/"+p.Slug, period), summaryOf("project", summary)
+	if p.Kind == project.KindHost && p.Agent != nil {
+		a, err := id.Agents.Get(r.Context(), acc.Org, p.Agent.ID)
+		if err != nil {
+			id.serverError(w, r, err)
+			return
+		}
+		view.Host = newHostAgentView(a, acc.Role.AtLeast(tenant.RoleAnalyst) && p.ArchivedAt == nil)
+	}
 	if view.CanAdmin && p.Kind == project.KindRepo && p.ArchivedAt == nil {
 		agents, err := id.Agents.RepoAgents(r.Context(), acc.Org)
 		if err != nil {
@@ -420,6 +456,23 @@ func (id *identity) setProjectArchived(archived bool, done string) http.HandlerF
 			id.renderProject(w, r, http.StatusUnprocessableEntity, p, fe)
 		})
 	}
+}
+
+// requestScan demande un scan à l'agent serveur du projet, remis à son prochain signal de
+// vie.
+func (id *identity) requestScan(w http.ResponseWriter, r *http.Request) {
+	p, ok := id.loadProject(w, r)
+	if !ok {
+		return
+	}
+	_, err := id.Agents.RequestScan(r.Context(), id.actor(r), access(r).Org, p.Slug)
+	if errors.Is(err, agent.ErrNotFound) {
+		id.rd.Error(w, r, http.StatusNotFound)
+		return
+	}
+	id.projectResult(w, r, err, p, "scan_requested", func(fe formError) {
+		id.renderProject(w, r, http.StatusUnprocessableEntity, p, fe)
+	})
 }
 
 func (id *identity) assignAgent(w http.ResponseWriter, r *http.Request) {

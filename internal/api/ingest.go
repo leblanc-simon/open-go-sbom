@@ -9,11 +9,13 @@ import (
 	"mime/multipart"
 	"net/http"
 
+	"leblanc.io/open-go-sbom/internal/agent"
 	"leblanc.io/open-go-sbom/internal/api/gen"
 	"leblanc.io/open-go-sbom/internal/ingest"
 	"leblanc.io/open-go-sbom/internal/locale"
 	"leblanc.io/open-go-sbom/internal/project"
 	"leblanc.io/open-go-sbom/internal/sbom"
+	"leblanc.io/open-go-sbom/internal/web/middleware"
 )
 
 // maxContextPart borne la partie context d'un envoi.
@@ -30,7 +32,7 @@ func (h *agentAPI) CreateIngestion(ctx context.Context, req gen.CreateIngestionR
 	if err != nil {
 		return nil, err
 	}
-	c, err := readContext(part)
+	c, host, err := readContext(part)
 	if err != nil {
 		return nil, err
 	}
@@ -43,6 +45,12 @@ func (h *agentAPI) CreateIngestion(ctx context.Context, req gen.CreateIngestionR
 	in, err := h.Ingest.Receive(ctx, p.Org, p.AgentID, c, tooLargeReader{part})
 	if err != nil {
 		return nil, err
+	}
+	if host != nil {
+		// Le SBOM est reçu : le contexte de l'hôte, informatif, ne le remet pas en cause.
+		if err := h.Agents.RecordHost(ctx, p, *host); err != nil {
+			middleware.Logger(ctx, h.Logger).Warn("contexte d'hôte ignoré", "err", err)
+		}
 	}
 	out := ingestionOf(ctx, in)
 	if in.Duplicate {
@@ -90,26 +98,32 @@ type requestError struct{ err error }
 func (e *requestError) Error() string { return "api: requête illisible : " + e.err.Error() }
 func (e *requestError) Unwrap() error { return e.err }
 
-func readContext(part io.Reader) (ingest.Context, error) {
+func readContext(part io.Reader) (ingest.Context, *agent.HostContext, error) {
 	data, err := io.ReadAll(io.LimitReader(part, maxContextPart+1))
 	if err != nil {
-		return ingest.Context{}, badMultipart(err)
+		return ingest.Context{}, nil, badMultipart(err)
 	}
 	if len(data) > maxContextPart {
-		return ingest.Context{}, &requestError{err: errors.New("partie context trop longue")}
+		return ingest.Context{}, nil, &requestError{err: errors.New("partie context trop longue")}
 	}
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	var c gen.IngestionContext
 	if err := dec.Decode(&c); err != nil || dec.More() {
-		return ingest.Context{}, &requestError{err: errors.New("partie context illisible")}
+		return ingest.Context{}, nil, &requestError{err: errors.New("partie context illisible")}
+	}
+	host := hostContextOf(c.Host)
+	if host != nil {
+		if err := host.Validate(); err != nil {
+			return ingest.Context{}, nil, err
+		}
 	}
 	out := ingest.Context{ProjectID: c.ProjectId, RefKind: project.RefKind(c.Ref.Kind), RefName: c.Ref.Name,
 		AgentVersion: c.AgentVersion, ScannedAt: c.ScannedAt}
 	if c.Commit != nil {
 		out.Commit = *c.Commit
 	}
-	return out, nil
+	return out, host, nil
 }
 
 // tooLargeReader signale par ingest.ErrUploadTooLarge un corps qui dépasse la borne de

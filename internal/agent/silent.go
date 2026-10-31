@@ -83,11 +83,6 @@ func compareSilence(x, y Agent) int {
 	return bytes.Compare(x.ID[:], y.ID[:])
 }
 
-// SilentSince renvoie l'instant d'où se compte le silence d'un agent : son dernier
-// contact (zéro s'il n'en a jamais eu).
-func (a Agent) SilentSince() time.Time {
-	if a.LastSeenAt == nil {
-		return time.Time{}
-	}
-	return a.LastSeenAt.UTC()
-}
+// SilentSince renvoie l'instant d'où se compte le silence d'un agent (Activity.Since :
+// dernier inventaire d'un agent serveur, dernier contact d'un agent dépôt).
+func (a Agent) SilentSince() time.Time { return a.Activity().Since().UTC() }

@@ -72,7 +72,7 @@ func TestReadSecretFromSystemdCredential(t *testing.T) {
 
 func validConfig() Config {
 	c := Defaults()
-	c.Server = ServerConfig{URL: "https://sbom.example.org", TokenFile: "credential:agent-token", Timeout: time.Minute}
+	c.Server = ServerConfig{URL: "https://sbom.example.org", TokenFile: "credential:agent-token", Timeout: time.Minute, Retries: 5}
 	c.Webhook = WebhookConfig{Listen: ":8080", MaxBodyKiB: 1024, RateLimit: 60}
 	c.Work = WorkConfig{Dir: "/var/lib/x", Parallelism: 2, QueueSize: 10, CloneTimeout: time.Minute, ScanTimeout: time.Minute, MaxCloneMiB: 10, Git: "git"}
 	c.Catchup = CatchupConfig{Interval: 15 * time.Minute, MaxCommits: 20}

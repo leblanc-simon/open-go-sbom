@@ -29,12 +29,12 @@
           <div class="table-wrap">
             <table class="data-table">
               <caption class="visually-hidden">{{T "dashboard.silent_title"}}</caption>
-              <thead><tr><th scope="col">{{T "dashboard.col_agent"}}</th><th scope="col">{{T "agents.col_last_contact"}}</th><th scope="col" class="num">{{T "dashboard.col_silence"}}</th></tr></thead>
+              <thead><tr><th scope="col">{{T "dashboard.col_agent"}}</th><th scope="col">{{T "dashboard.col_since"}}</th><th scope="col" class="num">{{T "dashboard.col_silence"}}</th></tr></thead>
               <tbody>
                 {{- range .Silent}}
                 <tr>
                   <th scope="row"><span class="cell-stack"><a href="{{.Href}}">{{.Name}}</a><span class="muted">{{T (print "agent_type." .Kind)}}</span></span></th>
-                  <td>{{template "stamp" .LastSeen}}</td>
+                  <td>{{template "stamp" .Since}}</td>
                   <td class="num"><strong>{{T "format.days" "Value" .Days}}</strong></td>
                 </tr>
                 {{- end}}

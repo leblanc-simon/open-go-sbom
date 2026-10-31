@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -46,9 +47,10 @@ const (
 	StateDisabled State = "disabled" // désactivé : jetons révoqués, projets retirés
 )
 
-// SilentAfter est la durée sans contact au-delà de laquelle un agent est muet : 7 jours
-// (décision de T10). T05 pourra la fonder sur le dernier instantané plutôt que sur le
-// dernier contact.
+// SilentAfter est la durée au-delà de laquelle un agent est muet : 7 jours (décision de
+// T10) sans inventaire pour un agent serveur (le dernier scan confirmé ou envoyé de son
+// hôte), sans contact pour un agent dépôt, qui n'envoie rien tant que ses dépôts ne
+// bougent pas.
 const SilentAfter = 7 * 24 * time.Hour
 
 // Clés de validation.
@@ -66,37 +68,76 @@ const (
 // ValidationKeys liste les clés de validation du paquet (tests de traduction).
 func ValidationKeys() []string {
 	return []string{KeyNameInvalid, KeyNameTaken, KeyExpiryInvalid, KeyMaxUsesInvalid, KeyAgentDisabled,
-		KeyVersionInvalid, KeyProjectNotHost, KeyTokenRevoked}
+		KeyVersionInvalid, KeyProjectNotHost, KeyTokenRevoked, KeyHostContextInvalid, KeyInventoryInvalid, KeyScanNotHost}
 }
 
 func invalid(field, key string) error { return &account.ValidationError{Field: field, Key: key} }
 
 // Agent est un agent et, pour sa fiche, ses projets et ses jetons.
 type Agent struct {
-	ID           uuid.UUID
-	Kind         Kind
-	Name         string
-	Version      string
-	LastSeenAt   *time.Time
-	DisabledAt   *time.Time
-	CreatedAt    time.Time
+	ID         uuid.UUID
+	Kind       Kind
+	Name       string
+	Version    string
+	LastSeenAt *time.Time
+	// LastInventoryAt est la date de dernière analyse la plus récente des projets de
+	// l'agent (dernier scan envoyé ou confirmé).
+	LastInventoryAt *time.Time
+	DisabledAt      *time.Time
+	CreatedAt       time.Time
+	// ScanRequestedAt : scan demandé depuis l'interface, pas encore remis (agent serveur).
+	ScanRequestedAt *time.Time
+	// Host et HostAt : dernier contexte d'hôte annoncé (agent serveur).
+	Host         *HostContext
+	HostAt       *time.Time
 	ProjectCount int
 	ActiveTokens int
 	Projects     []ProjectRef // Get seulement
 	Tokens       []Token      // Get seulement
 }
 
-// StateAt renvoie l'état de l'agent à l'instant now.
-func (a Agent) StateAt(now time.Time) State { return StateOf(a.LastSeenAt, a.DisabledAt != nil, now) }
+// Activity réunit ce qui fait l'état d'un agent.
+type Activity struct {
+	Kind          Kind
+	LastSeen      *time.Time
+	LastInventory *time.Time
+	Created       time.Time
+	Disabled      bool
+}
 
-// StateOf renvoie l'état d'un agent d'après son dernier contact.
-func StateOf(lastSeen *time.Time, disabled bool, now time.Time) State {
+// Activity renvoie l'activité de l'agent.
+func (a Agent) Activity() Activity {
+	return Activity{Kind: a.Kind, LastSeen: a.LastSeenAt, LastInventory: a.LastInventoryAt, Created: a.CreatedAt,
+		Disabled: a.DisabledAt != nil}
+}
+
+// StateAt renvoie l'état de l'agent à l'instant now.
+func (a Agent) StateAt(now time.Time) State { return a.Activity().State(now) }
+
+// Since est l'instant dont part le décompte de silence : dernier inventaire d'un agent
+// serveur (sa création tant qu'il n'en a envoyé aucun), dernier contact d'un agent dépôt.
+func (a Activity) Since() time.Time {
+	if a.Kind == KindHost {
+		if a.LastInventory != nil {
+			return *a.LastInventory
+		}
+		return a.Created
+	}
+	if a.LastSeen != nil {
+		return *a.LastSeen
+	}
+	return a.Created
+}
+
+// State renvoie l'état d'un agent : un agent serveur qui répond mais n'inventorie plus son
+// hôte (envois refusés, scans en échec) est muet, comme un agent qui ne répond plus.
+func (a Activity) State(now time.Time) State {
 	switch {
-	case disabled:
+	case a.Disabled:
 		return StateDisabled
-	case lastSeen == nil:
+	case a.LastSeen == nil:
 		return StatePending
-	case now.Sub(*lastSeen) > SilentAfter:
+	case now.Sub(a.Since()) > SilentAfter:
 		return StateSilent
 	}
 	return StateActive
@@ -293,6 +334,11 @@ func (s *Service) CreateRepoAgent(ctx context.Context, actor audit.Actor, org te
 }
 
 const agentColumns = `a.id, a.kind, a.name, a.version, a.last_seen_at, a.disabled_at, a.created_at,
+	a.scan_requested_at, a.host_context, a.host_context_at,
+	(SELECT max(s.last_scanned_at) FROM projects p
+	   JOIN ref_current rc ON rc.org_id = p.org_id AND rc.project_id = p.id
+	   JOIN snapshots s ON s.org_id = rc.org_id AND s.id = rc.snapshot_id
+	  WHERE p.org_id = a.org_id AND p.agent_id = a.id),
 	(SELECT count(*) FROM projects p WHERE p.org_id = a.org_id AND p.agent_id = a.id AND p.archived_at IS NULL),
 	(SELECT count(*) FROM agent_tokens t WHERE t.org_id = a.org_id AND t.agent_id = a.id AND t.revoked_at IS NULL
 	    AND (t.expires_at IS NULL OR t.expires_at > $1))`
@@ -300,12 +346,21 @@ const agentColumns = `a.id, a.kind, a.name, a.version, a.last_seen_at, a.disable
 func scanAgent(row interface{ Scan(...any) error }) (Agent, error) {
 	var a Agent
 	var kind string
-	var seen, disabled sql.NullTime
-	if err := row.Scan(&a.ID, &kind, &a.Name, &a.Version, &seen, &disabled, &a.CreatedAt, &a.ProjectCount, &a.ActiveTokens); err != nil {
+	var seen, disabled, requested, hostAt, inventoried sql.NullTime
+	var host []byte
+	if err := row.Scan(&a.ID, &kind, &a.Name, &a.Version, &seen, &disabled, &a.CreatedAt, &requested, &host, &hostAt,
+		&inventoried, &a.ProjectCount, &a.ActiveTokens); err != nil {
 		return Agent{}, err
 	}
 	a.Kind = Kind(kind)
 	a.LastSeenAt, a.DisabledAt = timePtr(seen), timePtr(disabled)
+	a.ScanRequestedAt, a.HostAt, a.LastInventoryAt = timePtr(requested), timePtr(hostAt), timePtr(inventoried)
+	if host != nil {
+		a.Host = &HostContext{}
+		if err := json.Unmarshal(host, a.Host); err != nil {
+			return Agent{}, fmt.Errorf("contexte d'hôte : %w", err)
+		}
+	}
 	return a, nil
 }
 

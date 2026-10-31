@@ -1,4 +1,4 @@
--- 011_dashboard : statistiques quotidiennes du tableau de bord (T10, § 8 de
+-- 012_dashboard : statistiques quotidiennes du tableau de bord (T10, § 8 de
 -- l'architecture, ADR 0027). Tables d'organisation sous la RLS standard (§ 9).
 --
 -- Une ligne par jour (UTC) : l'état observé à la dernière exécution du job ce jour-là,

@@ -94,8 +94,8 @@ func (f *fixture) agent(name, kind string, seen *time.Time, disabled bool) {
 	if disabled {
 		dis = now.Add(-24 * time.Hour)
 	}
-	f.exec(`INSERT INTO agents (org_id, id, kind, name, last_seen_at, disabled_at) VALUES ($1, $2, $3, $4, $5, $6)`,
-		f.org, f.name(name), kind, name, seen, dis)
+	f.exec(`INSERT INTO agents (org_id, id, kind, name, last_seen_at, disabled_at, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		f.org, f.name(name), kind, name, seen, dis, now.Add(-60*day24))
 }
 
 // project crée un projet et sa référence « main » (ou « host »).
@@ -205,7 +205,7 @@ func reference(t *testing.T, pool *db.Pool, slug string) *fixture {
 	vulnerability(t, pool, "CVE-2099-0003", "medium", false)
 	vulnerability(t, pool, "CVE-2099-0004", "low", false)
 	f := newFixture(t, pool, slug)
-	f.agent("srv-agent", "host", ago(8*day24), false)   // muet (plus de 7 jours)
+	f.agent("srv-agent", "host", ago(time.Hour), false) // répond, mais sans inventaire depuis sa création : muet
 	f.agent("repo-agent", "repo", ago(6*day24), false)  // actif
 	f.agent("old-agent", "host", ago(30*day24), true)   // désactivé : ni muet ni compté
 	f.agent("new-agent", "host", nil, false)            // jamais vu : en attente

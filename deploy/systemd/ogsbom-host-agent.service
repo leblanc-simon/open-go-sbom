@@ -1,0 +1,63 @@
+# Agent serveur d'open-go-sbom en démon : un scan par jour (scan.interval) et un signal
+# de vie toutes les 5 minutes, pour le scan à la demande. Pour un scan quotidien sans
+# démon : ogsbom-host-agent-oneshot.timer (n'activer que l'un des deux).
+#
+# Moindre privilège : utilisateur dédié, seule capacité CAP_DAC_READ_SEARCH (lire les
+# bases de paquets sans être root), écriture limitée au répertoire d'état.
+[Unit]
+Description=open-go-sbom host agent
+Documentation=https://github.com/leblanc-simon/open-go-sbom/blob/main/docs/operations.md
+Wants=network-online.target
+After=network-online.target
+Conflicts=ogsbom-host-agent-oneshot.service ogsbom-host-agent-oneshot.timer
+
+[Service]
+Type=simple
+Environment=OGSBOM_HOST_AGENT_MODE=daemon
+ExecStart=/usr/bin/ogsbom-host-agent -c /etc/ogsbom-host-agent/config.yaml
+Restart=on-failure
+RestartSec=60s
+TimeoutStopSec=30s
+
+User=ogsbom-agent
+Group=ogsbom-agent
+AmbientCapabilities=CAP_DAC_READ_SEARCH
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH
+NoNewPrivileges=yes
+StateDirectory=ogsbom-host-agent
+StateDirectoryMode=0700
+UMask=0077
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+
+# Sobriété : priorité basse, entrées-sorties au repos, plafond mémoire dur (le plafond
+# doux est resources.memory_limit_mib).
+Nice=19
+IOSchedulingClass=idle
+MemoryMax=1536M
+# Plafond de CPU, au prix d'un scan plus long (décommenter, ou systemctl edit) :
+#CPUQuota=25%
+
+# Secrets en credentials chiffrés (systemd-creds encrypt), au lieu de fichiers en 0600 :
+#LoadCredentialEncrypted=enrollment-token:/etc/ogsbom-host-agent/enrollment-token.cred
+#LoadCredentialEncrypted=client-key:/etc/ogsbom-host-agent/client-key.cred
+
+[Install]
+WantedBy=multi-user.target

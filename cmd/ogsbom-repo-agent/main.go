@@ -55,7 +55,7 @@ func run(ctx context.Context, cfg repoagent.Config, log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	server, err := repoagent.NewAPIServer(cfg.Server, string(token))
+	server, err := repoagent.NewServer(cfg.Server, string(token), repoagent.ServerOptions{Version: version, Logger: log})
 	if err != nil {
 		return err
 	}

@@ -1,0 +1,54 @@
+# Configuration d'ogsbom-host-agent, installée en /etc/ogsbom-host-agent/config.yaml par
+# les paquets (lue par défaut, ou -c chemin). Chaque clé a sa variable d'environnement
+# OGSBOM_HOST_AGENT_*, qui l'emporte sur le fichier : ogsbom-host-agent --help les liste.
+#
+# Aucun secret ici. Le jeton d'inscription se dépose dans
+# /etc/ogsbom-host-agent/enrollment-token (0600, propriétaire ogsbom-agent) ou en
+# credential systemd chiffré « enrollment-token » ; la clé du certificat client de même
+# (« client-key »). Le jeton d'agent obtenu à l'inscription est gardé dans state_dir.
+
+# daemon : un scan par scan.interval et un signal de vie par scan.poll_interval (le bouton
+# « Scanner maintenant » de l'interface agit au signal suivant) ; oneshot : un seul cycle,
+# pour ogsbom-host-agent-oneshot.timer. Les unités fournies posent OGSBOM_HOST_AGENT_MODE.
+mode: daemon
+
+# Nom d'hôte annoncé (référence du projet de l'hôte) ; vide : celui du système.
+hostname: ""
+
+state_dir: /var/lib/ogsbom-host-agent
+# Vide : credential systemd « enrollment-token », sinon /etc/ogsbom-host-agent/enrollment-token.
+enrollment_token_file: ""
+
+# Étiquettes du projet créé à l'inscription, en plus de celles du jeton (qui l'emportent).
+labels: {}
+#  env: prod
+#  role: db
+
+server:
+  url: https://sbom.example.org
+  ca_file: ""            # autorité privée (PEM) ; remplace celles du système
+  client_cert_file: ""   # certificat client (mTLS)
+  client_key_file: ""    # sa clé (0600) ; vide : credential systemd « client-key »
+  proxy: ""              # http://proxy:3128 ; vide : HTTPS_PROXY et NO_PROXY
+  timeout: 2m            # par tentative, envoi compris
+  retries: 5             # tentatives (erreurs passagères, 429, 5xx ; Retry-After respecté)
+  language: en           # langue des messages d'erreur du serveur (en, fr)
+
+scan:
+  root: /
+  interval: 24h
+  poll_interval: 5m
+  max_duration: 1h
+  # Chemins absolus exclus, en plus des exclusions par défaut (/proc, /sys, /dev, /run,
+  # stockages de Docker, Podman, containerd, kubelet, LXC/LXD, montages réseau et de
+  # conteneurs). Motifs admis : /srv/data/**/cache.
+  exclude: []
+
+# Sobriété : l'unité systemd ajoute Nice=19 et IOSchedulingClass=idle.
+resources:
+  max_procs: 1           # GOMAXPROCS et catalogueurs simultanés
+  memory_limit_mib: 512  # GOMEMLIMIT (limite douce) ; MemoryMax= de l'unité est la limite dure
+
+logging:
+  level: info            # debug | info | warn | error
+  format: text           # text | json

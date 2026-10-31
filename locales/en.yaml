@@ -62,6 +62,7 @@ form:
   save: Save
 
 flash:
+  scan_requested: Scan requested; the agent will start it at its next heartbeat.
   title: Done
   settings_saved: Your preferences are saved.
   password_changed: Your password is changed; your other sessions are closed.
@@ -91,6 +92,9 @@ pagination:
   next: Next page
 
 validation:
+  host_context_invalid: The host context is invalid (field too long or forbidden character).
+  inventory_report_invalid: The inventory report is invalid (host reference, fingerprint or scan date).
+  scan_not_host: Only an active server project followed by a host agent can be scanned on demand.
   email_invalid: Enter a valid e-mail address, without a name or spaces.
   email_taken: An account already uses this address.
   password_too_short: The password must be at least 12 characters long.
@@ -270,10 +274,11 @@ dashboard:
   fix_meta: "Findings fixed over {{.Days}} days"
   fix_desc: "Median time between first detection and resolution of the findings fixed over {{.Days}} days, in days."
   silent_title: Silent agents
-  silent_meta: "{{.Count}} without contact for more than {{.Days}} days"
+  silent_meta: "{{.Count}} without inventory or contact for more than {{.Days}} days"
   silent_none: No silent agent.
   see_agents: Agents
   col_agent: Agent
+  col_since: Silent since
   col_silence: Silence
   exposed_title: Most exposed projects
   exposed_none: No project has an open finding.
@@ -325,6 +330,7 @@ audit:
   system: System (startup)
   empty: No event yet.
   action:
+    agent_scan_requested: "Scan requested from agent {{.Target}} (project {{.D_project}})"
     auth_login: "Sign-in of {{.Target}}"
     auth_login_failed: "Failed sign-in for “{{.Target}}”"
     auth_totp_failed: "TOTP code refused for {{.Target}}"
@@ -446,6 +452,9 @@ admin_org:
   unarchive: Reactivate
 
 error:
+  client_cert_required:
+    title: Client certificate required
+    text: This server requires a valid client certificate (mTLS) for the agent API. Configure the agent's certificate and key.
   back_home: Back to home
   code: "Error {{.Code}}"
   reference: "Request reference: {{.RequestID}}"
@@ -670,7 +679,7 @@ project_form:
 agents:
   title: Agents
   heading: Agents
-  lead: "The agents that send SBOMs: one server agent per host, and repository agents to which repositories are entrusted. An agent is silent after 7 days without contact."
+  lead: "The agents that send SBOMs: one server agent per host, and repository agents to which repositories are entrusted. An agent is silent after 7 days without an inventory (server agent) or without contact (repository agent)."
   new_repo: New repository agent
   new_enrollment: Enroll servers
   list_title: Active agents
@@ -864,6 +873,31 @@ snapshot:
   no_license: None
   no_match: No component matches these filters.
   empty: This snapshot has no component.
+host_agent:
+  context_title: Host
+  last_inventory: Last inventory
+  scan_pending: Scan requested on
+  scan_now: Scan now
+  scan_now_hint: The agent starts the scan at its next heartbeat (a few minutes in daemon mode).
+  os: System
+  kernel: Kernel
+  arch: Architecture
+  hostname: Hostname
+  scan_duration: Last scan duration
+  context_at: Context received on
+  no_context: The agent has not described its host yet.
+host_install:
+  title: Install the host agent
+  meta: Linux amd64 or arm64, deb or rpm package
+  package: Install the ogsbom-host-agent package, which creates the ogsbom-agent user and the systemd units.
+  package_hint: Pick your distribution's command; replace amd64 or x86_64 with arm64 or aarch64 depending on the architecture.
+  server: Set this server's address in the agent configuration.
+  server_hint: With a private certificate authority or mTLS, fill in the tls section of the same file too.
+  token: Store the enrollment token, readable by the agent user only.
+  token_hint: Or encrypt it with systemd-creds (see the operations guide); it never goes into the configuration file.
+  start: "Start the agent: it enrolls, inventories the host and sends its first SBOM."
+  start_hint: For one scan a day without a daemon, enable ogsbom-host-agent-oneshot.timer instead.
+  cleanup: Once the host shows up in the projects, delete the enrollment token; the agent keeps its own token.
 
 severity:
   critical: Critical

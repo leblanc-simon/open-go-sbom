@@ -329,3 +329,35 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   lancer aussi `go tool staticcheck -tags integration` sur les paquets touchés.
 - **Outil d'isolement des agents (suite)** : refusée aussi une commande qui enchaîne
   `git add`, `git commit` et `make` ; une commande git par appel.
+## Agent serveur, paquets et lots parallèles (T07)
+
+- **Numéros de migration attribués d'avance** : l'exécuteur exige des numéros contigus
+  (« migrations non contiguës ») ; une migration 011 sans 009 ni 010 sur `main` ne passe
+  pas. Règle : un numéro attribué est provisoire ; avant d'ouvrir la PR et à chaque
+  intégration de `origin/main`, renommer sa migration au premier numéro libre après la
+  dernière de `main`. Jamais de migration factice pour combler un trou.
+- **`GOARCH=… go tool nfpm`** construit l'outil pour cette architecture
+  (`exec format error`). Règle : ne jamais passer `GOOS`/`GOARCH` à un `go tool` ; nfpm
+  lit ses propres variables (`PKG_ARCH`, `PKG_VERSION`).
+- **nfpm ne développe pas les variables dans `contents.src`** (« Glob failed ») : copier
+  le binaire de l'architecture courante vers un chemin fixe (`bin/package/`) avant chaque
+  paquet.
+- **`$(shell …)` de make et `case … )`** : la parenthèse fermante du motif clôt l'appel
+  de fonction. Règle : `sed` ou un script plutôt qu'un `case` dans `$(shell …)`.
+- **Valeurs YAML des traductions** : une valeur qui contient « : » (« Scan demandé :
+  … ») casse tout le fichier (`mapping values are not allowed`). Règle : guillemets dès
+  qu'une valeur contient « : », et relancer les tests de `locales` après chaque ajout.
+- **Énumérations d'oapi-codegen** : sans collision, les constantes ne sont pas préfixées
+  (`gen.Done`, `gen.Current`, pas `gen.IngestionStatusDone`). Règle : lire les noms
+  générés (`grep '= "' client.gen.go`) avant de les employer ; un nouvel enum dont une
+  valeur existe ailleurs renomme les deux.
+- **Scanner « / » d'une machine de développement** : le cache des modules Go
+  (380 000 fichiers sous `/root`) fait passer un scan Syft de « / » de 3 à 16 minutes et
+  de 0,9 à 3 Gio de mémoire : Syft indexe chaque fichier parcouru. Règle :
+  mesurer sur une racine représentative d'un serveur (protocole de `measure_test.go`,
+  exclusions explicites), et le documenter.
+- **`StateDirectory=` crée le répertoire en `0755`** : l'agent refuse un répertoire
+  d'état ouvert. Règle : `StateDirectoryMode=0700` dans toute unité d'agent.
+- **mTLS et interface sur la même écoute** : `RequireAndVerifyClientCert` refuserait les
+  navigateurs. Règle : `VerifyClientCertIfGiven` au niveau TLS, refus de l'absence de
+  chaîne vérifiée dans un middleware de l'API des agents.

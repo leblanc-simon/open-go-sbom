@@ -92,9 +92,10 @@ func TestOrgIndicators(t *testing.T) {
 	if l := o.Widespread[2]; l.Projects != 1 || l.Worst != vuln.SeverityCritical || !l.KEV {
 		t.Errorf("log4j : %+v", l)
 	}
-	// Agents muets : au-delà de 7 jours sans contact, désactivés et jamais vus exclus, le
-	// plus ancien d'abord.
-	if o.SilentAgents != 2 || len(o.Silent) != 2 || o.Silent[0].Name != "lost-agent" || o.Silent[1].Name != "srv-agent" {
+	// Agents muets (règle agent.Activity) : agent serveur sans inventaire depuis plus de 7
+	// jours (ici depuis sa création, 60 jours), agent dépôt sans contact depuis plus de 7
+	// jours ; désactivés et jamais vus exclus ; le plus ancien silence d'abord.
+	if o.SilentAgents != 2 || len(o.Silent) != 2 || o.Silent[0].Name != "srv-agent" || o.Silent[1].Name != "lost-agent" {
 		t.Errorf("agents muets : %d %+v", o.SilentAgents, o.Silent)
 	}
 	// Premier jour : la tendance n'a qu'un point, l'état courant.

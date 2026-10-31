@@ -53,7 +53,7 @@ func TestDashboardScreens(t *testing.T) {
 	}
 	a.clock.advance(7 * 24 * time.Hour)
 	week := unescape(b.get("/o/org-a?period=30").body)
-	for _, want := range []string{"Tendance sur 30 jours", "stable en 7 jours", "1 sans contact depuis plus de 7 jours", ">ci</a>", "8 j"} {
+	for _, want := range []string{"Tendance sur 30 jours", "stable en 7 jours", "1 sans inventaire ni contact depuis plus de 7 jours", ">ci</a>", "8 j"} {
 		if !strings.Contains(week, want) {
 			t.Errorf("tableau de bord à J+8 sans %q", want)
 		}

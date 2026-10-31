@@ -119,7 +119,8 @@ func TestRepoAgentAgainstServer(t *testing.T) {
 		t.Fatal(err)
 	}
 	provider := localForge{GitHub: gh, t: t, bare: bare}
-	server, err := repoagent.NewAPIServer(repoagent.ServerConfig{URL: a.srv.URL, Timeout: 30 * time.Second}, tok.Plaintext)
+	server, err := repoagent.NewServer(repoagent.ServerConfig{URL: a.srv.URL, Timeout: 30 * time.Second, Retries: 1}, tok.Plaintext,
+		repoagent.ServerOptions{Version: "1.0.0", Transport: http.DefaultTransport})
 	if err != nil {
 		t.Fatal(err)
 	}

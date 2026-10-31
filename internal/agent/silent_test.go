@@ -7,11 +7,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// TestSilentAfterSevenDays : décision de T10, un agent est muet au-delà de 7 jours sans
-// contact, pas à 7 jours pile.
+// TestSilentAfterSevenDays : décision de T10, un agent est muet au-delà de 7 jours (sans
+// contact pour un agent dépôt), pas à 7 jours pile.
 func TestSilentAfterSevenDays(t *testing.T) {
 	now := time.Date(2026, 10, 31, 12, 0, 0, 0, time.UTC)
 	at := func(d time.Duration) *time.Time { v := now.Add(-d); return &v }
+	created := now.AddDate(0, 0, -60)
 	cases := []struct {
 		seen     *time.Time
 		disabled bool
@@ -23,8 +24,9 @@ func TestSilentAfterSevenDays(t *testing.T) {
 		{at(30 * 24 * time.Hour), true, StateDisabled},
 	}
 	for _, c := range cases {
-		if got := StateOf(c.seen, c.disabled, now); got != c.want {
-			t.Errorf("StateOf(%v, %v) = %s, attendu %s", c.seen, c.disabled, got, c.want)
+		a := Activity{Kind: KindRepo, LastSeen: c.seen, Created: created, Disabled: c.disabled}
+		if got := a.State(now); got != c.want {
+			t.Errorf("État(%v, %v) = %s, attendu %s", c.seen, c.disabled, got, c.want)
 		}
 	}
 }
@@ -49,7 +51,8 @@ func TestKeepLongest(t *testing.T) {
 	if got := keepLongest(nil, mk("x", 0), 0); got != nil {
 		t.Fatalf("keep nul : %v", got)
 	}
-	if (Agent{}).SilentSince() != (time.Time{}) {
-		t.Fatal("agent jamais vu : silence depuis l'instant zéro attendu")
+	created := base.AddDate(0, 0, -9)
+	if got := (Agent{Kind: KindHost, CreatedAt: created}).SilentSince(); !got.Equal(created) {
+		t.Fatalf("agent serveur sans inventaire : silence depuis %s, attendu sa création", got)
 	}
 }

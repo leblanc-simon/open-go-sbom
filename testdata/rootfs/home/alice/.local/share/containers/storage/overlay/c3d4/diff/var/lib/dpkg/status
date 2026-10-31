@@ -1,0 +1,5 @@
+Package: rootless-image-only
+Status: install ok installed
+Architecture: amd64
+Version: 9.9.9
+Description: Package of a rootless Podman image: never part of the host SBOM

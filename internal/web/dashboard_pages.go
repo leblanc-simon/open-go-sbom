@@ -158,7 +158,7 @@ type widespreadRow struct {
 type silentRow struct {
 	Name, Href string
 	Kind       agent.Kind
-	LastSeen   *stamp
+	Since      *stamp // début du silence (Activity.Since)
 	Days       int
 }
 
@@ -225,7 +225,7 @@ func (id *identity) orgOverview(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, a := range d.Silent {
 		view.Silent = append(view.Silent, silentRow{Name: a.Name, Href: base + "/agents/" + a.ID.String(), Kind: a.Kind,
-			LastSeen: stampOf(a.LastSeenAt), Days: int(d.At.Sub(a.SilentSince()) / (24 * time.Hour))})
+			Since: stampAt(a.SilentSince()), Days: int(d.At.Sub(a.SilentSince()) / (24 * time.Hour))})
 	}
 	id.rd.Render(w, r, http.StatusOK, "org/dashboard", view)
 }
