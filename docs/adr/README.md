@@ -22,4 +22,7 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0014](0014-jetons-et-api-des-agents.md) | Jetons et API des agents : format, résolution de l'organisation, limitation par jeton | Accepté |
 | [0015](0015-decodage-des-sbom-dans-le-worker.md) | Décodage des SBOM dans le processus worker, sous bornes préalables, plutôt qu'en sous-processus | Accepté |
 | [0016](0016-ingestion-et-inventaire.md) | Ingestion et inventaire : identité des composants, empreinte, règles d'instantané, validation | Accepté |
+| [0017](0017-base-grype-commune.md) | Base Grype commune : archives en blocs dans PostgreSQL, cible, copie locale par instance | Accepté |
+| [0018](0018-analyse-et-constats.md) | Analyse et constats : correspondance hors transaction, écriture sous verrou, identifiants CVE | Accepté |
+| [0019](0019-mesures-et-autoanalyse.md) | Mesures de référence et autoanalyse en CI | Accepté |
 | [0023](0023-agent-depot.md) | Pipeline de l'agent dépôt et accès aux forges : webhook comme signal, extraction d'un commit précis, scan hors ligne, SBOM déterministe | Accepté |

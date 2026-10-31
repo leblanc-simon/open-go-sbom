@@ -93,7 +93,8 @@ func TestEveryOrgRouteAnswers404ToAnotherOrganization(t *testing.T) {
 		for _, slug := range []string{orgB.Slug, "inconnue", archived.Slug} {
 			path := fill(r.pattern, map[string]string{"slug": slug, "userID": itoa(bob.ID), "project": "projet",
 				"agentID": "0192d6a4-0000-7000-8000-000000000001", "tokenID": "0192d6a4-0000-7000-8000-000000000002",
-				"snapshotID": "0192d6a4-0000-7000-8000-000000000003"})
+				"snapshotID": "0192d6a4-0000-7000-8000-000000000003", "componentID": "0192d6a4-0000-7000-8000-000000000004",
+				"vulnID": "CVE-2021-44228"})
 			var p page
 			switch r.method {
 			case http.MethodGet:
@@ -108,7 +109,7 @@ func TestEveryOrgRouteAnswers404ToAnotherOrganization(t *testing.T) {
 			}
 		}
 	}
-	if orgRoutes < 26 {
+	if orgRoutes < 29 {
 		t.Fatalf("%d routes d'organisation parcourues : le parcours du routeur est cassé", orgRoutes)
 	}
 	// Rien n'a été modifié chez B.

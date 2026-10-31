@@ -5,6 +5,7 @@
     <h1 class="page-head__title">{{.User.Email}}</h1>
   </div>
   {{template "single_admin" .SingleAdmin}}
+  {{template "vulndb_alert" .VulnDBAlert}}
   {{template "flash" .FlashKey}}
   {{template "form_error" .Error}}
   <section class="panel" aria-labelledby="user-info">

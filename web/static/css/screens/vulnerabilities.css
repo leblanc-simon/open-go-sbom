@@ -1,0 +1,99 @@
+/* Fiche vulnérabilité, fiche composant et base de vulnérabilités. */
+.score {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+}
+
+.vector {
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+
+.hash {
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+
+.prose {
+  max-width: 72ch;
+  font-size: var(--text-base);
+  overflow-wrap: anywhere;
+}
+
+.hint {
+  color: var(--color-text-2);
+  font-size: var(--text-sm);
+}
+
+.plain-list {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-inline-start: 1.1rem;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.panel__note {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+/* Répartition des versions : tableau à trois colonnes, jauge SVG. */
+.bars {
+  width: 100%;
+  margin-inline: calc(-1 * var(--space-3));
+  border-collapse: separate;
+  border-spacing: var(--space-3) var(--space-2);
+  font-size: var(--text-sm);
+
+  th, td {
+    padding: 0;
+    text-align: start;
+    font-weight: var(--weight-regular);
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  td:nth-child(2) {
+    width: 100%;
+    min-width: 6rem;
+  }
+
+  .bars__track {
+    display: block;
+    width: 100%;
+    height: 1rem;
+    border-radius: 2px;
+    color: var(--color-text-2);
+
+    &.bars__track--vulnerable {
+      color: var(--sev-medium-mark);
+      outline: 1px solid var(--sev-medium-mark);
+    }
+  }
+}
+
+.legend-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--color-text-2);
+
+  .legend-inline__fill {
+    display: inline-block;
+    width: 1rem;
+    height: 0.5rem;
+    margin-inline-end: var(--space-1);
+    vertical-align: middle;
+    background: var(--color-text-2);
+    border-radius: 2px;
+
+    &.legend-inline__fill--vulnerable {
+      background: var(--sev-medium-mark);
+      outline: 1px solid var(--sev-medium-mark);
+    }
+  }
+}

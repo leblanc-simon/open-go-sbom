@@ -7,6 +7,9 @@ layout:
   home_link: Accueil
 
 nav:
+  vulnerabilities: Vulnérabilités
+  components: Composants
+  admin_vulndb: Base de vulnérabilités
   label: Navigation principale
   profile: Mon compte
   password: Mot de passe
@@ -301,6 +304,17 @@ audit:
     enrollment_token_revoked: "Jeton d'inscription {{.Target}} ({{.D_prefix}}) révoqué"
 
 admin:
+  vulndb_missing_title: Aucune base de vulnérabilités
+  vulndb_missing_text: >-
+    Aucune analyse ne peut avoir lieu tant que la première base n'est pas téléchargée
+    (en ligne) ou importée (site isolé).
+  vulndb_stale_title:
+    one: "Base de vulnérabilités vieille de {{.Count}} jour"
+    other: "Base de vulnérabilités vieille de {{.Count}} jours"
+  vulndb_stale_text: >-
+    Les vulnérabilités publiées depuis ne sont pas détectées. Vérifiez l'accès à la liste
+    de distribution, ou importez une base récente.
+  vulndb_open: Voir l'état de la base
   single_admin_title: Un seul administrateur d'instance
   single_admin_text: >-
     S'il perdait l'accès à son compte, seule la procédure de secours le lui rendrait.
@@ -472,6 +486,7 @@ footer:
   source: Code source
 
 common:
+  none: Aucun
   all: Tous
   filter: Filtrer
   never: Jamais
@@ -527,6 +542,7 @@ projects:
   empty_archived: Aucun projet archivé ne correspond.
 
 project:
+  tab_findings: Constats
   title: "{{.Name}}"
   tabs: Sections du projet
   tab_overview: Vue d'ensemble
@@ -785,3 +801,201 @@ snapshot:
   no_license: Aucune
   no_match: Aucun composant ne correspond à ces filtres.
   empty: Cet instantané ne contient aucun composant.
+
+severity:
+  critical: Critique
+  high: Élevée
+  medium: Moyenne
+  low: Faible
+  negligible: Négligeable
+  unknown: Inconnue
+
+badge:
+  kev: KEV
+  kev_long: activement exploitée
+  epss: EPSS
+
+cvss:
+  metric_av: Vecteur d'attaque
+  metric_ac: Complexité
+  metric_pr: Privilèges requis
+  metric_ui: Interaction
+  metric_s: Portée
+  metric_c: Confidentialité
+  metric_i: Intégrité
+  metric_a: Disponibilité
+  av_n: Réseau
+  av_a: Réseau adjacent
+  av_l: Local
+  av_p: Physique
+  ac_l: Faible
+  ac_h: Élevée
+  pr_n: Aucun
+  pr_l: Faibles
+  pr_h: Élevés
+  ui_n: Aucune
+  ui_r: Requise
+  s_u: Inchangée
+  s_c: Modifiée
+  c_n: Aucun
+  c_l: Faible
+  c_h: Élevé
+  i_n: Aucun
+  i_l: Faible
+  i_h: Élevé
+  a_n: Aucun
+  a_l: Faible
+  a_h: Élevé
+
+finding_resolution:
+  component_removed: Composant retiré ou mis à jour
+  not_matched: Plus signalée par la base
+
+findings:
+  title: "Constats — {{.Name}}"
+  refs_title: Références suivies
+  refs_caption: Références du projet et leurs constats ouverts
+  col_open: Constats ouverts
+  of_ref: "Constats de {{.Ref}}"
+  analyzed: Analysée
+  db_built: "base du {{.Date}}"
+  not_analyzed: Pas encore analysée
+  filter_state: Filtrer par état
+  state_open: Ouverts
+  state_resolved: Résolus
+  severity: Sévérité
+  kev_only: Activement exploitées (KEV) seulement
+  apply: Filtrer
+  col_vulnerability: Vulnérabilité
+  col_severity: Sévérité
+  col_epss: EPSS
+  col_component: Composant
+  col_fixed_in: Corrigée en
+  col_first_seen: Détectée le
+  col_resolved: Résolue le
+  col_risk: Risque
+  no_fix: Pas de correctif connu
+  wont_fix: Ne sera pas corrigée
+  none: Aucun constat ouvert sur cette référence.
+  none_resolved: Aucun constat résolu sur cette référence.
+  none_filtered: Aucun constat ne correspond aux filtres.
+
+vulnerability:
+  title: "{{.ID}}"
+  source: "Source : {{.Source}}"
+  db_built: "Base du {{.Date}}"
+  aliases: Alias
+  summary_title: Résumé
+  source_language: Texte de la source, en anglais
+  no_summary: La source ne donne pas de résumé.
+  cvss: CVSS
+  cvss_version: "CVSS {{.Version}}"
+  no_cvss: Aucun score CVSS.
+  other_scores:
+    one: "{{.Count}} autre score"
+    other: "{{.Count}} autres scores"
+  exploitation: Exploitation
+  epss_explain: "Probabilité d'exploitation dans les 30 prochains jours : {{.P}}, centile {{.Pct}}."
+  epss_date: "Score du {{.Date}}."
+  no_epss: Pas de score EPSS.
+  kev_added: Ajoutée au catalogue
+  kev_due: Échéance CISA
+  kev_ransomware: Rançongiciel
+  kev_ransomware_known: Utilisation connue
+  kev_ransomware_unknown: Non signalée
+  not_kev: Absente du catalogue KEV de la CISA.
+  references: Faiblesses et références
+  no_references: Aucune référence.
+  affected_projects: Projets touchés
+  open_findings:
+    one: "{{.Count}} constat ouvert"
+    other: "{{.Count}} constats ouverts"
+  projects_count:
+    one: "{{.Count}} projet"
+    other: "{{.Count}} projets"
+  filter_state: Filtrer par état
+  state_open: Ouverts
+  state_resolved: Résolus
+  col_project: Projet
+  col_ref: Référence
+  col_component: Composant
+  col_fixed_in: Corrigée en
+  none_open: Aucun constat ouvert dans l'organisation.
+  none_resolved: Aucun constat résolu dans l'organisation.
+  truncated: Liste limitée aux 500 constats les plus risqués.
+
+component:
+  title: "{{.Name}}"
+  projects_count:
+    one: "{{.Count}} projet"
+    other: "{{.Count}} projets"
+  versions_count:
+    one: "{{.Count}} version"
+    other: "{{.Count}} versions"
+  occurrences_count:
+    one: "{{.Count}} occurrence"
+    other: "{{.Count}} occurrences"
+  type: "Type : {{.Type}}"
+  licenses: Licences
+  truncated: Ce composant est très répandu ; seules les 500 premières occurrences sont prises en compte.
+  version_distribution: Répartition des versions dans l'organisation
+  col_version: Version
+  col_share: Part
+  col_occurrences: Occurrences
+  legend_vulnerable: Version vulnérable
+  legend_clean: Aucune vulnérabilité connue
+  vulns_by_version: Vulnérabilités par version
+  col_vulnerability: Vulnérabilité
+  col_severity: Sévérité
+  col_fixed_in: Corrigée en
+  version_vulnerable: Vulnérable
+  version_clear: Non concernée
+  no_vulns: Aucune vulnérabilité ouverte sur ce composant.
+  used_by: Projets qui l'utilisent
+  used_by_meta: Inventaire courant de chaque référence suivie
+  col_project: Projet
+  col_ref: Référence
+  col_origin: Origine
+  col_findings: Constats ouverts
+  col_snapshot: Instantané
+  open_findings:
+    one: "{{.Count}} constat"
+    other: "{{.Count}} constats"
+  no_findings: Aucun
+  unused: Aucune référence active ne contient ce composant.
+
+admin_vulndb:
+  title: Base de vulnérabilités
+  heading: Base de vulnérabilités
+  lead: >-
+    Base Grype commune à toutes les instances : une instance la télécharge et la vérifie,
+    chaque instance worker en garde une copie locale synchronisée.
+  target_title: Base cible
+  no_target: Aucune base n'a encore été obtenue.
+  built: Construite le
+  schema: Schéma
+  size: Taille
+  size_mib: "{{.Size}} Mio"
+  origin: Origine
+  origin_download: Téléchargée
+  origin_import: Importée
+  sha256: SHA-256 de l'archive
+  targeted: Cible depuis
+  check_title: Vérification de la liste
+  mode: Mode
+  mode_online: En ligne
+  mode_offline: Hors ligne (import seulement)
+  listing: Liste de distribution
+  last_check: Dernière vérification
+  last_error: Dernière erreur
+  check_failed: Échec
+  max_age: Alerte au-delà de
+  max_age_hours:
+    one: "{{.Count}} heure"
+    other: "{{.Count}} heures"
+  archives_title: Archives stockées
+  stored: Stockée le
+  state: État
+  is_target: Cible
+  previous: Précédente
+  no_archives: Aucune archive stockée.

@@ -1,0 +1,30 @@
+/* Sélecteur segmenté : liens exclusifs (état des constats), le courant marqué par
+   aria-current et par la graisse. */
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  padding: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-height: calc(var(--control-h-sm) - 4px);
+    padding: 0 var(--space-3);
+    border-radius: calc(var(--radius-md) - 2px);
+    color: var(--color-text-2);
+    font-size: var(--text-sm);
+    text-decoration: none;
+    white-space: nowrap;
+
+    &[aria-current="true"] {
+      background: var(--color-surface);
+      box-shadow: var(--shadow-1), 0 0 0 1px var(--color-border);
+      color: var(--color-text);
+      font-weight: var(--weight-bold);
+    }
+  }
+}

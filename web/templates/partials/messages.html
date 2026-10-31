@@ -31,6 +31,22 @@
 {{- end}}
 {{- end}}
 
+{{define "vulndb_alert" -}}
+{{- with .}}
+<div class="callout callout--warning">
+  <div class="callout__body">
+    {{- if .Missing}}
+    <p class="callout__title">{{T "admin.vulndb_missing_title"}}</p>
+    <p class="callout__text">{{T "admin.vulndb_missing_text"}}</p>
+    {{- else}}
+    <p class="callout__title">{{Tn "admin.vulndb_stale_title" .Days}}</p>
+    <p class="callout__text">{{T "admin.vulndb_stale_text"}} <a href="/admin/vulndb">{{T "admin.vulndb_open"}}</a></p>
+    {{- end}}
+  </div>
+</div>
+{{- end}}
+{{- end}}
+
 {{define "next_page" -}}
 {{- with .}}
 <nav class="pagination" aria-label="{{T "pagination.label"}}">

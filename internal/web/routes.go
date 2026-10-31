@@ -53,6 +53,7 @@ func registerUI(r chi.Router, h *handlers, loginLimit func(http.Handler) http.Ha
 			r.Get("/orgs/{slug}", id.adminOrg)
 			r.Post("/orgs/{slug}/{action}", id.adminOrgAction)
 			r.Get("/audit", id.adminAudit)
+			r.Get("/vulndb", id.vulnDB)
 		})
 
 		r.Route("/o/{slug}", func(r chi.Router) {
@@ -61,7 +62,10 @@ func registerUI(r chi.Router, h *handlers, loginLimit func(http.Handler) http.Ha
 			r.Get("/members", id.members)
 			r.Get("/projects", id.projects)
 			r.Get("/projects/{project}", id.projectPage)
+			r.Get("/projects/{project}/findings", id.findings)
 			r.Get("/projects/{project}/snapshots", id.snapshots)
+			r.Get("/vulnerabilities/{vulnID}", id.vulnerability)
+			r.Get("/components/{componentID}", id.component)
 			r.Get("/projects/{project}/snapshots/{snapshotID}", id.snapshotPage)
 			r.Get("/projects/{project}/snapshots/{snapshotID}/sbom", id.downloadSBOM)
 			r.Get("/agents", id.agents)

@@ -72,7 +72,10 @@ internal/
     grypeversion/        # adaptateur vers les comparateurs de Grype
   vuln/                  # base de vulnérabilités, catalogue, interface Matcher
     grype/               # correspondance et cycle de vie de la base via Grype
-  finding/               # cycle de vie des constats
+    vulntest/            # fausse base (Engine, Source) pour les tests
+  download/              # téléchargements HTTP(S) du serveur (vuln.Fetcher), hors métier
+  finding/               # cycle de vie des constats, analyse des références
+  benchdata/             # jeu synthétique et SBOM des mesures (docs/benchmarks.md)
   search/                # analyse de requête, plan, exécution, export
   dashboard/             # agrégats et statistiques quotidiennes
   triage/ policy/ notify/ # lot 2
@@ -119,6 +122,8 @@ Nommage : paquets courts en anglais, jamais de paquet fourre-tout (`util`, `help
   - `github.com/anchore/grype/...` : `vuln/grype`, `version/grypeversion` ;
   - `github.com/anchore/grant/...` : `license/grant`.
 - Les types d'Anchore ne traversent jamais la frontière d'un adaptateur.
+- Le métier n'ouvre aucune connexion : un téléchargement passe par une interface injectée
+  (`vuln.Fetcher`), implémentée par `download`, paquet serveur hors métier (ADR 0017).
 - `agentclient`, `hostagent`, `repoagent`, `forge`, `llm` ne dépendent d'aucun paquet
   serveur (`db`, `inventory`…) : les agents restent des binaires légers.
 - Pas de variable globale mutable ; les dépendances sont injectées par constructeur.
@@ -172,7 +177,8 @@ propres au projet : `HTTP` (délais des serveurs, délai d'arrêt propre),
 workers, scrutation, bail, réessais, rétention, planificateur, délai d'arrêt, plafond de
 jobs lourds par organisation), `Ingest` (bornes de taille reçue et décompressée, de profondeur
 et de composants, délai du décodage, T05),
-`VulnDB` (URL de la liste, répertoire local, fréquence, mode hors ligne), `Secrets` (clés
+`VulnDB` (URL de la liste, répertoire local, mode hors ligne, fréquences de vérification
+et de synchronisation, âge d'alerte, délais, taille d'archive, T06), `Secrets` (clés
 de chiffrement versionnées, obligatoires depuis T03 : les secrets TOTP sont chiffrés),
 `Bootstrap` (premier administrateur et procédure de secours, T03), `Login` (débit des
 tentatives de connexion, T03), `AgentAPI` (débit de l'API des agents par jeton et des
@@ -241,7 +247,7 @@ Données **globales** (publiques ou propres à l'instance, jamais des données d
 | Table | Contenu |
 | --- | --- |
 | `vulnerabilities` | identifiant (CVE, GHSA…), alias, sévérité, CVSS, description, références, EPSS, KEV |
-| `vulndb_state`, `vulndb_archives` | version cible de la base Grype, archives vérifiées (téléchargées ou importées) |
+| `vulndb_state`, `vulndb_archives`, `vulndb_archive_chunks` | version cible de la base Grype, archives vérifiées (téléchargées ou importées) stockées par blocs |
 | `jobs`, `schedules` | file de traitements et échéances du planificateur |
 | `users`, `sessions`, `mfa_*` | tables d'open-go-base ; `users` est écrit par `account` (§ 10) |
 | `account_settings`, `session_auth` | préférences du compte ; méthode d'authentification de chaque session |
@@ -261,7 +267,8 @@ Données **par organisation** (toutes portent `org_id`) :
 | `ingestions` | réception d'un SBOM : statut, erreurs, instantané produit |
 | `snapshots` | instantané d'une référence : commit, date, agent, version d'agent, blob, ensemble d'inventaire |
 | `ref_current` | instantané et ensemble courants de chaque référence (lecture rapide) |
-| `findings` | constat (référence × composant × vulnérabilité) : première et dernière détection, résolution, risque |
+| `findings`, `finding_events` | constat (référence × composant × vulnérabilité) : première et dernière détection, résolution et motif, risque, base ; historique (ouvert, résolu, rouvert) |
+| `ref_analyses` | dernière analyse de chaque référence : ensemble et base analysés |
 | `audit_events`, `org_daily_stats` | journal d'audit ; agrégats quotidiens |
 | `triage_decisions`, `policies`, `notification_channels`, `teams`… | lots 2 et 3 |
 
@@ -303,8 +310,9 @@ rétention supprime les ensembles orphelins.
   zéro ligne en silence.
 - Le rôle d'exécution ne peut pas contourner la RLS (§ 6, § 7).
 - Opérations inter-organisations : résolution d'un slug et de l'appartenance par la garde,
-  liste des organisations d'un compte, liste des références actives pour la réanalyse,
-  liste des organisations pour les statistiques quotidiennes. Ce sont des fonctions
+  liste des organisations d'un compte, liste des organisations pour la réanalyse (qui
+  liste ensuite les références de chacune dans `InOrg`, ADR 0018) et pour les statistiques
+  quotidiennes. Ce sont des fonctions
   `SECURITY DEFINER` du rôle propriétaire, à `search_path` fixé, qui ne renvoient que le
   strict nécessaire. Elles vivent toutes dans `internal/db/crossorg`, sont listées dans un
   ADR (0012 : `ogsbom_org_access`, `ogsbom_user_orgs`, `ogsbom_list_organizations`,
@@ -425,21 +433,31 @@ qu'aucune mesure ne la justifie (ADR 0015).
   paquets sources, métadonnées intacts), lance la correspondance, puis rattache chaque
   résultat au composant par son purl canonique. Le reste du code ne connaît pas Grype.
 - `analysis.ref` analyse **l'ensemble courant de la référence au moment de l'exécution**
-  (le plus récent gagne), sous verrou de ligne sur la référence : deux analyses de la même
-  référence ne se chevauchent jamais. Constats : nouveaux couples créés, couples revus
-  prolongés, couples absents résolus ; un couple résolu qui réapparaît est rouvert.
+  (le plus récent gagne). La correspondance se fait hors transaction ; l'écriture des
+  constats se fait sous verrou de ligne sur la référence, après avoir vérifié que
+  l'ensemble courant et la base cible sont toujours ceux de la correspondance (sinon
+  l'analyse s'efface ou recommence) : deux analyses de la même référence ne mêlent jamais
+  leurs écritures (ADR 0018). Même ensemble et même base que la dernière analyse : rien à
+  faire. Constats : nouveaux couples créés, couples revus prolongés, couples absents
+  résolus (composant retiré ou plus signalé), un couple résolu qui réapparaît est rouvert ;
+  `finding_events` garde l'historique.
+- Identifiants ramenés au CVE quand la source n'en cite qu'un (`--by-cve`) ; fiche du
+  catalogue prise au NVD quand la base l'a.
 - Base Grype, version cible commune à toutes les instances :
   - l'échéance `vulndb.check` (une seule instance l'exécute, § 16) interroge la liste de
-    distribution, télécharge, vérifie la somme de contrôle, valide l'ouverture, stocke
-    l'archive dans `vulndb_archives` et fixe la nouvelle cible dans `vulndb_state` ;
+    distribution, télécharge, vérifie la somme de contrôle, valide l'ouverture par une
+    installation complète, stocke l'archive par blocs dans `vulndb_archives` et fixe la
+    nouvelle cible dans `vulndb_state` (ADR 0017) ;
   - hors ligne, l'archive est importée depuis l'écran d'administration vers la même table ;
   - chaque instance worker synchronise sa copie locale sur la cible, bascule atomiquement et
     garde une seule base ouverte, derrière un verrou lecture/écriture ;
   - un job d'analyse exige la version cible : un worker en retard se synchronise avant de
     le traiter. Chaque constat note la version de base qui l'a produit.
-- Changement de cible → `analysis.rescan_all` met en file un `analysis.ref` par référence
-  active, en priorité basse.
-- Une base plus vieille que N jours déclenche une alerte d'administration.
+- Changement de cible → `analysis.rescan_all` met en file un `analysis.rescan_org` par
+  organisation active, qui met en file un `analysis.ref` par référence active, en priorité
+  basse.
+- Une base plus vieille que `vulndb.max_age` (5 jours) déclenche une alerte sur chaque page
+  d'administration et la métrique `ogsbom_vulndb_stale`.
 
 ## 13. Recherche
 

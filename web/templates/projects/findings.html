@@ -1,0 +1,114 @@
+{{define "content" -}}
+{{- $p := .Project}}
+<div class="stack">
+  <div class="page-head">
+    <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
+      <ol>
+        <li><a href="{{.Base}}/projects">{{T "nav.projects"}}</a></li>
+        <li><a href="{{.Base}}/projects/{{$p.Slug}}">{{$p.Name}}</a></li>
+        <li><span aria-current="page">{{T "project.tab_findings"}}</span></li>
+      </ol>
+    </nav>
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{$p.Name}}</h1>
+      {{template "project_kind" $p.Kind}}
+    </div>
+    <p class="page-head__meta">
+      <span class="mono">{{$p.Slug}}</span>
+      {{- with $p.Agent}}<span>{{T "project.agent_value" "Name" .Name}}</span>{{end}}
+    </p>
+  </div>
+  {{template "project_tabs" .Tabs}}
+  <div class="layout layout--rail">
+    <section class="panel" aria-labelledby="refs-title">
+      <div class="panel__head"><h2 class="panel__title" id="refs-title">{{T "findings.refs_title"}}</h2></div>
+      {{- if .Refs}}
+      <div class="panel__body panel__body--flush">
+        <div class="table-wrap" role="region" aria-labelledby="refs-title" tabindex="0">
+          <table class="data-table">
+            <caption class="visually-hidden">{{T "findings.refs_caption"}}</caption>
+            <thead><tr><th scope="col">{{T "snapshots.col_ref"}}</th><th scope="col">{{T "findings.col_open"}}</th></tr></thead>
+            <tbody>
+              {{- range .Refs}}
+              <tr{{if .Selected}} class="row--selected"{{end}}>
+                <th scope="row"><span class="cell-stack"><a class="mono" href="{{.Href}}"{{if .Selected}} aria-current="true"{{end}}>{{.Name}}</a><span class="muted">{{T (print "ref_kind." .Kind)}}{{if .Removed}} · {{T "snapshots.removed"}}{{end}}</span></span></th>
+                <td><span class="cell-stack">{{template "sevcounts" .Sev}}{{if .KEV}}<span>{{template "kev"}} {{.KEV}}</span>{{end}}</span></td>
+              </tr>
+              {{- end}}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {{- else}}
+      <div class="panel__body"><p class="muted">{{T "snapshots.no_refs"}}</p></div>
+      {{- end}}
+    </section>
+    <div class="stack">
+      {{- with .Selected}}
+      <section class="panel" aria-labelledby="findings-title">
+        <div class="panel__head">
+          <h2 class="panel__title" id="findings-title">{{T "findings.of_ref" "Ref" .Name}}</h2>
+          <span class="panel__meta">{{if $.Analyzed}}{{T "findings.analyzed"}} {{template "stamp" $.Analyzed}} · {{T "findings.db_built" "Date" $.Built.Display}}{{else}}{{T "findings.not_analyzed"}}{{end}}</span>
+          <nav class="segmented panel__action" aria-label="{{T "findings.filter_state"}}">
+            {{- range $.States}}<a href="{{.Href}}"{{if .Current}} aria-current="true"{{end}}><span>{{T .LabelKey}}</span> {{.Count}}</a>{{end}}
+          </nav>
+        </div>
+        <div class="panel__body stack">
+          <form class="form-row" method="get" action="{{$.Base}}/projects/{{$p.Slug}}/findings">
+            <input type="hidden" name="ref" value="{{.ID}}">
+            {{- with $.StatusValue}}<input type="hidden" name="status" value="{{.}}">{{end}}
+            <div class="field field--narrow">
+              <label class="field__label" for="findings-severity">{{T "findings.severity"}}</label>
+              <select class="select" id="findings-severity" name="severity">
+                {{- range $.Severities}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>{{end}}
+              </select>
+            </div>
+            <label class="check"><input type="checkbox" name="kev" value="1"{{if $.KEVOnly}} checked{{end}}> <span>{{T "findings.kev_only"}}</span></label>
+            <button class="btn" type="submit">{{T "findings.apply"}}</button>
+          </form>
+          {{- if $.Rows}}
+          <div class="table-wrap" role="region" aria-labelledby="findings-title" tabindex="0">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">{{T "findings.col_vulnerability"}}</th>
+                  <th scope="col">{{T "findings.col_severity"}}</th>
+                  <th scope="col">{{T "findings.col_epss"}}</th>
+                  <th scope="col">{{T "findings.col_component"}}</th>
+                  <th scope="col">{{T "findings.col_fixed_in"}}</th>
+                  <th scope="col">{{if $.Resolved}}{{T "findings.col_resolved"}}{{else}}{{T "findings.col_first_seen"}}{{end}}</th>
+                  <th scope="col" class="num" aria-sort="descending">{{T "findings.col_risk"}}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{- range $.Rows}}
+                <tr>
+                  <th scope="row"><span class="cell-stack"><a class="mono" href="{{.VulnHref}}">{{.VulnID}}</a>{{if .KEV}}{{template "kev"}}{{end}}</span></th>
+                  <td>{{template "sev" .Sev}}</td>
+                  <td>{{with .EPSS}}<span class="mono">{{percent . 1}}</span>{{else}}<span class="muted">{{T "common.none"}}</span>{{end}}</td>
+                  <td><span class="cell-stack"><a href="{{.ComponentHref}}">{{.Component}}</a><span class="version">{{.Version}}</span></span></td>
+                  <td>{{template "fixed" .}}</td>
+                  <td>{{if $.Resolved}}<span class="cell-stack">{{template "stamp" .ResolvedAt}}<span class="muted">{{T (print "finding_resolution." .Resolution)}}</span></span>{{else}}{{template "stamp" .FirstSeen}}{{end}}</td>
+                  <td class="num">{{template "risk" .Risk}}</td>
+                </tr>
+                {{- end}}
+              </tbody>
+            </table>
+          </div>
+          {{- with $.NextHref}}
+          <nav class="pagination" aria-label="{{T "pagination.label"}}"><a class="btn btn--sm" href="{{.}}">{{T "pagination.next"}}</a></nav>
+          {{- end}}
+          {{- else if $.Filtered}}
+          <p class="muted">{{T "findings.none_filtered"}}</p>
+          {{- else if $.Resolved}}
+          <p class="muted">{{T "findings.none_resolved"}}</p>
+          {{- else}}
+          <p class="muted">{{T "findings.none"}}</p>
+          {{- end}}
+        </div>
+      </section>
+      {{- end}}
+    </div>
+  </div>
+</div>
+{{- end}}
