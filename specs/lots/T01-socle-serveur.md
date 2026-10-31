@@ -103,9 +103,12 @@ Unitaires : validation de config, `secret` (aller-retour, rotation, chiffré alt
 empreinte des assets, FuncMap. Intégration : migrations concurrentes et altérées, arrêt
 propre, rendu des pages et assistant d'accessibilité.
 
-## Points à trancher
+## Décisions
 
-- Valider la dépendance `prometheus/client_golang` pour `/metrics`.
+Prises le 31 octobre 2026 :
+
+- `prometheus/client_golang` validé pour `/metrics`.
+- Langue par défaut d'une installation neuve : français.
 
 ## Journal
 

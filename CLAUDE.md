@@ -27,15 +27,18 @@ Aucun code. Prochain lot : [T00 — Fondations](specs/lots/T00-fondations.md).
 ## Règles de travail
 
 - **La qualité prime sur la vitesse.** Pas de raccourci, pas de dette reportée.
-- Un lot à la fois, sur une branche `lot/<id>-<sujet>`, fusionné par demande de fusion.
+- Un lot à la fois, sur une branche `lot/<id>-<sujet>` poussée sur GitHub ; PR vers `main`
+  fusionnée dès que la CI est verte et les critères cochés (l'utilisateur relit a posteriori).
 - Avant d'écrire du code : proposer un plan, et faire valider par l'utilisateur toute
   nouvelle dépendance tierce, tout écart à `architecture.md` et tout « point à trancher ».
 - Toute décision structurante donne un ADR dans `docs/adr/` et, si besoin, une mise à jour
   d'`architecture.md` dans le même commit.
 - En fin de lot : critères cochés, Journal de la fiche rempli, statut mis à jour dans
   `specs/README.md`, `make ci` vert.
-- open-go-base est un autre dépôt (`../open-go-base`) : y proposer une évolution, ne pas la
-  faire sans accord.
+- open-go-base est un autre dépôt (`../open-go-base`). Les évolutions du § 23 de
+  l'architecture y sont autorisées : branche, PR fusionnée quand la CI est verte, étiquette
+  semver, puis montée de version ici. Toute autre évolution demande l'accord de l'utilisateur.
+- Décisions déjà prises pour le lot 1 : section « Décisions » de chaque fiche.
 
 ## Conventions qui reviennent sans cesse
 

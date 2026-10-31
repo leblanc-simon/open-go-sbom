@@ -70,13 +70,14 @@ section « Agent serveur » de `docs/operations.md`.
 Unitaires : empreinte stable, configuration, état. Intégration : parcours complet contre un
 serveur de test (`httptest` ou `ogsbom-server` réel), avec et sans mTLS.
 
-## Points à trancher
+## Décisions
 
-- La cible du cahier des charges « moins de 5 % d'un cœur en moyenne sur la durée d'un
-  scan » n'est pas mesurable telle quelle : un scan occupe un cœur pendant sa durée.
-  Proposition : temps CPU par scan et mémoire maximale bornés sur la machine de référence,
-  plus `CPUQuota` en option. À valider, puis reporter au cahier des charges.
-- Outil de paquets : nfpm (en directive `tool`) ou scripts maison ?
+Prises le 31 octobre 2026 :
+
+- Cible CPU reformulée : temps CPU par scan et mémoire maximale bornés sur la machine de
+  référence ; valeurs fixées après la première mesure puis reportées au cahier des charges ;
+  `CPUQuota` proposé en option dans l'unité systemd.
+- Paquets deb et rpm produits par nfpm, en directive `tool`.
 
 ## Journal
 

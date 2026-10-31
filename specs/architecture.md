@@ -83,7 +83,7 @@ internal/
   agentclient/           # client de l'API agent (généré), partagé par les deux agents
   hostagent/             # pipeline de l'agent serveur
   repoagent/             # pipeline de l'agent dépôt
-  forge/                 # GitHub App, GitLab, Forgejo
+  forge/                 # GitHub App, GitLab (Forgejo plus tard)
   llm/                   # fournisseurs de modèles (lot 2)
   archtest/              # tests d'architecture (§ 4)
 api/openapi.yaml         # contrat de l'API, source unique
@@ -121,21 +121,24 @@ CI au premier écart.
 
 ## 5. Socle et dépendances
 
+Versions minimales : Go 1.26, PostgreSQL 16. Validations du 31 octobre 2026.
+
 | Besoin | Choix | Statut |
 | --- | --- | --- |
 | Configuration, journaux, i18n, CSRF, limitation de débit par IP, CORS, comptes, sessions, TOTP | `leblanc.io/open-go-base` | Décidé |
-| Pilote PostgreSQL | `github.com/jackc/pgx/v5/stdlib` via `database/sql` (partagé avec les stores d'authx et mfax) | À valider en T00 |
-| Routeur HTTP | `github.com/go-chi/chi/v5` (comme open-go-canivet) | À valider en T00 |
+| Pilote PostgreSQL | `github.com/jackc/pgx/v5/stdlib` via `database/sql` (partagé avec les stores d'authx et mfax) | Validé |
+| Routeur HTTP | `github.com/go-chi/chi/v5` (comme open-go-canivet) | Validé |
 | SBOM, vulnérabilités, licences | `github.com/anchore/syft`, `grype`, `grant` | Décidé |
-| Manipulation CycloneDX côté agents | `github.com/CycloneDX/cyclonedx-go` (déjà dans le graphe de Syft) | À valider en T00 |
-| purl | `github.com/package-url/packageurl-go` (déjà dans le graphe de Syft) | À valider en T00 |
-| UUID v7 | `github.com/google/uuid` (déjà indirect) | À valider en T00 |
-| Contrat d'API | `oapi-codegen` en directive `tool` + son paquet runtime | À valider en T00 |
-| Requêtes SQL typées | `sqlc` en directive `tool`, ou requêtes écrites à la main | ADR en T00 |
-| File de traitements | maison, sur PostgreSQL (§ 16) | Proposé, ADR en T00 |
-| Analyse statique | `staticcheck`, `govulncheck` en directives `tool` | À valider en T00 |
-| Validation des SBOM par schéma JSON | bibliothèque JSON Schema, ou décodage strict seul | À trancher en T05 |
-| Métriques | `github.com/prometheus/client_golang` | À valider en T01 |
+| Manipulation CycloneDX côté agents | `github.com/CycloneDX/cyclonedx-go` (déjà dans le graphe de Syft) | Validé |
+| purl | `github.com/package-url/packageurl-go` (déjà dans le graphe de Syft) | Validé |
+| UUID v7 | `github.com/google/uuid` (déjà indirect) | Validé |
+| Contrat d'API | `oapi-codegen` en directive `tool` + son paquet runtime | Validé |
+| Requêtes SQL typées | `sqlc` en directive `tool` si les tableaux passent sans lib/pq, sinon requêtes écrites à la main | Tranché par l'exploration de T00 (ADR 4) |
+| File de traitements | maison, sur PostgreSQL (§ 16) | Retenu, ADR 5 en T00 |
+| Analyse statique | `staticcheck`, `govulncheck` en directives `tool` | Validé |
+| Validation des SBOM par schéma JSON | schémas officiels embarqués, `github.com/santhosh-tekuri/jsonschema` | Validé |
+| Métriques | `github.com/prometheus/client_golang` | Validé |
+| Paquets deb et rpm | `nfpm` en directive `tool` | Validé |
 | Fournisseur de modèle | SDK Go officiel d'Anthropic ; Ollama par son API HTTP sans SDK | À valider en T12 |
 | Règles de politique | `github.com/google/cel-go` | À valider en T15 |
 | OIDC | `oidcx` dans open-go-base, ou paquet local | Point ouvert, T25 |

@@ -44,9 +44,15 @@ documenter et publier une préversion.
       projets attendue, établie à la main au préalable.
 - [ ] `v0.1.0` publiée.
 
-## Points à trancher
+## Décisions
 
-- Composition du parc pilote (nombre de serveurs et de dépôts, forges concernées).
+Prises le 31 octobre 2026 :
+
+- Parc pilote de démonstration : conteneurs Debian, Rocky Linux (famille RHEL) et Alpine
+  portant l'agent serveur, et dépôts publics sur GitHub et GitLab. La liste exacte et les
+  CVE de contrôle sont fixées au début du lot, avant toute recherche.
+- `v0.1.0` publiée en préversion sur GitHub Releases : étiquette, binaires des trois rôles,
+  sommes de contrôle.
 
 ## Journal
 

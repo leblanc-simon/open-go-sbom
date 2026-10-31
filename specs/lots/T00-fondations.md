@@ -80,11 +80,17 @@ dépendances validées (avec version) dans le Journal.
 
 Tests de `archtest` (cas conforme et cas fautif construits dans `testdata`).
 
-## Points à trancher
+## Décisions
 
-- Chemin du module : `leblanc.io/open-go-sbom` ?
-- sqlc ou requêtes manuelles (ADR 4).
-- Versions minimales : Go 1.26, PostgreSQL 16 ?
+Prises le 31 octobre 2026 :
+
+- Chemin du module : `leblanc.io/open-go-sbom`. Le domaine doit servir la balise
+  `go-import` pour que d'autres puissent faire `go get` ; sans effet sur le développement.
+- Versions minimales : Go 1.26, PostgreSQL 16.
+- Dépendances du § 5 de l'architecture validées.
+- sqlc ou SQL écrit à la main : tranché par l'exploration de ce lot (sqlc si les tableaux
+  passent sans lib/pq avec le pilote pgx, sinon SQL écrit à la main), consigné dans l'ADR 4.
+- Intégration : une PR par lot, fusionnée dès que la CI est verte et les critères cochés.
 
 ## Journal
 

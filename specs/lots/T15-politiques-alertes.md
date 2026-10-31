@@ -27,7 +27,7 @@ canaux, et voir le verdict directement sur chaque commit dans la forge.
 - Verdict d'un instantané : `GET /api/v1/agent/snapshots/{id}/verdict` (en attente, conforme,
   non conforme, résumé, lien).
 - Agent dépôt : après l'envoi, attente bornée du verdict puis publication du statut de commit
-  (GitHub, GitLab, Forgejo).
+  (GitHub et GitLab).
 - Écrans : liste et édition des règles (validation et aperçu du nombre de violations
   actuelles avant enregistrement), violations, canaux.
 - Audit : création, modification et suppression des règles et des canaux, envois de test.
@@ -53,7 +53,7 @@ canaux et du format de webhook.
 - [ ] Chaque modèle de règle fournie déclenche sur un jeu construit à la main, et pas en
       dehors.
 - [ ] Un canal en panne reçoit ses messages après rétablissement (réessais), sans doublon.
-- [ ] Le statut de commit apparaît sur les trois forges avec le bon état.
+- [ ] Le statut de commit apparaît sur GitHub et GitLab avec le bon état.
 - [ ] Une règle CEL invalide est refusée avec un message traduit qui situe l'erreur.
 - [ ] Aucun secret de canal n'est lisible en base ni dans les journaux.
 

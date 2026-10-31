@@ -13,7 +13,8 @@ sur les choix techniques ; une fiche de lot précise le quoi et le comment d'une
 3. Proposer un plan court. Toute nouvelle dépendance tierce, tout écart à l'architecture et
    tout point « à trancher » de la fiche sont soumis à l'utilisateur avant d'écrire du code.
 4. Travailler sur une branche `lot/<id>-<sujet>` (par exemple `lot/T05-ingestion`), en
-   commits atomiques, puis ouvrir une demande de fusion vers `main`.
+   commits atomiques, la pousser, ouvrir une PR vers `main` et la fusionner dès que la CI
+   est verte et les critères cochés ; l'utilisateur relit a posteriori.
 5. Écrire le test d'une règle métier avant ou avec son code, jamais après coup.
 6. Cocher les critères d'acceptation, remplir le Journal de la fiche (décisions, écarts,
    ADR créés) et mettre à jour le statut dans le tableau ci-dessous, dans la même demande
