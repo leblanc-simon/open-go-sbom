@@ -1,6 +1,6 @@
 # Journal des modifications
 
-Toutes les évolutions notables d'lotor. Format :
+Toutes les évolutions notables de lotor. Format :
 [Keep a Changelog 1.1.0](https://keepachangelog.com/fr/1.1.0/) ; versions selon
 [SemVer](https://semver.org/lang/fr/). Avant la v1.0, toute version est une préversion et
 peut changer la configuration ou l'API ; les migrations de base restent toujours

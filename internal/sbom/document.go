@@ -85,7 +85,7 @@ type Component struct {
 	Licenses []string `json:"licenses,omitempty"`
 	Hashes   []string `json:"hashes,omitempty"`
 	Origin   Origin   `json:"origin"`
-	// Confidence (0 à 1, quatre décimales) vient d'lotor:confidence ; nil si absente.
+	// Confidence (0 à 1, quatre décimales) vient de lotor:confidence ; nil si absente.
 	Confidence *float64 `json:"confidence,omitempty"`
 	Model      string   `json:"model,omitempty"`
 	// Evidence est le champ evidence de CycloneDX, en JSON canonique (clés triées).

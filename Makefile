@@ -1,4 +1,4 @@
-# Cibles de développement d'lotor. `make ci` exécute exactement ce que fait la CI.
+# Cibles de développement de lotor. `make ci` exécute exactement ce que fait la CI.
 
 GO        ?= go
 VERSION   ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo develop)

@@ -25,7 +25,7 @@ const (
 	ModeOneshot = "oneshot"
 )
 
-// Config est la configuration d'lotor-host-agent (config.example.yaml de deploy/). Aucun
+// Config est la configuration de lotor-host-agent (config.example.yaml de deploy/). Aucun
 // secret n'y figure : le jeton d'inscription et la clé du certificat client sont des
 // fichiers en 0600 ou des credentials systemd, le jeton d'agent vit dans le répertoire
 // d'état.

@@ -1,4 +1,4 @@
-# Agent serveur d'lotor en démon : un scan par jour (scan.interval) et un signal
+# Agent serveur de lotor en démon : un scan par jour (scan.interval) et un signal
 # de vie toutes les 5 minutes, pour le scan à la demande. Pour un scan quotidien sans
 # démon : lotor-host-agent-oneshot.timer (n'activer que l'un des deux).
 #

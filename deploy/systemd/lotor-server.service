@@ -1,4 +1,4 @@
-# Unité systemd d'lotor-server (voir docs/operations.md, « Installation de production »).
+# Unité systemd de lotor-server (voir docs/operations.md, « Installation de production »).
 # Les secrets (DSN avec mot de passe, clés de chiffrement) sont dans un fichier
 # d'environnement en 0600, lu par systemd avant le changement d'utilisateur.
 [Unit]

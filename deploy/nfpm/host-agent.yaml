@@ -1,4 +1,4 @@
-# Paquets deb et rpm d'lotor-host-agent (nfpm, go tool nfpm), produits par
+# Paquets deb et rpm de lotor-host-agent (nfpm, go tool nfpm), produits par
 # `make packages` : PKG_ARCH et PKG_VERSION viennent du Makefile. Non signés (signature : T24,
 # T26).
 name: lotor-host-agent
@@ -13,8 +13,8 @@ vendor: lotor
 homepage: https://github.com/leblanc-simon/lotor
 license: WTFPL
 description: |
-  Agent serveur d'lotor : inventaire de l'hôte
-  Agent serveur d'lotor : inventorie l'hôte avec Syft (paquets du système et des
+  Agent serveur de lotor : inventaire de l'hôte
+  Agent serveur de lotor : inventorie l'hôte avec Syft (paquets du système et des
   langages installés) et n'envoie un SBOM au serveur que lorsque l'inventaire a changé.
   Tourne sans root (CAP_DAC_READ_SEARCH), en démon ou par timer systemd.
 

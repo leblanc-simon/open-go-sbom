@@ -1,6 +1,6 @@
 # Guide d'utilisation
 
-Ce guide décrit l'usage d'lotor par les membres d'une organisation. L'installation
+Ce guide décrit l'usage de lotor par les membres d'une organisation. L'installation
 et l'exploitation du serveur sont dans [`operations.md`](operations.md) ; les premiers pas
 (connexion, organisation, inscription des serveurs et des dépôts) dans le
 [guide de démarrage](demarrage.md). Les sections s'ajoutent au fil des lots.

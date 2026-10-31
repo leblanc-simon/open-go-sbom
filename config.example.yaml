@@ -1,4 +1,4 @@
-# Configuration d'exemple d'lotor-server. Copier en config.yaml (lu par défaut, ou -c
+# Configuration d'exemple de lotor-server. Copier en config.yaml (lu par défaut, ou -c
 # chemin). Chaque clé a sa variable d'environnement LOTOR_*, qui l'emporte sur le
 # fichier : lotor-server --help les liste toutes. Valeurs de développement, adaptées à
 # deploy/compose.yaml.

@@ -20,7 +20,7 @@ func serverURL(r *http.Request) string { return "https://" + r.Host }
 // shellQuote cite une valeur pour un shell POSIX.
 func shellQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
 
-// hostAgentInstall décrit l'installation d'lotor-host-agent avec un jeton d'inscription
+// hostAgentInstall décrit l'installation de lotor-host-agent avec un jeton d'inscription
 // (paquets et unités de deploy/, chemins de docs/operations.md, « Agent serveur »).
 func hostAgentInstall(server, token string) []installStep {
 	return []installStep{

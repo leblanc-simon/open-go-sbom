@@ -1,5 +1,5 @@
 #!/bin/sh
-# Avant désinstallation d'lotor-host-agent : arrêt et désactivation des unités, mais pas
+# Avant désinstallation de lotor-host-agent : arrêt et désactivation des unités, mais pas
 # lors d'une mise à jour (deb : « upgrade » ; rpm : nombre d'installations restantes 1).
 # L'état (/var/lib/lotor-host-agent, jeton d'agent compris) et l'utilisateur sont
 # conservés, pour une réinstallation sans réinscription ; à supprimer à la main sinon.

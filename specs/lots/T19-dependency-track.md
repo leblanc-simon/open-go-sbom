@@ -15,7 +15,7 @@ Dependency-Track.
 **Inclus**
 
 - Agents : sortie supplémentaire « Dependency-Track » (URL, clé d'API, correspondance
-  projet et version, création automatique), en plus ou à la place d'lotor.
+  projet et version, création automatique), en plus ou à la place de lotor.
 - Serveur : point d'envoi compatible avec celui de Dependency-Track (corps JSON avec SBOM en
   base64 et formulaire multipart, clé `X-Api-Key`), qui crée une ingestion ordinaire, et
   route de suivi du traitement au format attendu par les clients. Ces routes vivent sous le

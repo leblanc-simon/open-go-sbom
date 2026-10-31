@@ -1,6 +1,6 @@
 # Architecture technique de référence
 
-Ce document fait autorité sur l'architecture, les noms et les conventions d'lotor.
+Ce document fait autorité sur l'architecture, les noms et les conventions de lotor.
 Le besoin fonctionnel est dans [`docs/cahier-des-charges.md`](../docs/cahier-des-charges.md) ;
 le découpage du travail est dans [`specs/README.md`](README.md). Toute décision qui s'en
 écarte passe par un ADR (`docs/adr/`) et une mise à jour de ce document dans le même commit.

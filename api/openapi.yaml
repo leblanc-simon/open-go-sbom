@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: lotor
   version: 0.1.0
-  summary: API REST d'lotor
+  summary: API REST de lotor
   description: |
     Contrat unique de l'API : le serveur et le client des agents en sont générés
     (oapi-codegen, ADR 0006).

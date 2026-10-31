@@ -1,4 +1,4 @@
-# Configuration d'exemple d'lotor-repo-agent (agent dépôt). Une instance par
+# Configuration d'exemple de lotor-repo-agent (agent dépôt). Une instance par
 # organisation : elle porte le jeton d'un agent dépôt de cette organisation.
 # Lue par défaut dans /etc/lotor-repo-agent/config.yaml (ou -c chemin). Chaque clé, sauf
 # les forges, a sa variable d'environnement LOTOR_REPO_*, qui l'emporte sur le fichier :

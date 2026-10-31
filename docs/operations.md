@@ -1,4 +1,4 @@
-# Exploitation d'lotor-server
+# Exploitation de lotor-server
 
 Installation, configuration, exploitation et surveillance du serveur et des agents,
 pour le lot 1 (version 0.1). Les premiers pas des utilisateurs sont dans le guide de

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Après installation d'lotor-host-agent : utilisateur système, droits du répertoire de
+# Après installation de lotor-host-agent : utilisateur système, droits du répertoire de
 # configuration, rechargement de systemd. Les unités ne sont ni activées ni démarrées :
 # il faut d'abord renseigner l'adresse du serveur et le jeton d'inscription.
 set -e

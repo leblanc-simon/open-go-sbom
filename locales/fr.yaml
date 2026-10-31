@@ -966,7 +966,7 @@ host_agent:
 host_install:
   title: Installer l'agent serveur
   meta: Linux amd64 ou arm64, paquet deb ou rpm
-  package: Installez le paquet d'lotor-host-agent, qui crée l'utilisateur lotor-agent et les unités systemd.
+  package: Installez le paquet de lotor-host-agent, qui crée l'utilisateur lotor-agent et les unités systemd.
   package_hint: Choisissez la commande de votre distribution ; remplacez amd64 ou x86_64 par arm64 ou aarch64 selon l'architecture.
   server: Indiquez l'adresse de ce serveur dans la configuration de l'agent.
   server_hint: Avec une autorité de certification privée ou le mTLS, renseignez aussi la section tls du même fichier.

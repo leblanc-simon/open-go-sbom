@@ -1,4 +1,4 @@
-# Configuration d'lotor-host-agent, installée en /etc/lotor-host-agent/config.yaml par
+# Configuration de lotor-host-agent, installée en /etc/lotor-host-agent/config.yaml par
 # les paquets (lue par défaut, ou -c chemin). Chaque clé a sa variable d'environnement
 # LOTOR_HOST_AGENT_*, qui l'emporte sur le fichier : lotor-host-agent --help les liste.
 #

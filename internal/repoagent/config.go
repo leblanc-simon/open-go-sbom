@@ -19,7 +19,7 @@ import (
 // EnvPrefix préfixe les variables d'environnement de l'agent dépôt.
 const EnvPrefix = "LOTOR_REPO_"
 
-// Config est la configuration d'lotor-repo-agent. Aucun secret n'y figure : jeton
+// Config est la configuration de lotor-repo-agent. Aucun secret n'y figure : jeton
 // d'agent, clé privée de la GitHub App, jetons des comptes de service et secrets de
 // webhook sont désignés par « credential:nom » (credentials systemd) ou par le chemin d'un
 // fichier en 0600 (ReadSecret).

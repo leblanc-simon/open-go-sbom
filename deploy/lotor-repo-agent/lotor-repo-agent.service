@@ -1,4 +1,4 @@
-# Unité systemd d'lotor-repo-agent. Les secrets sont des credentials chiffrés au repos
+# Unité systemd de lotor-repo-agent. Les secrets sont des credentials chiffrés au repos
 # (systemd-creds encrypt), déchiffrés par systemd dans $CREDENTIALS_DIRECTORY, lisibles
 # du seul service : voir docs/operations.md, « Agent dépôt ».
 [Unit]

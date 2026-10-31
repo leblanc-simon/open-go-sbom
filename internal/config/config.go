@@ -9,7 +9,7 @@ import (
 // EnvPrefix préfixe toutes les variables d'environnement du serveur.
 const EnvPrefix = "LOTOR_"
 
-// Config est la configuration d'lotor-server : fragments d'appconf (Web, Logging, I18n,
+// Config est la configuration de lotor-server : fragments d'appconf (Web, Logging, I18n,
 // CORS, base de données, Auth et MFA) et fragments propres au projet. Workers arrive avec
 // la file (T02), Ingest et VulnDB avec leurs lots.
 type Config struct {
