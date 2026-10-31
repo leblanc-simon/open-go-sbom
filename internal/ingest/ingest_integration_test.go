@@ -330,6 +330,27 @@ func TestEndToEndThroughRunner(t *testing.T) {
 	}
 }
 
+// TestDecodeHonoursDeadline (SEC-11) : un décodage dont le délai est dépassé s'arrête et
+// rend l'erreur du contexte, jamais un refus du document (le job sera réessayé).
+func TestDecodeHonoursDeadline(t *testing.T) {
+	t.Parallel()
+	tdb := newDB(t)
+	s := newService(t, tdb.App, testLimits)
+	gz := gzipped(t, testdata(t, "portail-client-ia.cdx16.json"))
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, _, err := s.decode(ctx, gz)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("décodage après le délai : %v, attendu context.Canceled", err)
+	}
+	if _, ok := sbom.AsError(err); ok {
+		t.Fatal("dépassement du délai pris pour un refus du document")
+	}
+	if _, doc, err := s.decode(context.Background(), gz); err != nil || len(doc.Components) == 0 {
+		t.Fatalf("décodage nominal : %d composants, %v", len(doc.Components), err)
+	}
+}
+
 // TestReceiveQuotas (SEC-05) : au-delà du quota d'envois d'une référence sur 24 h, ou du
 // volume stocké de l'organisation, l'envoi est refusé (ErrQuota) et rien n'est stocké ;
 // un doublon n'est pas compté.

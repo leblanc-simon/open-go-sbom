@@ -57,7 +57,7 @@ func (s *Service) Decode(ctx context.Context, org tenant.OrgID, id uuid.UUID) er
 	if err != nil {
 		return wrap("lecture du SBOM", err)
 	}
-	h, doc, err := s.decode(content)
+	h, doc, err := s.decode(ctx, content)
 	if err != nil {
 		rej, ok := sbom.AsError(err)
 		if !ok {
@@ -99,21 +99,48 @@ func (s *Service) start(ctx context.Context, org tenant.OrgID, id uuid.UUID) (pe
 // decode applique les bornes préalables en flux, la validation par schéma puis le
 // décodage. Le JSON n'est gardé en mémoire que dans les bornes : Precheck s'arrête au
 // premier dépassement, avant tout décodage complet.
-func (s *Service) decode(gz []byte) (sbom.Header, sbom.Document, error) {
+//
+// Le délai du job (ingest.decode_timeout) interrompt la lecture en flux de Precheck et
+// est vérifié entre les étapes ; la validation et le décodage de Syft, linéaires en taille
+// et sans contexte, vont au bout de l'étape commencée (SEC-11). Un dépassement n'est
+// jamais un refus du document : le job échoue et sera réessayé.
+func (s *Service) decode(ctx context.Context, gz []byte) (sbom.Header, sbom.Document, error) {
 	zr, err := gzip.NewReader(bytes.NewReader(gz))
 	if err != nil {
 		return sbom.Header{}, sbom.Document{}, sbom.Reject(sbom.KeyMalformed, "", err)
 	}
 	var data bytes.Buffer
-	h, err := sbom.Precheck(io.TeeReader(zr, &data), s.limits.SBOM)
+	h, err := sbom.Precheck(io.TeeReader(ctxReader{ctx: ctx, r: zr}, &data), s.limits.SBOM)
+	if cerr := ctx.Err(); cerr != nil {
+		return h, sbom.Document{}, cerr
+	}
 	if err != nil {
 		return h, sbom.Document{}, err
 	}
 	if err := s.validator.Validate(h.Format, h.SpecVersion, data.Bytes()); err != nil {
 		return h, sbom.Document{}, err
 	}
+	if err := ctx.Err(); err != nil {
+		return h, sbom.Document{}, err
+	}
 	doc, err := syft.Decode(h.Format, data.Bytes())
+	if cerr := ctx.Err(); cerr != nil {
+		return h, sbom.Document{}, cerr
+	}
 	return h, doc, err
+}
+
+// ctxReader interrompt une lecture dès que ctx est annulé.
+type ctxReader struct {
+	ctx context.Context
+	r   io.Reader
+}
+
+func (c ctxReader) Read(p []byte) (int, error) {
+	if err := c.ctx.Err(); err != nil {
+		return 0, err
+	}
+	return c.r.Read(p)
 }
 
 // fail termine l'ingestion en échec, sans rien ranger.
