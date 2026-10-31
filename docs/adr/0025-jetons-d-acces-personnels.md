@@ -14,7 +14,7 @@ côté des jetons d'agent.
 
 ## Décision
 
-- **Table globale** `personal_access_tokens` (migration 012), comme `sessions`,
+- **Table globale** `personal_access_tokens` (migration 013), comme `sessions`,
   `account_settings` et `session_auth` : un jeton est une donnée du **compte**, créée
   depuis le profil (hors de toute organisation), et ne contient aucune donnée
   d'organisation. Seuls l'identifiant public (unique sur l'instance) et le SHA-256 du

@@ -26,7 +26,7 @@ T09 répond à « qui utilise ce composant, cette version, cette plage de versio
 
 ## Décision
 
-- **Deux fonctions `SECURITY DEFINER` « équivalentes à la RLS »** (migration 012) :
+- **Deux fonctions `SECURITY DEFINER` « équivalentes à la RLS »** (migration 013) :
   `ogsbom_search_component_names(query, limit)` et
   `ogsbom_search_component_hashes(hash, limit)`, du propriétaire (`BYPASSRLS`), à
   `search_path` fixé. Elles **lisent l'organisation dans `ogsbom.org_id`** (posé par

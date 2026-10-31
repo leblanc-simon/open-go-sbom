@@ -446,7 +446,7 @@ vaut 1 : à surveiller (alerte Prometheus conseillée sur `ogsbom_vulndb_stale =
 La recherche transverse (`/o/<slug>/search`, T09, ADR 0024) et l'API utilisateur
 (`/api/v1/orgs/<slug>/…`) n'ont rien à installer en dehors de la base.
 
-- **Extensions PostgreSQL** : la migration 012 crée `pg_trgm` et `btree_gin` (extensions
+- **Extensions PostgreSQL** : la migration 013 crée `pg_trgm` et `btree_gin` (extensions
   « trusted », que le propriétaire de la base crée sans être superutilisateur). Sur une base
   gérée qui les réserve à un administrateur, les créer avant la mise à jour, dans le schéma
   `public` : `CREATE EXTENSION pg_trgm WITH SCHEMA public; CREATE EXTENSION btree_gin WITH

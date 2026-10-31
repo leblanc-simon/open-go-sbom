@@ -90,7 +90,7 @@ Réalisé le 31 octobre 2026, branche `lot/T09-recherche`.
   antisymétriques et avec l'époque rpm absente valant 0.
 - **`internal/token`** : format des jetons (`agt`, `enr`, `pat`) sorti d'`internal/agent`,
   qui garde son API par alias.
-- **Migration 012** : extensions `pg_trgm` et `btree_gin` ; index GIN
+- **Migration 013** : extensions `pg_trgm` et `btree_gin` ; index GIN
   `(org_id, name gin_trgm_ops)`, `(org_id, hashes)`, B-tree `(org_id, lower(name))` ;
   fonctions `ogsbom_search_component_names` et `ogsbom_search_component_hashes` ; table
   globale `personal_access_tokens`. `internal/db/crossorg` : `ComponentsByName`,
