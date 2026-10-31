@@ -57,7 +57,7 @@
           <span class="panel__meta">{{T "agent.tokens_meta"}}</span>
         </div>
         {{- if .Tokens}}
-        <div class="table-wrap" role="region" aria-labelledby="agent-tokens" tabindex="0">
+        <div class="table-wrap" role="group" aria-labelledby="agent-tokens" tabindex="0">
           <table class="data-table">
             <caption class="visually-hidden">{{T "agent.tokens_title" "Name" $a.Name}}</caption>
             <thead>
@@ -72,7 +72,7 @@
               </tr>
             </thead>
             <tbody>
-              {{- $base := .Base}}{{$csrf := .Page.CSRFToken}}{{$can := .CanAdmin}}
+              {{- $base := .Base}}{{$can := .CanAdmin}}
               {{- range .Tokens}}
               <tr>
                 <th scope="row">{{.Name}}</th>
@@ -84,10 +84,7 @@
                 {{- if $can}}
                 <td class="cell-actions">
                   {{- if not .Revoked}}
-                  <form method="post" action="{{$base}}/agents/{{$a.ID}}/tokens/{{.ID}}/revoke">
-                    {{csrfField $csrf}}
-                    <button type="submit" class="btn btn--sm btn--danger">{{T "agents.revoke"}}<span class="visually-hidden"> {{.Name}}</span></button>
-                  </form>
+                  <a class="btn btn--sm btn--danger" href="{{$base}}/agents/{{$a.ID}}/tokens/{{.ID}}/revoke">{{T "agents.revoke"}}<span class="visually-hidden"> {{.Name}}</span></a>
                   {{- end}}
                 </td>
                 {{- end}}
@@ -127,11 +124,10 @@
       </section>
       <section class="panel" aria-labelledby="agent-disable">
         <div class="panel__head"><h2 class="panel__title" id="agent-disable">{{T "agent.disable_title"}}</h2></div>
-        <form class="panel__body stack stack--sm" method="post" action="{{.Base}}/agents/{{$a.ID}}/disable">
-          {{csrfField .Page.CSRFToken}}
+        <div class="panel__body stack stack--sm">
           <p>{{T "agent.disable_text"}}</p>
-          <button class="btn btn--danger" type="submit">{{T "agent.disable"}}</button>
-        </form>
+          <p><a class="btn btn--danger" href="{{.Base}}/agents/{{$a.ID}}/disable">{{T "agent.disable"}}</a></p>
+        </div>
       </section>
     </div>
     {{- end}}

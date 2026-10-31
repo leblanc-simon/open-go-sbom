@@ -24,14 +24,14 @@
       <div class="panel__head"><h2 class="panel__title" id="refs-title">{{T "snapshots.refs_title"}}</h2></div>
       {{- if .Refs}}
       <div class="panel__body panel__body--flush">
-        <div class="table-wrap" role="region" aria-labelledby="refs-title" tabindex="0">
+        <div class="table-wrap" role="group" aria-labelledby="refs-title" tabindex="0">
           <table class="data-table">
             <caption class="visually-hidden">{{T "snapshots.refs_caption"}}</caption>
             <thead><tr><th scope="col">{{T "snapshots.col_ref"}}</th><th scope="col">{{T "snapshots.col_last"}}</th></tr></thead>
             <tbody>
               {{- range .Refs}}
               <tr{{if .Selected}} class="row--selected"{{end}}>
-                <th scope="row"><span class="cell-stack"><a class="mono" href="{{.Href}}"{{if .Selected}} aria-current="true"{{end}}>{{.Name}}</a><span class="muted">{{T (print "ref_kind." .Kind)}}{{if .Removed}} · {{T "snapshots.removed"}}{{end}}</span></span></th>
+                <th scope="row"><span class="cell-stack"><a class="mono" href="{{.Href}}"{{if .Selected}} aria-current="true"{{end}}>{{.Name}}</a><span class="muted">{{T (print "ref_kind." .Kind)}}{{if .Removed}} · {{T "snapshots.removed"}}{{end}}</span>{{if .Selected}}<span class="chip">{{T "snapshots.ref_shown"}}</span>{{end}}</span></th>
                 <td><span class="cell-stack">{{template "stamp" .Last}}<span class="muted">{{Tn "snapshots.count" .Count}}</span></span></td>
               </tr>
               {{- end}}
@@ -81,7 +81,7 @@
           <span class="panel__meta">{{T "snapshots.ingestions_meta"}}</span>
         </div>
         {{- if .Ingestions}}
-        <div class="table-wrap" role="region" aria-labelledby="ingestions-title" tabindex="0">
+        <div class="table-wrap" role="group" aria-labelledby="ingestions-title" tabindex="0">
           <table class="data-table">
             <caption class="visually-hidden">{{T "snapshots.ingestions_caption"}}</caption>
             <thead>

@@ -46,6 +46,12 @@
   font: inherit;
   font-size: var(--text-md);
 
+  /* Couleur fixée par jeton (contraste garanti dans les deux thèmes), pas par le navigateur. */
+  &::placeholder {
+    color: var(--color-text-3);
+    opacity: 1;
+  }
+
   &:focus-visible {
     outline: 2px solid var(--color-focus);
     outline-offset: 1px;

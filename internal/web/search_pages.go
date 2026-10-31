@@ -141,6 +141,9 @@ func (id *identity) search(w http.ResponseWriter, r *http.Request) {
 		req = search.Request{Q: r.URL.Query().Get(search.ParamQuery), Sort: search.SortRisk}
 	}
 	view.Q = req.Q
+	if req.Q != "" {
+		view.TitleKey, view.TitleArgs = "search.title_query", map[string]any{"Query": req.Q}
+	}
 	labels, err := id.Search.Labels(r.Context(), acc.Org)
 	if err != nil {
 		id.serverError(w, r, err)

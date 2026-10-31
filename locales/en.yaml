@@ -3,6 +3,8 @@ app:
   tagline: Per-project SBOM management
 
 layout:
+  title_org: "{{.Title}} — {{.Org}}"
+  title_error: "Error: {{.Title}}"
   skip_to_content: Skip to content
   home_link: Home
 
@@ -78,7 +80,6 @@ flash:
   org_archived: The organization is archived; its members no longer have access.
   org_unarchived: The organization is active again.
   account_updated: The account is updated.
-  totp_reset: The account's TOTP is reset; a new one will be enrolled at the next sign-in.
   project_created: The project is created.
   project_saved: The project is saved.
   project_archived: The project is archived; it is no longer offered to its agent.
@@ -245,7 +246,7 @@ org:
 
 dashboard:
   search_package: Search the package
-  title: "Dashboard — {{.Name}}"
+  title: Dashboard
   heading: Dashboard
   period: Period
   apply: Apply
@@ -321,7 +322,7 @@ members:
   status: Account status
   you: you
   role_of: "Role of {{.Email}}"
-  change_role: Change
+  change_role: Change role
   remove: Remove
 
 org_settings:
@@ -622,6 +623,7 @@ error:
       text: "The upload must contain, in this order, a \"context\" part (JSON) then an \"sbom\" part."
 
 footer:
+  sitemap: "Site map"
   version: "Version {{.Version}}"
   license: Free software under the WTFPL licence
   source: Source code
@@ -882,6 +884,7 @@ ingestion_outcome:
   unchanged: Inventory unchanged
 
 snapshots:
+  ref_shown: "Shown"
   title: "Snapshots — {{.Name}}"
   refs_title: References
   refs_caption: References tracked by the project and their last snapshot
@@ -1096,6 +1099,7 @@ vulnerability:
   truncated: List limited to the 500 riskiest findings.
 
 component:
+  this_version: "This version"
   title: "{{.Name}}"
   projects_count:
     one: "{{.Count}} project"
@@ -1247,6 +1251,7 @@ admin_jobs:
   not_found: This job is no longer failed (already retried or discarded).
 
 search:
+  title_query: "Search “{{.Query}}”"
   title: Search
   heading: Cross-project search
   subtitle: "A component, a purl with a version range, a CVE or a SHA-256 digest: across every project of the organization."
@@ -1351,3 +1356,42 @@ tokens:
   error:
     invalid_code: This code is incorrect, expired or already used.
     locked: "Too many incorrect codes: the account is locked for a while, try again later."
+
+severity_short:
+  critical: "Crit"
+  high: "High"
+  medium: "Med"
+  low: "Low"
+
+sitemap:
+  title: "Site map"
+  heading: "Site map"
+  lead: "Every section your account gives access to."
+  org: "Organization {{.Name}}"
+  account: "My account"
+  admin: "Instance administration"
+
+confirm:
+  irreversible: "This cannot be undone"
+  cancel: "Cancel"
+  agent_token_heading: "Revoke the token “{{.Name}}” of agent {{.Agent}}?"
+  agent_token_text: "The token stops working at once: the agent using it cannot send anything until it is given another token."
+  agent_token_submit: "Revoke the token “{{.Name}}”"
+  agent_disable_heading: "Disable agent {{.Agent}}?"
+  agent_disable_text: "All its tokens are revoked and its projects are taken from it; it can no longer send anything. A disabled agent cannot be enabled again: a server must enroll again, a repository must be given to another agent."
+  enrollment_heading: "Revoke the enrollment token “{{.Name}}”?"
+  enrollment_text: "No server can enroll with this token any more. Agents already enrolled keep their own tokens and go on working."
+  enrollment_submit: "Revoke “{{.Name}}”"
+  member_heading: "Remove {{.Email}} from the organization?"
+  member_text: "{{.Email}} loses access to {{.Org}} at once. To give it back, the account must be added again, with a role."
+  member_self_text: "You are removing yourself: you lose access to {{.Org}} at once, and only an administrator of the organization can add you again."
+  member_submit: "Remove {{.Email}}"
+  personal_token_heading: "Revoke the token “{{.Name}}”?"
+  personal_token_text: "The token {{.Prefix}}… stops working at once: scripts and integrations using it get an authentication error."
+  personal_token_submit: "Revoke the token “{{.Name}}”"
+  reset_password_heading: "Reset the password of {{.Email}}?"
+  reset_password_text: "The current password stops working, the sessions of the account are closed and its personal access tokens revoked. A temporary password, shown only once, must be passed on to its holder, who changes it at the next sign-in."
+  reset_totp_heading: "Reset the TOTP of {{.Email}}?"
+  reset_totp_text: "Codes from the current authenticator app are no longer accepted, the password is replaced by a temporary one (shown only once, to pass on to its holder), the sessions of the account are closed and its personal access tokens revoked. Its holder sets up a new TOTP, then changes the password at the next sign-in."
+  job_heading: "Discard the job {{.Kind}}?"
+  job_text: "The job and its last error are deleted (attempts: {{.Attempts}}); it will not run again. For it to run again, the data that queued it must be produced again."

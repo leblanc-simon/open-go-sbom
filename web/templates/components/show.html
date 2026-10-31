@@ -40,8 +40,8 @@
             {{- range .Versions}}
             <tr>
               <th scope="row" class="version">{{.Version}}</th>
-              <td><svg class="bars__track{{if .Vulnerable}} bars__track--vulnerable{{end}}" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="bar__track" width="100" height="8"></rect><rect class="bar__fill" width="{{.Width}}" height="8"></rect></svg>{{if .Vulnerable}}<span class="visually-hidden">{{T "component.legend_vulnerable"}}</span>{{end}}</td>
-              <td>{{Tn "component.occurrences_count" .Count}} · {{Tn "component.projects_count" .Projects}}</td>
+              <td><svg class="bars__track{{if .Vulnerable}} bars__track--vulnerable{{end}}" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="bar__track" width="100" height="8"></rect><rect class="bar__fill" width="{{.Width}}" height="8"></rect></svg></td>
+              <td><span class="cell-stack">{{if .Vulnerable}}<span class="status status--danger">{{T "component.legend_vulnerable"}}</span>{{end}}<span>{{Tn "component.occurrences_count" .Count}} · {{Tn "component.projects_count" .Projects}}</span></span></td>
             </tr>
             {{- end}}
           </tbody>
@@ -60,7 +60,7 @@
       <div class="panel__head"><h2 class="panel__title" id="vbv-title">{{T "component.vulns_by_version"}}</h2></div>
       {{- if .Matrix}}
       <div class="panel__body panel__body--flush">
-        <div class="table-wrap" role="region" aria-labelledby="vbv-title" tabindex="0">
+        <div class="table-wrap" role="group" aria-labelledby="vbv-title" tabindex="0">
           <table class="data-table">
             <thead>
               <tr>
@@ -96,7 +96,7 @@
     </div>
     {{- if .Usage}}
     <div class="panel__body panel__body--flush">
-      <div class="table-wrap" role="region" aria-labelledby="usage-title" tabindex="0">
+      <div class="table-wrap" role="group" aria-labelledby="usage-title" tabindex="0">
         <table class="data-table">
           <thead>
             <tr>
@@ -113,7 +113,7 @@
             <tr{{if .Current}} class="row--selected"{{end}}>
               <th scope="row"><span class="cell-stack"><a href="{{.ProjectHref}}">{{.ProjectName}}</a>{{template "project_kind" .ProjectKind}}</span></th>
               <td><span class="cell-stack"><span class="mono">{{.RefName}}</span><span class="muted">{{T (print "ref_kind." .RefKind)}}</span></span></td>
-              <td class="version">{{.Version}}</td>
+              <td>{{if .Current}}<span class="cell-stack"><span class="version">{{.Version}}</span><span class="chip">{{T "component.this_version"}}</span></span>{{else}}<span class="version">{{.Version}}</span>{{end}}</td>
               <td><span class="origin{{if eq .Origin "ia"}} origin--ai{{end}}"><span>{{T (print "origin." .Origin)}}</span>{{with .Confidence}}<span class="origin__conf">{{T "snapshot.confidence" "Percent" .}}</span>{{end}}</span></td>
               <td>{{if .Open}}<span class="cluster"><span>{{Tn "component.open_findings" .Open}}</span>{{if .KEV}}{{template "kev"}}{{end}}</span>{{else}}<span class="muted">{{T "component.no_findings"}}</span>{{end}}</td>
               <td><span class="cell-stack"><a href="{{.SnapshotURL}}">{{template "stamp" .Scanned}}</a>{{with .CommitShort}}<span class="mono muted">{{.}}</span>{{end}}</span></td>

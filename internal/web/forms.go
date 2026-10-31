@@ -41,7 +41,6 @@ var flashes = map[string]string{
 	"org_archived":     "flash.org_archived",
 	"org_unarchived":   "flash.org_unarchived",
 	"account_updated":  "flash.account_updated",
-	"totp_reset":       "flash.totp_reset",
 
 	"project_created":     "flash.project_created",
 	"project_saved":       "flash.project_saved",

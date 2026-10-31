@@ -114,6 +114,18 @@
     }
   }
 
+  /* Petit écran : le menu prend la largeur de l'en-tête (positionné) au lieu de
+     déborder à droite du bouton. */
+  @container ogsbom (width < 30rem) {
+    position: static;
+
+    .org-switcher__menu {
+      right: var(--space-4);
+      left: var(--space-4);
+      width: auto;
+    }
+  }
+
   .org-switcher__meta {
     margin-inline-start: auto;
     font-size: var(--text-xs);

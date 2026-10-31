@@ -38,6 +38,9 @@ type option struct {
 	Value    string
 	LabelKey string // clé de traduction, ou vide si Label est déjà lisible
 	Label    string
+	// Lang est la langue du libellé quand elle diffère de celle de la page : nom d'une
+	// langue écrit dans cette langue (« English »), restitué avec sa prononciation.
+	Lang     string
 	Selected bool
 }
 
@@ -56,7 +59,7 @@ func (id *identity) profileView(r *http.Request, s account.Settings) *profileVie
 	view := &profileView{Page: render.Page{TitleKey: "profile.title", Nav: accountNav("profile")}, Email: v.user.Email}
 	view.Languages = append(view.Languages, option{Value: "", LabelKey: "profile.language_auto", Selected: s.Language == ""})
 	for _, l := range account.Languages {
-		view.Languages = append(view.Languages, option{Value: l, LabelKey: "language." + l, Selected: s.Language == l})
+		view.Languages = append(view.Languages, option{Value: l, LabelKey: "language." + l, Lang: l, Selected: s.Language == l})
 	}
 	view.Themes = append(view.Themes, option{Value: "", LabelKey: "theme.system", Selected: s.Theme == ""})
 	for _, t := range account.Themes {

@@ -150,7 +150,7 @@ type orgSettingsView struct {
 func languageOptions(selected string) []option {
 	var out []option
 	for _, l := range []string{"fr", "en"} {
-		out = append(out, option{Value: l, LabelKey: "language." + l, Selected: l == selected})
+		out = append(out, option{Value: l, LabelKey: "language." + l, Lang: l, Selected: l == selected})
 	}
 	return out
 }

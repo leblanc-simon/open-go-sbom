@@ -30,7 +30,7 @@
       <span class="panel__meta">{{T "tokens.list_meta" "Max" .Max}}</span>
     </div>
     {{- if .Tokens}}
-    <div class="table-wrap" role="region" aria-labelledby="tokens-list" tabindex="0">
+    <div class="table-wrap" role="group" aria-labelledby="tokens-list" tabindex="0">
       <table class="data-table">
         <caption class="visually-hidden">{{T "tokens.list_title"}}</caption>
         <thead>
@@ -45,7 +45,6 @@
           </tr>
         </thead>
         <tbody>
-          {{- $csrf := .Page.CSRFToken}}
           {{- range .Tokens}}
           <tr>
             <th scope="row">{{.Name}}</th>
@@ -56,10 +55,7 @@
             <td>{{if .Revoked}}<span class="cell-stack"><span class="status status--revoked">{{T "token_state.revoked"}}</span>{{template "stamp" .Revoked}}</span>{{else if .Active}}<span class="status status--active">{{T "token_state.active"}}</span>{{else}}<span class="status">{{T "token_state.expired"}}</span>{{end}}</td>
             <td class="cell-actions">
               {{- if not .Revoked}}
-              <form method="post" action="/account/tokens/{{.ID}}/revoke">
-                {{csrfField $csrf}}
-                <button type="submit" class="btn btn--sm btn--danger">{{T "agents.revoke"}}<span class="visually-hidden"> {{.Name}}</span></button>
-              </form>
+              <a class="btn btn--sm btn--danger" href="/account/tokens/{{.ID}}/revoke">{{T "agents.revoke"}}<span class="visually-hidden"> {{.Name}}</span></a>
               {{- end}}
             </td>
           </tr>

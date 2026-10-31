@@ -80,6 +80,10 @@ jetons et imposent un mot de passe, code TOTP pour créer un jeton, durée absol
 session, journal d'audit en ajout seul (migration 015), quotas d'ingestion, plafonds
 par compte, `allowed_namespaces` de l'agent dépôt. `make lint` et `make vet` couvrent
 aussi les fichiers étiquetés (`integration`, `grypedb`, `measure`).
+Audit RGAA fait : grille [`docs/accessibilite/grille-rgaa-lot1.md`](docs/accessibilite/grille-rgaa-lot1.md),
+conventions d'interface au § 14 de l'architecture (action irréversible = page de
+confirmation commune `confirm/action`, titre « écran — organisation », plan du site
+`/sitemap`).
 
 ## Règles de travail
 

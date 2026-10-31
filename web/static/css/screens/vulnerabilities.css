@@ -61,6 +61,14 @@
     min-width: 6rem;
   }
 
+  /* « Version vulnérable » écrit au-dessus du décompte (RGAA 3.1 : pas la seule couleur
+     de la barre), sans élargir la ligne. */
+  .cell-stack {
+    display: grid;
+    justify-items: start;
+    gap: 2px;
+  }
+
   .bars__track {
     display: block;
     width: 100%;

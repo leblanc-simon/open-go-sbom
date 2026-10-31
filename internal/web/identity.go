@@ -244,7 +244,7 @@ func (id *identity) loadViewer(next http.Handler) http.Handler {
 		}
 		chrome := &render.Chrome{UserEmail: user.Email, Theme: st.Settings.Theme}
 		if v.authenticated() {
-			chrome.Admin = v.admin()
+			chrome.Authenticated, chrome.Admin = true, v.admin()
 			for _, o := range st.Orgs {
 				chrome.Orgs = append(chrome.Orgs, render.OrgEntry{Slug: o.Slug, Name: o.Name})
 			}

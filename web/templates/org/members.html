@@ -32,7 +32,7 @@
   {{- end}}
   <section class="panel" aria-labelledby="members-list">
     <div class="panel__head"><h2 class="panel__title" id="members-list">{{T "members.list_title"}}</h2></div>
-    <div class="table-wrap">
+    <div class="table-wrap" role="group" aria-labelledby="members-list" tabindex="0">
       <table class="data-table">
         <caption class="visually-hidden">{{T "members.list_title"}}</caption>
         <thead>
@@ -61,12 +61,9 @@
                   <option value="{{.Value}}"{{if eq .Value (print $m.Role)}} selected{{end}}>{{T .LabelKey}}</option>
                   {{- end}}
                 </select>
-                <button type="submit" class="btn btn--sm">{{T "members.change_role"}}</button>
+                <button type="submit" class="btn btn--sm">{{T "members.change_role"}}<span class="visually-hidden"> {{.Email}}</span></button>
               </form>
-              <form class="form form--inline" method="post" action="{{$base}}/members/{{.UserID}}/remove">
-                {{csrfField $csrf}}
-                <button type="submit" class="btn btn--sm btn--danger">{{T "members.remove"}}<span class="visually-hidden"> {{.Email}}</span></button>
-              </form>
+              <a class="btn btn--sm btn--danger" href="{{$base}}/members/{{.UserID}}/remove">{{T "members.remove"}}<span class="visually-hidden"> {{.Email}}</span></a>
             </td>
             {{- end}}
           </tr>

@@ -164,6 +164,7 @@ func (r *Renderer) Render(w http.ResponseWriter, req *http.Request, status int, 
 	p.CSRFToken = csrfx.Token(req)
 	p.RequestID = middleware.RequestIDFrom(req.Context())
 	p.Version = r.version
+	p.Failed = status >= http.StatusBadRequest && name != ErrorPage
 
 	buf := r.buffers.Get().(*bytes.Buffer)
 	buf.Reset()
