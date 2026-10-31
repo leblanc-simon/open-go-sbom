@@ -13,7 +13,7 @@ import (
 )
 
 // PoolConfig règle un pool de connexions. Les valeurs nulles gardent celles de
-// database/sql (pas de limite, pas d'expiration).
+// database/sql : pas de limite, pas d'expiration, deux connexions inactives gardées.
 type PoolConfig struct {
 	MaxOpenConns    int
 	MaxIdleConns    int
@@ -38,7 +38,11 @@ func Open(dsn string, pc PoolConfig) (*sql.DB, error) {
 	}
 	pool := stdlib.OpenDB(*cfg)
 	pool.SetMaxOpenConns(pc.MaxOpenConns)
-	pool.SetMaxIdleConns(pc.MaxIdleConns)
+	// SetMaxIdleConns(0) ne garderait aucune connexion inactive : chaque transaction en
+	// ouvrirait une nouvelle (connexion et authentification à chaque fois).
+	if pc.MaxIdleConns > 0 {
+		pool.SetMaxIdleConns(pc.MaxIdleConns)
+	}
 	pool.SetConnMaxLifetime(pc.ConnMaxLifetime)
 	pool.SetConnMaxIdleTime(pc.ConnMaxIdleTime)
 	return pool, nil

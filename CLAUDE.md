@@ -31,6 +31,8 @@ ses sondes et ses métriques. Prochains lots, en parallèle :
 [T03 — Comptes et organisations](specs/lots/T03-comptes-organisations.md). Le socle
 réutilisable (config, `db.InOrg`, `dbtest`, rendu, i18n, problèmes RFC 9457, pagination,
 `webtest`) est décrit dans les `doc.go` et dans le Journal de T01.
+T02 terminé : file de traitements `internal/jobs` (`Enqueue` dans la transaction de
+l'appelant, `Runner`, `Scheduler`, horloge injectable), voir son `doc.go` et l'ADR 0011.
 
 ## Règles de travail
 

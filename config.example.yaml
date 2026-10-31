@@ -74,3 +74,16 @@ migration:
 secrets:
   keys: {}
   active_key: ""
+
+# File de traitements (ingestion, analyses, échéances) : voir docs/operations.md,
+# « Traitements ». Plusieurs instances se partagent la file en base.
+workers:
+  enabled: true          # false : instance purement web (ni workers ni planificateur)
+  concurrency: 4         # jobs simultanés sur cette instance
+  poll_interval: 1s      # attente d'un worker sans travail
+  lease: 30s             # bail d'un job, renouvelé pendant l'exécution ; reprise après expiration
+  retry_base: 10s        # premier délai de réessai, doublé à chaque tentative (gigue de 20 %)
+  retry_max: 30m         # délai maximal de réessai, avant gigue
+  retention: 168h        # conservation des jobs terminés
+  schedule_interval: 10s # fréquence de recherche des échéances dues
+  shutdown_timeout: 30s  # délai laissé aux jobs en cours sur SIGTERM, avant leur libération
