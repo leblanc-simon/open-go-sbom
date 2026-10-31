@@ -155,7 +155,7 @@ func log4shellRule() vulntest.Rule {
 	return vulntest.Rule{PURL: log4jOld,
 		Vuln: vuln.Vulnerability{ID: "CVE-2021-44228", Namespace: "nvd:cpe", Severity: vuln.SeverityCritical,
 			KEV: &vuln.KEV{Ransomware: true}, EPSS: &vuln.EPSS{Score: 0.944, Percentile: 0.999},
-			CVSS: []vuln.CVSS{{Version: "3.1", Vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H", BaseScore: 10}},
+			CVSS:    []vuln.CVSS{{Version: "3.1", Vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H", BaseScore: 10}},
 			Aliases: []string{"GHSA-jfh8-c2jp-5v3q"}, Risk: 99},
 		Match: vuln.Match{FixedVersions: []string{"2.15.0"}, FixState: vuln.FixFixed, Risk: 99}}
 }

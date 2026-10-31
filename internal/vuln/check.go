@@ -40,7 +40,7 @@ type CheckerOptions struct {
 	// ChunkSize est la taille des blocs en base (0 : DefaultChunkSize).
 	ChunkSize int
 	Logger    *slog.Logger
-	Now        func() time.Time
+	Now       func() time.Time
 }
 
 // Checker obtient les nouvelles bases : téléchargement (vulndb.check) ou import. Une
