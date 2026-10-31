@@ -4,6 +4,11 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"math"
+
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
+	"golang.org/x/text/number"
 
 	"leblanc.io/open-go-base/i18n"
 )
@@ -16,6 +21,9 @@ func staticFuncs(assets *Assets) template.FuncMap {
 	return template.FuncMap{
 		"asset":    assets.URL,
 		"initials": Initials,
+		// barWidth donne la largeur (0 à 100) de la jauge d'une fraction de 0 à 1 : un
+		// attribut SVG, pas un style en ligne (CSP).
+		"barWidth": func(fraction float64) int { return int(math.Round(math.Min(math.Max(fraction, 0), 1) * 100)) },
 		"csrfField": func(token string) template.HTML {
 			return template.HTML(`<input type="hidden" name="` + CSRFFieldName + `" value="` + html.EscapeString(token) + `">`)
 		},
@@ -29,8 +37,21 @@ func staticFuncs(assets *Assets) template.FuncMap {
 //	{{T "footer.version" "Version" .Page.Version}}   paires clé, valeur
 //	{{T .Page.TitleKey .Page.TitleArgs}}             ou une table
 //	{{Tn "projects.count" .Count}}
+//	{{decimal .Score 1}}    10,0 en français, 10.0 en anglais
+//	{{percent .EPSS 1}}     94,4 % (fraction de 0 à 1)
 func languageFuncs(loc *i18n.Localizer) template.FuncMap {
+	tag := language.Und
+	if loc != nil {
+		tag = loc.Lang()
+	}
+	p := message.NewPrinter(tag)
 	return template.FuncMap{
+		"decimal": func(v float64, digits int) string {
+			return p.Sprint(number.Decimal(v, number.Scale(digits)))
+		},
+		"percent": func(v float64, digits int) string {
+			return p.Sprint(number.Percent(v, number.Scale(digits)))
+		},
 		"T": func(key string, args ...any) (string, error) {
 			data, err := templateData(args)
 			if err != nil {

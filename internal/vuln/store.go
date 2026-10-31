@@ -199,7 +199,7 @@ func putArchive(ctx context.Context, tx *db.Tx, r io.Reader, n NewArchive, chunk
 	chunks := int((n.Size + int64(chunkSize) - 1) / int64(chunkSize))
 	if _, err := tx.ExecContext(ctx, `INSERT INTO vulndb_archives (id, sha256, size, chunk_count, schema, built_at, origin, source_url, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		id, n.SHA256, n.Size, chunks, n.Desc.Schema, n.Desc.Built, string(n.Origin), n.SourceURL, now); err != nil {
+		id, n.SHA256, n.Size, chunks, n.Desc.Schema, n.Desc.Built.Round(time.Microsecond), string(n.Origin), n.SourceURL, now); err != nil {
 		return uuid.Nil, fmt.Errorf("vuln: archive : %w", err)
 	}
 	h := sha256.New()

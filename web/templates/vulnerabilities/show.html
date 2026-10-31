@@ -1,0 +1,151 @@
+{{define "content" -}}
+<div class="stack stack--lg">
+  <div class="page-head">
+    <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
+      <ol>
+        <li><a href="{{.Base}}">{{T "nav.org_overview"}}</a></li>
+        <li><span>{{T "nav.vulnerabilities"}}</span></li>
+        <li><span aria-current="page">{{.ID}}</span></li>
+      </ol>
+    </nav>
+    <div class="page-head__row">
+      <h1 class="page-head__title page-head__title--mono">{{.ID}}</h1>
+      <span class="cluster">
+        {{template "sev" .Sev}}
+        {{- if .KEV}}{{template "kev"}}{{end}}
+        {{- with .EPSS}}{{template "epss" .Score}}{{end}}
+      </span>
+    </div>
+    <p class="page-head__meta">
+      {{- with .Namespace}}<span>{{T "vulnerability.source" "Source" .}}</span>{{end}}
+      <span>{{T "vulnerability.db_built" "Date" .Built.Display}}</span>
+      {{- if .Aliases}}<span>{{T "vulnerability.aliases"}}</span>{{range .Aliases}}<span class="mono">{{.}}</span>{{end}}{{end}}
+    </p>
+  </div>
+
+  <div class="layout layout--thirds">
+    <section class="panel" aria-labelledby="summary-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="summary-title">{{T "vulnerability.summary_title"}}</h2>
+        <span class="panel__meta">{{T "vulnerability.source_language"}}</span>
+      </div>
+      <div class="panel__body stack">
+        {{- if .Description}}<p class="prose" lang="en">{{.Description}}</p>{{else}}<p class="muted">{{T "vulnerability.no_summary"}}</p>{{end}}
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="cvss-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="cvss-title">{{with .Primary}}{{T "vulnerability.cvss_version" "Version" .Version}}{{else}}{{T "vulnerability.cvss"}}{{end}}</h2>
+        {{- with .Primary}}{{with .Source}}<span class="panel__meta">{{.}}</span>{{end}}{{end}}
+      </div>
+      <div class="panel__body stack">
+        {{- with .Primary}}
+        <div class="cluster">
+          <span class="score">{{decimal .Score 1}}</span>
+          {{template "sev" .Sev}}
+        </div>
+        <code class="vector">{{.Vector}}</code>
+        {{- if .Metrics}}
+        <dl class="kv">
+          {{- range .Metrics}}<dt>{{T .NameKey}}</dt><dd>{{T .ValueKey}}</dd>{{end}}
+        </dl>
+        {{- end}}
+        {{- else}}
+        <p class="muted">{{T "vulnerability.no_cvss"}}</p>
+        {{- end}}
+        {{- if .Others}}
+        <details class="stack stack--sm">
+          <summary>{{Tn "vulnerability.other_scores" (len .Others)}}</summary>
+          <ul class="plain-list">
+            {{- range .Others}}<li><span class="mono">{{decimal .Score 1}}</span> · <code class="vector">{{.Vector}}</code>{{with .Source}} · {{.}}{{end}}</li>{{end}}
+          </ul>
+        </details>
+        {{- end}}
+      </div>
+    </section>
+    <div class="stack">
+      <section class="panel" aria-labelledby="exploit-title">
+        <div class="panel__head"><h2 class="panel__title" id="exploit-title">{{T "vulnerability.exploitation"}}</h2></div>
+        <div class="panel__body stack">
+          {{- with .EPSS}}
+          <div class="stack stack--sm">
+            {{template "epss" .Score}}
+            <p class="hint">{{T "vulnerability.epss_explain" "P" (percent .Score 1) "Pct" (percent .Percentile 1)}}{{with $.EPSSDate}} {{T "vulnerability.epss_date" "Date" .Display}}{{end}}</p>
+          </div>
+          {{- else}}
+          <p class="muted">{{T "vulnerability.no_epss"}}</p>
+          {{- end}}
+          {{- with .KEV}}
+          <div class="stack stack--sm">
+            {{template "kev"}}
+            <dl class="kv">
+              {{- with $.KEVAdded}}<dt>{{T "vulnerability.kev_added"}}</dt><dd><time datetime="{{.ISO}}">{{.Display}}</time></dd>{{end}}
+              {{- with $.KEVDue}}<dt>{{T "vulnerability.kev_due"}}</dt><dd><time datetime="{{.ISO}}">{{.Display}}</time></dd>{{end}}
+              <dt>{{T "vulnerability.kev_ransomware"}}</dt><dd>{{if .Ransomware}}{{T "vulnerability.kev_ransomware_known"}}{{else}}{{T "vulnerability.kev_ransomware_unknown"}}{{end}}</dd>
+            </dl>
+          </div>
+          {{- else}}
+          <p class="muted">{{T "vulnerability.not_kev"}}</p>
+          {{- end}}
+        </div>
+      </section>
+      <section class="panel" aria-labelledby="refs-title">
+        <div class="panel__head"><h2 class="panel__title" id="refs-title">{{T "vulnerability.references"}}</h2></div>
+        <div class="panel__body stack stack--sm">
+          {{- if .CWEs}}<p class="cluster">{{range .CWEs}}<span class="chip">{{.}}</span>{{end}}</p>{{end}}
+          {{- if .Links}}
+          <ul class="plain-list">
+            {{- range .Links}}<li><a href="{{.Href}}" rel="noopener noreferrer">{{.Label}}</a></li>{{end}}
+          </ul>
+          {{- else}}
+          <p class="muted">{{T "vulnerability.no_references"}}</p>
+          {{- end}}
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel" aria-labelledby="affected-title">
+    <div class="panel__head">
+      <h2 class="panel__title" id="affected-title">{{T "vulnerability.affected_projects"}}</h2>
+      <span class="panel__meta">{{T "vulnerability.affected_meta" "Findings" .Counts.Open "Projects" .Counts.Projects}}</span>
+      <nav class="segmented panel__action" aria-label="{{T "vulnerability.filter_state"}}">
+        {{- range .States}}<a href="{{.Href}}"{{if .Current}} aria-current="true"{{end}}><span>{{T .LabelKey}}</span> {{.Count}}</a>{{end}}
+      </nav>
+    </div>
+    {{- if .Rows}}
+    <div class="panel__body panel__body--flush">
+      <div class="table-wrap" role="region" aria-labelledby="affected-title" tabindex="0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">{{T "vulnerability.col_project"}}</th>
+              <th scope="col">{{T "vulnerability.col_ref"}}</th>
+              <th scope="col">{{T "vulnerability.col_component"}}</th>
+              <th scope="col">{{T "vulnerability.col_fixed_in"}}</th>
+              <th scope="col">{{if $.Resolved}}{{T "findings.col_resolved"}}{{else}}{{T "findings.col_first_seen"}}{{end}}</th>
+              <th scope="col" class="num" aria-sort="descending">{{T "findings.col_risk"}}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{- range .Rows}}
+            <tr>
+              <th scope="row"><span class="cell-stack"><a href="{{.ProjectHref}}">{{.ProjectName}}</a>{{template "project_kind" .ProjectKind}}</span></th>
+              <td><span class="cell-stack"><span class="mono">{{.RefName}}</span><span class="muted">{{T (print "ref_kind." .RefKind)}}</span></span></td>
+              <td><span class="cell-stack"><a href="{{.ComponentHref}}">{{.Component}}</a><span class="version">{{.Version}}</span></span></td>
+              <td>{{template "fixed" .}}</td>
+              <td>{{if $.Resolved}}<span class="cell-stack">{{template "stamp" .ResolvedAt}}<span class="muted">{{T (print "finding_resolution." .Resolution)}}</span></span>{{else}}{{template "stamp" .FirstSeen}}{{end}}</td>
+              <td class="num">{{template "risk" .Risk}}</td>
+            </tr>
+            {{- end}}
+          </tbody>
+        </table>
+      </div>
+      {{- if .Truncated}}<p class="panel__note muted">{{T "vulnerability.truncated"}}</p>{{end}}
+    </div>
+    {{- else}}
+    <div class="panel__body"><p class="muted">{{if .Resolved}}{{T "vulnerability.none_resolved"}}{{else}}{{T "vulnerability.none_open"}}{{end}}</p></div>
+    {{- end}}
+  </section>
+</div>
+{{- end}}

@@ -281,6 +281,21 @@ func TestLanguageFuncs(t *testing.T) {
 	if _, err := tn("home.title", 2, "X"); err == nil {
 		t.Fatal("Tn : paires impaires acceptées")
 	}
+	fr := languageFuncs(catalog(t).Localizer(language.French))
+	for _, c := range []struct {
+		funcs  template.FuncMap
+		name   string
+		v      float64
+		digits int
+		want   string
+	}{
+		{f, "decimal", 9.75, 1, "9.8"}, {fr, "decimal", 10, 1, "10,0"},
+		{f, "percent", 0.944, 1, "94.4%"}, {fr, "percent", 0.944, 1, "94,4 %"},
+	} {
+		if got := c.funcs[c.name].(func(float64, int) string)(c.v, c.digits); got != c.want {
+			t.Errorf("%s(%v) = %q, attendu %q", c.name, c.v, got, c.want)
+		}
+	}
 	field := staticFuncs(&Assets{})["csrfField"].(func(string) template.HTML)
 	if got := field(`a"<b`); got != `<input type="hidden" name="csrf_token" value="a&#34;&lt;b">` {
 		t.Fatalf("csrfField = %s", got)

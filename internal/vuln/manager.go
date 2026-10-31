@@ -154,7 +154,7 @@ func (m *Manager) open(ctx context.Context, dir string, a Archive) (Database, er
 	if err != nil {
 		return nil, err
 	}
-	if desc := d.Description(); !desc.Built.Equal(a.Built) || desc.Schema != a.Schema {
+	if desc := d.Description(); !desc.Built.Round(time.Microsecond).Equal(a.Built) || desc.Schema != a.Schema {
 		_ = d.Close()
 		return nil, fmt.Errorf("vuln: base locale %s du %s, attendue du %s", dir, desc.Built, a.Built)
 	}

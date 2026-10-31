@@ -5,6 +5,7 @@
     <p class="page-head__lead">{{T "admin_users.lead"}}</p>
   </div>
   {{template "single_admin" .SingleAdmin}}
+  {{template "vulndb_alert" .VulnDBAlert}}
   {{template "flash" .FlashKey}}
   {{template "form_error" .Error}}
   <section class="panel" aria-labelledby="users-create">

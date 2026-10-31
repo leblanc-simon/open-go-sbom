@@ -164,6 +164,8 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Agents:         agents,
 			Inventory:      inventory.NewService(pool),
 			Ingest:         ingester,
+			Findings:       finding.NewService(pool),
+			VulnDB:         web.VulnDBOptions{MaxAge: cfg.VulnDB.MaxAge, Offline: cfg.VulnDB.Offline, ListingURL: cfg.VulnDB.ListingURL},
 			Secrets:        box,
 			Auth:           cfg.Auth,
 			MFA:            cfg.MFA,

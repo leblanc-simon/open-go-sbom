@@ -1,0 +1,129 @@
+{{define "content" -}}
+{{- $c := .Component}}
+<div class="stack stack--lg">
+  <div class="page-head">
+    <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
+      <ol>
+        <li><a href="{{.Base}}">{{T "nav.org_overview"}}</a></li>
+        <li><span>{{T "nav.components"}}</span></li>
+        <li><span aria-current="page">{{$c.Name}}</span></li>
+      </ol>
+    </nav>
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{$c.Name}}</h1>
+      <code class="muted">{{$c.PURLBase}}</code>
+    </div>
+    <p class="page-head__meta">
+      <span>{{T "component.summary" "Projects" .Projects "Versions" (len .Versions) "Occurrences" (len .Usage)}}</span>
+      <span>{{T "component.type" "Type" $c.Type}}</span>
+      {{- if .Licenses}}<span>{{T "component.licenses"}}</span>{{range .Licenses}}<span class="chip">{{.}}</span>{{end}}{{end}}
+    </p>
+  </div>
+
+  {{- if .Truncated}}
+  <div class="callout callout--warning" role="status">
+    <div class="callout__body"><p class="callout__text">{{T "component.truncated"}}</p></div>
+  </div>
+  {{- end}}
+
+  <div class="layout layout--split">
+    <section class="panel" aria-labelledby="versions-title">
+      <div class="panel__head"><h2 class="panel__title" id="versions-title">{{T "component.version_distribution"}}</h2></div>
+      <div class="panel__body stack">
+        {{- if .Versions}}
+        <table class="bars">
+          <caption class="visually-hidden">{{T "component.version_distribution"}}</caption>
+          <thead class="visually-hidden"><tr><th scope="col">{{T "component.col_version"}}</th><th scope="col">{{T "component.col_share"}}</th><th scope="col">{{T "component.col_occurrences"}}</th></tr></thead>
+          <tbody>
+            {{- range .Versions}}
+            <tr>
+              <th scope="row" class="version">{{.Version}}</th>
+              <td><svg class="bars__track{{if .Vulnerable}} bars__track--vulnerable{{end}}" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="bar__track" width="100" height="8"></rect><rect class="bar__fill" width="{{.Width}}" height="8"></rect></svg>{{if .Vulnerable}}<span class="visually-hidden">{{T "component.legend_vulnerable"}}</span>{{end}}</td>
+              <td>{{T "component.occurrences_in_projects" "Occurrences" .Count "Projects" .Projects}}</td>
+            </tr>
+            {{- end}}
+          </tbody>
+        </table>
+        <p class="legend-inline">
+          <span><span class="legend-inline__fill legend-inline__fill--vulnerable" aria-hidden="true"></span><span>{{T "component.legend_vulnerable"}}</span></span>
+          <span><span class="legend-inline__fill" aria-hidden="true"></span><span>{{T "component.legend_clean"}}</span></span>
+        </p>
+        {{- else}}
+        <p class="muted">{{T "component.unused"}}</p>
+        {{- end}}
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="vbv-title">
+      <div class="panel__head"><h2 class="panel__title" id="vbv-title">{{T "component.vulns_by_version"}}</h2></div>
+      {{- if .Matrix}}
+      <div class="panel__body panel__body--flush">
+        <div class="table-wrap" role="region" aria-labelledby="vbv-title" tabindex="0">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th scope="col">{{T "component.col_vulnerability"}}</th>
+                <th scope="col">{{T "component.col_severity"}}</th>
+                <th scope="col">{{T "component.col_fixed_in"}}</th>
+                {{- range .Columns}}<th scope="col" class="version">{{.}}</th>{{end}}
+              </tr>
+            </thead>
+            <tbody>
+              {{- range .Matrix}}
+              <tr>
+                <th scope="row"><span class="cell-stack"><a class="mono" href="{{.VulnHref}}">{{.VulnID}}</a>{{if .KEV}}{{template "kev"}}{{end}}</span></th>
+                <td>{{template "sev" .Sev}}</td>
+                <td>{{if .Fixed}}<span class="cluster">{{range .Fixed}}<span class="version">{{.}}</span>{{end}}</span>{{else}}<span class="muted">{{T "findings.no_fix"}}</span>{{end}}</td>
+                {{- range .Hits}}<td>{{if .}}<span class="matrix-hit">{{T "component.version_vulnerable"}}</span>{{else}}<span class="matrix-hit matrix-hit--clear">{{T "component.version_clear"}}</span>{{end}}</td>{{end}}
+              </tr>
+              {{- end}}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {{- else}}
+      <div class="panel__body"><p class="muted">{{T "component.no_vulns"}}</p></div>
+      {{- end}}
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="usage-title">
+    <div class="panel__head">
+      <h2 class="panel__title" id="usage-title">{{T "component.used_by"}}</h2>
+      <span class="panel__meta">{{T "component.used_by_meta"}}</span>
+    </div>
+    {{- if .Usage}}
+    <div class="panel__body panel__body--flush">
+      <div class="table-wrap" role="region" aria-labelledby="usage-title" tabindex="0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">{{T "component.col_project"}}</th>
+              <th scope="col">{{T "component.col_ref"}}</th>
+              <th scope="col">{{T "component.col_version"}}</th>
+              <th scope="col">{{T "component.col_origin"}}</th>
+              <th scope="col">{{T "component.col_findings"}}</th>
+              <th scope="col" aria-sort="descending">{{T "component.col_snapshot"}}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{- range .Usage}}
+            <tr{{if .Current}} class="row--selected"{{end}}>
+              <th scope="row"><span class="cell-stack"><a href="{{.ProjectHref}}">{{.ProjectName}}</a>{{template "project_kind" .ProjectKind}}</span></th>
+              <td><span class="cell-stack"><span class="mono">{{.RefName}}</span><span class="muted">{{T (print "ref_kind." .RefKind)}}</span></span></td>
+              <td class="version">{{.Version}}</td>
+              <td><span class="origin{{if eq .Origin "ia"}} origin--ai{{end}}"><span>{{T (print "origin." .Origin)}}</span>{{with .Confidence}}<span class="origin__conf">{{T "snapshot.confidence" "Percent" .}}</span>{{end}}</span></td>
+              <td>{{if .Open}}<span class="cluster"><span>{{Tn "component.open_findings" .Open}}</span>{{if .KEV}}{{template "kev"}}{{end}}</span>{{else}}<span class="muted">{{T "component.no_findings"}}</span>{{end}}</td>
+              <td><span class="cell-stack"><a href="{{.SnapshotURL}}">{{template "stamp" .Scanned}}</a>{{with .CommitShort}}<span class="mono muted">{{.}}</span>{{end}}</span></td>
+            </tr>
+            {{- end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {{- else}}
+    <div class="panel__body"><p class="muted">{{T "component.unused"}}</p></div>
+    {{- end}}
+  </section>
+</div>
+{{- end}}
