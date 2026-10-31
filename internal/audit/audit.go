@@ -58,6 +58,8 @@ const (
 	AgentTokenRevoked      Action = "agent_token.revoked"
 	EnrollmentTokenCreated Action = "enrollment_token.created"
 	EnrollmentTokenRevoked Action = "enrollment_token.revoked"
+	PersonalTokenCreated   Action = "personal_token.created"
+	PersonalTokenRevoked   Action = "personal_token.revoked"
 )
 
 // Actions renvoie toutes les actions connues (tests de traduction).
@@ -71,7 +73,7 @@ func Actions() []Action {
 		MemberAdded, MemberRoleChanged, MemberRemoved,
 		ProjectCreated, ProjectUpdated, ProjectArchived, ProjectUnarchived, ProjectAgentChanged,
 		AgentCreated, AgentEnrolled, AgentDisabled, AgentScanRequested, AgentTokenCreated, AgentTokenRevoked,
-		EnrollmentTokenCreated, EnrollmentTokenRevoked,
+		EnrollmentTokenCreated, EnrollmentTokenRevoked, PersonalTokenCreated, PersonalTokenRevoked,
 	}
 }
 
