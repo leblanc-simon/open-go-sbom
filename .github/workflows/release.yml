@@ -1,0 +1,63 @@
+# Publication d'une version : une étiquette vX.Y.Z poussée sur un commit de main construit
+# les binaires des trois rôles (linux amd64 et arm64), les paquets deb et rpm de l'agent
+# serveur et leurs sommes SHA-256 (make release), puis crée une préversion GitHub dont les
+# notes sont la section de la version dans CHANGELOG.md. Les vérifications complètes ont
+# déjà passé sur main (ci.yml) ; les tests unitaires sont rejoués ici par sûreté.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      # Préversion seulement : toute version 0.x ou suffixée (v1.0.0-rc.1) ; T26 publiera la v1.0.
+      - name: Étiquette de préversion sur main
+        run: |
+          case "$GITHUB_REF_NAME" in
+          v0.*|*-*) ;;
+          *) echo "version stable : publication réservée à T26 (retirer ce garde-fou)"; exit 1 ;;
+          esac
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || {
+            echo "l'étiquette $GITHUB_REF_NAME ne désigne pas un commit de main"; exit 1; }
+      - name: Notes de version (CHANGELOG.md)
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          awk -v v="$v" '
+            /^## \[/ { if (on) exit; if (index($0, "## [" v "]") == 1) { on = 1; next } }
+            /^\[[^]]+\]: / { if (on) exit }
+            on { print }
+          ' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          test -s "$RUNNER_TEMP/notes.md" || { echo "CHANGELOG.md n'a pas de section [$v]"; exit 1; }
+      - name: Tests unitaires
+        run: make test
+      - name: Construction des fichiers
+        run: make release VERSION="$GITHUB_REF_NAME" RELEASE_DIR="$RUNNER_TEMP/release"
+      - name: Vérification des sommes
+        working-directory: ${{ runner.temp }}/release
+        run: sha256sum -c SHA256SUMS
+      - name: Préversion GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --prerelease --verify-tag \
+            --title "open-go-sbom $GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md" \
+            "$RUNNER_TEMP"/release/*

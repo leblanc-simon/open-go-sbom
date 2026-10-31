@@ -104,6 +104,7 @@ web/                     # paquet Go qui embarque gabarits et fichiers statiques
 locales/                 # en.yaml, fr.yaml (paquet Go qui les embarque)
 config.example.yaml      # configuration commentée du serveur
 deploy/                  # compose.yaml (dev), unités systemd, configs de paquets, Containerfile
+scripts/release.sh       # fichiers d'une version (make release, workflow release), ADR 0032
 docs/                    # cahier des charges, adr/, operations.md, benchmarks.md, security/
 specs/                   # ce document, index des lots, fiches de lots
 testdata/                # SBOM d'exemple, systèmes de fichiers et dépôts de test
@@ -717,6 +718,11 @@ qu'aucune mesure ne la justifie (ADR 0015).
 - Arrêt propre sur SIGTERM : fin des requêtes en cours, libération des baux de jobs.
 - `docs/operations.md` : installation, configuration, sauvegarde, mise à jour, rotation des
   clés, sites isolés, procédure de secours des administrateurs.
+- **Versions** (ADR 0032) : une étiquette `vX.Y.Z` sur `main` déclenche
+  `.github/workflows/release.yml`, qui construit par `make release` les archives des trois
+  rôles (linux amd64 et arm64), les paquets deb et rpm de l'agent serveur et `SHA256SUMS`,
+  et crée une préversion GitHub dont les notes viennent de `CHANGELOG.md` (Keep a
+  Changelog). Préversions seulement jusqu'à T26.
 
 ## 21. Tests et barrières de qualité
 
