@@ -1,0 +1,20 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T "sitemap.heading"}}</h1>
+    <p class="page-head__lead">{{T "sitemap.lead"}}</p>
+  </div>
+  <div class="sitemap">
+    {{- range .Sections}}
+    <section class="panel" aria-labelledby="{{.ID}}">
+      <div class="panel__head"><h2 class="panel__title" id="{{.ID}}">{{with .Title}}{{T "sitemap.org" "Name" .}}{{else}}{{T .TitleKey}}{{end}}</h2></div>
+      <ul class="panel__body stack stack--sm">
+        {{- range .Items}}
+        <li><a href="{{.Href}}">{{T .LabelKey}}</a></li>
+        {{- end}}
+      </ul>
+    </section>
+    {{- end}}
+  </div>
+</div>
+{{- end}}

@@ -23,7 +23,7 @@
           <label class="field__label" for="org-language">{{T "org.language"}}</label>
           <select class="select" id="org-language" name="language">
             {{- range .Languages}}
-            <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+            <option value="{{.Value}}"{{with .Lang}} lang="{{.}}"{{end}}{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
             {{- end}}
           </select>
         </div>

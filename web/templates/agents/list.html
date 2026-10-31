@@ -29,7 +29,7 @@
       </span>
     </form>
     {{- if .Rows}}
-    <div class="table-wrap" role="region" aria-labelledby="agents-list" tabindex="0">
+    <div class="table-wrap" role="group" aria-labelledby="agents-list" tabindex="0">
       <table class="data-table">
         <caption class="visually-hidden">{{T "agents.caption"}}</caption>
         <thead>
@@ -75,7 +75,7 @@
       <span class="panel__meta">{{T "enrollment.list_meta"}}</span>
     </div>
     {{- if .Enrollments}}
-    <div class="table-wrap" role="region" aria-labelledby="enrollment-list" tabindex="0">
+    <div class="table-wrap" role="group" aria-labelledby="enrollment-list" tabindex="0">
       <table class="data-table">
         <caption class="visually-hidden">{{T "enrollment.list_title"}}</caption>
         <thead>
@@ -90,7 +90,7 @@
           </tr>
         </thead>
         <tbody>
-          {{- $base := .Base}}{{$csrf := .Page.CSRFToken}}
+          {{- $base := .Base}}
           {{- range .Enrollments}}
           <tr>
             <th scope="row"><span class="cell-stack"><span>{{.Name}}</span>{{with .CreatedBy}}<span class="muted">{{T "agents.created_by" "Email" .}}</span>{{end}}</span></th>
@@ -101,10 +101,7 @@
             <td>{{if .RevokedAt}}<span class="status status--revoked">{{T "token_state.revoked"}}</span>{{else if .Usable}}<span class="status status--active">{{T "token_state.active"}}</span>{{else}}<span class="status">{{T "token_state.spent"}}</span>{{end}}</td>
             <td class="cell-actions">
               {{- if not .RevokedAt}}
-              <form method="post" action="{{$base}}/enrollment-tokens/{{.ID}}/revoke">
-                {{csrfField $csrf}}
-                <button type="submit" class="btn btn--sm btn--danger">{{T "agents.revoke"}}<span class="visually-hidden"> {{.Name}}</span></button>
-              </form>
+              <a class="btn btn--sm btn--danger" href="{{$base}}/enrollment-tokens/{{.ID}}/revoke">{{T "agents.revoke"}}<span class="visually-hidden"> {{.Name}}</span></a>
               {{- end}}
             </td>
           </tr>

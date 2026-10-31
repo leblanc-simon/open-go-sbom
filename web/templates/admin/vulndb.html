@@ -44,7 +44,7 @@
     <div class="panel__head"><h2 class="panel__title" id="instances-title">{{T "admin_vulndb.instances_title"}}</h2></div>
     {{- if .Instances}}
     <div class="panel__body panel__body--flush">
-      <div class="table-wrap" role="region" aria-labelledby="instances-title" tabindex="0">
+      <div class="table-wrap" role="group" aria-labelledby="instances-title" tabindex="0">
         <table class="data-table">
           <thead>
             <tr>
@@ -78,7 +78,7 @@
   <section class="panel" aria-labelledby="import-title">
     <div class="panel__head"><h2 class="panel__title" id="import-title">{{T "admin_vulndb.import_title"}}</h2></div>
     <div class="panel__body stack">
-      <p class="muted">{{T "admin_vulndb.import_hint" "Max" (decimal .MaxArchive 0)}}</p>
+      <p class="muted" id="vulndb-archive-hint">{{T "admin_vulndb.import_hint" "Max" (decimal .MaxArchive 0)}}</p>
       {{- if .Importing}}
       <p><span class="status status--warning">{{T "admin_vulndb.import_running"}}</span></p>
       {{- else}}
@@ -87,7 +87,7 @@
         {{csrfField .Page.CSRFToken}}
         <div class="field">
           <label class="field__label" for="vulndb-archive">{{T "admin_vulndb.import_file"}}</label>
-          <input class="input input--file" id="vulndb-archive" name="archive" type="file" required{{if eq .Error.Field "archive"}} aria-invalid="true"{{end}}>
+          <input class="input input--file" id="vulndb-archive" name="archive" type="file" required aria-describedby="vulndb-archive-hint"{{if eq .Error.Field "archive"}} aria-invalid="true"{{end}}>
         </div>
         <button type="submit" class="btn btn--primary">{{T "admin_vulndb.import_submit"}}</button>
       </form>
@@ -95,7 +95,7 @@
     </div>
     {{- if .Imports}}
     <div class="panel__body panel__body--flush">
-      <div class="table-wrap" role="region" aria-labelledby="imports-title" tabindex="0">
+      <div class="table-wrap" role="group" aria-labelledby="imports-title" tabindex="0">
         <table class="data-table">
           <caption class="visually-hidden" id="imports-title">{{T "admin_vulndb.imports_title"}}</caption>
           <thead>
@@ -129,7 +129,7 @@
     <div class="panel__head"><h2 class="panel__title" id="archives-title">{{T "admin_vulndb.archives_title"}}</h2></div>
     {{- if .Archives}}
     <div class="panel__body panel__body--flush">
-      <div class="table-wrap" role="region" aria-labelledby="archives-title" tabindex="0">
+      <div class="table-wrap" role="group" aria-labelledby="archives-title" tabindex="0">
         <table class="data-table">
           <thead>
             <tr>

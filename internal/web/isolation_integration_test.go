@@ -51,7 +51,7 @@ func fill(pattern string, params map[string]string) string {
 var globalRoutes = []string{
 	"", "/login", "/login/2fa", "/logout", "/account", "/account/password", "/account/tokens",
 	"/account/tokens/{tokenID}/revoke",
-	"/account/totp/setup", "/account/totp/enable", "/static/*", "/api/*",
+	"/account/totp/setup", "/account/totp/enable", "/static/*", "/api/*", "/sitemap",
 }
 
 func isGlobal(pattern string) bool {

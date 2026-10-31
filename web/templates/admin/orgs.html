@@ -29,7 +29,7 @@
             <label class="field__label" for="org-language">{{T "org.language"}}</label>
             <select class="select" id="org-language" name="language">
               {{- range .Languages}}
-              <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+              <option value="{{.Value}}"{{with .Lang}} lang="{{.}}"{{end}}{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
               {{- end}}
             </select>
           </div>
@@ -45,7 +45,7 @@
   </section>
   <section class="panel" aria-labelledby="orgs-list">
     <div class="panel__head"><h2 class="panel__title" id="orgs-list">{{T "admin_orgs.list_title"}}</h2></div>
-    <div class="table-wrap">
+    <div class="table-wrap" role="group" aria-labelledby="orgs-list" tabindex="0">
       <table class="data-table">
         <caption class="visually-hidden">{{T "admin_orgs.list_title"}}</caption>
         <thead>
@@ -62,7 +62,7 @@
           <tr>
             <th scope="row"><a href="/admin/orgs/{{.Slug}}">{{.Name}}</a></th>
             <td class="mono">{{.Slug}}</td>
-            <td>{{T (print "language." .DefaultLanguage)}}</td>
+            <td lang="{{.DefaultLanguage}}">{{T (print "language." .DefaultLanguage)}}</td>
             <td>{{.Members}}</td>
             <td>{{if .ArchivedAt}}<span class="status status--revoked">{{T "status.archived"}}</span>{{else}}<span class="status status--active">{{T "status.active"}}</span>{{end}}</td>
           </tr>

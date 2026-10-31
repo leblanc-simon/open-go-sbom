@@ -13,6 +13,8 @@ const good = `<!doctype html><html lang="fr"><head><title>Accueil</title></head>
 <form><label for="q">Recherche</label><input id="q" name="q">
 <label>Nom <input name="n"></label><input type="hidden" name="csrf_token" value="x">
 <input name="z" aria-label="Zone"><select name="s" aria-labelledby="q"></select>
+<label for="l">Format</label><input id="l" name="l" aria-describedby="l-hint"><p id="l-hint">clé=valeur</p>
+<label for="lg">Langue</label><select id="lg" name="language"><option value="">Automatique</option><option value="en" lang="en">English</option></select>
 <button type="submit">Envoyer</button></form>
 <a href="/x" aria-label="Fermer"><svg aria-hidden="true"></svg></a>
 <svg role="img" aria-labelledby="g-t g-d"><title id="g-t">Tendance</title><desc id="g-d">Six constats</desc></svg>
@@ -47,6 +49,9 @@ func TestCheckAccessibilityFindsProblems(t *testing.T) {
 		"svg sans rôle":           {`<svg aria-hidden="true">`, `<svg>`, "ni décoratif"},
 		"svg sans nom":            {`<svg role="img"><title>Barres</title>`, `<svg role="img"><title> </title>`, "sans nom accessible"},
 		"svg au nom vide":         {`<title id="g-t">Tendance</title><desc id="g-d">Six constats</desc>`, `<title id="g-t"></title><desc id="g-d"></desc>`, "aucun texte"},
+		"aide masquée":            {`<p id="l-hint">`, `<p class="field__hint visually-hidden" id="l-hint">`, "réservée aux lecteurs d'écran"},
+		"langue sans lang":        {`<option value="en" lang="en">`, `<option value="en">`, `option de langue "en"`},
+		"langue erronée":          {`<option value="en" lang="en">`, `<option value="en" lang="fr">`, `sans lang="en"`},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {

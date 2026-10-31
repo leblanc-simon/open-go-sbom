@@ -15,7 +15,7 @@
           <label class="field__label" for="profile-language">{{T "profile.language"}}</label>
           <select class="select" id="profile-language" name="language">
             {{- range .Languages}}
-            <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+            <option value="{{.Value}}"{{with .Lang}} lang="{{.}}"{{end}}{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
             {{- end}}
           </select>
         </div>

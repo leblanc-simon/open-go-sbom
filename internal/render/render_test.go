@@ -135,6 +135,47 @@ func TestRenderNavigation(t *testing.T) {
 	}
 }
 
+// TestRenderTitle (RGAA 8.6) : le titre nomme l'organisation de la page et commence par
+// « Erreur » quand un écran est renvoyé avec un statut d'erreur ; une page d'erreur garde
+// son propre titre.
+func TestRenderTitle(t *testing.T) {
+	r := newRenderer(t)
+	title := func(status int, chrome *Chrome, lang string) string {
+		req := httptest.NewRequest(http.MethodGet, "/?lang="+lang, nil)
+		if chrome != nil {
+			req = req.WithContext(WithChrome(req.Context(), chrome))
+		}
+		rec := httptest.NewRecorder()
+		r.Render(rec, req, status, "home/index", &testView{Page: Page{TitleKey: "home.title"}})
+		m := regexp.MustCompile(`<title>([^<]*)</title>`).FindStringSubmatch(rec.Body.String())
+		if m == nil {
+			t.Fatal("page sans titre")
+		}
+		return m[1]
+	}
+	org := &Chrome{UserEmail: "a@example.org", Current: &OrgEntry{Slug: "nord", Name: "Atelier <Nord>", Current: true}}
+	for _, c := range []struct {
+		status int
+		chrome *Chrome
+		lang   string
+		want   string
+	}{
+		{http.StatusOK, nil, "fr", "Accueil · open-go-sbom"},
+		{http.StatusOK, org, "fr", "Accueil — Atelier &lt;Nord&gt; · open-go-sbom"},
+		{http.StatusUnprocessableEntity, nil, "fr", "Erreur : Accueil · open-go-sbom"},
+		{http.StatusConflict, org, "en", "Error: Home — Atelier &lt;Nord&gt; · open-go-sbom"},
+	} {
+		if got := title(c.status, c.chrome, c.lang); got != c.want {
+			t.Errorf("%d %s : titre %q, attendu %q", c.status, c.lang, got, c.want)
+		}
+	}
+	rec := httptest.NewRecorder()
+	r.Error(rec, httptest.NewRequest(http.MethodGet, "/", nil), http.StatusNotFound)
+	if strings.Contains(rec.Body.String(), "<title>Erreur") {
+		t.Error("page 404 préfixée par « Erreur »")
+	}
+}
+
 func TestErrorPages(t *testing.T) {
 	r := newRenderer(t)
 	for _, status := range ErrorStatuses() {

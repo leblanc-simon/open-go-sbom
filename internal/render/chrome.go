@@ -12,9 +12,12 @@ import (
 // recopie dans Page. Sans lui (visiteur anonyme), l'en-tête ne montre que la marque.
 type Chrome struct {
 	UserEmail string
-	Admin     bool       // administrateur d'instance : lien vers l'administration
-	Orgs      []OrgEntry // sélecteur d'organisation
-	Current   *OrgEntry  // organisation de la page, s'il y en a une
+	// Authenticated : session complète (pas une session de configuration du TOTP) ;
+	// le pied de page lie alors le plan du site.
+	Authenticated bool
+	Admin         bool       // administrateur d'instance : lien vers l'administration
+	Orgs          []OrgEntry // sélecteur d'organisation
+	Current       *OrgEntry  // organisation de la page, s'il y en a une
 	// Theme est la préférence du compte, utilisée faute de cookie de la bascule.
 	Theme string
 }

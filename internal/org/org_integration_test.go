@@ -133,6 +133,16 @@ func TestOrganizationKeepsOneAdmin(t *testing.T) {
 	if err := f.orgs.RemoveMember(ctx, audit.System, o.ID, 9999); !errors.Is(err, org.ErrNotFound) {
 		t.Fatalf("membre inconnu : %v", err)
 	}
+	if m, err := f.orgs.Member(ctx, o.ID, a.ID); err != nil || m.Email != a.Email || m.Role != tenant.RoleAnalyst || !m.Active {
+		t.Fatalf("membre : %+v, %v", m, err)
+	}
+	if _, err := f.orgs.Member(ctx, o.ID, 9999); !errors.Is(err, org.ErrNotFound) {
+		t.Fatalf("membre inconnu : %v", err)
+	}
+	other, _ := f.orgs.Create(ctx, audit.System, "autre", "Autre", "fr", b.ID)
+	if _, err := f.orgs.Member(ctx, other.ID, a.ID); !errors.Is(err, org.ErrNotFound) {
+		t.Fatalf("membre d'une autre organisation : %v", err)
+	}
 	admins, err := f.orgs.Admins(ctx, o.ID)
 	if err != nil || len(admins) != 1 || admins[0].UserID != b.ID {
 		t.Fatalf("administrateurs : %+v, %v", admins, err)

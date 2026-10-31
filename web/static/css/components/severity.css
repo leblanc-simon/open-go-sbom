@@ -1,5 +1,6 @@
 /* Sévérité : la forme du repère (éclair, triangle, losange, rond, trait) porte la
-   sévérité autant que la couleur ; le libellé est toujours écrit. */
+   sévérité autant que la couleur ; le libellé est toujours écrit (abrégé dans les
+   compteurs). */
 .sev {
   --_bg: var(--sev-none-bg);
   --_fg: var(--sev-none-fg);
@@ -89,6 +90,12 @@
     justify-content: space-between;
     min-width: 2.875rem;
     font-family: var(--font-mono);
+
+    .sev__abbr {
+      font-family: var(--font-sans);
+      font-weight: var(--weight-medium);
+      text-decoration: none;
+    }
   }
 
   &.sev--zero {
@@ -102,6 +109,7 @@
 
 .sevcounts {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 3px;
   margin: 0;
   padding: 0;

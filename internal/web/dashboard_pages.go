@@ -209,7 +209,7 @@ func (id *identity) orgOverview(w http.ResponseWriter, r *http.Request) {
 	}
 	base := orgBase(acc)
 	view := &dashboardView{
-		Page: render.Page{TitleKey: "dashboard.title", TitleArgs: map[string]any{"Name": acc.Name}, Nav: orgNav(acc, "overview")},
+		Page: render.Page{TitleKey: "dashboard.title", Nav: orgNav(acc, "overview")},
 		Base: base, Name: acc.Name, Period: periodFormOf(base, period), ProjectCount: d.ProjectCount(),
 		LastAnalysis: stampOf(d.LastAnalysis), Summary: summaryOf("org", d.Summary), SilentCount: d.SilentAgents,
 		SilentDays: int(agent.SilentAfter / (24 * time.Hour)),
