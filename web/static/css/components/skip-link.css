@@ -1,0 +1,16 @@
+/* Lien d'évitement : premier élément focalisable de chaque page. */
+.skip-link {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 30;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: 2px solid var(--color-focus);
+  border-radius: var(--radius-md);
+  transform: translateY(-300%);
+
+  &:focus {
+    transform: none;
+  }
+}

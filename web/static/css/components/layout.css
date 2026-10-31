@@ -1,0 +1,72 @@
+/* Mise en page : piles, grappes, grilles et colonnes. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  &.stack--lg {
+    gap: var(--space-6);
+  }
+
+  &.stack--sm {
+    gap: var(--space-2);
+  }
+}
+
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--grid-min, 15rem)), 1fr));
+  gap: var(--space-4);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-4);
+
+  &.layout--halves {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  &.layout--aside {
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
+  }
+
+  &.layout--rail {
+    grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr);
+  }
+
+  &.layout--split {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  }
+
+  &.layout--thirds {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  @container ogsbom (width < 64rem) {
+    grid-template-columns: minmax(0, 1fr);
+
+    &.layout--halves, &.layout--aside, &.layout--rail, &.layout--split, &.layout--thirds {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+.section-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+}

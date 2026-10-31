@@ -1,0 +1,12 @@
+{{define "topbar" -}}
+<header class="topbar">
+  <a class="topbar__brand" href="/">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3 3 7.5l9 4.5 9-4.5L12 3z"></path><path d="m3 12 9 4.5 9-4.5"></path><path d="m3 16.5 9 4.5 9-4.5"></path></svg>
+    <span>{{T "app.name"}}</span>
+  </a>
+  <div class="topbar__actions">
+    <button type="button" class="btn btn--ghost btn--sm" data-theme-toggle hidden
+      data-label-system="{{T "theme.system"}}" data-label-light="{{T "theme.light"}}" data-label-dark="{{T "theme.dark"}}">{{T "theme.system"}}</button>
+  </div>
+</header>
+{{- end}}

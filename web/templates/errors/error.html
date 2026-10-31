@@ -1,0 +1,13 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <p class="page-head__eyebrow">{{T "error.code" "Code" .Code}}</p>
+    <h1 class="page-head__title">{{T .Page.TitleKey}}</h1>
+    <p class="page-head__lead">{{T .TextKey}}</p>
+  </div>
+  {{- with .Page.RequestID}}
+  <p class="muted">{{T "error.reference" "RequestID" .}}</p>
+  {{- end}}
+  <p><a class="btn" href="/">{{T "error.back_home"}}</a></p>
+</div>
+{{- end}}

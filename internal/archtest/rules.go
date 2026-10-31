@@ -43,8 +43,9 @@ var domainPackages = []string{
 	"internal/version", "internal/vuln",
 }
 
-// presentationPackages ne sont importés que par cmd.
-var presentationPackages = []string{"internal/web", "internal/api", "internal/render"}
+// presentationPackages ne sont importés que par cmd et entre eux. web (à la racine)
+// embarque gabarits et fichiers statiques.
+var presentationPackages = []string{"internal/web", "internal/api", "internal/render", "web"}
 
 // agentPackages forment les binaires d'agents, qui restent légers.
 var agentPackages = []string{
@@ -58,7 +59,7 @@ var serverPackages = []string{
 	"internal/inventory", "internal/jobs", "internal/locale", "internal/notify", "internal/org",
 	"internal/pagination", "internal/policy", "internal/project", "internal/ratelimit", "internal/render",
 	"internal/search", "internal/secret", "internal/team", "internal/tenant",
-	"internal/triage", "internal/vuln", "internal/web",
+	"internal/triage", "internal/vuln", "internal/web", "web",
 }
 
 // forbiddenInDomain sont les paquets de la bibliothèque standard interdits au métier.

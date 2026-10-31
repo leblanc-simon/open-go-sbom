@@ -29,6 +29,8 @@ func TestCheck(t *testing.T) {
 		{"net/http/httptest reste permis", "internal/jobs", []string{"net/http/httptest"}, false},
 		{"métier importe web", "internal/project", []string{mod + "/internal/web"}, true},
 		{"métier importe render", "internal/dashboard", []string{mod + "/internal/render"}, true},
+		{"métier importe les gabarits", "internal/inventory", []string{mod + "/web"}, true},
+		{"render importe les gabarits", "internal/render", []string{mod + "/web"}, false},
 		{"locale reste sans HTTP", "internal/locale", []string{"net/http"}, true},
 		{"agent importe locale", "internal/hostagent", []string{mod + "/internal/locale"}, true},
 		{"cmd importe web", "cmd/ogsbom-server", []string{mod + "/internal/web", mod + "/internal/api/gen"}, false},

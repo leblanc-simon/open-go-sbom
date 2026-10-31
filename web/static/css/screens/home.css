@@ -1,0 +1,6 @@
+/* Page d'accueil. */
+.home {
+  display: grid;
+  gap: var(--space-6);
+  max-width: 64rem;
+}

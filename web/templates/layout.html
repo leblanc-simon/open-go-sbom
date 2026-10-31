@@ -1,0 +1,29 @@
+{{define "layout" -}}
+<!doctype html>
+<html lang="{{.Page.Lang}}" class="ogsbom"{{with .Page.Theme}} data-theme="{{.}}"{{end}}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{T .Page.TitleKey .Page.TitleArgs}} · {{T "app.name"}}</title>
+<link rel="stylesheet" href="{{asset "css/app.css"}}">
+<link rel="icon" href="{{asset "img/favicon.svg"}}" type="image/svg+xml">
+<script type="module" src="{{asset "js/theme.js"}}"></script>
+{{- range .Page.Scripts}}
+<script type="module" src="{{asset .}}"></script>
+{{- end}}
+</head>
+<body>
+<a class="skip-link" href="#main">{{T "layout.skip_to_content"}}</a>
+{{template "topbar" .}}
+<div class="shell">
+{{- if .Page.Nav}}
+{{template "sidenav" .}}
+{{- end}}
+<main class="shell__main" id="main" tabindex="-1">
+{{template "content" .}}
+</main>
+</div>
+{{template "footer" .}}
+</body>
+</html>
+{{- end}}
