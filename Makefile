@@ -47,6 +47,14 @@ packages: ## Binaires de l'agent serveur (amd64, arm64) et paquets deb et rpm da
 	done
 	@ls -l bin/linux-*/ogsbom-host-agent dist/
 
+# Fichiers d'une version (archives des trois binaires linux amd64 et arm64, paquets deb et
+# rpm, SHA256SUMS) : make release VERSION=v0.1.0 RELEASE_DIR=/chemin/vide.
+RELEASE_DIR ?= dist/release
+
+.PHONY: release
+release: ## Fichiers d'une version dans RELEASE_DIR (VERSION=vX.Y.Z), comme le workflow release
+	GO="$(GO)" scripts/release.sh "$(VERSION)" "$(RELEASE_DIR)"
+
 .PHONY: run
 run: build ## Lance le serveur avec config.yaml
 	./bin/ogsbom-server -c config.yaml
@@ -102,6 +110,11 @@ test-integration: ## Tests d'intégration (PostgreSQL : docker compose -f deploy
 test-grypedb: ## Tests avec la vraie base Grype (OGSBOM_TEST_GRYPEDB_DIR : base v6 installée)
 	@test -n "$(OGSBOM_TEST_GRYPEDB_DIR)" || { echo "OGSBOM_TEST_GRYPEDB_DIR : répertoire d'une base Grype v6 installée"; exit 1; }
 	$(GO) test -count=1 -timeout 30m -tags 'integration grypedb' ./internal/vuln/grype/ ./internal/benchdata/
+
+.PHONY: bench-ingest
+bench-ingest: ## Mesure ingestion et analyse de 5 000 composants, vraie base Grype (OGSBOM_TEST_GRYPEDB_DIR)
+	@test -n "$(OGSBOM_TEST_GRYPEDB_DIR)" || { echo "OGSBOM_TEST_GRYPEDB_DIR : répertoire d'une base Grype v6 installée"; exit 1; }
+	$(GO) test -count=1 -timeout 30m -tags 'integration grypedb' -v -run TestIngestAndAnalyze5000 ./internal/benchdata/
 
 .PHONY: bench
 bench: ## Mesures sur le jeu de référence (docs/benchmarks.md)

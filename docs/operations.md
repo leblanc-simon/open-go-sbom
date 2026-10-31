@@ -1,8 +1,20 @@
 # Exploitation d'ogsbom-server
 
-Installation, configuration et surveillance du serveur. Ce document grandit avec les lots :
-sauvegarde, mise à jour, sites isolés et procédures de secours des administrateurs y
-seront ajoutés par les lots qui les portent.
+Installation, configuration, exploitation et surveillance du serveur et des agents,
+pour le lot 1 (version 0.1). Les premiers pas des utilisateurs sont dans le guide de
+démarrage ([`demarrage.md`](demarrage.md), [English](getting-started.md)). Les lots
+suivants complètent ce document (sites isolés : T23, SSO : T25…).
+
+Sommaire : installation ([développement](#installation-de-développement),
+[production](#installation-de-production)), [configuration](#configuration),
+[base de données](#base-de-données), [TLS](#tls-et-mandataire-inverse),
+[sondes](#gestion--sondes-et-métriques), [traitements](#traitements),
+[comptes](#comptes-et-connexion), [agents](#agents-et-jetons) ([serveur](#agent-serveur),
+[dépôt](#agent-dépôt)), [ingestion](#ingestion),
+[base de vulnérabilités](#base-de-vulnérabilités), [recherche](#recherche-et-api-utilisateur),
+[tableau de bord](#tableau-de-bord), [clés](#clés-de-chiffrement-des-secrets),
+[sauvegarde](#sauvegarde-et-restauration), [mise à jour](#mise-à-jour),
+[supervision](#supervision), [journaux](#journaux).
 
 ## Installation de développement
 
@@ -23,6 +35,99 @@ Tests : `make test` (unitaires), `make test-integration` (PostgreSQL requis : ch
 crée sa base et ses rôles jetables à partir de `OGSBOM_TEST_DATABASE_DSN`, connexion
 d'administration, par défaut celle de `deploy/compose.yaml`), `make ci` (tout ce que fait
 la CI).
+
+## Installation de production
+
+Une instance = un binaire `ogsbom-server`, un fichier de configuration et un fichier
+d'environnement pour les secrets, sous systemd. PostgreSQL 16 ou plus est commun à toutes
+les instances. Parcours vérifié lors de la recette du lot 1 (T11).
+
+**Prérequis** : Linux amd64 ou arm64 ; PostgreSQL 16+ accessible ; sur chaque instance à
+workers, 8 Gio libres pour la base de vulnérabilités et, par job de décodage simultané,
+environ trente fois la taille du plus gros SBOM attendu (voir « Ingestion ») ; horloge
+synchronisée (NTP).
+
+1. **Fichiers** : télécharger depuis la page des versions
+   `ogsbom-server_<version>_linux_<arch>.tar.gz` et `SHA256SUMS`, vérifier
+   (`sha256sum -c --ignore-missing SHA256SUMS`), extraire. L'archive contient le binaire,
+   `config.example.yaml`, l'unité `ogsbom-server.service`, `LICENSE`, `README.md` et
+   `CHANGELOG.md`.
+
+   ```bash
+   sudo install -m 0755 ogsbom-server /usr/local/bin/ogsbom-server
+   sudo install -d -m 0755 /etc/ogsbom
+   sudo install -m 0644 config.example.yaml /etc/ogsbom/config.yaml
+   sudo install -m 0644 ogsbom-server.service /etc/systemd/system/ogsbom-server.service
+   ```
+
+2. **Base** : créer les deux rôles et la base (« Rôles et droits » ci-dessous), avec des
+   mots de passe aléatoires (`openssl rand -base64 24`).
+3. **Configuration** `/etc/ogsbom/config.yaml` : `web.host` et `web.port`, `tls.*` (ou
+   `web.trusted_proxies` derrière un mandataire), `auth.cookie_secure: on`,
+   `logging.format: json`, `vulndb.dir: /var/lib/ogsbom/vulndb` (répertoire d'état de
+   l'unité), `i18n.default_language`. Retirer de la copie les DSN et les clés de
+   l'exemple : ils passent par l'environnement.
+4. **Secrets** `/etc/ogsbom/ogsbom-server.env` (`root`, `0600`), lu par systemd :
+
+   ```bash
+   OGSBOM_DB_DSN=postgres://ogsbom_app:<mot de passe>@db.example.org:5432/ogsbom?sslmode=verify-full
+   OGSBOM_MIGRATION_DSN=postgres://ogsbom_owner:<mot de passe>@db.example.org:5432/ogsbom?sslmode=verify-full
+   OGSBOM_SECRETS_KEYS=2026-10:<openssl rand -base64 32>
+   OGSBOM_SECRETS_ACTIVE_KEY=2026-10
+   # Premier démarrage seulement (base sans compte) :
+   OGSBOM_BOOTSTRAP_ADMIN_EMAIL=admin@example.org
+   OGSBOM_BOOTSTRAP_ADMIN_PASSWORD=<mot de passe temporaire>
+   ```
+
+   **Sauvegarder la clé de chiffrement à part** (coffre-fort) : sans elle, les secrets TOTP
+   de tous les comptes sont perdus (« Clés de chiffrement des secrets »).
+5. **TLS natif** : l'unité tourne sous un utilisateur dynamique, qui ne lit pas un fichier
+   de `/etc` réservé à `root`. Déposer la clé en `/etc/ogsbom/tls.key` (`0600`),
+   décommenter `LoadCredential=tls-key:/etc/ogsbom/tls.key` dans l'unité et poser
+   `tls.key_file: /run/credentials/ogsbom-server.service/tls-key` ; le certificat et
+   l'autorité des agents (`tls.client_ca_file`) peuvent rester en `0644`. Pour écouter sur
+   443, l'unité indique la capacité à accorder.
+6. **Démarrage** : `sudo systemctl daemon-reload && sudo systemctl enable --now
+   ogsbom-server`, puis `journalctl -u ogsbom-server` (« schéma à jour », « serveur
+   démarré ») et `curl -s http://127.0.0.1:8081/readyz`. Tant qu'aucune base de
+   vulnérabilités n'est chargée, `/readyz` répond 503 avec `vulndb` en échec (premier
+   téléchargement : quelques minutes ; site isolé : import manuel, voir « Base de
+   vulnérabilités »).
+7. **Premier administrateur** : se connecter avec l'e-mail et le mot de passe temporaire,
+   enrôler le TOTP, choisir le mot de passe ; retirer les deux variables `BOOTSTRAP` du
+   fichier d'environnement et redémarrer. Créer un second administrateur d'instance
+   (guide de démarrage, [`demarrage.md`](demarrage.md)).
+
+**Plusieurs instances** : même configuration et mêmes clés ; une seule a besoin de
+`OGSBOM_MIGRATION_DSN` (les autres refusent de démarrer tant que le schéma n'est pas à
+jour) ; `workers.enabled: false` pour une instance purement web. Les limitations de débit
+sont comptées par instance.
+
+### Autorité privée et certificats des agents (mTLS)
+
+Avec une autorité privée, chaque agent reçoit l'autorité du serveur (`server.ca_file`) ;
+avec le mTLS, le serveur reçoit l'autorité des agents (`tls.client_ca_file`) et chaque
+agent un certificat client. Exemple avec OpenSSL (autorité gardée hors ligne) :
+
+```bash
+# Autorité des agents (une fois)
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 3650 \
+  -subj "/CN=open-go-sbom agents CA" -keyout agents-ca.key -out agents-ca.crt \
+  -addext "basicConstraints=critical,CA:TRUE" -addext "keyUsage=critical,keyCertSign,cRLSign"
+# Certificat client d'un hôte (clé générée sur l'hôte de préférence)
+openssl req -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -subj "/CN=srv-01" \
+  -keyout client.key -out client.csr
+printf 'extendedKeyUsage=clientAuth\n' > client.ext
+openssl x509 -req -in client.csr -CA agents-ca.crt -CAkey agents-ca.key -CAcreateserial \
+  -days 825 -extfile client.ext -out client.crt
+```
+
+Le serveur vérifie la chaîne (autorité, validité) ; il ne lit pas le nom du certificat :
+l'identité de l'agent reste son jeton. Un certificat d'une autre autorité est refusé à la
+négociation TLS, une requête de l'API des agents sans certificat reçoit 401
+(`error.client_cert_required`) ; l'interface web n'en demande pas. Le serveur ne consulte
+pas de liste de révocation : pour couper un agent, **désactiver l'agent** (ses jetons sont
+révoqués) ; pour couper un certificat, renouveler l'autorité.
 
 ## Configuration
 
@@ -325,8 +430,8 @@ que lorsque l'inventaire a changé (ADR 0020, 0021).
 
 ### Installation
 
-1. Installer le paquet (`make packages` produit dans `dist/` les paquets deb et rpm des
-   deux architectures, non signés) : `sudo apt install ./ogsbom-host-agent_<version>_amd64.deb`
+1. Installer le paquet (page des versions, ou `make packages` qui les produit dans `dist/` ;
+   deb et rpm, amd64 et arm64, non signés, à vérifier par `SHA256SUMS`) : `sudo apt install ./ogsbom-host-agent_<version>_amd64.deb`
    ou `sudo dnf install ./ogsbom-host-agent-<version>.x86_64.rpm`. Le paquet crée
    l'utilisateur système `ogsbom-agent`, `/etc/ogsbom-host-agent/config.yaml`, les unités
    systemd ; il n'en active aucune.
@@ -352,6 +457,28 @@ que lorsque l'inventaire a changé (ADR 0020, 0021).
    `/var/lib/ogsbom-host-agent/agent-token` (`0600`) ; supprimer ensuite le jeton
    d'inscription. L'hôte apparaît dans les projets avec son contexte (système, noyau,
    architecture, durée du scan).
+
+### Sans systemd (conteneur, Alpine, init sans systemd)
+
+Vérifié en recette sur Debian 12, Rocky Linux 9 et Alpine 3.18 (conteneurs). Les paquets
+s'installent sans systemd (`dpkg -i`, `rpm -i` : l'utilisateur `ogsbom-agent` est créé par
+`useradd`, aucune unité n'est activée). Sur une distribution sans paquet (Alpine) : copier
+le binaire de l'archive `ogsbom-host-agent_<version>_linux_<arch>.tar.gz` en
+`/usr/bin/ogsbom-host-agent`, créer `/etc/ogsbom-host-agent` et
+`/var/lib/ogsbom-host-agent` (`0700`).
+
+- Poser `enrollment_token_file` (et `server.client_key_file` pour le mTLS) en chemins
+  absolus : les credentials systemd n'existent pas hors systemd.
+- Lancer l'agent sous `ogsbom-agent` avec la seule capacité `CAP_DAC_READ_SEARCH`, comme
+  l'unité, par exemple
+  `setpriv --reuid ogsbom-agent --regid ogsbom-agent --init-groups --inh-caps +dac_read_search --ambient-caps +dac_read_search --bounding-set -all,+dac_read_search ogsbom-host-agent`
+  (conteneur : `--cap-add DAC_READ_SEARCH`). Sans `setpriv` (busybox), l'agent tourne en
+  root.
+- Forme démon sous le superviseur du système (OpenRC, runit, s6), ou `mode: oneshot` lancé
+  par `cron` une fois par jour.
+- Dans un conteneur, la racine en overlay est inventoriée (seuls les montages overlay
+  **sous** la racine sont exclus) : l'agent décrit alors le conteneur, pas l'hôte qui le
+  porte. Pour inventorier l'hôte, installer l'agent sur l'hôte.
 
 ### Fonctionnement
 
@@ -572,6 +699,25 @@ reçoit leurs webhooks de push, extrait le commit visé, l'analyse avec Syft et 
 SBOM (CycloneDX 1.6, composants marqués `ogsbom:origin=syft`). Configuration d'exemple
 commentée et unité systemd durcie : `deploy/ogsbom-repo-agent/`.
 
+### Installation
+
+1. Dans l'organisation : **Agents › Nouvel agent dépôt** ; noter le jeton (affiché une
+   fois).
+2. Sur la machine de l'agent (git 2.30 ou plus, accès HTTPS aux forges et au serveur) :
+   extraire `ogsbom-repo-agent_<version>_linux_<arch>.tar.gz`, puis
+   `sudo install -m 0755 ogsbom-repo-agent /usr/bin/`,
+   `sudo install -m 0644 ogsbom-repo-agent.service /etc/systemd/system/`,
+   `sudo install -d -m 0700 /etc/ogsbom-repo-agent` et
+   `sudo install -m 0644 config.example.yaml /etc/ogsbom-repo-agent/config.yaml`.
+3. Créer la GitHub App ou le compte de service GitLab (ci-dessous), renseigner
+   `server.*`, `forges[]` et `allowed_namespaces`, chiffrer les secrets (« Secrets et
+   credentials systemd »), retirer de l'unité les credentials des forges non utilisées.
+4. `sudo systemctl daemon-reload && sudo systemctl enable --now ogsbom-repo-agent` ;
+   `journalctl -u ogsbom-repo-agent` montre le premier rattrapage (« rattrapage »,
+   « SBOM envoyé »).
+5. Confier les dépôts à l'agent depuis la fiche de chaque projet de type dépôt, puis
+   déclarer le webhook sur la forge.
+
 ### Mode d'exploitation
 
 - **Une instance par organisation** : elle porte le jeton d'un agent dépôt de cette
@@ -674,6 +820,28 @@ réponse 202.
 Le secret est comparé en temps constant à `X-Gitlab-Token`. Vérification : *Test › Push
 events* sur la page du webhook doit répondre 202 ; un secret faux, 401.
 
+### Recette sur une vraie forge
+
+La recette du lot 1 a exercé l'agent dépôt réel contre une **forge simulée** (API de
+GitHub et de GitLab, git HTTP intelligent sur des clones de dépôts publics) : la session
+de réalisation n'avait ni GitHub App ni compte de service GitLab. L'essai sur une vraie
+forge reste à faire, en une demi-heure :
+
+1. GitHub : créer une GitHub App de test (droits *Contents : Read-only*, événement *Push*)
+   et l'installer sur **un** dépôt de test (*Only select repositories*) ; GitLab : créer
+   un jeton de projet *Reporter* (`read_api`, `read_repository`) sur un projet de test.
+2. Configurer l'agent (`allowed_namespaces` : le propriétaire ou le groupe de test),
+   créer les projets dans l'organisation (URL `https://github.com/<propriétaire>/<dépôt>`,
+   `https://gitlab.com/<groupe>/<projet>`), les confier à l'agent.
+3. Vérifier, dans l'ordre : le journal montre « rattrapage » puis « SBOM envoyé » pour
+   chaque dépôt ; l'onglet **Instantanés** de chaque projet porte le commit de la tête de
+   branche ; un push sur le dépôt apparaît dans *Recent deliveries* (GitHub) ou *Test ›
+   Push events* (GitLab) avec la réponse 202, et un nouvel instantané arrive ; un secret de
+   webhook faux est refusé (401) ; un dépôt hors de `allowed_namespaces` confié à l'agent
+   est ignoré (journal « dépôt sans forge configurée ou hors de allowed_namespaces ») ; GitHub : un dépôt non sélectionné dans
+   l'installation est refusé (« installation de l'application : … introuvable »).
+4. Rechercher une CVE connue d'une dépendance du dépôt : le projet apparaît.
+
 ### Secrets et credentials systemd
 
 Les secrets (jeton d'agent, clé privée de la GitHub App, jeton GitLab, secrets de
@@ -723,6 +891,108 @@ Rotation : ajouter la nouvelle clé à côté de l'ancienne, la désigner comme 
 redémarrer ; les nouveaux secrets sont chiffrés avec elle, les anciens restent lisibles.
 Au démarrage, le serveur rechiffre les secrets TOTP avec la clé active (le journal donne
 leur nombre) : l'ancienne clé peut être retirée au démarrage suivant.
+
+## Sauvegarde et restauration
+
+Tout l'état du serveur est dans PostgreSQL : comptes, organisations, projets, SBOM reçus
+(compressés), inventaire, constats, journaux d'audit, file de traitements, archives de la
+base de vulnérabilités. À sauvegarder :
+
+| Élément | Comment | Remarque |
+| --- | --- | --- |
+| Base PostgreSQL | `pg_dump -Fc` par le **rôle propriétaire**, ou sauvegarde physique (`pg_basebackup`, archivage WAL) | le propriétaire a `BYPASSRLS` : le vidage contient toutes les organisations |
+| Clés `secrets.keys` | coffre-fort, **séparément** de la base | sans elles, les secrets TOTP restaurés sont illisibles |
+| `/etc/ogsbom/` | configuration et fichier d'environnement | TLS : certificats, clés, autorité des agents |
+| Agents | rien d'indispensable | un agent perdu se réinscrit (nouveau jeton) |
+
+`vulndb.dir` n'est **pas** à sauvegarder : chaque instance le reconstruit depuis
+PostgreSQL au démarrage. Les archives de la base de vulnérabilités pèsent environ 200 Mio
+chacune dans le vidage (650 Mio pour une archive importée en gzip) : **Purger les
+archives précédentes** avant la sauvegarde la réduit.
+
+```bash
+# Sauvegarde logique (cohérente, sans arrêt du service)
+pg_dump -Fc -d 'postgres://ogsbom_owner:…@db:5432/ogsbom' -f ogsbom-$(date -u +%F).dump
+```
+
+**Restauration** (vérifiée en recette sur la base du parc pilote : vidage, restauration
+dans une base neuve, démarrage, connexion et recherche identiques) :
+
+1. Arrêter toutes les instances.
+2. Créer les rôles (mêmes noms) et une base vide appartenant au propriétaire
+   (« Rôles et droits ») ; sur un PostgreSQL neuf, créer `pg_trgm` et `btree_gin` si le
+   propriétaire n'en a pas le droit (« Recherche et API utilisateur »).
+3. Restaurer par le propriétaire :
+   `pg_restore --no-owner --role=ogsbom_owner -d 'postgres://ogsbom_owner:…@db:5432/ogsbom' ogsbom-AAAA-MM-JJ.dump`.
+   Les droits du rôle d'exécution, les privilèges par défaut et les retraits du journal en
+   ajout seul sont dans le vidage : avec les mêmes noms de rôles, rien à reprendre. Avec un
+   autre nom de rôle d'exécution, appliquer « Changer de rôle d'exécution ».
+4. Démarrer une instance avec la même version (ou plus récente : elle migre) et les mêmes
+   clés `secrets.keys` ; vérifier `/readyz`, la connexion et une recherche.
+
+Les jobs en cours au moment du vidage sont repris après restauration (baux expirés) ; les
+agents renvoient au cycle suivant ce que la base restaurée ne connaît pas encore (envoi
+conditionnel, rattrapage de l'agent dépôt).
+
+## Mise à jour
+
+1. Lire [`CHANGELOG.md`](../CHANGELOG.md) (réglages renommés ou nouveaux, actions
+   requises). Avant la v1.0, une version peut changer la configuration.
+2. **Sauvegarder** la base (ci-dessus) : une migration ne se défait pas.
+3. Remplacer le binaire de **toutes** les instances, puis les redémarrer : la première qui
+   a `migration.dsn` applique les migrations sous verrou, en une transaction ; les autres
+   attendent puis démarrent. Une instance restée sur l'ancienne version voit une migration
+   inconnue : elle refuse de redémarrer et son `/readyz` passe à 503 (`schema`), ce qui la
+   retire d'un répartiteur de charge. Prévoir donc une courte interruption, ou démarrer
+   les nouvelles instances avant d'arrêter les anciennes.
+4. Vérifier `journalctl -u ogsbom-server` (« migration appliquée », « schéma à jour ») et
+   `/readyz`.
+5. **Agents** : l'API des agents est versionnée (`/api/v1`) ; un changement incompatible
+   serait annoncé dans `CHANGELOG.md`, avec l'ordre de mise à jour. Mettre à jour l'agent serveur par son
+   paquet (le démon redémarre, l'inscription est gardée) et l'agent dépôt en remplaçant
+   son binaire puis `systemctl restart ogsbom-repo-agent`.
+
+Retour arrière : restaurer la sauvegarde prise avant la mise à jour et réinstaller
+l'ancien binaire (un ancien binaire refuse une base migrée par une version plus récente).
+
+## Supervision
+
+| Quoi | Où | Seuil conseillé |
+| --- | --- | --- |
+| Disponibilité | `GET /readyz` (écoute de gestion) | 503 plus de 2 min hors démarrage |
+| Base de vulnérabilités | `ogsbom_vulndb_stale == 1`, `ogsbom_vulndb_target_age_seconds` | âge > `vulndb.max_age` (5 jours) |
+| Instance worker sans base | `ogsbom_vulndb_loaded == 0` | plus de 15 min |
+| Traitements en échec | `ogsbom_jobs{status="dead"}` | toute hausse ; détail dans **Administration › Traitements** |
+| File qui ne se vide pas | `ogsbom_jobs{status="pending"}` | croissante pendant 30 min |
+| Baux perdus | `rate(ogsbom_job_runs_total{outcome="lost"}[15m])` | non nulle durablement |
+| Statistiques du tableau de bord | `increase(ogsbom_job_schedule_fires_total{schedule="dashboard.stats_all"}[2h])` (somme des instances) | 0 |
+| Erreurs HTTP | `ogsbom_http_requests_total{status=~"5.."}` | taux anormal |
+| Pool de connexions | `go_sql_wait_count_total`, `go_sql_in_use_connections` | attentes croissantes |
+| Disque | `vulndb.dir` (8 Gio libres), volume de PostgreSQL | < 20 % libre |
+| Agents muets | tableau de bord de chaque organisation (« Agents muets », 7 jours) | tout agent muet |
+| Sécurité | journal d'audit (« compte verrouillé », « procédure de secours », imports et purges de la base) | à relire |
+
+Exemple de règles Prometheus :
+
+```yaml
+groups:
+  - name: open-go-sbom
+    rules:
+      - alert: OgsbomVulnDBStale
+        expr: max(ogsbom_vulndb_stale) == 1
+        for: 1h
+      - alert: OgsbomDeadJobs
+        expr: max(ogsbom_jobs{status="dead"}) > 0
+        for: 15m
+      - alert: OgsbomQueueStuck
+        expr: min_over_time(max(ogsbom_jobs{status="pending"})[30m:]) > 0 and deriv(max(ogsbom_jobs{status="pending"})[30m:]) >= 0
+      - alert: OgsbomNotReady
+        expr: up{job="ogsbom"} == 0
+        for: 2m
+```
+
+L'écoute de gestion (`management.*`) ne doit pas être exposée publiquement : la faire
+lire par Prometheus sur le réseau d'administration.
 
 ## Journaux
 

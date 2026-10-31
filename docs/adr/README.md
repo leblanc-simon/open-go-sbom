@@ -36,3 +36,4 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0029](0029-remediation-des-identifiants.md) | Identifiants : verrouillage par compte, révocation d'office, réinitialisation avec mot de passe, durée absolue de session | Accepté |
 | [0030](0030-durcissement-base-et-quotas.md) | Durcissement de la base et bornes de ressources : journal en ajout seul, rôle sans DDL, quotas d'ingestion, plafonds par compte | Accepté |
 | [0031](0031-csrf-cookies-et-perimetre-de-l-agent-depot.md) | CSRF lié à la session, cookies __Host-, protection inter-origines ; périmètre de l'agent dépôt | Accepté |
+| [0032](0032-publication-des-versions.md) | Publication des versions : étiquette, workflow de préversion, fichiers livrés, unité du serveur | Accepté |

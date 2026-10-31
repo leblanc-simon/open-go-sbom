@@ -2,7 +2,7 @@
 
 | Lot fonctionnel | Dépend de | Statut |
 | --- | --- | --- |
-| 1 · MVP inventaire | T07, T08, T09, T10 | En cours |
+| 1 · MVP inventaire | T07, T08, T09, T10 | Terminé (v0.1.0 à publier par l'utilisateur) |
 
 ## Objectif
 
@@ -32,20 +32,27 @@ documenter et publier une préversion.
 
 ## Critères d'acceptation
 
-- [ ] Toutes les cibles chiffrées sont tenues au 95e centile sur la machine de référence,
+- [x] Toutes les cibles chiffrées sont tenues au 95e centile sur la machine de référence,
       ou une nouvelle cible a été validée par l'utilisateur et reportée au cahier des
-      charges.
+      charges. (Tenues sur 4 cœurs, machine moins puissante que la référence : 6,6 s pour
+      30 s, 344 ms pour 2 s, 663 ms pour 1 s, agent 3 min 8 s et 921 Mio pour 5 min et
+      1 Gio ; voir « Mesures consolidées ». Confirmation des cibles « proposées » du
+      cahier des charges : action de l'utilisateur.)
 - [x] Aucune faiblesse de gravité haute ou critique (OWASP Risk Rating) ouverte à l'issue de
       la revue. (Aucune trouvée ; les 3 Medium et 6 des 7 Low sont corrigés, voir « Revue de
       sécurité ».)
 - [x] Grille RGAA remplie pour chaque écran, sans non-conformité bloquante
       ([grille](../../docs/accessibilite/grille-rgaa-lot1.md) : 100 % des critères
       applicables après corrections, aucune NC bloquante ni avant ni après).
-- [ ] Sur le parc pilote : tous les serveurs et dépôts prévus ont un instantané de moins de
-      24 h.
-- [ ] Pour trois CVE choisies avant la recette, la recherche renvoie exactement la liste de
-      projets attendue, établie à la main au préalable.
-- [ ] `v0.1.0` publiée.
+- [x] Sur le parc pilote : tous les serveurs et dépôts prévus ont un instantané de moins de
+      24 h. (Trois serveurs et quatre dépôts, analysés avec la base réelle ; dépôts servis
+      par une forge simulée, essai sur une vraie forge : action de l'utilisateur.)
+- [x] Pour trois CVE choisies avant la recette, la recherche renvoie exactement la liste de
+      projets attendue, établie à la main au préalable. (CVE-2023-4911, CVE-2023-48795,
+      CVE-2023-2650 : listes exactes à l'écran et par l'API.)
+- [ ] `v0.1.0` publiée. (Prête : `CHANGELOG.md`, workflow `release.yml`, `make release`
+      vérifié ; la pose de l'étiquette est refusée dans la session, action de
+      l'utilisateur décrite dans `specs/avancement.md`.)
 
 ## Décisions
 
@@ -396,3 +403,226 @@ contrôle des écrans corrigés dans les deux thèmes.
 #### ADR créés
 
 Aucun.
+
+### Recette
+
+Réalisée le 31 octobre 2026, branche `lot/T11-recette`.
+
+#### Parc pilote et CVE de contrôle (fixés avant toute recherche)
+
+Fixés et commités **avant** le montage du serveur et toute recherche dans l'application.
+Les listes attendues sont établies à la main : paquets réellement installés dans chaque
+image (`dpkg-query`, `rpm -qa`, `/lib/apk/db/installed`), fichiers de dépendances de
+chaque dépôt au commit retenu (`git show <commit>:go.mod`…), confrontés aux
+enregistrements de la base Grype réelle (v6.1.10, construite le 30 octobre 2026 à
+06:23 UTC) lus directement en SQLite, sans passer par l'application.
+
+**Serveurs** (conteneurs portant l'agent serveur ; images anciennes à dessein, pour un
+parc réaliste non mis à jour) :
+
+| Projet attendu | Image | Empreinte | Paquets |
+| --- | --- | --- | --- |
+| `pilot-debian` | `debian:12.0-slim` | `sha256:9bd077d2f77c…` | 88 deb |
+| `pilot-rocky` | `rockylinux:9.2-minimal` | `sha256:594c839a772e…` | 118 rpm |
+| `pilot-alpine` | `alpine:3.18.0` | `sha256:02bb6f428431…` | 15 apk |
+
+**Dépôts** (clones de dépôts publics réels, servis par une forge simulée : voir plus
+bas) :
+
+| Projet attendu | Dépôt public | Branche, commit retenu | Contenu |
+| --- | --- | --- | --- |
+| `cobra` | GitHub `spf13/cobra` | `main`, `adbc881` (11 juillet 2026) | `go.mod` sans `golang.org/x/crypto` |
+| `sftp` | GitHub `pkg/sftp` | `master`, `5bdc2b0` (20 novembre 2023) | `go.mod` : `golang.org/x/crypto v0.1.0` |
+| `gitlab-shell` | GitLab `gitlab-org/gitlab-shell` | `main`, `09ef3a7` (18 décembre 2023) | `go.mod` : `golang.org/x/crypto v0.16.0` ; `Gemfile.lock` |
+| `jekyll` | GitLab `pages/jekyll` | `main`, `3137780` (30 avril 2025) | `Gemfile.lock` |
+
+L'agent serveur lui-même (binaire Go, `golang.org/x/crypto v0.58.0`, Go 1.26.10) est
+inventorié sur chaque hôte : il n'est touché par aucune des trois CVE.
+
+**CVE de contrôle et listes attendues :**
+
+1. **CVE-2023-4911** (glibc, « Looney Tunables », KEV) → **`pilot-debian`,
+   `pilot-rocky`**.
+   - `pilot-debian` : `libc6` et `libc-bin` 2.36-9 (source `glibc`) ; Debian 12 :
+     corrigé en 2.36-9+deb12u3.
+   - `pilot-rocky` : `glibc`, `glibc-common`, `glibc-minimal-langpack` 2.34-60.el9 ;
+     RHEL 9.2 : corrigé en 2.34-60.el9_2.7 (Rocky lu comme RHEL par Grype).
+   - Pas `pilot-alpine` (musl, pas de glibc), aucun dépôt.
+2. **CVE-2023-48795** (« Terrapin », SSH ; GHSA-45x7-px36-x8w8 pour Go) →
+   **`pilot-rocky`, `sftp`, `gitlab-shell`**.
+   - `pilot-rocky` : `libssh` et `libssh-config` 0.10.4-8.el9 ; RHEL 9.2 : corrigé en
+     0.10.4-9.el9_2.
+   - `sftp` : `golang.org/x/crypto` v0.1.0 ; `gitlab-shell` : v0.16.0 ; corrigé en
+     0.17.0 (plage GitHub `>=0.1.0,<0.17.0`).
+   - Pas `pilot-debian` ni `pilot-alpine` (ni OpenSSH, ni libssh, ni dropbear), pas
+     `cobra` (pas de `x/crypto`), pas `jekyll`.
+3. **CVE-2023-2650** (OpenSSL, `OBJ_obj2txt`) → **`pilot-rocky`, `pilot-alpine`**.
+   - `pilot-rocky` : `openssl` et `openssl-libs` 1:3.0.7-6.el9_2 ; RHEL 9.2 : corrigé en
+     1:3.0.7-16.el9_2.
+   - `pilot-alpine` : `libcrypto3` et `libssl3` 3.1.0-r4 (origine `openssl`) ; Alpine
+     3.18 : corrigé en 3.1.1-r0.
+   - Pas `pilot-debian` (`debian:12.0-slim` n'installe pas OpenSSL), aucun dépôt (aucune
+     gemme `openssl`).
+
+Contrôles négatifs implicites : `cobra` et `jekyll` n'apparaissent dans aucune liste ;
+chaque serveur manque à au moins une liste.
+
+#### Montage du serveur pilote
+
+Machine : environnement de réalisation (4 cœurs Intel Xeon 2,8 GHz, 15 Gio, Linux 6.18,
+PostgreSQL 16.15 local, Docker 29.9). Binaires de `make build` au commit `8639f13`.
+
+- Base `ogsbom_t11r_cc6902` et rôles jetables `ogsbom_owner_cc6902` (`BYPASSRLS`) et
+  `ogsbom_app_cc6902` créés selon « Rôles et droits » de `docs/operations.md` ; les
+  15 migrations passent au premier démarrage, le contrôle du rôle d'exécution aussi.
+- TLS natif par une autorité de test (certificat `sbom.pilot.test`), **mTLS exigé**
+  (`tls.client_ca_file` : autorité des agents distincte), `auth.cookie_secure: on`,
+  `vulndb.offline: true`.
+- Premier administrateur par `OGSBOM_BOOTSTRAP_ADMIN_*` ; connexion, enrôlement TOTP et
+  changement du mot de passe temporaire pilotés par l'interface (formulaires, jeton CSRF
+  lié à la session, code TOTP calculé), comme un navigateur.
+- **Base Grype réelle importée par l'écran d'administration** : archive tar.gz de la base
+  v6.1.10 du 30 octobre 2026 (618 Mio), téléversée en 21 s, installée par le job
+  `vulndb.import` puis chargée (`/readyz` : `vulndb ok`) en 70 s.
+- Organisation « Parc pilote » (`pilote`), quatre projets de dépôt, un agent dépôt, un jeton
+  d'inscription (3 usages, 24 h), tous créés par l'interface.
+
+#### Parc pilote : résultat
+
+- **Serveurs** : agent installé par son **paquet deb** (Debian) et **rpm** (Rocky), qui
+  créent l'utilisateur `ogsbom-agent` sans systemd ; lancé sous cet utilisateur avec la
+  seule capacité `CAP_DAC_READ_SEARCH` (`setpriv`, comme l'unité), en démon (`poll_interval`
+  30 s). Alpine : binaire et configuration, root, mode `oneshot`. Les trois s'inscrivent
+  en mTLS (certificat client par hôte) et envoient leur SBOM en 3 à 5 s (288 à 392
+  composants : paquets du système et modules Go de l'agent lui-même).
+- **Dépôts** : l'agent dépôt réel (`ogsbom-repo-agent` dans un conteneur `alpine/git`)
+  contre une **forge simulée** locale qui sert l'API de GitHub (JWT RS256 de l'application
+  vérifié, jeton d'installation restreint au dépôt et à `contents: read`) et de GitLab
+  (`Private-Token`), et git HTTP intelligent (`git http-backend`) sur des **clones nus des
+  dépôts publics réels** (`git clone --bare` depuis github.com et gitlab.com par le
+  mandataire), têtes de branche placées aux commits retenus. Premier rattrapage : les
+  quatre SBOM envoyés en 4 s.
+- **Instantanés et analyses** (relus en base par le propriétaire, pas par la recherche) :
+  les sept projets ont un instantané courant daté du 31 octobre 2026 entre 14:48 et 14:51
+  UTC (moins de 24 h) et une analyse par la base du 30 octobre (0 à 711 correspondances).
+- **Scan à la demande** : « Scanner maintenant » sur `pilot-debian` à 14:53:19, cycle
+  « inventaire inchangé, confirmé » à 14:53:26.
+- **mTLS** : sans certificat client, 401 `error.client_cert_required` ; certificat d'une
+  autre autorité, refus à la négociation TLS ; certificat valide et jeton faux, 401
+  `error.token.invalid` ; l'interface reste accessible sans certificat.
+- **Webhooks et push** : webhook GitLab au secret faux refusé (401) ; la branche `master`
+  de `pkg/sftp` avancée au commit `22452ea` (montée de `x/crypto` en 0.17.0), webhook
+  GitHub signé accepté (202), sa relivraison ignorée (200) ; l'agent analyse le commit
+  intermédiaire manqué puis la tête.
+- **Sauvegarde et restauration** : `pg_dump -Fc` par le propriétaire (600 Mio, 71 s),
+  `pg_restore --no-owner --role=…` dans une base neuve (26 s, sans erreur), serveur
+  démarré dessus (schéma à jour, rôle d'exécution accepté : retraits du journal en ajout
+  seul restaurés), connexion et trois recherches identiques. Procédure reportée dans
+  `docs/operations.md`.
+
+#### CVE de contrôle : verdict
+
+Recherche par l'écran (`/o/pilote/search?q=…`, projets des groupes de résultats) et par
+l'API utilisateur (jeton personnel, `GET /api/v1/orgs/pilote/search`), comparée aux listes
+fixées plus haut :
+
+| CVE | Attendu | Écran | API | Occurrences | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| CVE-2023-4911 | `pilot-debian`, `pilot-rocky` | identique | identique | 5 : `libc6`, `libc-bin` 2.36-9 ; `glibc`, `glibc-common`, `glibc-minimal-langpack` 2.34-60.el9 | **exact** |
+| CVE-2023-48795 | `pilot-rocky`, `sftp`, `gitlab-shell` | identique | identique | 4 : `libssh`, `libssh-config` 0.10.4-8.el9 ; `golang.org/x/crypto` v0.1.0 et v0.16.0 | **exact** |
+| CVE-2023-2650 | `pilot-rocky`, `pilot-alpine` | identique | identique | 4 : `openssl`, `openssl-libs` 1:3.0.7-6.el9_2 ; `libcrypto3`, `libssl3` 3.1.0-r4 | **exact** |
+
+Aucun écart, jusqu'au composant près (les occurrences sont exactement les paquets
+identifiés à la main). Après le push de `pkg/sftp` : CVE-2023-48795 et
+GHSA-45x7-px36-x8w8 renvoient `pilot-rocky`, `gitlab-shell` (sftp sorti), à l'écran et par
+l'API ; `pkg:golang/golang.org/x/crypto vers:golang/<0.17.0` renvoie `gitlab-shell` et
+4 occurrences hors plage. Les mêmes résultats sont relus sur la base restaurée.
+
+#### Mesures consolidées
+
+Machine : environnement de réalisation (4 cœurs Xeon 2,8 GHz, 15 Gio), **moins puissante
+que la machine de référence** (16 cœurs, 30 Go) : selon `docs/benchmarks.md`, une cible
+tenue ici vaut pour la référence. Protocole de `docs/benchmarks.md` (RLS active, 95e
+centile, froid et chaud), conteneurs du parc suspendus pendant les mesures.
+
+| Mesure (commande) | Cible | Résultat (p95) | Verdict |
+| --- | --- | --- | --- |
+| Ingestion et analyse de 5 000 composants, vraie base (`make bench-ingest`) | 30 s | **6,61 s** (froid 5,90 s, p50 6,07 s, dont ingestion 0,73 s) | tenue |
+| Recherche, pire cas : page suivante du nom large (`make bench-search`) | 2 s | **344 ms** (nom large 288 ms, vulnérabilité 35 ms, plage 35 ms) | tenue |
+| Export CSV de 16 675 lignes | — | 985 ms | — |
+| Tableau de bord, 12 mois (`make bench`) | 1 s | **663 ms** (90 jours : 626 ms ; fiche projet 34 ms) | tenue |
+| Scan de l'agent serveur, `/` sans `/root`, `/home`, `/tmp` (protocole de T07, `measure`) | 5 min de CPU, 1 Gio | **3 min 8 s de CPU, 921 Mio** au plus sur 6 cycles (médiane 2 min 27 s) | tenue |
+| Scan de l'agent serveur, conteneurs du parc (300 à 400 composants) | idem | 3 à 5 s de bout en bout | tenue |
+
+Les cibles du cahier des charges restent marquées « proposées (à valider) » : leur
+confirmation est une décision de l'utilisateur **[à relire]**. Rien n'a été mesuré sur la
+machine de référence elle-même (facultatif, mêmes commandes).
+
+#### Documentation et préversion
+
+- `docs/operations.md` relu de bout en bout et complété : sommaire, **installation de
+  production** (archive, unité systemd du serveur, fichier d'environnement des secrets,
+  clé TLS par credential, premier administrateur, plusieurs instances), **autorité privée
+  et certificats des agents** (mTLS), agent serveur **sans systemd** (conteneurs, Alpine),
+  **installation de l'agent dépôt**, **recette sur une vraie forge** (procédure pas à pas),
+  **sauvegarde et restauration** (vérifiées), **mise à jour** (ordre, migration,
+  retour arrière), **supervision** (tableau des signaux et règles Prometheus).
+- Guides de démarrage **`docs/demarrage.md`** (français) et **`docs/getting-started.md`**
+  (anglais), reliés depuis le README ; `docs/utilisation.md` reste le guide détaillé de
+  la recherche. Les exemples de requêtes des guides ont été rejoués sur le parc pilote.
+- **`CHANGELOG.md`** (Keep a Changelog, en français) : section `[0.1.0]` par lot
+  technique, liens vers les PR #1 à #16.
+- **`.github/workflows/release.yml`** et **`scripts/release.sh`** (`make release`),
+  **`deploy/systemd/ogsbom-server.service`** (vérifiée par `systemd-analyze verify`),
+  `make bench-ingest` ; ADR 0032. Construction vérifiée en local
+  (`make release VERSION=v0.1.0 RELEASE_DIR=…`, répertoire temporaire) : six archives
+  (trois rôles × amd64, arm64 ; binaire statique, `--version` donne `v0.1.0`, configuration
+  d'exemple et unités), quatre paquets (`ogsbom-host-agent_0.1.0_amd64.deb`…, version
+  `0.1.0`), `SHA256SUMS` vérifié par `sha256sum -c` ; deux constructions donnent des
+  archives identiques octet pour octet (les paquets diffèrent par l'horodatage de nfpm) ;
+  une version mal formée (`0.1`) est refusée. Extraction des notes de version rejouée.
+- `v0.1.0` **non publiée** : le mandataire git de la session refuse les pushs d'étiquettes.
+  Marche à suivre exacte : `specs/avancement.md`, « Actions pour l'utilisateur ».
+
+#### Décisions
+
+- **Parc pilote en conteneurs** plutôt qu'en machines virtuelles, images anciennes
+  épinglées (vulnérabilités connues et corrigées depuis), agents lancés par `setpriv` hors
+  systemd **[à relire]** : la décision de la fiche dit « conteneurs » ; l'unité systemd
+  elle-même a été vérifiée en T07.
+- **Forge simulée** pour les dépôts, servant de vrais clones de dépôts publics : sans
+  GitHub App ni compte GitLab dans la session, c'est le maximum vérifiable ; l'essai sur
+  une vraie forge est une action de l'utilisateur **[à relire]**.
+- **CVE de contrôle** choisies pour couvrir trois distributions, deux forges, un mélange
+  hôte et dépôt, une KEV et un identifiant GHSA ramené au CVE, chaque hôte manquant à au
+  moins une liste **[à relire]**.
+- **Outillage de recette hors dépôt** (forge simulée, client de l'interface, scripts de
+  parc, dans le répertoire temporaire de la session) : code de test non maintenu, qui
+  aurait demandé ses propres tests ; la procédure est décrite ici et dans
+  `docs/operations.md` **[à relire]**.
+- **Cible tenue sur 4 cœurs = tenue sur la référence**, critère coché sur cette base ;
+  l'agent serveur mesuré sur 6 cycles (3 envois, 3 confirmations), pas 20, chaque cycle
+  coûtant 2 à 3 min de CPU : la cible est un plafond par scan, tenu sur chaque cycle avec
+  37 % de marge en CPU et 10 % en mémoire (921 Mio pour 1 Gio) **[à relire]**.
+- **Publication** (ADR 0032) : étiquette sur `main`, préversions seulement jusqu'à T26,
+  archives tar.gz par rôle et architecture avec configuration et unités, paquets deb et
+  rpm, `SHA256SUMS`, notes tirées de `CHANGELOG.md` ; **unité systemd du serveur** ajoutée
+  (`DynamicUser`, secrets par fichier d'environnement) — livrable d'exploitation, pas une
+  fonction **[à relire]**.
+- **Guides de démarrage séparés** (`demarrage.md`, `getting-started.md`) plutôt que dans
+  `utilisation.md` : parcours court, bilingue ; l'usage détaillé reste en français
+  **[à relire]**.
+- `CHANGELOG.md` daté du 31 octobre 2026 ; à ajuster au jour de la pose de l'étiquette
+  **[à relire]**.
+
+#### Écarts
+
+- `v0.1.0` non publiée (action de l'utilisateur) : critère non coché.
+- Agent dépôt non essayé sur une vraie forge (action de l'utilisateur, procédure écrite).
+- Aucun défaut du produit trouvé par la recette : aucun correctif de code.
+- Une base jetable orpheline d'un autre lot (`ogsbom_t_3fc4057fe7b5`, 10:43 UTC) reste sur
+  le PostgreSQL partagé de la session ; non supprimée (elle n'est pas de ce lot).
+
+#### ADR créés
+
+0032.

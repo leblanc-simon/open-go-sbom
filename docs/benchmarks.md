@@ -49,6 +49,7 @@ aucune empreinte.
 
 ```bash
 make bench                         # jeu de référence et lectures des écrans (OGSBOM_BENCH=1)
+OGSBOM_TEST_GRYPEDB_DIR=/chemin/db make bench-ingest   # 5 000 composants, vraie base Grype (T11)
 make bench-search                  # recherche transverse sur le jeu de référence (T09)
 OGSBOM_TEST_GRYPEDB_DIR=/chemin/db make test-grypedb   # vraie base Grype : acceptation et 5 000 composants
 ```
@@ -131,3 +132,49 @@ Enregistrement des statistiques du jour de l'organisation (job `dashboard.stats_
 0,34 s. Environnement de réalisation (4 cœurs, 15 Gio, partagé avec d'autres tests) ;
 cible tenue. Une première version (trois agrégats sur les constats ouverts, familles de
 composants regroupées sans réduction préalable) donnait un p95 de 1,8 s.
+
+### T11 — Mesures consolidées du lot 1
+
+Toutes les mesures rejouées le 31 octobre 2026 sur le même commit, l'une après l'autre,
+sur l'environnement de réalisation (4 cœurs Intel Xeon 2,8 GHz, 15 Gio, PostgreSQL 16.15),
+**moins puissant que la machine de référence** : chaque cible tenue ici vaut pour la
+référence. Les cibles elles-mêmes restent « proposées » au cahier des charges, à confirmer
+par l'utilisateur.
+
+| Mesure | Commande | Cible | Froid | p50 | p95 | Maximum | Verdict |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Ingestion et analyse, 5 000 composants (base v6.1.10 du 30 octobre 2026) | `make bench-ingest` | 30 s | 5,90 s | 6,07 s | **6,61 s** | 6,61 s | tenue |
+| dont ingestion (réception, décodage, rangement) | idem | — | — | — | 0,73 s | — | — |
+| Recherche, nom large `lib-1` (16 675 occurrences, 1 000 projets) | `make bench-search` | 2 s | 316 ms | 185 ms | **288 ms** | 359 ms | tenue |
+| Recherche, page suivante du nom large (pire cas) | idem | 2 s | 269 ms | 179 ms | **344 ms** | 358 ms | tenue |
+| Recherche, nom large filtré | idem | 2 s | 349 ms | 156 ms | 280 ms | 319 ms | tenue |
+| Recherche, vulnérabilité (194 projets) | idem | 2 s | 27 ms | 22 ms | 35 ms | 41 ms | tenue |
+| Recherche, plage `vers` sur lodash | idem | 2 s | 26 ms | 27 ms | 35 ms | 35 ms | tenue |
+| Recherche, empreinte SHA-256 | idem | 2 s | 91 ms | 79 ms | 123 ms | 128 ms | tenue |
+| Export CSV de `lib-1` (16 675 lignes) | idem | — | — | 804 ms | 985 ms | 985 ms | — |
+| Tableau de bord, 90 jours | `make bench` | 1 s | 550 ms | 548 ms | **626 ms** | 633 ms | tenue |
+| Tableau de bord, 12 mois | idem | 1 s | 520 ms | 536 ms | **663 ms** | 797 ms | tenue |
+| Fiche projet, 90 jours | idem | 1 s | 38 ms | 24 ms | 34 ms | 38 ms | tenue |
+
+Lectures des écrans (`make bench`, sans cible) : onglet « Constats » p95 8,2 ms, décomptes
+par référence 1,4 ms, fiche vulnérabilité 16,2 ms, fiche composant 7,3 ms ; statistiques du
+jour 0,33 s.
+
+**Agent serveur** (protocole de T07, `-tags measure -count=3`, binaire réel sous `nobody`
+avec `CAP_DAC_READ_SEARCH`, `max_procs` 1, racine `/` sans `/root`, `/home`, `/tmp`, SBOM
+gzip 3,5 Mio ; cible : 5 min de CPU et 1 Gio par scan) :
+
+| Passage | Cycle | Durée | CPU | Mémoire maximale |
+| --- | --- | --- | --- | --- |
+| 1 | envoi | 3 min 52 s | 3 min 8 s | 787 Mio |
+| 1 | signal de vie | 2 min 46 s | 2 min 43 s | 881 Mio |
+| 2 | envoi | 2 min 37 s | 2 min 33 s | 921 Mio |
+| 2 | signal de vie | 2 min 8 s | 2 min 9 s | 897 Mio |
+| 3 | envoi | 2 min 25 s | 2 min 22 s | 921 Mio |
+| 3 | signal de vie | 2 min 19 s | 2 min 19 s | 859 Mio |
+
+Plafond tenu sur les six cycles : CPU au plus 3 min 8 s (marge 37 %), mémoire au plus
+921 Mio (marge 10 %, la plus serrée des cibles ; elle croît avec le nombre de fichiers
+parcourus, voir T07). Moindre privilège vérifié à chaque passage (sans la capacité, les
+paquets ne sont pas lus). Sur les conteneurs du parc pilote (300 à 400 composants), un
+cycle complet prend 3 à 5 s.

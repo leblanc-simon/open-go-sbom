@@ -53,7 +53,7 @@ sur les choix techniques ; une fiche de lot précise le quoi et le comment d'une
 | [T08](lots/T08-agent-depot.md) | Agent dépôt sans IA et forges | 1 | T05 | Terminé |
 | [T09](lots/T09-recherche.md) | Recherche transverse | 1 | T06 | Terminé |
 | [T10](lots/T10-tableau-de-bord.md) | Tableau de bord d'organisation | 1 | T06 | Terminé |
-| [T11](lots/T11-recette-lot-1.md) | Recette du lot 1 | 1 | T07 à T10 | En cours |
+| [T11](lots/T11-recette-lot-1.md) | Recette du lot 1 | 1 | T07 à T10 | Terminé (v0.1.0 à publier par l'utilisateur) |
 | [T16](lots/T16-equipes-droits.md) | Équipes et droits | 2 | T11 | À faire |
 | [T12](lots/T12-enrichissement-ia.md) | Enrichissement IA de l'agent dépôt | 2 | T16 | À faire |
 | [T13](lots/T13-conteneurs.md) | Conteneurs en projets enfants | 2 | T16 | À faire |
