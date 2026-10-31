@@ -55,7 +55,7 @@ var agentPackages = []string{
 // serverPackages sont réservés au serveur : un agent ne les importe jamais.
 var serverPackages = []string{
 	"internal/account", "internal/agent", "internal/api", "internal/audit", "internal/config",
-	"internal/dashboard", "internal/db", "internal/finding", "internal/ingest",
+	"internal/dashboard", "internal/db", "internal/download", "internal/finding", "internal/ingest",
 	"internal/inventory", "internal/jobs", "internal/locale", "internal/notify", "internal/org",
 	"internal/pagination", "internal/policy", "internal/project", "internal/render",
 	"internal/search", "internal/secret", "internal/team", "internal/tenant",
