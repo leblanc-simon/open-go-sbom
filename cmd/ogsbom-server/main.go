@@ -100,10 +100,15 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	if err != nil {
 		return fmt.Errorf("secrets.keys : %w", err)
 	}
+	if cfg.Auth.CookieSecure != "on" {
+		logger.Warn("auth.cookie_secure n'est pas « on » : cookies sans préfixe __Host-, et sans Secure hors HTTPS détecté ; réservé au développement",
+			"cookie_secure", cfg.Auth.CookieSecure)
+	}
 	accounts := account.NewService(pool, cfg.Auth.BcryptCost)
 	b := cfg.Bootstrap
 	if err := accounts.Startup(ctx, account.StartupOptions{
 		AdminEmail: b.AdminEmail, AdminPassword: b.AdminPassword, RescueEmail: b.RescueEmail, RescueTicket: b.RescueTicket,
+		RescuePassword: b.RescuePassword,
 	}, pool, box, logger); err != nil {
 		return err
 	}
@@ -182,6 +187,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Auth:           cfg.Auth,
 			MFA:            cfg.MFA,
 			LoginRateLimit: cfg.Login.RateLimit,
+			SessionMaxAge:  cfg.Login.SessionMaxAge,
 		},
 		AgentAPI: &api.AgentOptions{
 			Agents:           agents,

@@ -180,6 +180,7 @@ login:
     title: Connexion refusée
     invalid_credentials: Adresse e-mail ou mot de passe incorrect.
     attempts_exhausted: Trop de codes incorrects. Reprenez la connexion depuis le début.
+    locked: "Trop de codes incorrects pour ce compte : il est verrouillé pour un temps. Réessayez plus tard ou adressez-vous à un administrateur de l'instance."
 
 verify:
   title: Code de vérification
@@ -232,6 +233,7 @@ password:
   new: Nouveau mot de passe
   rule: "{{.Min}} caractères au moins, sans autre règle : une phrase de passe convient très bien."
   confirm: Confirmation du nouveau mot de passe
+  revoke_tokens: Révoquer aussi mes jetons d'accès personnels
   submit: Changer de mot de passe
 
 org:
@@ -356,6 +358,7 @@ audit:
     account_settings_changed: "Préférences de {{.Target}} modifiées"
     account_bootstrapped: "Premier administrateur {{.Target}} créé au démarrage"
     account_rescue_totp_reset: "Procédure de secours : TOTP de {{.Target}} réinitialisé (ticket {{.D_ticket}})"
+    account_locked: "Compte {{.Target}} verrouillé après trop de codes TOTP incorrects (jusqu'à {{.D_until}})"
     org_created: "Organisation {{.Target}} créée"
     org_renamed: "Organisation renommée de « {{.D_from}} » en « {{.D_to}} »"
     org_language_changed: "Langue par défaut de l'organisation : {{.D_from}} → {{.D_to}}"
@@ -439,6 +442,7 @@ admin_password:
   title: Mot de passe temporaire
   created_heading: Compte créé
   reset_heading: Mot de passe réinitialisé
+  totp_reset_heading: TOTP et mot de passe réinitialisés
   lead: "Mot de passe temporaire de {{.Email}}."
   once_title: Affiché une seule fois
   once_text: Notez-le maintenant et transmettez-le au titulaire par un canal sûr ; il ne sera plus jamais affiché.
@@ -559,6 +563,9 @@ error:
     account_inactive:
       title: Compte désactivé
       text: Le compte propriétaire de ce jeton est désactivé ; ses jetons sont refusés.
+    account_pending:
+      title: Identifiants à renouveler
+      text: Le compte propriétaire de ce jeton doit changer son mot de passe temporaire ou enrôler un second facteur ; ses jetons sont refusés jusque-là.
     invalid:
       title: Jeton refusé
       text: "Le jeton présenté est absent, mal formé ou inconnu. Vérifiez qu'il est complet (ogsbom_agt_…, ogsbom_enr_… ou ogsbom_pat_…) et qu'il convient à cette opération."
@@ -1336,3 +1343,8 @@ tokens:
   expiry_90: 90 jours
   expiry_180: 180 jours
   expiry_365: 1 an
+  code: Code TOTP
+  code_hint: "Confirmez la création par le code de votre application d'authentification : un jeton dure jusqu'à un an."
+  error:
+    invalid_code: Ce code est incorrect, expiré ou déjà utilisé.
+    locked: "Trop de codes incorrects : le compte est verrouillé pour un temps, réessayez plus tard."

@@ -180,6 +180,7 @@ login:
     title: Sign-in refused
     invalid_credentials: Incorrect e-mail address or password.
     attempts_exhausted: Too many incorrect codes. Start the sign-in again.
+    locked: Too many incorrect codes for this account, which is locked for a while. Try again later or contact an instance administrator.
 
 verify:
   title: Verification code
@@ -232,6 +233,7 @@ password:
   new: New password
   rule: "At least {{.Min}} characters, no other rule: a passphrase works very well."
   confirm: Confirm the new password
+  revoke_tokens: Also revoke my personal access tokens
   submit: Change password
 
 org:
@@ -356,6 +358,7 @@ audit:
     account_settings_changed: "Preferences of {{.Target}} changed"
     account_bootstrapped: "First administrator {{.Target}} created at startup"
     account_rescue_totp_reset: "Rescue procedure: TOTP of {{.Target}} reset (ticket {{.D_ticket}})"
+    account_locked: "Account {{.Target}} locked after too many incorrect TOTP codes (until {{.D_until}})"
     org_created: "Organization {{.Target}} created"
     org_renamed: "Organization renamed from “{{.D_from}}” to “{{.D_to}}”"
     org_language_changed: "Organization default language: {{.D_from}} → {{.D_to}}"
@@ -439,6 +442,7 @@ admin_password:
   title: Temporary password
   created_heading: Account created
   reset_heading: Password reset
+  totp_reset_heading: TOTP and password reset
   lead: "Temporary password of {{.Email}}."
   once_title: Shown only once
   once_text: Write it down now and give it to its holder through a safe channel; it will never be shown again.
@@ -556,6 +560,9 @@ error:
     title: Authentication required
     text: This address requires a valid token.
   token:
+    account_pending:
+      title: Credentials to renew
+      text: The account owning this token must change its temporary password or enroll a second factor; its tokens are refused until then.
     account_inactive:
       title: Account deactivated
       text: The account that owns this token is deactivated; its tokens are refused.
@@ -1336,3 +1343,8 @@ tokens:
   expiry_90: 90 days
   expiry_180: 180 days
   expiry_365: 1 year
+  code: TOTP code
+  code_hint: "Confirm the creation with the code of your authenticator app: a token lasts up to one year."
+  error:
+    invalid_code: This code is incorrect, expired or already used.
+    locked: "Too many incorrect codes: the account is locked for a while, try again later."

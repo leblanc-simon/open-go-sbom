@@ -44,6 +44,9 @@ const (
 	KeyTokenRevoked  = "error.token.revoked"
 	KeyTokenExpired  = "error.token.expired"
 	KeyAccountClosed = "error.token.account_inactive"
+	// KeyAccountPending : le compte doit changer son mot de passe temporaire ou enrôler un
+	// second facteur ; ses jetons attendent.
+	KeyAccountPending = "error.token.account_pending"
 )
 
 // TokenError est le refus d'un jeton personnel. Tant que le secret n'est pas vérifié, la
@@ -191,6 +194,40 @@ func (s *Service) PersonalTokens(ctx context.Context, userID int64) ([]PersonalT
 // ErrTokenNotFound : aucun jeton de ce compte ne porte cet identifiant.
 var ErrTokenNotFound = errors.New("account: jeton personnel inconnu")
 
+// revokePersonalTokens révoque d'office tous les jetons actifs de userID, dans la
+// transaction d'une réinitialisation ou d'un changement de mot de passe, avec une entrée
+// d'audit par jeton (reason : la cause).
+func revokePersonalTokens(ctx context.Context, tx *db.Tx, actor audit.Actor, userID int64, reason string) error {
+	at := now()
+	rows, err := tx.QueryContext(ctx, `UPDATE personal_access_tokens SET revoked_at = $2
+		WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > $2
+		RETURNING `+personalTokenColumns, userID, at)
+	if err != nil {
+		return err
+	}
+	var revoked []PersonalToken
+	for rows.Next() {
+		t, err := scanPersonalToken(rows)
+		if err != nil {
+			rows.Close()
+			return err
+		}
+		revoked = append(revoked, t)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, t := range revoked {
+		ev := tokenEvent(audit.PersonalTokenRevoked, t)
+		ev.Details["reason"] = reason
+		if err := audit.RecordInstance(ctx, tx, actor, ev); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // RevokePersonalToken révoque le jeton id de userID, avec effet immédiat. Révoquer un jeton
 // déjà révoqué ne change rien.
 func (s *Service) RevokePersonalToken(ctx context.Context, actor audit.Actor, userID int64, id uuid.UUID) error {
@@ -215,7 +252,9 @@ func (s *Service) RevokePersonalToken(ctx context.Context, actor audit.Actor, us
 }
 
 // AuthenticateToken vérifie un jeton personnel présenté à l'API : forme, secret (temps
-// constant), révocation, expiration, compte actif. Un refus est une *TokenError ; le
+// constant), révocation, expiration, compte actif, et compte sans mot de passe temporaire
+// ni second facteur manquant (un compte réinitialisé n'a plus de jeton actif, mais la
+// règle tient même si l'un échappait à la révocation). Un refus est une *TokenError ; le
 // jeton n'est jamais journalisé.
 func (s *Service) AuthenticateToken(ctx context.Context, raw string) (TokenPrincipal, error) {
 	publicID, hash, err := token.Parse(token.Personal, raw)
@@ -227,11 +266,13 @@ func (s *Service) AuthenticateToken(ctx context.Context, raw string) (TokenPrinc
 		var stored []byte
 		var expires time.Time
 		var used, revoked sql.NullTime
-		var active int
+		var active, mustChange, totp int
 		err := tx.QueryRowContext(ctx, `SELECT t.id, t.user_id, t.secret_hash, t.expires_at, t.last_used_at, t.revoked_at,
-			       u.email, u.is_active
-			  FROM personal_access_tokens t JOIN users u ON u.id = t.user_id WHERE t.public_id = $1`, publicID).
-			Scan(&p.TokenID, &p.UserID, &stored, &expires, &used, &revoked, &p.Email, &active)
+			       u.email, u.is_active, u.must_change_pwd, coalesce(m.enabled, 0)
+			  FROM personal_access_tokens t JOIN users u ON u.id = t.user_id
+			  LEFT JOIN mfa_totp m ON m.user_id = t.user_id
+			 WHERE t.public_id = $1`, publicID).
+			Scan(&p.TokenID, &p.UserID, &stored, &expires, &used, &revoked, &p.Email, &active, &mustChange, &totp)
 		if errors.Is(err, sql.ErrNoRows) {
 			return errTokenInvalid
 		}
@@ -249,6 +290,8 @@ func (s *Service) AuthenticateToken(ctx context.Context, raw string) (TokenPrinc
 			return &TokenError{Key: KeyTokenExpired}
 		case active != 1:
 			return &TokenError{Key: KeyAccountClosed}
+		case mustChange != 0 || totp != 1:
+			return &TokenError{Key: KeyAccountPending}
 		}
 		p.PublicID = publicID
 		if !used.Valid || at.Sub(used.Time) >= tokenTouchEvery {
@@ -268,5 +311,5 @@ func (s *Service) AuthenticateToken(ctx context.Context, raw string) (TokenPrinc
 
 // TokenErrorKeys liste les clés de refus des jetons personnels (tests de traduction).
 func TokenErrorKeys() []string {
-	return []string{KeyTokenInvalid, KeyTokenRevoked, KeyTokenExpired, KeyAccountClosed, KeyTokenLimit}
+	return []string{KeyTokenInvalid, KeyTokenRevoked, KeyTokenExpired, KeyAccountClosed, KeyAccountPending, KeyTokenLimit}
 }

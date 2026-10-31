@@ -156,13 +156,6 @@ func (b *browser) upload(parts ...uploadPart) page {
 	return b.do(req)
 }
 
-func (b *browser) csrf() string {
-	if b.cookie("csrf_token") == "" {
-		b.get("/login")
-	}
-	return b.cookie("csrf_token")
-}
-
 // TestVulnDBImportScreen : téléversement en flux réservé aux administrateurs, jeton CSRF en
 // tête exigé, borne de taille, un seul import à la fois, installation par le job, état
 // affiché.

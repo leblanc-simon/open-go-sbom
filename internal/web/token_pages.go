@@ -4,10 +4,13 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+
+	"leblanc.io/open-go-base/mfax"
 
 	"leblanc.io/open-go-sbom/internal/account"
 	"leblanc.io/open-go-sbom/internal/render"
@@ -76,7 +79,9 @@ func (id *identity) personalTokens(w http.ResponseWriter, r *http.Request) {
 }
 
 // createPersonalToken tire un jeton ; son secret n'est montré que dans cette réponse
-// (pas de redirection, page non mise en cache).
+// (pas de redirection, page non mise en cache). Un jeton dure jusqu'à un an : sa création
+// exige un code TOTP (réauthentification), pour qu'une session volée un instant ne
+// devienne pas un accès durable. Les codes faux comptent dans le verrouillage du compte.
 func (id *identity) createPersonalToken(w http.ResponseWriter, r *http.Request) {
 	if !id.parseForm(w, r) {
 		return
@@ -84,11 +89,26 @@ func (id *identity) createPersonalToken(w http.ResponseWriter, r *http.Request) 
 	v := viewerFrom(r)
 	name := r.PostForm.Get("name")
 	days := atoiDefault(r.PostForm.Get("expires_in"), -1)
+	refuse := func(fe formError) {
+		id.renderTokens(w, r, http.StatusUnprocessableEntity, &personalTokensView{Name: name, Error: fe,
+			Lifetimes: personalTokenLifetimes(days)})
+	}
+	ok, err := id.mfa.Confirm(r, v.user, strings.TrimSpace(r.PostForm.Get("code")))
+	switch {
+	case errors.Is(err, mfax.ErrLocked):
+		refuse(formError{Field: "code", Key: "tokens.error.locked"})
+		return
+	case err != nil:
+		id.serverError(w, r, err)
+		return
+	case !ok:
+		refuse(formError{Field: "code", Key: "tokens.error.invalid_code"})
+		return
+	}
 	t, issued, err := id.Accounts.CreatePersonalToken(r.Context(), id.actor(r), v.user.ID, name, days)
 	if err != nil {
 		if fe, ok := validationOf(err); ok {
-			id.renderTokens(w, r, http.StatusUnprocessableEntity, &personalTokensView{Name: name, Error: fe,
-				Lifetimes: personalTokenLifetimes(days)})
+			refuse(fe)
 			return
 		}
 		id.serverError(w, r, err)

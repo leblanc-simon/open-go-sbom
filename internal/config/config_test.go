@@ -39,7 +39,8 @@ func valid() Config {
 	c.Secrets = Secrets{Keys: map[string]string{"k1": base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{1}, 32))}, ActiveKey: "k1"}
 	c.Auth.SessionTTL, c.Auth.CookieSecure, c.Auth.BcryptCost = time.Hour, "auto", 12
 	c.MFA.ChallengeTTL, c.MFA.MaxAttempts = time.Minute, 5
-	c.Login.RateLimit = 10
+	c.MFA.LockoutThreshold, c.MFA.LockoutWindow, c.MFA.LockoutDuration, c.MFA.LockoutMaxDuration = 10, 15*time.Minute, 15*time.Minute, 24*time.Hour
+	c.Login.RateLimit, c.Login.SessionMaxAge = 10, 168*time.Hour
 	c.AgentAPI = AgentAPI{RateLimit: 120, FailureRateLimit: 30}
 	c.UserAPI = UserAPI{RateLimit: 60, FailureRateLimit: 30, ExportTimeout: 5 * time.Minute, MaxExports: 4}
 	c.Workers = Workers{Enabled: true, Concurrency: 4, PollInterval: time.Second, Lease: 30 * time.Second,
@@ -192,7 +193,13 @@ func TestValidate(t *testing.T) {
 		{"émetteur TOTP", "mfa.issuer", func(c *Config) { c.MFA.Issuer = "" }},
 		{"durée du défi", "mfa.challenge_ttl", func(c *Config) { c.MFA.ChallengeTTL = 0 }},
 		{"tentatives TOTP", "mfa.max_attempts", func(c *Config) { c.MFA.MaxAttempts = 0 }},
+		{"seuil de verrouillage", "mfa.lockout_threshold", func(c *Config) { c.MFA.LockoutThreshold = 0 }},
+		{"fenêtre de verrouillage", "mfa.lockout_window", func(c *Config) { c.MFA.LockoutWindow = 0 }},
+		{"durée de verrouillage", "mfa.lockout_duration", func(c *Config) { c.MFA.LockoutDuration = 0 }},
+		{"plafond de verrouillage", "mfa.lockout_max_duration", func(c *Config) { c.MFA.LockoutMaxDuration = time.Minute }},
 		{"limite de connexion", "login.rate_limit", func(c *Config) { c.Login.RateLimit = -1 }},
+		{"durée absolue négative", "login.session_max_age", func(c *Config) { c.Login.SessionMaxAge = -1 }},
+		{"durée absolue sous la durée glissante", "login.session_max_age", func(c *Config) { c.Login.SessionMaxAge = time.Minute }},
 		{"limite de l'API des agents", "agent_api.rate_limit", func(c *Config) { c.AgentAPI.RateLimit = -1 }},
 		{"limite des jetons refusés", "agent_api.failure_rate_limit", func(c *Config) { c.AgentAPI.FailureRateLimit = -1 }},
 		{"limite de l'API utilisateur", "user_api.rate_limit", func(c *Config) { c.UserAPI.RateLimit = -1 }},
@@ -207,11 +214,17 @@ func TestValidate(t *testing.T) {
 			c.Bootstrap.AdminEmail, c.Bootstrap.AdminPassword = "a@example.org", "court"
 		}},
 		{"secours sans ticket", "bootstrap.rescue_ticket", func(c *Config) { c.Bootstrap.RescueEmail = "a@example.org" }},
+		{"secours sans mot de passe", "bootstrap.rescue_ticket", func(c *Config) {
+			c.Bootstrap.RescueEmail, c.Bootstrap.RescueTicket = "a@example.org", "INC-2026-1031"
+		}},
 		{"secours ticket court", "bootstrap.rescue_ticket", func(c *Config) {
-			c.Bootstrap.RescueEmail, c.Bootstrap.RescueTicket = "a@example.org", "court"
+			c.Bootstrap.RescueEmail, c.Bootstrap.RescueTicket, c.Bootstrap.RescuePassword = "a@example.org", "court", "mot de passe de secours"
 		}},
 		{"secours e-mail invalide", "bootstrap.rescue_totp_email", func(c *Config) {
-			c.Bootstrap.RescueEmail, c.Bootstrap.RescueTicket = "x", "INC-2026-1031"
+			c.Bootstrap.RescueEmail, c.Bootstrap.RescueTicket, c.Bootstrap.RescuePassword = "x", "INC-2026-1031", "mot de passe de secours"
+		}},
+		{"secours mot de passe court", "bootstrap.rescue_password", func(c *Config) {
+			c.Bootstrap.RescueEmail, c.Bootstrap.RescueTicket, c.Bootstrap.RescuePassword = "a@example.org", "INC-2026-1031", "court"
 		}},
 		{"workers", "workers.concurrency (OGSBOM_WORKERS_CONCURRENCY)", func(c *Config) { c.Workers.Concurrency = 0 }},
 		{"attente des workers", "workers.poll_interval", func(c *Config) { c.Workers.PollInterval = 0 }},

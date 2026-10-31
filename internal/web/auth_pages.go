@@ -37,6 +37,8 @@ func (a authRenderer) RenderLogin(w http.ResponseWriter, r *http.Request, v auth
 		a.record(r, audit.Event{Action: audit.LoginFailed, TargetType: "account", TargetLabel: v.Email})
 	case r.URL.Query().Get("err") == string(mfax.CodeAttemptsExhausted):
 		view.ErrorKey = "login.error.attempts_exhausted"
+	case r.URL.Query().Get("err") == string(mfax.CodeLocked):
+		view.ErrorKey = "login.error.locked"
 	}
 	a.id.rd.Render(w, r, status, "auth/login", view)
 }
@@ -61,7 +63,7 @@ func (a authRenderer) RenderVerify(w http.ResponseWriter, r *http.Request, v mfa
 	if v.Code == mfax.CodeInvalidCode {
 		view.ErrorKey, status = "verify.error.invalid_code", http.StatusUnauthorized
 		ev := audit.Event{Action: audit.TOTPFailed, TargetType: "account"}
-		if c, err := r.Cookie(mfax.ChallengeCookieName); err == nil {
+		if c, err := r.Cookie(a.id.mfa.ChallengeCookieName()); err == nil {
 			if ch, err := a.id.challenges.Get(c.Value); err == nil {
 				ev.TargetID = strconv.FormatInt(ch.UserID, 10)
 				if u, err := a.id.Accounts.Get(r.Context(), ch.UserID); err == nil {

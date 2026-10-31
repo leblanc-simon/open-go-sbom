@@ -11,10 +11,11 @@ import (
 
 // StartupOptions reprend le fragment bootstrap de la configuration.
 type StartupOptions struct {
-	AdminEmail    string
-	AdminPassword string
-	RescueEmail   string
-	RescueTicket  string
+	AdminEmail     string
+	AdminPassword  string
+	RescueEmail    string
+	RescueTicket   string
+	RescuePassword string
 }
 
 // Startup applique au démarrage du serveur le premier administrateur, la procédure de
@@ -37,14 +38,14 @@ func (s *Service) Startup(ctx context.Context, o StartupOptions, pool *db.Pool, 
 		logger.Warn("aucun administrateur d'instance actif : bootstrap.* sur une base vide, sinon procédure de docs/operations.md")
 	}
 	if o.RescueEmail != "" {
-		applied, err := s.RescueTOTP(ctx, o.RescueEmail, o.RescueTicket)
+		applied, err := s.RescueTOTP(ctx, o.RescueEmail, o.RescueTicket, o.RescuePassword)
 		if err != nil {
 			return fmt.Errorf("bootstrap.rescue_totp_email : %w", err)
 		}
 		if applied {
-			logger.Warn("procédure de secours appliquée, TOTP réinitialisé : retirer bootstrap.rescue_totp_email et bootstrap.rescue_ticket", "ticket", o.RescueTicket)
+			logger.Warn("procédure de secours appliquée, TOTP et mot de passe réinitialisés : retirer bootstrap.rescue_totp_email, bootstrap.rescue_ticket et bootstrap.rescue_password", "ticket", o.RescueTicket)
 		} else {
-			logger.Warn("procédure de secours déjà appliquée pour ce ticket : retirer bootstrap.rescue_totp_email et bootstrap.rescue_ticket", "ticket", o.RescueTicket)
+			logger.Warn("procédure de secours déjà appliquée pour ce ticket : retirer bootstrap.rescue_totp_email, bootstrap.rescue_ticket et bootstrap.rescue_password", "ticket", o.RescueTicket)
 		}
 	}
 	n, err := RotateTOTPSecrets(ctx, pool, box)

@@ -25,6 +25,7 @@ import (
 
 	"leblanc.io/open-go-base/appconf"
 	"leblanc.io/open-go-base/authx"
+	"leblanc.io/open-go-base/csrfx"
 
 	"leblanc.io/open-go-sbom/internal/account"
 	"leblanc.io/open-go-sbom/internal/agent"
@@ -257,16 +258,39 @@ func (b *browser) cookie(name string) string {
 	return ""
 }
 
-// post envoie un formulaire avec le jeton CSRF (obtenu au besoin par une page publique).
-func (b *browser) post(path string, form url.Values) page {
+// csrf renvoie le jeton CSRF que le serveur attend de ce navigateur : lié à la session
+// (csrfx.WithSessionBinding), il se calcule par csrfx lui-même à partir des cookies
+// CSRF et de session. Le cookie CSRF s'obtient au besoin par une page publique.
+func (b *browser) csrf() string {
 	b.t.Helper()
 	if b.cookie("csrf_token") == "" {
 		b.get("/login")
 	}
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.AddCookie(&http.Cookie{Name: "csrf_token", Value: b.cookie("csrf_token")})
+	if s := b.cookie("ogsbom_session"); s != "" {
+		req.AddCookie(&http.Cookie{Name: "ogsbom_session", Value: s})
+	}
+	session := func(r *http.Request) string {
+		if c, err := r.Cookie("ogsbom_session"); err == nil {
+			return c.Value
+		}
+		return ""
+	}
+	var token string
+	csrfx.New(csrfx.WithSessionBinding(session)).Middleware(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		token = csrfx.Token(r)
+	})).ServeHTTP(httptest.NewRecorder(), req)
+	return token
+}
+
+// post envoie un formulaire avec le jeton CSRF.
+func (b *browser) post(path string, form url.Values) page {
+	b.t.Helper()
 	if form == nil {
 		form = url.Values{}
 	}
-	form.Set("csrf_token", b.cookie("csrf_token"))
+	form.Set("csrf_token", b.csrf())
 	req, err := http.NewRequest(http.MethodPost, b.app.srv.URL+path, strings.NewReader(form.Encode()))
 	if err != nil {
 		b.t.Fatal(err)

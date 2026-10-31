@@ -82,7 +82,11 @@ secrets:
 auth:
   session_ttl: 12h       # durée glissante d'une session
   cookie_name: ogsbom_session
-  cookie_secure: auto    # auto (Secure en HTTPS) | on | off
+  # on en production : cookies Secure et préfixés __Host- (__Host-ogsbom_session,
+  # __Host-csrf_token, __Host-mfa_challenge), qu'aucun sous-domaine ne peut écraser. Les
+  # navigateurs acceptent les cookies Secure sur http://localhost ; auto (Secure en HTTPS,
+  # sans préfixe) ou off pour un autre accès en clair (développement seulement).
+  cookie_secure: on
   bcrypt_cost: 12        # coût bcrypt des mots de passe (10 à 31)
 
 # Second facteur TOTP (mfax), obligatoire pour tout compte local.
@@ -90,10 +94,21 @@ mfa:
   issuer: open-go-sbom   # nom affiché dans l'application d'authentification
   challenge_ttl: 10m     # délai pour saisir le code après le mot de passe
   max_attempts: 5        # codes faux tolérés avant de reprendre au mot de passe
+  # Verrouillage par compte, tous défis confondus (un nouveau défi s'obtient en rejouant le
+  # mot de passe) : au-delà de lockout_threshold codes faux dans lockout_window, le compte
+  # est verrouillé lockout_duration, durée doublée à chaque récidive jusqu'à
+  # lockout_max_duration. Un code juste, ou la réinitialisation du TOTP, le lève.
+  lockout_threshold: 10
+  lockout_window: 15m
+  lockout_duration: 15m
+  lockout_max_duration: 24h
 
-# Connexion : tentatives (POST /login et /login/2fa) par minute et par IP.
+# Connexion : tentatives (POST /login et /login/2fa) par minute et par IP (une IPv6 compte
+# pour son /64), et durée absolue d'une session depuis la connexion (0 : sans), dans
+# laquelle auth.session_ttl glisse.
 login:
   rate_limit: 10
+  session_max_age: 168h
 
 # API des agents (/api/v1/agent/*) : requêtes par minute et par jeton, et jetons refusés
 # par minute et par IP (0 : sans limite). Au-delà, la réponse est 429 avec Retry-After.
@@ -118,10 +133,13 @@ bootstrap:
   # l'enrôlement du TOTP. Préférer OGSBOM_BOOTSTRAP_ADMIN_PASSWORD au fichier.
   admin_email: ""
   admin_password: ""
-  # Procédure de secours : retire au démarrage le TOTP de cet administrateur d'instance
-  # (audité), une seule fois par ticket (référence d'incident, 8 caractères au moins).
+  # Procédure de secours : retire au démarrage le TOTP de cet administrateur d'instance et
+  # lui impose rescue_password comme mot de passe temporaire (audité), une seule fois par
+  # ticket (référence d'incident, 8 caractères au moins). Préférer
+  # OGSBOM_BOOTSTRAP_RESCUE_PASSWORD au fichier.
   rescue_totp_email: ""
   rescue_ticket: ""
+  rescue_password: ""
 
 # File de traitements (ingestion, analyses, échéances) : voir docs/operations.md,
 # « Traitements ». Plusieurs instances se partagent la file en base.

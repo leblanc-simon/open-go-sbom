@@ -324,20 +324,49 @@ func (s *Service) SetAdmin(ctx context.Context, actor audit.Actor, id int64, adm
 	})
 }
 
+// Raisons de révocation d'office des jetons personnels, notées au journal d'audit.
+const (
+	revokedPasswordReset   = "password_reset"
+	revokedTOTPReset       = "totp_reset"
+	revokedPasswordChanged = "password_changed"
+)
+
 // ResetPassword remplace le mot de passe d'un compte par un mot de passe temporaire (à
-// changer à la connexion suivante), ferme ses sessions et renvoie le mot de passe.
+// changer à la connexion suivante), ferme ses sessions, révoque ses jetons personnels et
+// renvoie le mot de passe. La réinitialisation est un geste de remédiation : rien de ce
+// qu'une session volée a pu obtenir ne doit lui survivre.
 func (s *Service) ResetPassword(ctx context.Context, actor audit.Actor, id int64) (string, error) {
+	return s.resetCredentials(ctx, actor, id, false)
+}
+
+// ResetTOTP retire le second facteur d'un compte et, comme ResetPassword, lui impose un
+// mot de passe temporaire, ferme ses sessions et révoque ses jetons personnels ; il
+// renvoie le mot de passe. Sans nouveau mot de passe, quiconque connaît l'ancien
+// enrôlerait son propre TOTP avant le titulaire (ADR 0029).
+func (s *Service) ResetTOTP(ctx context.Context, actor audit.Actor, id int64) (string, error) {
+	return s.resetCredentials(ctx, actor, id, true)
+}
+
+func (s *Service) resetCredentials(ctx context.Context, actor audit.Actor, id int64, totp bool) (string, error) {
 	password := GeneratePassword()
 	hash, err := authx.HashPassword(password, s.bcryptCost)
 	if err != nil {
 		return "", fmt.Errorf("account: hachage : %w", err)
 	}
 	err = s.update(ctx, actor, id, func(tx *db.Tx, u User) (audit.Event, error) {
-		if _, err := tx.ExecContext(ctx,
-			`UPDATE users SET password_hash = $1, must_change_pwd = 1 WHERE id = $2`, hash, u.ID); err != nil {
+		if err := setTemporaryPassword(ctx, tx, u.ID, hash); err != nil {
 			return audit.Event{}, err
 		}
+		if totp {
+			if err := resetTOTP(ctx, tx, actor, u.ID); err != nil {
+				return audit.Event{}, err
+			}
+			return event(audit.AccountTOTPReset, u, nil), nil
+		}
 		if err := deleteSessions(ctx, tx, u.ID, ""); err != nil {
+			return audit.Event{}, err
+		}
+		if err := revokePersonalTokens(ctx, tx, actor, u.ID, revokedPasswordReset); err != nil {
 			return audit.Event{}, err
 		}
 		return event(audit.AccountPasswordReset, u, nil), nil
@@ -348,31 +377,35 @@ func (s *Service) ResetPassword(ctx context.Context, actor audit.Actor, id int64
 	return password, nil
 }
 
-// ResetTOTP retire le second facteur d'un compte et ferme ses sessions : il enrôlera un
-// nouveau TOTP à sa prochaine connexion.
-func (s *Service) ResetTOTP(ctx context.Context, actor audit.Actor, id int64) error {
-	return s.update(ctx, actor, id, func(tx *db.Tx, u User) (audit.Event, error) {
-		if err := resetTOTP(ctx, tx, u.ID); err != nil {
-			return audit.Event{}, err
-		}
-		return event(audit.AccountTOTPReset, u, nil), nil
-	})
+func setTemporaryPassword(ctx context.Context, tx *db.Tx, userID int64, hash string) error {
+	_, err := tx.ExecContext(ctx, `UPDATE users SET password_hash = $1, must_change_pwd = 1 WHERE id = $2`, hash, userID)
+	return err
 }
 
-func resetTOTP(ctx context.Context, tx *db.Tx, userID int64) error {
-	if _, err := tx.ExecContext(ctx, `DELETE FROM mfa_totp WHERE user_id = $1`, userID); err != nil {
+// resetTOTP retire le second facteur de userID (secret, défis, verrouillage), ferme ses
+// sessions et révoque ses jetons personnels. L'appelant impose aussi un nouveau mot de
+// passe.
+func resetTOTP(ctx context.Context, tx *db.Tx, actor audit.Actor, userID int64) error {
+	for _, q := range []string{
+		`DELETE FROM mfa_totp WHERE user_id = $1`,
+		`DELETE FROM mfa_challenges WHERE user_id = $1`,
+		`DELETE FROM mfa_lockouts WHERE user_id = $1`,
+	} {
+		if _, err := tx.ExecContext(ctx, q, userID); err != nil {
+			return err
+		}
+	}
+	if err := deleteSessions(ctx, tx, userID, ""); err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM mfa_challenges WHERE user_id = $1`, userID); err != nil {
-		return err
-	}
-	return deleteSessions(ctx, tx, userID, "")
+	return revokePersonalTokens(ctx, tx, actor, userID, revokedTOTPReset)
 }
 
 // ChangePassword change le mot de passe d'un compte après vérification de l'actuel, lève
 // must_change_pwd et ferme ses autres sessions (keepToken est le jeton de la session
-// courante, conservée).
-func (s *Service) ChangePassword(ctx context.Context, actor audit.Actor, id int64, current, next, confirm, keepToken string) error {
+// courante, conservée). revokeTokens révoque aussi ses jetons personnels (choix proposé
+// coché : changer de mot de passe après une compromission doit tout couper).
+func (s *Service) ChangePassword(ctx context.Context, actor audit.Actor, id int64, current, next, confirm, keepToken string, revokeTokens bool) error {
 	if next != confirm {
 		return &ValidationError{Field: "confirm", Key: KeyPasswordMismatch}
 	}
@@ -409,6 +442,11 @@ func (s *Service) ChangePassword(ctx context.Context, actor audit.Actor, id int6
 		}
 		if err := deleteSessions(ctx, tx, u.ID, keepToken); err != nil {
 			return audit.Event{}, err
+		}
+		if revokeTokens {
+			if err := revokePersonalTokens(ctx, tx, actor, u.ID, revokedPasswordChanged); err != nil {
+				return audit.Event{}, err
+			}
 		}
 		return event(audit.AccountPasswordChanged, u, nil), nil
 	})

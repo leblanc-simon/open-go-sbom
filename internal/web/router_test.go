@@ -216,6 +216,87 @@ func TestErrorPagesCarrySecurityHeaders(t *testing.T) {
 	}
 }
 
+// TestRateLimitGroupsIPv6By64 : une IPv6 compte pour son /64 (SEC-01) ; une IPv4 et un
+// autre /64 gardent leur compteur.
+func TestRateLimitGroupsIPv6By64(t *testing.T) {
+	f := newFixture(t, func(o *RouterOptions) { o.RateLimit = 2 })
+	from := func(addr string) int {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.RemoteAddr = addr
+		return f.do(req).Code
+	}
+	for i, addr := range []string{"[2001:db8:1:2::1]:4000", "[2001:db8:1:2:ffff::9]:4000"} {
+		if c := from(addr); c != http.StatusOK {
+			t.Fatalf("requête %d : %d", i+1, c)
+		}
+	}
+	if c := from("[2001:db8:1:2:abcd::42]:4000"); c != http.StatusTooManyRequests {
+		t.Fatalf("troisième adresse du même /64 : %d, attendu 429", c)
+	}
+	for _, addr := range []string{"[2001:db8:1:3::1]:4000", "192.0.2.10:4000", "192.0.2.11:4000"} {
+		if c := from(addr); c != http.StatusOK {
+			t.Errorf("%s limitée avec le /64 voisin : %d", addr, c)
+		}
+	}
+}
+
+func TestClientNetwork(t *testing.T) {
+	key := func(ip string) string {
+		return clientNetwork(func(*http.Request) string { return ip })(httptest.NewRequest(http.MethodGet, "/", nil))
+	}
+	for ip, want := range map[string]string{
+		"2001:db8:1:2:3:4:5:6": "net6:2001:db8:1:2::/64",
+		"fe80::1%eth0":         "net6:fe80::/64",
+		"192.0.2.1":            "",
+		"::ffff:192.0.2.1":     "",
+		"pas une adresse":      "",
+	} {
+		if got := key(ip); got != want {
+			t.Errorf("%q : %q, attendu %q", ip, got, want)
+		}
+	}
+}
+
+// TestCrossOriginMutationsRefused : une requête mutante venue d'une autre origine, même
+// d'un sous-domaine du site (Sec-Fetch-Site: same-site), est refusée avant csrfx (SEC-08).
+func TestCrossOriginMutationsRefused(t *testing.T) {
+	f := newFixture(t, nil)
+	first := f.get("/")
+	var csrf *http.Cookie
+	for _, c := range first.Result().Cookies() {
+		if c.Name == "csrf_token" {
+			csrf = c
+		}
+	}
+	post := func(headers map[string]string) int {
+		req := httptest.NewRequest(http.MethodPost, "/", nil)
+		req.AddCookie(csrf)
+		req.Header.Set("X-CSRF-Token", csrf.Value)
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+		return f.do(req).Code
+	}
+	for name, h := range map[string]map[string]string{
+		"sous-domaine":  {"Sec-Fetch-Site": "same-site", "Origin": "https://evil.example.com"},
+		"autre site":    {"Sec-Fetch-Site": "cross-site"},
+		"origine autre": {"Origin": "https://evil.example"},
+	} {
+		if c := post(h); c != http.StatusForbidden {
+			t.Errorf("%s : %d, attendu 403", name, c)
+		}
+	}
+	// Même origine, ou client sans en-têtes de navigateur : csrfx décide (405 ici).
+	for name, h := range map[string]map[string]string{
+		"même origine": {"Sec-Fetch-Site": "same-origin"},
+		"sans en-tête": {},
+	} {
+		if c := post(h); c != http.StatusMethodNotAllowed {
+			t.Errorf("%s : %d, attendu 405", name, c)
+		}
+	}
+}
+
 func TestRateLimitPage(t *testing.T) {
 	f := newFixture(t, func(o *RouterOptions) { o.RateLimit = 2 })
 	var rec *httptest.ResponseRecorder

@@ -139,8 +139,10 @@ func (id *identity) changePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v := viewerFrom(r)
+	// Un mot de passe temporaire suit une réinitialisation, qui a déjà révoqué les jetons.
+	revoke := v.user.MustChangePwd || r.PostForm.Get("revoke_tokens") != ""
 	err := id.Accounts.ChangePassword(r.Context(), id.actor(r), v.user.ID,
-		r.PostForm.Get("current"), r.PostForm.Get("password"), r.PostForm.Get("confirm"), v.session.Token)
+		r.PostForm.Get("current"), r.PostForm.Get("password"), r.PostForm.Get("confirm"), v.session.Token, revoke)
 	if err != nil {
 		if fe, ok := validationOf(err); ok {
 			view := id.passwordView(r)

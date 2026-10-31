@@ -224,14 +224,16 @@ func TestNoApplicationSessionWithoutTOTP(t *testing.T) {
 	if p := b.get("/account"); p.status != http.StatusOK {
 		t.Fatalf("session ouverte : %d", p.status)
 	}
-	if err := a.accounts.ResetTOTP(ctx, audit.Actor{UserID: admin.ID, Email: admin.Email}, u.ID); err != nil {
+	temp, err := a.accounts.ResetTOTP(ctx, audit.Actor{UserID: admin.ID, Email: admin.Email}, u.ID)
+	if err != nil {
 		t.Fatal(err)
 	}
 	if p := b.get("/account"); p.status != http.StatusSeeOther || !strings.HasPrefix(p.location, "/login") {
 		t.Fatalf("après réinitialisation du TOTP : %d %q", p.status, p.location)
 	}
-	// Après réinitialisation, le mot de passe ne donne qu'une session de configuration.
-	p := b.post("/login", url.Values{"email": {u.Email}, "password": {u.Password}})
+	// Après réinitialisation, le mot de passe temporaire ne donne qu'une session de
+	// configuration.
+	p := b.post("/login", url.Values{"email": {u.Email}, "password": {temp}})
 	if p.location != pathTOTPSetup {
 		t.Fatalf("connexion sans TOTP : %q", p.location)
 	}

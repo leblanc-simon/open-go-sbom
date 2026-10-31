@@ -83,9 +83,9 @@ func (id *identity) adminUsers(w http.ResponseWriter, r *http.Request) {
 
 type tempPasswordView struct {
 	adminPage
-	User     account.User
-	Password string
-	Created  bool
+	User       account.User
+	Password   string
+	HeadingKey string
 }
 
 // createUser crée un compte et affiche une seule fois son mot de passe temporaire (jamais
@@ -104,16 +104,18 @@ func (id *identity) createUser(w http.ResponseWriter, r *http.Request) {
 		id.serverError(w, r, err)
 		return
 	}
-	id.showTempPassword(w, r, u, password, true)
+	id.showTempPassword(w, r, u, password, "admin_password.created_heading")
 }
 
-func (id *identity) showTempPassword(w http.ResponseWriter, r *http.Request, u account.User, password string, created bool) {
+// showTempPassword montre une fois le mot de passe temporaire d'un compte créé ou
+// réinitialisé ; headingKey nomme ce qui vient d'arriver.
+func (id *identity) showTempPassword(w http.ResponseWriter, r *http.Request, u account.User, password, headingKey string) {
 	base, err := id.adminPage(r, "admin_password.title", "users")
 	if err != nil {
 		id.serverError(w, r, err)
 		return
 	}
-	id.rd.Render(w, r, http.StatusOK, "admin/temp_password", &tempPasswordView{adminPage: base, User: u, Password: password, Created: created})
+	id.rd.Render(w, r, http.StatusOK, "admin/temp_password", &tempPasswordView{adminPage: base, User: u, Password: password, HeadingKey: headingKey})
 }
 
 type userView struct {
@@ -172,7 +174,6 @@ func (id *identity) userAction(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, actor := r.Context(), id.actor(r)
 	var err error
-	done := "account_updated"
 	switch chi.URLParam(r, "action") {
 	case "deactivate":
 		err = id.Accounts.SetActive(ctx, actor, u.ID, false)
@@ -182,15 +183,17 @@ func (id *identity) userAction(w http.ResponseWriter, r *http.Request) {
 		err = id.Accounts.SetAdmin(ctx, actor, u.ID, true)
 	case "demote":
 		err = id.Accounts.SetAdmin(ctx, actor, u.ID, false)
-	case "reset-totp":
-		err, done = id.Accounts.ResetTOTP(ctx, actor, u.ID), "totp_reset"
-	case "reset-password":
-		password, err := id.Accounts.ResetPassword(ctx, actor, u.ID)
+	case "reset-totp", "reset-password":
+		reset, heading := id.Accounts.ResetPassword, "admin_password.reset_heading"
+		if chi.URLParam(r, "action") == "reset-totp" {
+			reset, heading = id.Accounts.ResetTOTP, "admin_password.totp_reset_heading"
+		}
+		password, err := reset(ctx, actor, u.ID)
 		if err != nil {
 			id.serverError(w, r, err)
 			return
 		}
-		id.showTempPassword(w, r, u, password, false)
+		id.showTempPassword(w, r, u, password, heading)
 		return
 	default:
 		id.rd.Error(w, r, http.StatusNotFound)
@@ -204,7 +207,7 @@ func (id *identity) userAction(w http.ResponseWriter, r *http.Request) {
 		id.serverError(w, r, err)
 		return
 	}
-	redirectDone(w, r, "/admin/users/"+strconv.FormatInt(u.ID, 10), done)
+	redirectDone(w, r, "/admin/users/"+strconv.FormatInt(u.ID, 10), "account_updated")
 }
 
 type orgsView struct {

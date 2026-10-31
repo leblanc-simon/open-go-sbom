@@ -118,7 +118,12 @@ func TestSearchScreenAndAPI(t *testing.T) {
 		webtest.AssertAccessible(t, []byte(pg.body))
 		webtest.AssertNoInlineCode(t, []byte(pg.body))
 	}
-	created := b.post("/account/tokens", url.Values{"name": {"Script"}, "expires_in": {"30"}})
+	// Sa création exige un code TOTP (réauthentification, SEC-02).
+	if pg := b.post("/account/tokens", url.Values{"name": {"Script"}, "expires_in": {"30"}}); pg.status != http.StatusUnprocessableEntity ||
+		patPattern.MatchString(pg.body) || !strings.Contains(pg.body, `id="tk-code"`) {
+		t.Fatalf("création sans code TOTP : %d", pg.status)
+	}
+	created := b.post("/account/tokens", url.Values{"name": {"Script"}, "expires_in": {"30"}, "code": {a.code(viewer.ID, viewer.Secret)}})
 	token := patPattern.FindString(created.body)
 	if created.status != http.StatusOK || token == "" {
 		t.Fatalf("création du jeton : %d", created.status)
@@ -127,7 +132,7 @@ func TestSearchScreenAndAPI(t *testing.T) {
 	if again := b.get("/account/tokens"); strings.Contains(again.body, token) || !strings.Contains(again.body, "Script") {
 		t.Fatal("jeton réaffiché ou absent de la liste")
 	}
-	if bad := b.post("/account/tokens", url.Values{"name": {""}, "expires_in": {"30"}}); bad.status != http.StatusUnprocessableEntity {
+	if bad := b.post("/account/tokens", url.Values{"name": {""}, "expires_in": {"30"}, "code": {a.code(viewer.ID, viewer.Secret)}}); bad.status != http.StatusUnprocessableEntity {
 		t.Errorf("nom vide : %d", bad.status)
 	}
 
