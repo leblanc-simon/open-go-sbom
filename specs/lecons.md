@@ -81,6 +81,40 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
 - **`go get module/paquet` sans version** monte le module à sa dernière version : préciser
   la version du graphe (`@v0.61.0`) si on ne veut pas de montée.
 
+## File de traitements (T02)
+
+- **`SetMaxIdleConns(0)`** ne garde aucune connexion inactive (ce n'est pas « le défaut ») :
+  chaque transaction rouvrait une connexion et refaisait l'authentification, 12 ms par
+  transaction en test. Règle : `db.PoolConfig.MaxIdleConns` nul garde le défaut de
+  `database/sql` ; un pool très sollicité règle `MaxIdleConns` égal à `MaxOpenConns`.
+  Une lenteur uniforme d'environ 10 ms par transaction en local signale ce piège.
+- **cleanenv et booléens** : un `env-default:"true"` s'applique à un champ resté à sa
+  valeur zéro, donc écrase `enabled: false` lu dans le fichier. Règle : un booléen vrai
+  par défaut n'a pas d'`env-default`, son défaut se pose dans `config.Defaults` (et
+  un test charge un fichier qui le met à `false`).
+- **Numéros de migration en dur dans les tests** : les tests de l'exécuteur ajoutaient
+  `002_*.sql`, cassés dès la vraie migration 002. Règle : migrations de test nommées
+  `+N_sujet.sql` (`withMigrations` calcule le numéro), et aucune table de test ne porte
+  le nom d'une table réelle (`jobs`).
+- **`OR` dans une requête de prise** : `(status = 'pending' AND …) OR (status = 'running'
+  AND …)` empêche l'index partiel ordonné et trie toute la file à chaque prise (O(n)).
+  Règle : une requête par cas, chacune sur son index partiel, vérifiée par `EXPLAIN
+  ANALYZE` (attendu : `Index Scan using jobs_pending`, arrêt à la première ligne).
+- **Arrêt et prise concurrente** : un job pris pendant que `Stop` relève les jobs à
+  libérer lui échappe (son bail resterait actif). Règle : la prise et son inscription
+  parmi les jobs en cours se font sous un verrou que `Stop` prend avant de relever.
+- **Délai de `Stop` sous charge** : libérer les baux un par un à 150 ms de l'échéance a
+  échoué sous charge (`driver: bad connection`, vraisemblablement le contexte expiré en cours de requête). Règle :
+  une seule instruction pour tous les baux, et une marge d'un quart du délai (2 s au
+  plus).
+- **Horloge injectable et `Enqueue`** : `Enqueue` date avec l'horloge du système ; une
+  horloge de test en retard sur l'heure réelle ne voit pas les jobs échus. Règle : la
+  fausse horloge part après l'heure réelle et n'avance que vers l'avant ; elle est
+  arrondie à la microseconde pour comparer exactement les `timestamptz` relus.
+- **Tuer un worker pour de vrai** : le test « worker tué » relance le binaire de test en
+  sous-processus (`os.Args[0] -test.run=…` et une variable d'environnement) et le tue par
+  `SIGKILL`, plutôt que de simuler une panne dans le même processus.
+
 ## Outillage (T01)
 
 - **`make generate-check`** échoue tant que le code généré n'est pas commité (fichiers
