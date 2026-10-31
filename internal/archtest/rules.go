@@ -35,7 +35,7 @@ var anchoreImporters = map[string][]string{
 
 // domainPackages sont les paquets métier : ni HTTP, ni gabarits, ni couche de présentation.
 var domainPackages = []string{
-	"internal/account", "internal/agent", "internal/audit", "internal/dashboard",
+	"internal/account", "internal/agent", "internal/audit", "internal/benchdata", "internal/dashboard",
 	"internal/db", "internal/finding", "internal/ingest", "internal/inventory",
 	"internal/jobs", "internal/license", "internal/locale", "internal/notify", "internal/org",
 	"internal/pagination", "internal/policy", "internal/project", "internal/sbom", "internal/search",
@@ -54,7 +54,7 @@ var agentPackages = []string{
 
 // serverPackages sont réservés au serveur : un agent ne les importe jamais.
 var serverPackages = []string{
-	"internal/account", "internal/agent", "internal/api", "internal/audit", "internal/config",
+	"internal/account", "internal/agent", "internal/api", "internal/audit", "internal/benchdata", "internal/config",
 	"internal/dashboard", "internal/db", "internal/download", "internal/finding", "internal/ingest",
 	"internal/inventory", "internal/jobs", "internal/locale", "internal/notify", "internal/org",
 	"internal/pagination", "internal/policy", "internal/project", "internal/render",
