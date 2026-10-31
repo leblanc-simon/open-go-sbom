@@ -178,7 +178,7 @@ Le serveur reçoit les SBOM, les range dans un inventaire unique indexé par pur
 
 **Inventaire et historique**
 
-- Un composant (purl) et ses vulnérabilités sont stockés une fois pour toute l'instance ; les liens entre projets et composants appartiennent à une organisation. La recherche transverse reste rapide sans mélanger les organisations.
+- Les vulnérabilités sont stockées une fois pour toute l'instance ; les composants sont propres à chaque organisation, pour qu'aucun nom de paquet privé ni aucune empreinte de fichier interne ne soit partagé. Deux instantanés au même inventaire partagent le même ensemble de composants.
 - Un instantané relie un projet à ses composants, avec commit, date, agent et version d'agent ; le SBOM brut est conservé pour l'audit et l'export.
 - Différence entre deux instantanés : composants ajoutés, retirés, montés ou descendus de version.
 - Rétention configurable des instantanés anciens.
@@ -275,7 +275,7 @@ Tout en Go, sur le socle open-go-base et PostgreSQL seul : Syft, Grype et Grant 
 | File de traitements | Table PostgreSQL lue avec `FOR UPDATE SKIP LOCKED` | Aucun courtier de messages à exploiter. |
 | Interface | Rendu serveur `html/template`, JavaScript léger en amélioration progressive, CSS natif imbriqué | Pas de chaîne de construction front ; traduction résolue côté serveur ; accessibilité plus simple à tenir. |
 | Traduction | i18n d'open-go-base (go-i18n), un fichier YAML par langue embarqué dans le binaire | Clés anglaises `écran.élément`, pluriels gérés, langue choisie par `?lang=` puis `Accept-Language`. |
-| API | REST décrite en OpenAPI 3.1 | Clients générés pour les agents et les scripts. |
+| API | REST décrite en OpenAPI | Clients générés pour les agents et les scripts. |
 | Authentification | Comptes locaux, sessions et TOTP par authx et mfax d'open-go-base ; OIDC à ajouter | TOTP obligatoire hors SSO ; SSO dans la version open source, un fournisseur d'identité par organisation. |
 
 ## 11. Lotissement

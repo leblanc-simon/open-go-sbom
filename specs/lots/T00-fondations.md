@@ -1,0 +1,91 @@
+# T00 — Fondations du dépôt et outillage qualité
+
+| Lot fonctionnel | Dépend de | Statut |
+| --- | --- | --- |
+| 1 · MVP inventaire | — | À faire |
+
+## Objectif
+
+Rendre le dépôt prêt à recevoir du code de qualité : module, arborescence, outillage,
+intégration continue, décisions initiales écrites et dépendances validées par l'utilisateur.
+Aucun code métier.
+
+## Périmètre
+
+**Inclus**
+
+- `go.mod` : module `leblanc.io/open-go-sbom` (à confirmer), `go 1.26`, directives `tool`
+  pour `staticcheck`, `govulncheck`, `oapi-codegen` (et `sqlc` si retenu).
+- Arborescence de [`architecture.md` § 3](../architecture.md) avec un `doc.go` par paquet
+  prévu au lot 1, et les trois `cmd/*/main.go` réduits à `--version`.
+- `Makefile` : `build`, `run`, `fmt`, `fmt-check`, `vet`, `lint` (staticcheck), `vuln`
+  (govulncheck), `generate`, `generate-check`, `test`, `test-race`, `test-integration`,
+  `ci`, `clean`. Version injectée par `-ldflags "-X 'main.version=…'"`.
+- `deploy/compose.yaml` : PostgreSQL de développement et base de test jetable.
+- `.github/workflows/ci.yml` : l'ordre « ce qui échoue le plus vite d'abord », service
+  PostgreSQL pour les tests d'intégration, construction des trois binaires.
+- `internal/archtest` : règles du § 4 de l'architecture (imports directs), actives dès
+  maintenant.
+- `docs/adr/` : gabarit et ADR initiaux (voir Conception).
+- `docs/security/threat-model.md` : première version (actifs, acteurs, frontières de
+  confiance, menaces principales par composant).
+- `LICENSE` (WTFPL), `README.md` court, `.gitignore`, `.editorconfig`.
+- Explorations techniques jetables (voir Conception), dont les conclusions vont dans les ADR.
+
+**Exclu** : tout code métier, toute migration, toute page web.
+
+## Conception
+
+ADR à écrire et faire valider :
+
+1. Format des ADR et règle « une décision structurante = un ADR ».
+2. PostgreSQL seul, pilote `pgx/v5/stdlib` derrière `database/sql`.
+3. Routeur chi.
+4. Requêtes SQL : `sqlc` en directive `tool` ou requêtes écrites à la main. Critères :
+   sûreté de typage, lisibilité des requêtes dynamiques (recherche), outillage.
+5. File de traitements maison sur PostgreSQL plutôt qu'une bibliothèque (River…).
+6. API conçue d'abord en OpenAPI, code généré par oapi-codegen.
+7. Isolement des bibliothèques d'Anchore derrière des adaptateurs.
+8. Interface sans chaîne de construction front (CSS natif imbriqué, modules ES natifs).
+
+Explorations à mener, chacune dans un programme jetable hors `main`, résultat consigné :
+
+- Syft décode-t-il CycloneDX 1.7 à la version épinglée ? Sinon, quelle conséquence ?
+- API de Grype utilisable en bibliothèque à la version épinglée : chargement d'une base
+  depuis un répertoire, correspondance d'un SBOM décodé par Syft, lecture d'EPSS, KEV et du
+  score de risque, rattachement de chaque résultat à son purl.
+- Le client Docker est-il déjà dans le graphe de dépendances de stereoscope ?
+- Taille d'un binaire `ogs-host-agent` qui importe Syft, en `CGO_ENABLED=0`, amd64 et arm64.
+- sqlc en mode `database/sql` avec le pilote pgx : comment sont passés les tableaux
+  d'`unnest` (sqlc génère `pq.Array`, donc une dépendance à lib/pq) ?
+- oapi-codegen à la version retenue gère-t-il OpenAPI 3.1 ? Sinon, l'API est écrite en 3.0.
+
+## Livrables
+
+Les fichiers listés ci-dessus, les ADR 0001 à 0008, le modèle de menace, la liste des
+dépendances validées (avec version) dans le Journal.
+
+## Critères d'acceptation
+
+- [ ] `make ci` passe sur le squelette, en local et en CI.
+- [ ] Un import interdit volontaire (par exemple Grype dans `web`) fait échouer `archtest`.
+- [ ] `ogs-server --version`, `ogs-host-agent --version`, `ogs-repo-agent --version`
+      affichent la version injectée.
+- [ ] Les dépendances du § 5 « À valider en T00 » sont validées ou remplacées par
+      l'utilisateur, et le tableau de l'architecture est mis à jour.
+- [ ] Les quatre explorations ont une conclusion écrite.
+- [ ] `CLAUDE.md` reflète les commandes réelles du `Makefile`.
+
+## Tests attendus
+
+Tests de `archtest` (cas conforme et cas fautif construits dans `testdata`).
+
+## Points à trancher
+
+- Chemin du module : `leblanc.io/open-go-sbom` ?
+- sqlc ou requêtes manuelles (ADR 4).
+- Versions minimales : Go 1.26, PostgreSQL 16 ?
+
+## Journal
+
+_À remplir pendant la réalisation._

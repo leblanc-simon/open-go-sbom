@@ -1,0 +1,493 @@
+# Architecture technique de référence
+
+Ce document fait autorité sur l'architecture, les noms et les conventions d'open-go-sbom.
+Le besoin fonctionnel est dans [`docs/cahier-des-charges.md`](../docs/cahier-des-charges.md) ;
+le découpage du travail est dans [`specs/README.md`](README.md). Toute décision qui s'en
+écarte passe par un ADR (`docs/adr/`) et une mise à jour de ce document dans le même commit.
+
+## 1. Principes directeurs
+
+1. **La qualité prime sur la vitesse.** Un lot n'est terminé que lorsque ses tests, sa
+   documentation et ses critères d'acceptation sont au vert ; on ne reporte pas la dette.
+2. **Un binaire par rôle, tout embarqué.** Gabarits, CSS, JS, traductions et migrations sont
+   compilés dans le binaire via `go:embed`. Le serveur n'a besoin que de PostgreSQL.
+3. **La base est la seule source de vérité.** Un processus redémarré ne perd rien ; aucun
+   état métier ne vit uniquement en mémoire ou sur le disque d'une seule instance.
+4. **Le serveur calcule, le client affiche.** Aucune logique métier en JavaScript.
+5. **Dépendances minimales et validées.** Toute nouvelle dépendance tierce est proposée à
+   l'utilisateur avant d'être ajoutée (§ 5). Les bibliothèques d'Anchore sont isolées
+   derrière des adaptateurs.
+6. **Multi-organisation par construction.** Aucune donnée d'organisation ne vit dans une
+   table globale ; l'isolement est garanti par le schéma (clés étrangères composites) et
+   par les signatures de fonctions, pas par la discipline.
+7. **Traduction dès le premier écran.** Aucune chaîne visible en dur, ni dans les gabarits,
+   ni dans le code.
+8. **Sécurité par défaut.** TOTP obligatoire hors SSO, CSP stricte, CSRF, limitation de
+   débit, secrets chiffrés, journal d'audit, entrées bornées.
+
+## 2. Binaires
+
+| Binaire | Rôle | Lots |
+| --- | --- | --- |
+| `ogs-server` | Interface web, API REST, workers (ingestion, analyse, notifications), planificateur | T01 → |
+| `ogs-host-agent` | Agent serveur Linux (puis Windows) : inventaire de l'hôte et de ses conteneurs | T07, T13, T19, T22, T23, T24 |
+| `ogs-repo-agent` | Agent dépôt, service externe : forges, clonage, Syft, enrichissement IA | T08, T12, T15, T19, T23, T24 |
+
+`ogs-server` lance web et workers dans le même processus ; `workers.enabled: false` sert à
+séparer les rôles sur plusieurs instances (recommandé dès qu'on dépasse un usage modeste,
+pour qu'un envoi lourd ne ralentisse pas l'interface).
+
+Un `ogs-repo-agent` sert une organisation (un jeton d'agent). Plusieurs organisations sur
+une instance → une instance d'agent dépôt par organisation qui en a besoin.
+
+## 3. Arborescence du dépôt
+
+```
+cmd/
+  ogs-server/            # main : chargement config, câblage, démarrage
+  ogs-host-agent/
+  ogs-repo-agent/
+internal/
+  config/                # Config composée : fragments appconf + fragments propres
+  db/                    # pool, transactions, verrous, exécution des migrations
+    migrations/          # NNN_<sujet>.sql, immuables une fois publiées
+  jobs/                  # file de traitements PostgreSQL + planificateur
+  secret/                # chiffrement des secrets stockés (AES-256-GCM, clés versionnées)
+  ratelimit/             # limiteur par jeton pour l'API agent (en complément d'open-go-base)
+  audit/                 # journal d'audit
+  tenant/                # type OrgID, contexte, garde d'organisation
+  account/               # comptes (écriture dans users), méthode d'authentification, rendu
+  org/                   # organisations, appartenances, rôles (+ équipes en T16)
+  project/               # projets, références suivies, hiérarchie hôte/conteneurs
+  agent/                 # agents, jetons d'inscription et d'agent, signaux de vie
+  sbom/                  # modèle interne, normalisation purl, empreinte d'inventaire
+    syft/                # décodage et encodage via Syft
+  inventory/             # composants, ensembles d'inventaire, instantanés
+  ingest/                # réception, stockage brut, pipeline de décodage
+  version/               # comparaison de versions par écosystème, analyse de `vers`
+    grypeversion/        # adaptateur vers les comparateurs de Grype
+  vuln/                  # base de vulnérabilités, catalogue, interface Matcher
+    grype/               # correspondance et cycle de vie de la base via Grype
+  finding/               # cycle de vie des constats
+  search/                # analyse de requête, plan, exécution, export
+  dashboard/             # agrégats et statistiques quotidiennes
+  triage/ policy/ notify/ # lot 2
+  license/
+    grant/               # lot 3
+  web/                   # routeur chi, middlewares, handlers HTML par écran
+  api/                   # handlers REST (interfaces générées depuis api/openapi.yaml)
+    gen/                 # code généré, jamais modifié à la main
+  render/                # moteur de gabarits, FuncMap, empreinte des assets, SVG
+  agentclient/           # client de l'API agent (généré), partagé par les deux agents
+  hostagent/             # pipeline de l'agent serveur
+  repoagent/             # pipeline de l'agent dépôt
+  forge/                 # GitHub App, GitLab, Forgejo
+  llm/                   # fournisseurs de modèles (lot 2)
+  archtest/              # tests d'architecture (§ 4)
+api/openapi.yaml         # contrat de l'API, source unique
+web/
+  templates/             # layout, partials, un dossier par écran
+  static/css/            # tokens.css, base.css, components/*.css, screens/*.css
+  static/js/             # modules ES, un par écran, sans build
+locales/                 # en.yaml, fr.yaml (embarqués)
+deploy/                  # compose.yaml (dev), unités systemd, configs de paquets, Containerfile
+docs/                    # cahier des charges, adr/, operations.md, benchmarks.md, security/
+specs/                   # ce document, index des lots, fiches de lots
+testdata/                # SBOM d'exemple, systèmes de fichiers et dépôts de test
+```
+
+Nommage : paquets courts en anglais, jamais de paquet fourre-tout (`util`, `helper`,
+`common`). Le code Go est en anglais ; les commentaires et la documentation en français.
+
+## 4. Règles de dépendance entre paquets
+
+- `cmd/*` câble, ne contient aucune logique.
+- `web` et `api` dépendent des paquets métier ; jamais l'inverse.
+- Les paquets métier ne dépendent ni de `net/http` ni de `html/template`.
+- **Imports directs** autorisés des bibliothèques d'Anchore (Grype dépend lui-même de Syft,
+  la règle porte donc sur les imports directs, pas sur le graphe transitif) :
+  - `github.com/anchore/syft/...` : `sbom/syft`, `vuln/grype`, `hostagent`, `repoagent` ;
+  - `github.com/anchore/grype/...` : `vuln/grype`, `version/grypeversion` ;
+  - `github.com/anchore/grant/...` : `license/grant`.
+- Les types d'Anchore ne traversent jamais la frontière d'un adaptateur.
+- `agentclient`, `hostagent`, `repoagent`, `forge`, `llm` ne dépendent d'aucun paquet
+  serveur (`db`, `inventory`…) : les agents restent des binaires légers.
+- Pas de variable globale mutable ; les dépendances sont injectées par constructeur.
+
+`internal/archtest` lit les imports directs de chaque paquet (`go list -json`) et échoue en
+CI au premier écart.
+
+## 5. Socle et dépendances
+
+| Besoin | Choix | Statut |
+| --- | --- | --- |
+| Configuration, journaux, i18n, CSRF, limitation de débit par IP, CORS, comptes, sessions, TOTP | `leblanc.io/open-go-base` | Décidé |
+| Pilote PostgreSQL | `github.com/jackc/pgx/v5/stdlib` via `database/sql` (partagé avec les stores d'authx et mfax) | À valider en T00 |
+| Routeur HTTP | `github.com/go-chi/chi/v5` (comme open-go-canivet) | À valider en T00 |
+| SBOM, vulnérabilités, licences | `github.com/anchore/syft`, `grype`, `grant` | Décidé |
+| Manipulation CycloneDX côté agents | `github.com/CycloneDX/cyclonedx-go` (déjà dans le graphe de Syft) | À valider en T00 |
+| purl | `github.com/package-url/packageurl-go` (déjà dans le graphe de Syft) | À valider en T00 |
+| UUID v7 | `github.com/google/uuid` (déjà indirect) | À valider en T00 |
+| Contrat d'API | `oapi-codegen` en directive `tool` + son paquet runtime | À valider en T00 |
+| Requêtes SQL typées | `sqlc` en directive `tool`, ou requêtes écrites à la main | ADR en T00 |
+| File de traitements | maison, sur PostgreSQL (§ 16) | Proposé, ADR en T00 |
+| Analyse statique | `staticcheck`, `govulncheck` en directives `tool` | À valider en T00 |
+| Validation des SBOM par schéma JSON | bibliothèque JSON Schema, ou décodage strict seul | À trancher en T05 |
+| Métriques | `github.com/prometheus/client_golang` | À valider en T01 |
+| Fournisseur de modèle | SDK Go officiel d'Anthropic ; Ollama par son API HTTP sans SDK | À valider en T12 |
+| Règles de politique | `github.com/google/cel-go` | À valider en T15 |
+| OIDC | `oidcx` dans open-go-base, ou paquet local | Point ouvert, T25 |
+
+Sans dépendance : client Git (binaire `git` du système), clients des forges (HTTP + JWT
+RS256 en stdlib), client de l'API Docker (celui du graphe de stereoscope s'il y est, sinon
+HTTP sur socket Unix), envoi de courriels (`net/smtp`), graphiques (SVG côté serveur),
+confinement des fichiers (`os.Root`).
+
+## 6. Configuration
+
+`internal/config.Config` compose les fragments d'`appconf` avec le préfixe `OGS_` :
+`Web`, `Logging`, `I18n`, `Database`, `Auth`, `MFA`, `CORS`. Fragments propres au projet :
+`TLS` (certificat, clé, autorité des certificats clients pour le mTLS des agents),
+`Management` (écoute séparée métriques et sondes), `Workers`, `Ingest` (bornes),
+`VulnDB` (URL de la liste, répertoire local, fréquence, mode hors ligne), `Secrets` (clés
+de chiffrement versionnées), `Bootstrap` (premier administrateur). `--help` liste toutes
+les variables d'environnement. Un `config.example.yaml` commenté accompagne chaque binaire.
+
+Contrôles au démarrage : `Database.Driver` doit valoir `postgres` (pour que `Dialect()`
+renvoie PostgreSQL ; le pool est ouvert avec le pilote `pgx`) ; le pool doit autoriser au
+moins 2 connexions (la migration tient un verrou sur l'une pendant qu'elle travaille sur
+une autre). TLS natif facultatif ; sans lui, le serveur est placé derrière un mandataire
+inverse qui termine TLS, et le mTLS des agents est alors indisponible.
+
+## 7. Base de données
+
+- PostgreSQL 16 ou plus, seul moteur supporté. Connexion directe, ou via pgbouncer en mode
+  session (le mode transaction est incompatible avec les migrations et les verrous).
+- Un pool `*sql.DB` unique, partagé par les stores d'authx/mfax et par le code du projet.
+- Identifiants : UUID v7 générés en Go pour les entités du projet. Les comptes gardent
+  l'identifiant `bigint` d'authx ; les tables du projet qui les référencent utilisent
+  `bigint`. Les organisations et les projets ont aussi un `slug` pour les URL.
+- Horodatages en `timestamptz`, toujours en UTC. Valeurs fermées en `text` + `CHECK`.
+- `jsonb` uniquement pour des données sans requête relationnelle (étiquettes, preuves IA,
+  contexte d'hôte).
+- **Migrations** : celles d'authx et de mfax par leur `Migrate` ; celles du projet par
+  l'exécuteur de `internal/db`, dans `internal/db/migrations/NNN_<sujet>.sql`, suivies dans
+  la table `ogs_schema_migrations` avec leur somme SHA-256. Une migration publiée dont la
+  somme a changé empêche le démarrage : l'immuabilité est vérifiée, pas seulement promise.
+  Ordre au démarrage : transaction de verrou (`LOCK TABLE ogs_schema_migrations IN
+  EXCLUSIVE MODE`) sur une connexion dédiée → authx → mfax → projet → validation. Une
+  seconde instance attend le verrou puis constate qu'il n'y a rien à faire.
+- Accès : un « store » par paquet métier, qui ne renvoie que des types du domaine.
+- Transactions : `db.InTx(ctx, func(tx) error)` ; aucune transaction ne traverse un appel
+  réseau. Les upserts en lot trient leurs clés pour éviter les interblocages.
+
+## 8. Modèle de données
+
+Données **globales** (publiques ou propres à l'instance, jamais des données d'organisation) :
+
+| Table | Contenu |
+| --- | --- |
+| `vulnerabilities` | identifiant (CVE, GHSA…), alias, sévérité, CVSS, description, références, EPSS, KEV |
+| `vulndb_state`, `vulndb_archives` | version cible de la base Grype, archives vérifiées (téléchargées ou importées) |
+| `jobs`, `schedules` | file de traitements et échéances du planificateur |
+| `users`, `sessions`, `mfa_*` | tables d'open-go-base ; `users` est écrit par `account` (§ 10) |
+| `account_settings`, `session_auth` | préférences du compte ; méthode d'authentification de chaque session |
+
+Données **par organisation** (toutes portent `org_id`) :
+
+| Table | Contenu |
+| --- | --- |
+| `organizations`, `org_memberships` | organisation (slug, nom, langue par défaut) ; compte × organisation × rôle |
+| `projects` | type (`repo`, `host`, `container`), nom, slug, étiquettes, `parent_id` (T13), équipe (T16), archivage |
+| `tracked_refs` | référence suivie (branche, tag, ou l'hôte) |
+| `agents`, `agent_tokens`, `enrollment_tokens`, `personal_access_tokens` | agents et jetons hachés |
+| `components` | composant de l'organisation : purl canonique (unique par organisation), `purl_base`, type, nom, version, CPE, empreintes |
+| `component_sets`, `component_set_items` | ensemble d'inventaire adressé par son empreinte ; ses composants avec origine (`syft`, `ia`), confiance, preuve, portée, licences |
+| `sbom_blobs` | SBOM brut compressé, dédoublonné par empreinte SHA-256 |
+| `ingestions` | réception d'un SBOM : statut, erreurs, instantané produit |
+| `snapshots` | instantané d'une référence : commit, date, agent, version d'agent, blob, ensemble d'inventaire |
+| `ref_current` | instantané et ensemble courants de chaque référence (lecture rapide) |
+| `findings` | constat (référence × composant × vulnérabilité) : première et dernière détection, résolution, risque |
+| `audit_events`, `org_daily_stats` | journal d'audit ; agrégats quotidiens |
+| `triage_decisions`, `policies`, `notification_channels`, `teams`… | lots 2 et 3 |
+
+Les **ensembles d'inventaire** sont adressés par contenu : deux instantanés au même
+inventaire partagent le même ensemble. Un nouveau commit sans changement de dépendances
+coûte une ligne, la différence entre instantanés est une différence entre ensembles, et la
+rétention supprime les ensembles orphelins.
+
+## 9. Multi-organisation
+
+- Toute table d'organisation porte `org_id NOT NULL`. Les clés étrangères entre tables
+  d'organisation sont **composites** : `snapshots (org_id, project_id)` référence
+  `projects (org_id, id)`. Une ligne ne peut pas pointer vers une autre organisation.
+- Les composants sont propres à chaque organisation : un purl de paquet privé ou une
+  empreinte de fichier interne n'est jamais partagé. Seul le catalogue des vulnérabilités,
+  public, est global.
+- Les fonctions de store prennent un `tenant.OrgID` typé en premier paramètre métier.
+- L'organisation courante vient de l'URL (`/o/{slug}/…`) côté web, du jeton côté agent et
+  du chemin `/api/v1/orgs/{org}/…` côté API utilisateur. Un middleware vérifie
+  l'appartenance avant tout handler et place `tenant.OrgID` dans le contexte.
+- Une suite de tests d'isolement parcourt chaque route avec un compte d'une autre
+  organisation et exige un 404 (jamais un 403, pour ne rien révéler).
+- La sécurité au niveau des lignes de PostgreSQL (RLS) est étudiée en ADR pendant T03 comme
+  défense en profondeur ; elle n'est pas un prérequis.
+
+## 10. Identité et accès
+
+- Comptes : authx lit `users` et gère les sessions ; **la création et la modification des
+  comptes reviennent au projet** (paquet `account`), qui écrit dans `users` avec
+  `authx.HashPassword` et utilise sa colonne `must_change_pwd`. Ni authx ni mfax n'appliquent
+  ce drapeau : un middleware du projet redirige vers le changement de mot de passe.
+- Second facteur via `mfax` avec enrôlement **obligatoire** (ne jamais passer
+  `WithOptionalEnrollment()`).
+- `session_auth` enregistre, pour chaque session (clé : SHA-256 du jeton de session), la
+  méthode d'authentification : `local_totp`, ou `sso` avec l'organisation dont le
+  fournisseur a authentifié. La garde d'organisation s'en sert pour imposer le SSO d'une
+  organisation qui l'exige (T25), même pour un membre de plusieurs organisations.
+- Premier administrateur créé au premier démarrage depuis `bootstrap.*` (ignoré dès qu'un
+  compte existe) ; changement de mot de passe et enrôlement TOTP à la première connexion.
+- Administrateur d'instance : rôle privilégié assumé (il peut réinitialiser le mot de passe
+  et le TOTP d'un compte, chaque fois audité) ; deux administrateurs au moins sont
+  recommandés et l'interface avertit s'il n'y en a qu'un. Procédure de secours documentée
+  pour un administrateur unique qui perd son TOTP (variable d'environnement lue au
+  démarrage, auditée, à retirer ensuite).
+- Pas d'envoi de courriel avant T15 : les comptes sont créés avec un mot de passe temporaire.
+- Rôles d'organisation : `viewer`, `analyst` (trie les constats), `admin`. Les équipes (T16)
+  restreignent ensuite la visibilité par projet.
+- Jetons : préfixés par leur nature (`ogs_agt_`, `ogs_enr_`, `ogs_pat_`), puis un
+  identifiant public et un secret de 256 bits. Seul le SHA-256 du secret est stocké ;
+  comparaison en temps constant ; révocation immédiate ; date de dernier usage.
+- Limitation de débit : par IP pour l'interface (open-go-base) ; **par jeton** pour l'API
+  agent et l'API utilisateur, pour que des hôtes derrière une même sortie NAT ne se gênent
+  pas.
+
+## 11. Pipeline d'ingestion
+
+1. `POST /api/v1/agent/ingestions` (jeton d'agent), multipart : `context` (JSON : référence,
+   commit, version d'agent, date de scan) et `sbom` (fichier JSON). Contrôles synchrones :
+   taille, type, référence autorisée pour cet agent. Le blob est stocké, l'ingestion créée,
+   un job `ingest.decode` mis en file dans la même transaction ; réponse `202`.
+2. `ingest.decode` :
+   - bornes préalables par lecture en flux, avant tout décodage complet : taille
+     décompressée, profondeur JSON, nombre de composants ;
+   - décodage par `sbom/syft` vers `sbom.Document`, normalisation des purl ;
+   - calcul de l'**empreinte d'inventaire** (composants canoniques triés, origine, preuve),
+     indépendante des horodatages et numéros de série du document ;
+   - dans une transaction : upsert trié des composants de l'organisation, ensemble
+     d'inventaire réutilisé ou créé, puis instantané.
+3. Règle d'instantané : pour un dépôt, un instantané par (référence, commit), même si
+   l'inventaire n'a pas changé (il réutilise alors l'ensemble existant) ; pour un hôte ou un
+   conteneur, un inventaire identique au courant met seulement à jour la date de dernière
+   analyse.
+4. Si l'ensemble courant de la référence a changé, job `analysis.ref` mis en file.
+5. `GET /api/v1/agent/ingestions/{id}` expose le statut (`queued`, `processing`, `done`,
+   `failed` + clé d'erreur traduisible) et l'instantané produit.
+
+Formats acceptés : CycloneDX JSON 1.5 à 1.7, SPDX JSON 2.3, Syft JSON. Pas de XML.
+Canonicalisation des purl : encodage, casse et tri des qualificatifs normalisés selon la
+spécification purl ; **les qualificatifs d'identité (`distro`, `arch`, `epoch`, `upstream`…)
+sont conservés**, car Grype en a besoin. Les CPE sont conservés. Propriétés CycloneDX propres
+au projet, espace de noms `ogs:` : `ogs:origin` (`syft` ou `ia`), `ogs:confidence` (0 à 1),
+`ogs:model` ; la preuve IA utilise le champ standard `evidence`.
+
+Le décodage s'exécute dans le processus worker ; les bornes préalables et le plafond de
+jobs simultanés par organisation empêchent un seul agent de saturer une instance. Une
+isolation en sous-processus est étudiée en ADR pendant T05.
+
+## 12. Analyse de vulnérabilités
+
+- **Grype reçoit le SBOM d'origine**, pas une reconstruction : `vuln.Matcher.Match(ctx,
+  blob)` ; l'adaptateur `vuln/grype` décode le blob avec Syft (distribution, CPE,
+  paquets sources, métadonnées intacts), lance la correspondance, puis rattache chaque
+  résultat au composant par son purl canonique. Le reste du code ne connaît pas Grype.
+- `analysis.ref` analyse **l'ensemble courant de la référence au moment de l'exécution**
+  (le plus récent gagne), sous verrou de ligne sur la référence : deux analyses de la même
+  référence ne se chevauchent jamais. Constats : nouveaux couples créés, couples revus
+  prolongés, couples absents résolus ; un couple résolu qui réapparaît est rouvert.
+- Base Grype, version cible commune à toutes les instances :
+  - l'échéance `vulndb.check` (une seule instance l'exécute, § 16) interroge la liste de
+    distribution, télécharge, vérifie la somme de contrôle, valide l'ouverture, stocke
+    l'archive dans `vulndb_archives` et fixe la nouvelle cible dans `vulndb_state` ;
+  - hors ligne, l'archive est importée depuis l'écran d'administration vers la même table ;
+  - chaque instance worker synchronise sa copie locale sur la cible, bascule atomiquement et
+    garde une seule base ouverte, derrière un verrou lecture/écriture ;
+  - un job d'analyse exige la version cible : un worker en retard se synchronise avant de
+    le traiter. Chaque constat note la version de base qui l'a produit.
+- Changement de cible → `analysis.rescan_all` met en file un `analysis.ref` par référence
+  active, en priorité basse.
+- Une base plus vieille que N jours déclenche une alerte d'administration.
+
+## 13. Recherche
+
+- Une barre unique ; le type de requête est déduit : `pkg:` → purl, `CVE-`/`GHSA-` →
+  vulnérabilité, `sha256:` ou 64 caractères hexadécimaux → empreinte, `license:` →
+  licence, sinon nom de composant (approché par trigrammes).
+- Une plage de versions `vers` ne s'applique qu'à un `purl_base` exact : SQL réduit
+  l'ensemble à ce paquet (un nombre borné de versions), puis Go compare les versions par
+  l'écosystème. Une recherche approchée par nom n'accepte pas de plage.
+- Exécution sur `ref_current` + `component_set_items` + `components`, filtrée par
+  organisation (et par équipe après T16). Résultats groupés par projet, paginés,
+  exportables en CSV et JSON en flux.
+- Cible : moins de 2 s au 95e centile pour 1 000 projets et 1 million de liens, selon le
+  protocole de `docs/benchmarks.md`.
+
+## 14. Interface web
+
+- Routeur chi avec **trois groupes de routes** :
+  - interface : identifiant de requête → limitation par IP → journalisation → récupération
+    de panique → en-têtes de sécurité → session (authx) → changement de mot de passe imposé
+    → CSRF (csrfx) → langue → organisation courante → handler ;
+  - API agent (`/api/v1/agent/`) : jeton d'agent, limitation par jeton, pas de session ni
+    de CSRF ;
+  - API utilisateur (`/api/v1/orgs/{org}/`) : jeton personnel sans CSRF, ou session avec
+    en-tête CSRF pour le JavaScript de l'interface.
+- CSP : `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;
+  frame-ancestors 'none'; form-action 'self'`. Aucun script ni style en ligne.
+- Gabarits `html/template` : un layout, des partials, un dossier par écran. Chaque écran a
+  un modèle de vue typé construit dans `internal/web/<écran>` ; les gabarits ne font que de
+  l'affichage. Les fonctions qui dépendent de la requête (`T`, `Tn`, `csrfField`) imposent
+  soit un clonage par requête d'un jeu de gabarits jamais exécuté, soit le passage du
+  traducteur dans les données : ADR en T01.
+- CSS natif imbriqué, sans préprocesseur : `tokens.css` (propriétés personnalisées, thèmes
+  clair et sombre via `prefers-color-scheme` et `[data-theme]`), `base.css`, un fichier par
+  composant et par écran. Modificateurs BEM écrits `&.bloc--modificateur`. Au démarrage, le
+  serveur concatène les fichiers embarqués en une feuille dont l'URL porte l'empreinte.
+- JavaScript : modules ES natifs, un par écran, amélioration progressive ; chaque page
+  fonctionne sans JS. Les libellés arrivent traduits via des attributs `data-`.
+- Graphiques en SVG produits côté serveur, avec titre, description et tableau de données.
+- Accessibilité RGAA / WCAG 2.1 AA : HTML sémantique, lien d'évitement, focus visible,
+  sévérité jamais portée par la seule couleur. Des tests Go analysent le HTML rendu ; un
+  audit manuel clôt chaque lot fonctionnel.
+
+## 15. API REST
+
+- `api/openapi.yaml` est la source unique ; serveur et client des agents sont générés par
+  oapi-codegen. Version d'OpenAPI : 3.1 si oapi-codegen la gère à la version retenue,
+  sinon 3.0 (vérifié en T00). Un test vérifie que le code généré est à jour.
+- Préfixe `/api/v1`. Routes des agents sous `/api/v1/agent/`, routes utilisateur sous
+  `/api/v1/orgs/{org}/`. Le point compatible Dependency-Track (T19) vit sous `/dt/` pour ne
+  pas mêler son espace d'URL au nôtre.
+- Erreurs au format RFC 9457 (`application/problem+json`) : `type` porte une clé stable
+  (`error.ingest.too_large`), `detail` le message traduit selon la langue de la requête.
+- Pagination par curseur opaque. Toute réponse liste est bornée.
+
+## 16. File de traitements
+
+`internal/jobs`, sur PostgreSQL, sans dépendance, sémantique **au moins une fois** :
+
+- Table `jobs` : type, organisation (facultative), charge JSON, priorité, statut,
+  tentatives, prochaine exécution, bail (`locked_until`), clé d'unicité, dernière erreur.
+- Prise par `SELECT … FOR UPDATE SKIP LOCKED` ; bail renouvelé pendant l'exécution ; un job
+  dont le bail expire est repris. Chaque handler est idempotent (exigence de revue).
+- Réessais à délai exponentiel avec gigue ; au-delà du maximum, statut `dead`.
+- Clé d'unicité sur les jobs en attente ; une seconde mise en file **relève la priorité** et
+  avance l'échéance si besoin (`ON CONFLICT … DO UPDATE`) : une ingestion fraîche n'attend
+  pas derrière une réanalyse de fond.
+- Plafond de jobs simultanés par organisation pour les types lourds (décodage, analyse) :
+  une organisation ne peut pas affamer les autres.
+- Planificateur : une ligne par échéance dans `schedules` ; chaque instance tente
+  `UPDATE schedules SET next_run_at = … WHERE name = … AND next_run_at <= now() RETURNING …`
+  et seule celle qui obtient la ligne met le travail en file. Pas de verrou de session :
+  robuste aux coupures de connexion et à pgbouncer.
+
+## 17. Agents
+
+- Client API commun `agentclient` (généré), avec réessais bornés, délai exponentiel et
+  respect de `Retry-After` ; certificat client facultatif (mTLS).
+- Inscription : jeton d'inscription → jeton d'agent stocké dans le répertoire d'état
+  (droits `0600`).
+- Secrets des agents (jeton, clés de forge, clés d'API des modèles) : jamais dans le fichier
+  de configuration. Ils sont fournis par les credentials systemd (`LoadCredentialEncrypted=`,
+  chiffrés au repos) ou par des fichiers en `0600`, au choix de l'exploitant.
+- `ogs-host-agent` : voir T07 (hôte), T13 (conteneurs), T22 (Windows), T23 (hors ligne).
+- `ogs-repo-agent` : service externe qui détient seul les secrets des forges. Il reçoit les
+  webhooks, clone, analyse, envoie, puis attend le verdict du serveur pour publier le statut
+  de commit (T15). Tout accès au contenu d'un dépôt passe par `os.Root` (aucune sortie de
+  l'arborescence, aucun lien symbolique suivi hors d'elle). Voir T08 et T12.
+
+## 18. Internationalisation
+
+- `locales/en.yaml` et `locales/fr.yaml`, embarqués (`i18n.NewFS`). Langue choisie dans cet
+  ordre : `?lang=`, préférence du compte, `Accept-Language`, langue de l'organisation, langue
+  par défaut de l'instance.
+- Clés en anglais `écran.élément` (`login.email`, `search.placeholder`). Racines
+  transverses : `format.*`, `status.*`, `severity.*`, `validation.*`, `error.*`, `nav.*`.
+- Le code serveur ne concatène jamais de fragments traduits : il renvoie une clé et des
+  paramètres que le gabarit résout, ou reçoit le traducteur.
+- Les textes émis hors ligne de requête (notifications, résumés) utilisent la langue de
+  l'organisation.
+- Un test échoue si une clé manque dans une langue ou si un gabarit utilise une clé absente.
+
+## 19. Sécurité transverse
+
+- Modèle de menace tenu à jour dans `docs/security/threat-model.md` (créé en T00).
+- Secrets stockés en base (secrets des canaux de notification, secret client OIDC…)
+  chiffrés en AES-256-GCM par `internal/secret`, clé maîtresse en configuration,
+  identifiant de clé stocké avec le chiffré pour permettre la rotation. Les secrets des
+  forges ne sont jamais en base : ils restent dans l'agent dépôt.
+- Aucune donnée sensible dans les journaux (mots de passe, jetons, contenu de SBOM).
+- Entrées bornées partout : taille de requête, taille décompressée, profondeur JSON, nombre
+  de composants.
+- Contenu des dépôts et des SBOM traité comme non fiable, y compris par l'agent IA
+  (injection d'instructions).
+- L'accès à la socket d'un moteur de conteneurs équivaut à root : désactivé par défaut,
+  documenté comme tel.
+- Journal d'audit : connexions et échecs, comptes et rôles, jetons, organisations, équipes,
+  décisions de triage, politiques, canaux, paramètres d'organisation.
+- Gravité des faiblesses évaluée selon l'OWASP Risk Rating ; chaque revue de recette est
+  menée par un relecteur distinct de l'auteur du code.
+
+## 20. Observabilité et exploitation
+
+- Journaux `slog` (via `logx`), JSON en production, champs `request_id`, `org`, `job`.
+- Écoute de gestion séparée : `/metrics` (Prometheus), `/healthz`, `/readyz`. `/readyz`
+  vérifie la base et les migrations sur toutes les instances, et la base Grype chargée
+  seulement si `workers.enabled` : une instance purement web reste disponible, y compris
+  pour importer une base sur un site isolé.
+- Arrêt propre sur SIGTERM : fin des requêtes en cours, libération des baux de jobs.
+- `docs/operations.md` : installation, configuration, sauvegarde, mise à jour, rotation des
+  clés, sites isolés, procédure de secours des administrateurs.
+
+## 21. Tests et barrières de qualité
+
+- `make ci` (identique en CI) : `gofmt`, `go vet`, `staticcheck`, `govulncheck`, tests
+  `-race`, tests d'intégration PostgreSQL, tests d'architecture, complétude des traductions,
+  code généré à jour.
+- Tests d'intégration contre un vrai PostgreSQL (`OGS_TEST_DATABASE_DSN`, fourni par
+  `deploy/compose.yaml` en local et par un service en CI), base jetable par test.
+- SBOM d'exemple dans `testdata/sbom/` (CycloneDX 1.5, 1.6, 1.7, SPDX 2.3, Syft JSON),
+  dont des SBOM d'hôtes Debian, RHEL et Alpine ; fichiers attendus (« golden »).
+- Fuzzing natif Go : purl, `vers`, requêtes de recherche, bornes préalables, décodage.
+- Grype est remplacé par un faux `vuln.Matcher` dans les tests unitaires ; un test
+  d'intégration étiqueté `grypedb` utilise une vraie base.
+- **Cibles chiffrées** mesurées selon `docs/benchmarks.md` (écrit en T06) : machine de
+  référence, jeu de données synthétique, 95e centile, cache froid et chaud. Une cible non
+  tenue garde le lot ouvert, sauf nouvelle cible validée par l'utilisateur et reportée au
+  cahier des charges.
+- Couverture : 80 % au moins sur les paquets métier, hors code généré ; chaque règle métier
+  a un test qui la nomme.
+- La plateforme publie son propre SBOM et s'analyse elle-même dès que T06 est livré.
+
+## 22. Conventions de code
+
+- `gofmt`, noms explicites, fonctions courtes, erreurs enveloppées avec `%w` et contexte.
+- Commentaires : uniquement le « pourquoi » non évident ; doc de paquet dans `doc.go`.
+- `context.Context` en premier paramètre de toute fonction qui fait des E/S.
+- Pas de `panic` hors initialisation ; pas de goroutine sans propriétaire ni arrêt.
+- Commits atomiques au format conventionnel en français (`feat(ingest): …`), comme dans
+  open-go-base.
+
+## 23. Évolutions à proposer à open-go-base
+
+open-go-base est un autre dépôt ; ces évolutions y sont proposées par l'utilisateur ou avec
+son accord, au plus tard au lot indiqué. En attendant, le projet les contourne sans les
+dupliquer.
+
+| Évolution | Pourquoi | Avant |
+| --- | --- | --- |
+| Erreurs d'authx, mfax et csrfx exposées comme clés plutôt qu'en texte français | Messages traduits (« Identifiants invalides », « Code invalide », « Accès interdit », réponse 403 de csrfx) | T03 |
+| Gestionnaire d'échec configurable dans csrfx | Page 403 traduite et au format du projet | T03 |
+| Clé de limitation configurable dans `ratelimit` (par jeton) | Évite le limiteur maison de `internal/ratelimit` | T04 |
+| Codes de secours dans mfax | Récupération sans administrateur d'instance | T11 |
+| Composant `oidcx` | SSO réutilisable par les projets open-go | T25 |
