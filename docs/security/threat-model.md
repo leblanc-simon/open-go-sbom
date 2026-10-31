@@ -112,7 +112,11 @@ parades prévues, et le lot qui les porte.
 | --- | --- | --- |
 | Faux webhook | signature vérifiée (`X-Hub-Signature-256`, `X-Gitlab-Token` en temps constant) | T08 |
 | Dépôt piégé (liens symboliques, chemins) | tout accès par `os.Root`, aucun lien suivi hors de l'arborescence, aucun script du dépôt exécuté | T08 |
-| Vol des secrets de forge | détenus par l'agent seul, jamais en base ni en configuration en clair | T08 |
+| Webhook rejoué ou en retard | un webhook n'est qu'un signal : l'agent résout la tête de la référence ; livraisons déjà vues écartées (ADR 0023) | T08 |
+| Saturation du récepteur exposé | corps borné, débit limité par IP, réponse immédiate, file bornée | T08 |
+| Dépôt trop gros ou trop lent | taille mesurée pendant le clonage (git tué au-delà), délais de clonage et de scan, répertoire supprimé quoi qu'il arrive | T08 |
+| Exécution de code du dépôt | aucun crochet git, LFS inerte, Syft sans `go list` ni réseau (`golang.UsePackagesLib=false`) | T08 |
+| Vol des secrets de forge | détenus par l'agent seul, jamais en base ni en configuration en clair ; credentials systemd ou fichiers `0600` ; jamais dans les arguments de git, l'URL ni les journaux ; jeton GitHub restreint à `contents: read` | T08 |
 | Injection d'instructions vers l'IA | outils en lecture seule, sortie à schéma, preuve vérifiée, fichiers sensibles exclus | T12 |
 
 ### Chaîne d'approvisionnement du projet

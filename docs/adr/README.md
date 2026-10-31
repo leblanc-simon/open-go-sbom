@@ -22,3 +22,4 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0014](0014-jetons-et-api-des-agents.md) | Jetons et API des agents : format, résolution de l'organisation, limitation par jeton | Accepté |
 | [0015](0015-decodage-des-sbom-dans-le-worker.md) | Décodage des SBOM dans le processus worker, sous bornes préalables, plutôt qu'en sous-processus | Accepté |
 | [0016](0016-ingestion-et-inventaire.md) | Ingestion et inventaire : identité des composants, empreinte, règles d'instantané, validation | Accepté |
+| [0023](0023-agent-depot.md) | Pipeline de l'agent dépôt et accès aux forges : webhook comme signal, extraction d'un commit précis, scan hors ligne, SBOM déterministe | Accepté |
