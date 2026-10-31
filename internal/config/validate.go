@@ -263,6 +263,8 @@ func (i Ingest) validate(v *validator) {
 	}
 	v.positive("ingest.max_components", int64(i.MaxComponents))
 	v.positive("ingest.decode_timeout", int64(i.DecodeTimeout))
+	v.nonNegative("ingest.max_per_ref_per_day", int64(i.MaxPerRefPerDay))
+	v.nonNegative("ingest.max_org_storage_mib", int64(i.MaxOrgStorageMiB))
 }
 
 func (b Bootstrap) validate(v *validator) {

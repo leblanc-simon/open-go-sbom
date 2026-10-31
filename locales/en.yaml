@@ -611,6 +611,9 @@ error:
     decode_failed:
       title: Decoding failed
       text: The document conforms to its schema but could not be decoded.
+    quota:
+      title: Upload quota reached
+      text: "This reference received too many uploads within 24 hours, or the organization reached its stored SBOM volume. Try again later; the operator sets these limits (ingest.max_per_ref_per_day, ingest.max_org_storage_mib)."
     ref_unknown:
       title: Unknown reference
       text: This project is not assigned to this agent, is no longer active, or does not track this reference.

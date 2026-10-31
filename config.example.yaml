@@ -166,6 +166,10 @@ ingest:
   max_depth: 64              # profondeur d'imbrication du JSON
   max_components: 50000      # composants CycloneDX, paquets SPDX, artefacts Syft
   decode_timeout: 5m         # durée maximale d'un job de décodage
+  # Quotas (au-delà : 429, rien n'est stocké ; 0 : sans) : envois stockés par référence
+  # sur 24 h (un doublon ne compte pas), volume compressé des SBOM d'une organisation.
+  max_per_ref_per_day: 200
+  max_org_storage_mib: 10240
 
 # Base de vulnérabilités Grype (docs/operations.md, « Base de vulnérabilités »). Une seule
 # instance interroge la liste ; l'archive vérifiée est stockée dans PostgreSQL et chaque

@@ -330,6 +330,52 @@ func TestEndToEndThroughRunner(t *testing.T) {
 	}
 }
 
+// TestReceiveQuotas (SEC-05) : au-delà du quota d'envois d'une référence sur 24 h, ou du
+// volume stocké de l'organisation, l'envoi est refusé (ErrQuota) et rien n'est stocké ;
+// un doublon n'est pas compté.
+func TestReceiveQuotas(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	tdb := newDB(t)
+	f := newFixture(t, tdb.App)
+	data := testdata(t, "portail-client-ia.cdx16.json")
+
+	perRef := testLimits
+	perRef.MaxPerRefPerDay = 2
+	s := newService(t, tdb.App, perRef)
+	for n := 1; n <= 2; n++ {
+		if _, err := s.Receive(ctx, f.org, f.repoAgent, f.repoContext(n), bytes.NewReader(data)); err != nil {
+			t.Fatalf("envoi %d : %v", n, err)
+		}
+	}
+	if _, err := s.Receive(ctx, f.org, f.repoAgent, f.repoContext(3), bytes.NewReader(data)); !errors.Is(err, ErrQuota) {
+		t.Fatalf("troisième envoi en 24 h : %v, attendu ErrQuota", err)
+	}
+	if dup, err := s.Receive(ctx, f.org, f.repoAgent, f.repoContext(1), bytes.NewReader(data)); err != nil || !dup.Duplicate {
+		t.Fatalf("doublon au-delà du quota : %+v, %v", dup, err)
+	}
+	if n := f.count(t, `SELECT count(*) FROM ingestions`); n != 2 {
+		t.Fatalf("%d ingestions, attendu 2", n)
+	}
+	// La fenêtre est glissante : un envoi vieux de plus de 24 h ne compte plus.
+	f.exec(t, `UPDATE ingestions SET received_at = received_at - interval '25 hours' WHERE commit_sha = $1`, commit(1))
+	if _, err := s.Receive(ctx, f.org, f.repoAgent, f.repoContext(3), bytes.NewReader(data)); err != nil {
+		t.Fatalf("après la fenêtre : %v", err)
+	}
+
+	// Volume de l'organisation : le blob de l'envoi refusé n'est pas gardé.
+	g := newFixture(t, tdb.App)
+	storage := testLimits
+	storage.MaxOrgStorage = 1
+	s = newService(t, tdb.App, storage)
+	if _, err := s.Receive(ctx, g.org, g.repoAgent, g.repoContext(1), bytes.NewReader(data)); !errors.Is(err, ErrQuota) {
+		t.Fatalf("au-delà du volume stocké : %v, attendu ErrQuota", err)
+	}
+	if n := g.count(t, `SELECT count(*) FROM sbom_blobs`) + g.count(t, `SELECT count(*) FROM ingestions`); n != 0 {
+		t.Fatalf("%d lignes stockées malgré le refus", n)
+	}
+}
+
 // Mesure : ingestion de 5 000 composants, de la réception à l'instantané (critère de T05).
 func TestIngestFiveThousandComponents(t *testing.T) {
 	t.Parallel()

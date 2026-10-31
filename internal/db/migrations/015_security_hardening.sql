@@ -16,6 +16,10 @@ BEGIN
 END
 $$;
 
+-- Quota d'envois par référence (ingest.max_per_ref_per_day) : compte des envois
+-- stockés d'une référence sur 24 h.
+CREATE INDEX ingestions_ref_received_idx ON ingestions (org_id, ref_id, received_at) WHERE blob_id IS NOT NULL;
+
 -- Aucun rôle ne crée d'objet dans public hors du propriétaire : un objet du rôle
 -- d'exécution y échapperait à la RLS, et public figure dans le search_path des fonctions
 -- SECURITY DEFINER. Défaut de PostgreSQL 15 et suivants, imposé ici pour les bases plus

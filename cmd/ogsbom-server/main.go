@@ -145,7 +145,9 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	ingester, err := ingest.NewService(ingest.Options{
 		Pool: pool, Validator: validator, Logger: logger,
 		Limits: ingest.Limits{
-			MaxUpload: config.MiB(cfg.Ingest.MaxUploadMiB),
+			MaxUpload:       config.MiB(cfg.Ingest.MaxUploadMiB),
+			MaxPerRefPerDay: cfg.Ingest.MaxPerRefPerDay,
+			MaxOrgStorage:   config.MiB(cfg.Ingest.MaxOrgStorageMiB),
 			SBOM: sbom.Limits{
 				MaxBytes: config.MiB(cfg.Ingest.MaxDecompressedMiB), MaxDepth: cfg.Ingest.MaxDepth,
 				MaxComponents: cfg.Ingest.MaxComponents,

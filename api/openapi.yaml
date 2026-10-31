@@ -143,7 +143,9 @@ paths:
         décompressé, gzip corrompu) donne une ingestion `failed` avec sa clé d'erreur. Un
         envoi identique pour la même référence et le même commit renvoie l'ingestion
         existante (`200`), sans rien créer. Un envoi qui dépasse la taille admise est refusé
-        (`413`).
+        (`413`). Au-delà des quotas de l'instance (envois stockés d'une référence sur 24 h,
+        volume des SBOM stockés de l'organisation), l'envoi est refusé sans rien stocker
+        (`429`, `error.ingest.quota`, avec `Retry-After`).
       security:
         - agentToken: []
       requestBody:

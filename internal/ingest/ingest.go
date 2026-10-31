@@ -39,6 +39,7 @@ type DecodePayload struct {
 const (
 	KeyRefUnknown     = "error.ingest.ref_unknown"
 	KeyMissingPart    = "error.ingest.missing_part"
+	KeyQuota          = "error.ingest.quota"
 	KeyCommitInvalid  = "validation.ingest.commit"
 	KeyCommitRequired = "validation.ingest.commit_required"
 	KeyCommitForbid   = "validation.ingest.commit_forbidden"
@@ -49,7 +50,7 @@ const (
 
 // ErrorKeys liste les clés d'erreur du paquet (tests de traduction).
 func ErrorKeys() []string {
-	return []string{KeyRefUnknown, KeyMissingPart}
+	return []string{KeyRefUnknown, KeyMissingPart, KeyQuota}
 }
 
 // ValidationKeys liste les clés de saisie du paquet (tests de traduction).
@@ -65,6 +66,9 @@ var (
 	ErrUploadTooLarge = errors.New("ingest: envoi trop volumineux")
 	// ErrNotFound : ingestion introuvable pour cet agent.
 	ErrNotFound = errors.New("ingest: ingestion introuvable")
+	// ErrQuota : la référence a reçu trop d'envois sur 24 h, ou l'organisation a atteint
+	// son volume de SBOM stockés (429, rien n'est stocké).
+	ErrQuota = errors.New("ingest: quota atteint")
 )
 
 // Status est l'état d'une ingestion.
@@ -87,6 +91,13 @@ type Limits struct {
 	MaxUpload int64
 	// SBOM borne le document décompressé (taille, profondeur, composants).
 	SBOM sbom.Limits
+	// MaxPerRefPerDay borne les envois stockés par référence sur 24 glissantes (0 : sans).
+	// Un doublon (même commit, même document) n'est pas compté.
+	MaxPerRefPerDay int
+	// MaxOrgStorage borne le volume compressé des SBOM stockés d'une organisation, en
+	// octets (0 : sans). Un agent compromis ne remplit ainsi que la part de son
+	// organisation, pas le disque de toute l'instance (SEC-05).
+	MaxOrgStorage int64
 }
 
 // Options réunit les dépendances du service.
@@ -114,7 +125,8 @@ func NewService(o Options) (*Service, error) {
 		return nil, errors.New("ingest: dépendances incomplètes")
 	}
 	l := o.Limits
-	if l.MaxUpload <= 0 || l.SBOM.MaxBytes < l.MaxUpload || l.SBOM.MaxDepth <= 0 || l.SBOM.MaxComponents <= 0 {
+	if l.MaxUpload <= 0 || l.SBOM.MaxBytes < l.MaxUpload || l.SBOM.MaxDepth <= 0 || l.SBOM.MaxComponents <= 0 ||
+		l.MaxPerRefPerDay < 0 || l.MaxOrgStorage < 0 {
 		return nil, fmt.Errorf("ingest: bornes invalides %+v", l)
 	}
 	if o.Now == nil {
@@ -306,6 +318,10 @@ func (s *Service) Receive(ctx context.Context, org tenant.OrgID, agentID uuid.UU
 				return err
 			}
 		}
+		// Après le stockage du blob : le refus annule la transaction, blob compris.
+		if err := s.checkQuota(ctx, tx, ref.ID); err != nil {
+			return err
+		}
 		if out, err = s.insert(ctx, tx, agentID, ref.ID, c, blobID, nil); err != nil {
 			return err
 		}
@@ -326,10 +342,38 @@ func wrap(what string, err error) error {
 	if err == nil {
 		return nil
 	}
-	if _, ok := account.IsValidation(err); ok || errors.Is(err, ErrRefUnknown) || errors.Is(err, ErrNotFound) || errors.Is(err, ErrUploadTooLarge) {
+	if _, ok := account.IsValidation(err); ok || errors.Is(err, ErrRefUnknown) || errors.Is(err, ErrNotFound) ||
+		errors.Is(err, ErrUploadTooLarge) || errors.Is(err, ErrQuota) {
 		return err
 	}
 	return fmt.Errorf("ingest: %s : %w", what, err)
+}
+
+// checkQuota refuse un envoi au-delà des quotas : envois stockés de la référence sur
+// 24 h, volume stocké de l'organisation (blob de l'envoi compris). Deux envois
+// simultanés peuvent dépasser la borne d'un envoi : elle protège le disque, pas un compte
+// exact.
+func (s *Service) checkQuota(ctx context.Context, tx *db.OrgTx, refID uuid.UUID) error {
+	if n := s.limits.MaxPerRefPerDay; n > 0 {
+		var count int
+		if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM ingestions
+			WHERE ref_id = $1 AND blob_id IS NOT NULL AND received_at > $2`, refID, s.now().Add(-24*time.Hour)).Scan(&count); err != nil {
+			return err
+		}
+		if count >= n {
+			return ErrQuota
+		}
+	}
+	if max := s.limits.MaxOrgStorage; max > 0 {
+		var used int64
+		if err := tx.QueryRowContext(ctx, `SELECT coalesce(sum(compressed_size), 0) FROM sbom_blobs`).Scan(&used); err != nil {
+			return err
+		}
+		if used > max {
+			return ErrQuota
+		}
+	}
+	return nil
 }
 
 // storeBlob stocke le SBOM compressé, ou retrouve celui de même empreinte.

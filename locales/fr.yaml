@@ -611,6 +611,9 @@ error:
     decode_failed:
       title: Décodage impossible
       text: Le document est conforme à son schéma mais n'a pas pu être décodé.
+    quota:
+      title: Quota d'envois atteint
+      text: "Cette référence a reçu trop d'envois en 24 heures, ou l'organisation a atteint son volume de SBOM stockés. Réessayez plus tard ; l'exploitant règle ces bornes (ingest.max_per_ref_per_day, ingest.max_org_storage_mib)."
     ref_unknown:
       title: Référence inconnue
       text: Ce projet n'est pas confié à cet agent, n'est plus actif, ou ne suit pas cette référence.
