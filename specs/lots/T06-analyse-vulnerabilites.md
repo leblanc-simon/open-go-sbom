@@ -58,6 +58,10 @@ Paquets ci-dessus, migrations, écrans, `docs/benchmarks.md` et générateur, se
 « Base de vulnérabilités » de `docs/operations.md` (en ligne, hors ligne, espace disque,
 fréquence, plusieurs instances).
 
+## Maquettes
+
+Planches « 5 · Fiche vulnérabilité », « 7 · Fiche composant », onglet des constats de « 4a » et « 4b » du [design de référence](https://claude.ai/artifact/PPcixBYWkzQJ1XoEVco9Qj).
+
 ## Critères d'acceptation
 
 - [ ] Un SBOM contenant `log4j-core 2.14.1` produit un constat CVE-2021-44228 marqué KEV.

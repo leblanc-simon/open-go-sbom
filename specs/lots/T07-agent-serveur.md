@@ -6,7 +6,7 @@
 
 ## Objectif
 
-`ogs-host-agent` : un binaire statique qui inventorie un hôte Linux avec Syft, avec le
+`ogsbom-host-agent` : un binaire statique qui inventorie un hôte Linux avec Syft, avec le
 moins de privilèges possible, et n'envoie un SBOM que lorsque l'inventaire a changé.
 
 ## Périmètre
@@ -68,7 +68,7 @@ section « Agent serveur » de `docs/operations.md`.
 ## Tests attendus
 
 Unitaires : empreinte stable, configuration, état. Intégration : parcours complet contre un
-serveur de test (`httptest` ou `ogs-server` réel), avec et sans mTLS.
+serveur de test (`httptest` ou `ogsbom-server` réel), avec et sans mTLS.
 
 ## Points à trancher
 

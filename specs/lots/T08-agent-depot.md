@@ -6,7 +6,7 @@
 
 ## Objectif
 
-`ogs-repo-agent` : un service externe aux CI qui détient seul les accès aux forges, réagit
+`ogsbom-repo-agent` : un service externe aux CI qui détient seul les accès aux forges, réagit
 aux push, clone le commit visé, l'analyse avec Syft et envoie le SBOM. L'enrichissement IA
 viendra se greffer en T12 sans changer ce pipeline.
 
@@ -21,7 +21,7 @@ viendra se greffer en T12 sans changer ce pipeline.
 - `internal/repoagent` : liste des dépôts et du dernier commit analysé par référence depuis
   `GET /api/v1/agent/projects`, récepteur de webhooks, planificateur de rattrapage, file en
   mémoire bornée et dédoublonnée, clonage, scan Syft du répertoire, encodage CycloneDX avec
-  `ogs:origin=syft`, envoi, nettoyage.
+  `ogsbom:origin=syft`, envoi, nettoyage.
 - Configuration : serveur, forges, répertoire de travail, parallélisme, délais, taille
   maximale. Secrets (jeton d'agent, clé privée de la GitHub App, jetons des comptes de
   service, secrets de webhook) fournis par credentials systemd chiffrés ou fichiers `0600`,

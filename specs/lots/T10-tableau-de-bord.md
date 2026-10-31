@@ -38,6 +38,10 @@ ce qui demande une action.
 
 Job, écrans, assistants SVG, tests.
 
+## Maquettes
+
+Planches « 2 · Tableau de bord », ses variantes en thème sombre et mobile du [design de référence](https://claude.ai/artifact/PPcixBYWkzQJ1XoEVco9Qj).
+
 ## Critères d'acceptation
 
 - [ ] Chaque indicateur est vérifié contre un jeu de données construit à la main.

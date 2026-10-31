@@ -41,9 +41,13 @@ Aucun code. Prochain lot : [T00 — Fondations](specs/lots/T00-fondations.md).
 
 - Code en anglais ; commentaires et documentation en français ; commentaires réservés au
   « pourquoi » non évident.
-- Isolement des organisations : `tenant.OrgID` en paramètre de toute requête
-  d'organisation, clés étrangères composites, 404 pour une ressource d'une autre
-  organisation, test d'isolement pour chaque nouvelle route.
+- Isolement des organisations (§ 9 de l'architecture) : RLS forcée sur toute table
+  d'organisation, accès uniquement par `db.InOrg` (jamais `InTx`), `tenant.OrgID` en
+  paramètre, clés étrangères composites, 404 pour une ressource d'une autre organisation,
+  tests d'isolement par route et tests SQL de RLS. Les seules lectures
+  inter-organisations passent par `internal/db/crossorg`.
+- Deux rôles PostgreSQL : le propriétaire migre, l'application tourne avec un rôle qui ne
+  peut pas contourner la RLS (vérifié au démarrage).
 - Anchore (Syft, Grype, Grant) importé uniquement par ses adaptateurs (§ 4 de
   l'architecture, vérifié par `internal/archtest`).
 - Traduction : aucune chaîne visible en dur ; clés anglaises `écran.élément` ; racines
@@ -70,5 +74,5 @@ Disponibles après T00 (à mettre à jour avec le `Makefile` réel) :
 make ci                 # fmt-check, vet, staticcheck, govulncheck, tests -race, intégration, archtest
 make test-integration   # nécessite PostgreSQL : docker compose -f deploy/compose.yaml up -d
 make generate           # code généré depuis api/openapi.yaml
-make build              # bin/ogs-server, bin/ogs-host-agent, bin/ogs-repo-agent
+make build              # bin/ogsbom-server, bin/ogsbom-host-agent, bin/ogsbom-repo-agent
 ```

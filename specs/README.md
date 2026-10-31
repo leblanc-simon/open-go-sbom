@@ -26,6 +26,10 @@ sur les choix techniques ; une fiche de lot précise le quoi et le comment d'une
   accepté par l'utilisateur.
 - Tests unitaires et d'intégration pour chaque règle métier ; tests d'isolement entre
   organisations pour toute nouvelle route ou requête d'organisation.
+- Toute nouvelle table d'organisation : `org_id`, clés étrangères composites, RLS forcée
+  avec la politique standard, accès par `InOrg`, et ses cas ajoutés aux tests SQL de RLS.
+  Toute nouvelle fonction de `crossorg` est justifiée dans le Journal et relue comme un
+  changement de sécurité.
 - Aucune chaîne visible en dur ; clés présentes en anglais et en français.
 - Écrans : HTML sémantique, utilisables au clavier, testés en thème clair et sombre.
 - Migrations nouvelles uniquement, jamais de modification d'une migration publiée.

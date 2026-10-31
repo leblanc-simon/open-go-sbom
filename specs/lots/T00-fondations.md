@@ -55,7 +55,7 @@ Explorations à mener, chacune dans un programme jetable hors `main`, résultat 
   depuis un répertoire, correspondance d'un SBOM décodé par Syft, lecture d'EPSS, KEV et du
   score de risque, rattachement de chaque résultat à son purl.
 - Le client Docker est-il déjà dans le graphe de dépendances de stereoscope ?
-- Taille d'un binaire `ogs-host-agent` qui importe Syft, en `CGO_ENABLED=0`, amd64 et arm64.
+- Taille d'un binaire `ogsbom-host-agent` qui importe Syft, en `CGO_ENABLED=0`, amd64 et arm64.
 - sqlc en mode `database/sql` avec le pilote pgx : comment sont passés les tableaux
   d'`unnest` (sqlc génère `pq.Array`, donc une dépendance à lib/pq) ?
 - oapi-codegen à la version retenue gère-t-il OpenAPI 3.1 ? Sinon, l'API est écrite en 3.0.
@@ -69,7 +69,7 @@ dépendances validées (avec version) dans le Journal.
 
 - [ ] `make ci` passe sur le squelette, en local et en CI.
 - [ ] Un import interdit volontaire (par exemple Grype dans `web`) fait échouer `archtest`.
-- [ ] `ogs-server --version`, `ogs-host-agent --version`, `ogs-repo-agent --version`
+- [ ] `ogsbom-server --version`, `ogsbom-host-agent --version`, `ogsbom-repo-agent --version`
       affichent la version injectée.
 - [ ] Les dépendances du § 5 « À valider en T00 » sont validées ou remplacées par
       l'utilisateur, et le tableau de l'architecture est mis à jour.

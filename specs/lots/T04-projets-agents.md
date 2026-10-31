@@ -48,6 +48,10 @@ de vie, liste des projets confiés.
 
 Migrations, stores, écrans, routes d'API et leur description OpenAPI, tests d'isolement.
 
+## Maquettes
+
+Planches « 3 · Projets », « 8 · Agents et jetons » du [design de référence](https://claude.ai/artifact/PPcixBYWkzQJ1XoEVco9Qj).
+
 ## Critères d'acceptation
 
 - [ ] Un jeton d'inscription expiré ou épuisé est refusé avec une erreur traduisible.

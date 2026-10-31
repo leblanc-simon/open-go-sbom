@@ -41,7 +41,15 @@ méthode d'authentification que tous les lots suivants utilisent.
   s'insère dans l'ordre du § 18.
 - Limitation de débit dédiée (paquet `ratelimit` d'open-go-base) sur `/login` et
   `/login/2fa`.
-- Harnais de tests d'isolement entre organisations, réutilisé par chaque lot.
+- Premières tables d'organisation, sous RLS forcée (§ 9 de l'architecture) :
+  `organizations`, `org_memberships`, `audit_events`. Les événements d'instance (sans
+  organisation) vont dans la table globale `instance_audit_events`.
+- Premières fonctions de `internal/db/crossorg` : résolution d'un slug et de l'appartenance
+  pour la garde, liste des organisations d'un compte pour le sélecteur. La garde n'accède
+  aux tables d'organisation qu'à travers elles tant que l'organisation n'est pas déclarée.
+- Harnais de tests d'isolement réutilisé par chaque lot : parcours des routes avec un compte
+  d'une autre organisation, et tests SQL de RLS (requêtes sans filtre dans `InOrg`, requêtes
+  hors `InOrg`) qu'il suffit d'étendre à chaque nouvelle table.
 
 **Exclu** : SSO (T25), équipes (T16), envoi de courriels (T15).
 
@@ -59,14 +67,16 @@ méthode d'authentification que tous les lots suivants utilisent.
   l'architecture). Avant d'écrire les écrans, proposer l'évolution « erreurs sous forme de
   clés » ; tant qu'elle n'est pas disponible, le `Renderer` traduit à partir de la nature de
   l'erreur et non du texte reçu.
-- ADR : sécurité au niveau des lignes (RLS) de PostgreSQL comme défense en profondeur,
-  adoptée ou écartée avec ses raisons.
+- ADR « isolement des organisations » : RLS obligatoire, schéma par organisation écarté
+  (raisons du § 9 de l'architecture), liste initiale des fonctions de `crossorg` et règle de
+  revue de tout ajout.
 
 ## Livrables
 
 Écrans de connexion, second facteur, configuration TOTP, profil, administration d'instance,
-membres d'organisation, journal d'audit ; migrations ; ADR RLS ; harnais d'isolement ;
-procédure de secours dans `docs/operations.md`.
+membres d'organisation, journal d'audit ; migrations avec politiques RLS ; fonctions de
+`crossorg` ; ADR d'isolement ; harnais d'isolement ; procédure de secours dans
+`docs/operations.md`.
 
 ## Critères d'acceptation
 
@@ -75,6 +85,8 @@ procédure de secours dans `docs/operations.md`.
       son mot de passe.
 - [ ] Le premier administrateur est créé une seule fois ; `bootstrap.*` est ignoré ensuite.
 - [ ] Un membre de l'organisation A reçoit 404 sur toute URL de l'organisation B.
+- [ ] Dans `InOrg(A)`, des requêtes sans filtre sur `organizations`, `org_memberships` et
+      `audit_events` ne lisent ni n'écrivent rien de B ; hors `InOrg`, elles échouent.
 - [ ] Un `viewer` ne peut modifier ni les membres ni les paramètres de l'organisation.
 - [ ] Chaque action d'administration produit un événement d'audit lisible.
 - [ ] Les erreurs de connexion sont génériques, traduites et à temps de réponse égalisé.

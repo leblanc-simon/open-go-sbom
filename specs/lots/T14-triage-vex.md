@@ -49,6 +49,10 @@ l'organisation, avec un historique complet, et échanger ces qualifications au f
 
 Paquet, migrations, écrans, routes d'API, exports et imports, ADR.
 
+## Maquettes
+
+Planches « 6 · Triage d'un constat » du [design de référence](https://claude.ai/artifact/PPcixBYWkzQJ1XoEVco9Qj).
+
 ## Critères d'acceptation
 
 - [ ] Une décision d'organisation s'applique à tous les projets concernés, et une décision de

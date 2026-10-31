@@ -6,7 +6,7 @@
 
 ## Objectif
 
-Porter `ogs-host-agent` sur Windows Server avec les mêmes garanties que sous Linux.
+Porter `ogsbom-host-agent` sur Windows Server avec les mêmes garanties que sous Linux.
 
 ## Périmètre
 

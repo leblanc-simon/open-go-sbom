@@ -40,6 +40,10 @@ l'hôte, avec son propre SBOM, et disparaît proprement quand le conteneur n'exi
 
 Évolution de l'agent et du serveur, migrations, écrans, documentation.
 
+## Maquettes
+
+Planches « 4b · Fiche projet — serveur » du [design de référence](https://claude.ai/artifact/PPcixBYWkzQJ1XoEVco9Qj).
+
 ## Critères d'acceptation
 
 - [ ] Trois conteneurs sur deux images : trois projets enfants, deux scans d'image.

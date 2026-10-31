@@ -20,10 +20,12 @@ versions ? » et « qui est touché par cette CVE ? », à l'écran comme par l'
   pagination par projet, export CSV et JSON en flux.
 - Index : extension `pg_trgm` et index trigramme sur le nom, index sur
   (`org_id`, `purl_base`), sur les composants des ensembles d'inventaire, sur `ref_current`
-  et sur `findings` par vulnérabilité.
+  et sur `findings` par vulnérabilité. Tous commencent par `org_id`, car la RLS évalue son
+  filtre avant les opérateurs non `LEAKPROOF` comme les trigrammes (§ 13 de l'architecture) ;
+  GIN composite via `btree_gin` si la mesure l'exige.
 - Écran de recherche : barre unique, rappel du type détecté, filtres en formulaire `GET`,
   résultats groupés par projet, boutons d'export.
-- Jetons d'accès personnels (`ogs_pat_`) : création et révocation depuis le profil, lecture
+- Jetons d'accès personnels (`ogsbom_pat_`) : création et révocation depuis le profil, lecture
   seule, limités aux organisations du compte ; route `GET /api/v1/orgs/{org}/search`.
 - Banc d'essai `make bench-search` sur le jeu de données synthétique de T06.
 
@@ -45,6 +47,10 @@ versions ? » et « qui est touché par cette CVE ? », à l'écran comme par l'
 Paquets, migrations, écran, route d'API, jetons personnels, banc d'essai, section
 « Recherche » de la documentation utilisateur.
 
+## Maquettes
+
+Planches « 1 · Recherche transverse » et sa variante en thème sombre du [design de référence](https://claude.ai/artifact/PPcixBYWkzQJ1XoEVco9Qj).
+
 ## Critères d'acceptation
 
 - [ ] `vers:npm/<4.17.21` sur `pkg:npm/lodash` ne renvoie que les versions inférieures.
@@ -53,7 +59,10 @@ Paquets, migrations, écran, route d'API, jetons personnels, banc d'essai, secti
 - [ ] Les filtres sont reflétés dans l'URL ; une URL partagée redonne le même résultat.
 - [ ] L'API renvoie exactement les mêmes résultats que l'écran.
 - [ ] Banc d'essai : moins de 2 s au 95e centile sur 1 000 projets et 1 million de liens,
-      selon `docs/benchmarks.md` (mesure consignée).
+      **RLS active** et avec le rôle d'exécution réel, selon `docs/benchmarks.md` (mesure
+      et plans d'exécution consignés).
+- [ ] Les plans des requêtes de recherche utilisent les index prévus malgré la RLS (vérifié
+      par `EXPLAIN` dans un test).
 - [ ] Un jeton personnel révoqué est refusé ; il ne donne jamais plus de droits que son
       propriétaire.
 

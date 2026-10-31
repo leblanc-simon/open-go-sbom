@@ -18,8 +18,9 @@ le découpage du travail est dans [`specs/README.md`](README.md). Toute décisio
    l'utilisateur avant d'être ajoutée (§ 5). Les bibliothèques d'Anchore sont isolées
    derrière des adaptateurs.
 6. **Multi-organisation par construction.** Aucune donnée d'organisation ne vit dans une
-   table globale ; l'isolement est garanti par le schéma (clés étrangères composites) et
-   par les signatures de fonctions, pas par la discipline.
+   table globale ; l'isolement est garanti par PostgreSQL lui-même (RLS forcée sur toute
+   table d'organisation), par le schéma (clés étrangères composites) et par les signatures
+   de fonctions, pas par la discipline.
 7. **Traduction dès le premier écran.** Aucune chaîne visible en dur, ni dans les gabarits,
    ni dans le code.
 8. **Sécurité par défaut.** TOTP obligatoire hors SSO, CSP stricte, CSRF, limitation de
@@ -29,27 +30,28 @@ le découpage du travail est dans [`specs/README.md`](README.md). Toute décisio
 
 | Binaire | Rôle | Lots |
 | --- | --- | --- |
-| `ogs-server` | Interface web, API REST, workers (ingestion, analyse, notifications), planificateur | T01 → |
-| `ogs-host-agent` | Agent serveur Linux (puis Windows) : inventaire de l'hôte et de ses conteneurs | T07, T13, T19, T22, T23, T24 |
-| `ogs-repo-agent` | Agent dépôt, service externe : forges, clonage, Syft, enrichissement IA | T08, T12, T15, T19, T23, T24 |
+| `ogsbom-server` | Interface web, API REST, workers (ingestion, analyse, notifications), planificateur | T01 → |
+| `ogsbom-host-agent` | Agent serveur Linux (puis Windows) : inventaire de l'hôte et de ses conteneurs | T07, T13, T19, T22, T23, T24 |
+| `ogsbom-repo-agent` | Agent dépôt, service externe : forges, clonage, Syft, enrichissement IA | T08, T12, T15, T19, T23, T24 |
 
-`ogs-server` lance web et workers dans le même processus ; `workers.enabled: false` sert à
+`ogsbom-server` lance web et workers dans le même processus ; `workers.enabled: false` sert à
 séparer les rôles sur plusieurs instances (recommandé dès qu'on dépasse un usage modeste,
 pour qu'un envoi lourd ne ralentisse pas l'interface).
 
-Un `ogs-repo-agent` sert une organisation (un jeton d'agent). Plusieurs organisations sur
+Un `ogsbom-repo-agent` sert une organisation (un jeton d'agent). Plusieurs organisations sur
 une instance → une instance d'agent dépôt par organisation qui en a besoin.
 
 ## 3. Arborescence du dépôt
 
 ```
 cmd/
-  ogs-server/            # main : chargement config, câblage, démarrage
-  ogs-host-agent/
-  ogs-repo-agent/
+  ogsbom-server/            # main : chargement config, câblage, démarrage
+  ogsbom-host-agent/
+  ogsbom-repo-agent/
 internal/
   config/                # Config composée : fragments appconf + fragments propres
-  db/                    # pool, transactions, verrous, exécution des migrations
+  db/                    # pool, transactions (InTx, InOrg), verrous, migrations
+    crossorg/            # seules fonctions inter-organisations (SECURITY DEFINER), § 9
     migrations/          # NNN_<sujet>.sql, immuables une fois publiées
   jobs/                  # file de traitements PostgreSQL + planificateur
   secret/                # chiffrement des secrets stockés (AES-256-GCM, clés versionnées)
@@ -145,25 +147,39 @@ confinement des fichiers (`os.Root`).
 
 ## 6. Configuration
 
-`internal/config.Config` compose les fragments d'`appconf` avec le préfixe `OGS_` :
+`internal/config.Config` compose les fragments d'`appconf` avec le préfixe `OGSBOM_` :
 `Web`, `Logging`, `I18n`, `Database`, `Auth`, `MFA`, `CORS`. Fragments propres au projet :
 `TLS` (certificat, clé, autorité des certificats clients pour le mTLS des agents),
 `Management` (écoute séparée métriques et sondes), `Workers`, `Ingest` (bornes),
 `VulnDB` (URL de la liste, répertoire local, fréquence, mode hors ligne), `Secrets` (clés
-de chiffrement versionnées), `Bootstrap` (premier administrateur). `--help` liste toutes
-les variables d'environnement. Un `config.example.yaml` commenté accompagne chaque binaire.
+de chiffrement versionnées), `Bootstrap` (premier administrateur), `Migration`
+(`migration_dsn` : connexion du rôle propriétaire, utilisée uniquement pour migrer).
+`Database.DSN` est la connexion du rôle d'exécution. `--help` liste toutes les variables
+d'environnement. Un `config.example.yaml` commenté accompagne chaque binaire.
 
-Contrôles au démarrage : `Database.Driver` doit valoir `postgres` (pour que `Dialect()`
-renvoie PostgreSQL ; le pool est ouvert avec le pilote `pgx`) ; le pool doit autoriser au
-moins 2 connexions (la migration tient un verrou sur l'une pendant qu'elle travaille sur
-une autre). TLS natif facultatif ; sans lui, le serveur est placé derrière un mandataire
-inverse qui termine TLS, et le mTLS des agents est alors indisponible.
+Contrôles au démarrage :
+
+- `Database.Driver` doit valoir `postgres` (pour que `Dialect()` renvoie PostgreSQL ; le
+  pool est ouvert avec le pilote `pgx`) ;
+- le pool de migration doit autoriser au moins 2 connexions (le verrou de migration en tient
+  une pendant que les migrations travaillent sur une autre) ;
+- le rôle d'exécution ne doit être ni superutilisateur, ni `BYPASSRLS`, ni propriétaire des
+  tables : sinon la RLS serait contournée, et le serveur refuse de démarrer ;
+- TLS natif facultatif ; sans lui, le serveur est placé derrière un mandataire inverse qui
+  termine TLS, et le mTLS des agents est alors indisponible.
 
 ## 7. Base de données
 
 - PostgreSQL 16 ou plus, seul moteur supporté. Connexion directe, ou via pgbouncer en mode
   session (le mode transaction est incompatible avec les migrations et les verrous).
-- Un pool `*sql.DB` unique, partagé par les stores d'authx/mfax et par le code du projet.
+- Deux rôles PostgreSQL (noms par défaut) :
+  - `ogsbom_owner` possède le schéma, applique les migrations (y compris celles d'authx et
+    de mfax) et possède les fonctions de `crossorg` ;
+  - `ogsbom_app` exécute l'application : `SELECT`, `INSERT`, `UPDATE`, `DELETE` accordés
+    par les migrations (privilèges par défaut sur les tables futures), rien d'autre.
+- En fonctionnement, un pool `*sql.DB` unique sur `ogsbom_app`, partagé par les stores
+  d'authx/mfax et par le code du projet ; le pool du propriétaire n'existe que le temps de
+  migrer.
 - Identifiants : UUID v7 générés en Go pour les entités du projet. Les comptes gardent
   l'identifiant `bigint` d'authx ; les tables du projet qui les référencent utilisent
   `bigint`. Les organisations et les projets ont aussi un `slug` pour les URL.
@@ -172,14 +188,18 @@ inverse qui termine TLS, et le mTLS des agents est alors indisponible.
   contexte d'hôte).
 - **Migrations** : celles d'authx et de mfax par leur `Migrate` ; celles du projet par
   l'exécuteur de `internal/db`, dans `internal/db/migrations/NNN_<sujet>.sql`, suivies dans
-  la table `ogs_schema_migrations` avec leur somme SHA-256. Une migration publiée dont la
+  la table `ogsbom_schema_migrations` avec leur somme SHA-256. Une migration publiée dont la
   somme a changé empêche le démarrage : l'immuabilité est vérifiée, pas seulement promise.
-  Ordre au démarrage : transaction de verrou (`LOCK TABLE ogs_schema_migrations IN
-  EXCLUSIVE MODE`) sur une connexion dédiée → authx → mfax → projet → validation. Une
-  seconde instance attend le verrou puis constate qu'il n'y a rien à faire.
+  Ordre au démarrage, avec le pool du rôle propriétaire : transaction de verrou
+  (`LOCK TABLE ogsbom_schema_migrations IN EXCLUSIVE MODE`) sur une connexion dédiée →
+  authx → mfax → projet (dont politiques RLS, droits du rôle d'exécution et fonctions de
+  `crossorg`) → validation. Une seconde instance attend le verrou puis constate qu'il n'y a
+  rien à faire.
 - Accès : un « store » par paquet métier, qui ne renvoie que des types du domaine.
-- Transactions : `db.InTx(ctx, func(tx) error)` ; aucune transaction ne traverse un appel
-  réseau. Les upserts en lot trient leurs clés pour éviter les interblocages.
+- Transactions : `db.InOrg(ctx, orgID, func(tx) error)` pour toute donnée d'organisation
+  (§ 9), `db.InTx(ctx, func(tx) error)` pour les seules tables globales ; aucune transaction
+  ne traverse un appel réseau. Les upserts en lot trient leurs clés pour éviter les
+  interblocages.
 
 ## 8. Modèle de données
 
@@ -192,6 +212,7 @@ Données **globales** (publiques ou propres à l'instance, jamais des données d
 | `jobs`, `schedules` | file de traitements et échéances du planificateur |
 | `users`, `sessions`, `mfa_*` | tables d'open-go-base ; `users` est écrit par `account` (§ 10) |
 | `account_settings`, `session_auth` | préférences du compte ; méthode d'authentification de chaque session |
+| `instance_audit_events` | journal d'audit de l'instance (événements sans organisation) |
 
 Données **par organisation** (toutes portent `org_id`) :
 
@@ -230,8 +251,47 @@ rétention supprime les ensembles orphelins.
   l'appartenance avant tout handler et place `tenant.OrgID` dans le contexte.
 - Une suite de tests d'isolement parcourt chaque route avec un compte d'une autre
   organisation et exige un 404 (jamais un 403, pour ne rien révéler).
-- La sécurité au niveau des lignes de PostgreSQL (RLS) est étudiée en ADR pendant T03 comme
-  défense en profondeur ; elle n'est pas un prérequis.
+
+### RLS obligatoire
+
+- Toute table d'organisation a `ENABLE` et `FORCE ROW LEVEL SECURITY`, et une politique
+  `USING (org_id = current_setting('ogsbom.org_id')::uuid)` avec la même condition en
+  `WITH CHECK` (pour `organizations`, la colonne est `id`). PostgreSQL limite ainsi lecture
+  et écriture à l'organisation déclarée, même si une requête oublie son filtre.
+- `db.InOrg(ctx, orgID, fn)` ouvre une transaction et y déclare l'organisation par
+  `set_config('ogsbom.org_id', $1, true)` : portée limitée à la transaction, donc
+  compatible avec un pool de connexions et avec pgbouncer. C'est le seul accès aux tables
+  d'organisation.
+- Échec franc : hors `InOrg`, le paramètre est absent ou vide et sa conversion en `uuid`
+  lève une erreur. Une requête sans organisation déclarée échoue ; elle ne renvoie jamais
+  zéro ligne en silence.
+- Le rôle d'exécution ne peut pas contourner la RLS (§ 6, § 7).
+- Opérations inter-organisations : résolution d'un slug et de l'appartenance par la garde,
+  liste des organisations d'un compte, liste des références actives pour la réanalyse,
+  liste des organisations pour les statistiques quotidiennes. Ce sont des fonctions
+  `SECURITY DEFINER` du rôle propriétaire, à `search_path` fixé, qui ne renvoient que le
+  strict nécessaire. Elles vivent toutes dans `internal/db/crossorg`, sont listées dans un
+  ADR, et tout ajout est relu comme un changement de sécurité.
+- La RLS s'ajoute aux autres protections sans les remplacer : PostgreSQL ne l'applique pas
+  aux contrôles de clés étrangères (d'où les clés composites), et `tenant.OrgID` garde des
+  erreurs claires et des plans de requête prévisibles.
+- Les tables globales (§ 8) n'ont pas de RLS ; elles ne contiennent aucune donnée
+  d'organisation.
+- Tests propres à la RLS : dans `InOrg(A)`, des requêtes volontairement sans filtre
+  `org_id` ne lisent ni n'écrivent aucune ligne de B ; hors `InOrg`, toute requête sur une
+  table d'organisation échoue ; au démarrage, un rôle d'exécution trop puissant est refusé.
+
+### Pourquoi pas un schéma par organisation
+
+Écarté (ADR en T03). Tant qu'un seul rôle accède à tous les schémas, l'isolement reposerait
+sur un `search_path` correctement positionné, soit la même discipline qu'un filtre oublié ;
+un rôle par organisation imposerait un pool par organisation. Les migrations seraient
+rejouées une fois par organisation, la création d'une organisation demanderait de créer des
+tables à chaud (donc des droits de DDL pour l'application), et les traitements qui couvrent
+toutes les organisations passeraient par du SQL dynamique. Le gain de volume est nul à
+l'échelle visée : un index qui commence par `org_id` mène directement aux lignes de
+l'organisation. Si une organisation devenait très volumineuse, le partitionnement des plus
+grandes tables par `org_id` donnerait la même séparation physique en gardant la RLS.
 
 ## 10. Identité et accès
 
@@ -255,7 +315,7 @@ rétention supprime les ensembles orphelins.
 - Pas d'envoi de courriel avant T15 : les comptes sont créés avec un mot de passe temporaire.
 - Rôles d'organisation : `viewer`, `analyst` (trie les constats), `admin`. Les équipes (T16)
   restreignent ensuite la visibilité par projet.
-- Jetons : préfixés par leur nature (`ogs_agt_`, `ogs_enr_`, `ogs_pat_`), puis un
+- Jetons : préfixés par leur nature (`ogsbom_agt_`, `ogsbom_enr_`, `ogsbom_pat_`), puis un
   identifiant public et un secret de 256 bits. Seul le SHA-256 du secret est stocké ;
   comparaison en temps constant ; révocation immédiate ; date de dernier usage.
 - Limitation de débit : par IP pour l'interface (open-go-base) ; **par jeton** pour l'API
@@ -288,8 +348,8 @@ Formats acceptés : CycloneDX JSON 1.5 à 1.7, SPDX JSON 2.3, Syft JSON. Pas de 
 Canonicalisation des purl : encodage, casse et tri des qualificatifs normalisés selon la
 spécification purl ; **les qualificatifs d'identité (`distro`, `arch`, `epoch`, `upstream`…)
 sont conservés**, car Grype en a besoin. Les CPE sont conservés. Propriétés CycloneDX propres
-au projet, espace de noms `ogs:` : `ogs:origin` (`syft` ou `ia`), `ogs:confidence` (0 à 1),
-`ogs:model` ; la preuve IA utilise le champ standard `evidence`.
+au projet, espace de noms `ogsbom:` : `ogsbom:origin` (`syft` ou `ia`), `ogsbom:confidence` (0 à 1),
+`ogsbom:model` ; la preuve IA utilise le champ standard `evidence`.
 
 Le décodage s'exécute dans le processus worker ; les bornes préalables et le plafond de
 jobs simultanés par organisation empêchent un seul agent de saturer une instance. Une
@@ -329,11 +389,23 @@ isolation en sous-processus est étudiée en ADR pendant T05.
 - Exécution sur `ref_current` + `component_set_items` + `components`, filtrée par
   organisation (et par équipe après T16). Résultats groupés par projet, paginés,
   exportables en CSV et JSON en flux.
-- Cible : moins de 2 s au 95e centile pour 1 000 projets et 1 million de liens, selon le
-  protocole de `docs/benchmarks.md`.
+- La RLS ajoute le filtre d'organisation à chaque requête, et les opérateurs non
+  `LEAKPROOF` (trigrammes, `ILIKE`) sont évalués après elle. Les index de recherche
+  commencent donc par `org_id` (index composites ; GIN composite via l'extension
+  `btree_gin` pour les trigrammes si la mesure l'exige).
+- Cible : moins de 2 s au 95e centile pour 1 000 projets et 1 million de liens, **RLS
+  active**, selon le protocole de `docs/benchmarks.md`.
 
 ## 14. Interface web
 
+- **Design de référence** : canevas
+  [« open-go-sbom — Interface »](https://claude.ai/artifact/PPcixBYWkzQJ1XoEVco9Qj) (fondations,
+  composants, huit écrans en thème clair, thème sombre, mobile). Sa feuille `project/ogs.css`
+  est la source des tokens et des composants portés dans `web/static/css` (T01) ; sa
+  racine `.ogs` devient `.ogsbom` au portage, et le thème se choisit par `data-theme`.
+  Ses polices (Atkinson Hyperlegible Next et Mono, licence OFL) sont auto-hébergées et
+  embarquées, jamais chargées depuis un CDN (CSP `'self'`). Chaque fiche de lot à écran
+  nomme ses planches.
 - Routeur chi avec **trois groupes de routes** :
   - interface : identifiant de requête → limitation par IP → journalisation → récupération
     de panique → en-têtes de sécurité → session (authx) → changement de mot de passe imposé
@@ -380,6 +452,10 @@ isolation en sous-processus est étudiée en ADR pendant T05.
   tentatives, prochaine exécution, bail (`locked_until`), clé d'unicité, dernière erreur.
 - Prise par `SELECT … FOR UPDATE SKIP LOCKED` ; bail renouvelé pendant l'exécution ; un job
   dont le bail expire est repris. Chaque handler est idempotent (exigence de revue).
+- La table `jobs` est globale ; un handler qui touche des données d'organisation travaille
+  dans `InOrg(job.OrgID)`. Les rares jobs inter-organisations (`analysis.rescan_all`,
+  statistiques quotidiennes) obtiennent leur liste par une fonction de `crossorg`, puis
+  mettent en file un job par organisation.
 - Réessais à délai exponentiel avec gigue ; au-delà du maximum, statut `dead`.
 - Clé d'unicité sur les jobs en attente ; une seconde mise en file **relève la priorité** et
   avance l'échéance si besoin (`ON CONFLICT … DO UPDATE`) : une ingestion fraîche n'attend
@@ -400,8 +476,8 @@ isolation en sous-processus est étudiée en ADR pendant T05.
 - Secrets des agents (jeton, clés de forge, clés d'API des modèles) : jamais dans le fichier
   de configuration. Ils sont fournis par les credentials systemd (`LoadCredentialEncrypted=`,
   chiffrés au repos) ou par des fichiers en `0600`, au choix de l'exploitant.
-- `ogs-host-agent` : voir T07 (hôte), T13 (conteneurs), T22 (Windows), T23 (hors ligne).
-- `ogs-repo-agent` : service externe qui détient seul les secrets des forges. Il reçoit les
+- `ogsbom-host-agent` : voir T07 (hôte), T13 (conteneurs), T22 (Windows), T23 (hors ligne).
+- `ogsbom-repo-agent` : service externe qui détient seul les secrets des forges. Il reçoit les
   webhooks, clone, analyse, envoie, puis attend le verdict du serveur pour publier le statut
   de commit (T15). Tout accès au contenu d'un dépôt passe par `os.Root` (aucune sortie de
   l'arborescence, aucun lien symbolique suivi hors d'elle). Voir T08 et T12.
@@ -452,9 +528,9 @@ isolation en sous-processus est étudiée en ADR pendant T05.
 ## 21. Tests et barrières de qualité
 
 - `make ci` (identique en CI) : `gofmt`, `go vet`, `staticcheck`, `govulncheck`, tests
-  `-race`, tests d'intégration PostgreSQL, tests d'architecture, complétude des traductions,
-  code généré à jour.
-- Tests d'intégration contre un vrai PostgreSQL (`OGS_TEST_DATABASE_DSN`, fourni par
+  `-race`, tests d'intégration PostgreSQL (dont les tests RLS du § 9, exécutés avec le rôle
+  d'exécution réel), tests d'architecture, complétude des traductions, code généré à jour.
+- Tests d'intégration contre un vrai PostgreSQL (`OGSBOM_TEST_DATABASE_DSN`, fourni par
   `deploy/compose.yaml` en local et par un service en CI), base jetable par test.
 - SBOM d'exemple dans `testdata/sbom/` (CycloneDX 1.5, 1.6, 1.7, SPDX 2.3, Syft JSON),
   dont des SBOM d'hôtes Debian, RHEL et Alpine ; fichiers attendus (« golden »).

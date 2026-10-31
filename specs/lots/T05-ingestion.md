@@ -18,7 +18,7 @@ d'une référence suivie, avec des ensembles d'inventaire adressés par contenu.
   calcul de `purl_base`, **empreinte d'inventaire** indépendante des horodatages et numéros
   de série du document.
 - `internal/sbom/syft` : détection du format, décodage de CycloneDX JSON 1.5 à 1.7, SPDX
-  JSON 2.3, Syft JSON ; lecture des propriétés `ogs:` et du champ `evidence` ; encodage
+  JSON 2.3, Syft JSON ; lecture des propriétés `ogsbom:` et du champ `evidence` ; encodage
   CycloneDX 1.6 et SPDX 2.3 pour l'export.
 - `internal/ingest` : route `POST /api/v1/agent/ingestions` (multipart du § 11), contrôles
   synchrones, stockage du blob compressé et dédoublonné, job `ingest.decode` mis en file
@@ -58,6 +58,10 @@ rétention (T17).
 
 Paquets ci-dessus, migrations, description OpenAPI, SBOM d'exemple dans `testdata/sbom/`
 (dont des hôtes Debian, RHEL et Alpine) et fichiers attendus, écrans, ADR du décodage.
+
+## Maquettes
+
+Planches « 4a · Fiche projet — dépôt » (onglet des instantanés) du [design de référence](https://claude.ai/artifact/PPcixBYWkzQJ1XoEVco9Qj).
 
 ## Critères d'acceptation
 

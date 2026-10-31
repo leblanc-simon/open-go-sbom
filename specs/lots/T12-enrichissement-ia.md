@@ -21,7 +21,7 @@ déterministe, et avec un taux de faux positifs mesuré.
   résultats bornés), et `submit_candidates` (sortie au schéma imposé). Tous les accès aux
   fichiers passent par un `os.Root` ouvert sur le répertoire de travail de l'analyse.
 - Vérificateur déterministe des candidats, fusion avec Syft, encodage CycloneDX avec
-  `evidence`, `ogs:origin=ia`, `ogs:confidence`, `ogs:model`.
+  `evidence`, `ogsbom:origin=ia`, `ogsbom:confidence`, `ogsbom:model`.
 - Analyse incrémentale : fichiers modifiés depuis le dernier commit analysé, obtenus par
   l'API de comparaison de la forge (le clone superficiel n'a pas d'historique), plus les
   fichiers des composants IA de l'instantané précédent, lus par une nouvelle route
@@ -66,6 +66,10 @@ déterministe, et avec un taux de faux positifs mesuré.
 Paquets, prompt système versionné, corpus annoté, rapport d'évaluation (précision, rappel,
 taux de faux positifs, coût moyen par analyse) consigné dans le Journal, documentation des
 réglages et de la politique d'envoi de code, ADR de séparation des privilèges.
+
+## Maquettes
+
+Planches « 7 · Fiche composant (origine IA) » du [design de référence](https://claude.ai/artifact/PPcixBYWkzQJ1XoEVco9Qj).
 
 ## Critères d'acceptation
 
