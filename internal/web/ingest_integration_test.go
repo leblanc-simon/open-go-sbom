@@ -364,6 +364,18 @@ func TestSnapshotScreens(t *testing.T) {
 			t.Errorf("téléchargement %s invalide : %v", format, err)
 		}
 	}
+	// Un réencodage à la fois par compte (SEC-06) ; le document tel que reçu reste servi.
+	release, ok := a.reencode.Acquire("user:" + itoa(admin.ID))
+	if !ok {
+		t.Fatal("place de réencodage")
+	}
+	if dl := b.get(base + "/snapshots/" + snapshotID + "/sbom?format=spdx-2.3"); dl.status != http.StatusTooManyRequests || dl.header.Get("Retry-After") == "" {
+		t.Errorf("second réencodage simultané du compte : %d", dl.status)
+	}
+	if dl := b.get(base + "/snapshots/" + snapshotID + "/sbom?format=original"); dl.status != http.StatusOK {
+		t.Errorf("original pendant un réencodage : %d", dl.status)
+	}
+	release()
 	if dl := b.get(base + "/snapshots/" + snapshotID + "/sbom?format=xml"); dl.status != http.StatusNotFound {
 		t.Errorf("format inconnu : %d", dl.status)
 	}

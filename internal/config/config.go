@@ -59,6 +59,7 @@ type Ingest struct {
 	DecodeTimeout      time.Duration `yaml:"decode_timeout"       env:"INGEST_DECODE_TIMEOUT"       env-default:"5m"     env-description:"Maximum duration of one SBOM decoding job"`
 	MaxPerRefPerDay    int           `yaml:"max_per_ref_per_day"  env:"INGEST_MAX_PER_REF_PER_DAY"  env-default:"200"    env-description:"Stored SBOM uploads per reference over 24 hours, beyond which 429 is returned (0: unlimited)"`
 	MaxOrgStorageMiB   int           `yaml:"max_org_storage_mib"  env:"INGEST_MAX_ORG_STORAGE_MIB"  env-default:"10240"  env-description:"Compressed SBOM storage per organization, in MiB, beyond which uploads get 429 (0: unlimited)"`
+	MaxReencodes       int           `yaml:"max_reencodes"        env:"INGEST_MAX_REENCODES"        env-default:"2"      env-description:"SBOM downloads re-encoded (CycloneDX, SPDX) at once on this instance, one per account, beyond which 429 is returned"`
 }
 
 // MiB convertit une taille de la configuration, en Mio, en octets.

@@ -286,5 +286,5 @@ func (id *identity) searchResults(view *searchView, req search.Request, res sear
 func (id *identity) searchExport(w http.ResponseWriter, r *http.Request) {
 	acc := access(r)
 	apiv1.ServeExport(w, r, apiv1.ExportOptions{Search: id.Search, Exports: id.Exports, Catalog: id.cat, Logger: id.logger,
-		Org: acc.Org, Slug: acc.Slug, Format: r.URL.Query().Get("format")})
+		Org: acc.Org, Slug: acc.Slug, Format: r.URL.Query().Get("format"), UserID: viewerFrom(r).user.ID})
 }

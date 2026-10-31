@@ -265,6 +265,9 @@ func (i Ingest) validate(v *validator) {
 	v.positive("ingest.decode_timeout", int64(i.DecodeTimeout))
 	v.nonNegative("ingest.max_per_ref_per_day", int64(i.MaxPerRefPerDay))
 	v.nonNegative("ingest.max_org_storage_mib", int64(i.MaxOrgStorageMiB))
+	if i.MaxReencodes < 1 || i.MaxReencodes > 64 {
+		v.fail("ingest.max_reencodes", "doit être compris entre 1 et 64 (reçu %d)", i.MaxReencodes)
+	}
 }
 
 func (b Bootstrap) validate(v *validator) {

@@ -84,6 +84,8 @@ type app struct {
 	ingest   *ingest.Service
 	inv      *inventory.Service
 	search   *search.Service
+	exports  *search.ExportLimiter
+	reencode *search.ExportLimiter
 	dash     *dashboard.Service
 	clock    *testClock
 	box      *secret.Box
@@ -147,6 +149,7 @@ func newApp(t *testing.T, opts ...appOption) *app {
 		accounts: account.NewService(tdb.App, testCost), orgs: org.NewService(tdb.App),
 		projects: project.NewService(tdb.App), agents: agent.NewService(tdb.App, agent.WithClock(clock.Now)),
 		inv: inventory.NewService(tdb.App), search: search.NewService(tdb.App, grypeversion.New()),
+		exports: search.NewExportLimiter(2, time.Minute), reencode: search.NewExportLimiter(2, time.Minute),
 		dash: dashboard.NewService(tdb.App, dashboard.WithClock(clock.Now))}
 	if a.ingest, err = ingest.NewService(ingest.Options{Pool: tdb.App, Validator: testValidator(t), Logger: logger,
 		Limits: ingest.Limits{MaxUpload: 8 << 20, SBOM: sbom.Limits{MaxBytes: 32 << 20, MaxDepth: 64, MaxComponents: 20_000}}}); err != nil {
@@ -160,7 +163,7 @@ func newApp(t *testing.T, opts ...appOption) *app {
 		Identity: &IdentityOptions{
 			Pool: tdb.App, Accounts: a.accounts, Orgs: a.orgs, Projects: a.projects, Agents: a.agents, Secrets: box,
 			Inventory: a.inv, Ingest: a.ingest, Findings: finding.NewService(tdb.App),
-			Search: a.search, Exports: search.NewExportLimiter(2, time.Minute),
+			Search: a.search, Exports: a.exports, Reencodes: a.reencode,
 			Dashboard: dashboard.NewService(tdb.App, dashboard.WithClock(clock.Now)),
 			VulnDB: VulnDBOptions{MaxAge: 120 * time.Hour, ListingURL: "https://grype.anchore.io/databases/v6/latest.json",
 				SyncInterval: time.Minute, MaxArchive: 1 << 20, UploadTimeout: time.Minute},

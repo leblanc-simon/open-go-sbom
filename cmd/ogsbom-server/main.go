@@ -159,6 +159,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	}
 	searcher := search.NewService(pool, grypeversion.New())
 	exports := search.NewExportLimiter(cfg.UserAPI.MaxExports, cfg.UserAPI.ExportTimeout)
+	reencodes := search.NewExportLimiter(cfg.Ingest.MaxReencodes, cfg.UserAPI.ExportTimeout)
 	vulndbScreen := web.VulnDBOptions{MaxAge: cfg.VulnDB.MaxAge, Offline: cfg.VulnDB.Offline, ListingURL: cfg.VulnDB.ListingURL,
 		SyncInterval: cfg.VulnDB.SyncInterval, MaxArchive: config.MiB(cfg.VulnDB.MaxArchiveMiB),
 		UploadTimeout: cfg.VulnDB.DownloadTimeout}
@@ -183,6 +184,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Findings:       finding.NewService(pool),
 			Search:         searcher,
 			Exports:        exports,
+			Reencodes:      reencodes,
 			Dashboard:      dash,
 			VulnDB:         vulndbScreen,
 			Secrets:        box,

@@ -47,7 +47,7 @@ func valid() Config {
 		RetryBase: 10 * time.Second, RetryMax: 30 * time.Minute, Retention: time.Hour,
 		ScheduleInterval: 10 * time.Second, ShutdownTimeout: 30 * time.Second, OrgLimit: 2}
 	c.Ingest = Ingest{MaxUploadMiB: 32, MaxDecompressedMiB: 64, MaxDepth: 64, MaxComponents: 50000, DecodeTimeout: 5 * time.Minute,
-		MaxPerRefPerDay: 200, MaxOrgStorageMiB: 10240}
+		MaxPerRefPerDay: 200, MaxOrgStorageMiB: 10240, MaxReencodes: 2}
 	c.VulnDB = defaultVulnDB
 	return c
 }
@@ -79,7 +79,7 @@ func TestLoadFromEnvironmentWithDefaults(t *testing.T) {
 		t.Errorf("défauts des workers : %+v", cfg.Workers)
 	}
 	if cfg.Ingest != (Ingest{MaxUploadMiB: 32, MaxDecompressedMiB: 64, MaxDepth: 64, MaxComponents: 50000, DecodeTimeout: 5 * time.Minute,
-		MaxPerRefPerDay: 200, MaxOrgStorageMiB: 10240}) ||
+		MaxPerRefPerDay: 200, MaxOrgStorageMiB: 10240, MaxReencodes: 2}) ||
 		MiB(cfg.Ingest.MaxUploadMiB) != 32<<20 {
 		t.Errorf("défauts de l'ingestion : %+v", cfg.Ingest)
 	}

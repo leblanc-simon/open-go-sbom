@@ -170,6 +170,9 @@ ingest:
   # sur 24 h (un doublon ne compte pas), volume compressé des SBOM d'une organisation.
   max_per_ref_per_day: 200
   max_org_storage_mib: 10240
+  # Téléchargements de SBOM réencodés (CycloneDX, SPDX) simultanés sur cette instance, un
+  # par compte (au-delà : 429) : chacun tient plusieurs fois le document en mémoire.
+  max_reencodes: 2
 
 # Base de vulnérabilités Grype (docs/operations.md, « Base de vulnérabilités »). Une seule
 # instance interroge la liste ; l'archive vérifiée est stockée dans PostgreSQL et chaque

@@ -69,6 +69,10 @@ func (s *Service) Export(ctx context.Context, org tenant.OrgID, blobID uuid.UUID
 	if err != nil {
 		return nil, err
 	}
+	// syft.Encode ne prend pas de contexte : un client parti n'engage pas le calcul.
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	var buf bytes.Buffer
 	if err := syft.Encode(&buf, format, data, target, s.validator.CycloneDXLicenseIDs("1.6")); err != nil {
 		return nil, fmt.Errorf("ingest: réencodage en %s : %w", target, err)

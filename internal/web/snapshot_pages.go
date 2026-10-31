@@ -326,7 +326,9 @@ func (id *identity) snapshotPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // downloadSBOM sert le SBOM d'un instantané : tel que reçu, ou réencodé en CycloneDX 1.6
-// ou SPDX 2.3.
+// ou SPDX 2.3. Le réencodage tient le document entier en mémoire, plusieurs fois sa
+// taille : il prend une place parmi les réencodages simultanés de l'instance, une seule
+// par compte (429 sinon, SEC-06).
 func (id *identity) downloadSBOM(w http.ResponseWriter, r *http.Request) {
 	p, s, ok := id.loadSnapshot(w, r)
 	if !ok {
@@ -342,6 +344,13 @@ func (id *identity) downloadSBOM(w http.ResponseWriter, r *http.Request) {
 		data, err = id.Ingest.Blob(r.Context(), acc.Org, s.BlobID)
 		name += "." + string(s.Format) + ".json"
 	case known:
+		release, ok := id.Reencodes.Acquire("user:" + strconv.FormatInt(viewerFrom(r).user.ID, 10))
+		if !ok {
+			w.Header().Set("Retry-After", "30")
+			id.rd.Error(w, r, http.StatusTooManyRequests)
+			return
+		}
+		defer release()
 		data, err = id.Ingest.Export(r.Context(), acc.Org, s.BlobID, s.Format, target)
 		name += "." + string(target) + ".json"
 	default:

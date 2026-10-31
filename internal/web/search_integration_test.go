@@ -104,6 +104,15 @@ func TestSearchScreenAndAPI(t *testing.T) {
 	if err != nil || len(rows) != 2 || rows[1][7] != "log4j-core" {
 		t.Fatalf("CSV : %v, %v", rows, err)
 	}
+	// Un export à la fois par compte (SEC-07).
+	if release, ok := a.exports.Acquire("user:" + itoa(viewer.ID)); !ok {
+		t.Fatal("place d'export")
+	} else {
+		if pg := b.get("/o/org-a/search/export?q=log4j-core&format=csv"); pg.status != http.StatusTooManyRequests {
+			t.Errorf("second export simultané du compte : %d", pg.status)
+		}
+		release()
+	}
 	if pg := b.get("/o/org-a/search/export?q=log4j-core&format=xml"); pg.status != http.StatusBadRequest {
 		t.Errorf("format inconnu : %d", pg.status)
 	}
