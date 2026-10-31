@@ -64,6 +64,7 @@ internal/
   org/                   # organisations, appartenances, rôles (+ équipes en T16)
   project/               # projets, références suivies, hiérarchie hôte/conteneurs
   agent/                 # agents, jetons d'inscription et d'agent, signaux de vie
+  token/                 # format des jetons (agt, enr, pat), tirage, lecture, empreinte
   sbom/                  # modèle interne, normalisation purl, empreinte d'inventaire
     syft/                # décodage et encodage via Syft
   inventory/             # composants, ensembles d'inventaire, instantanés
@@ -85,7 +86,7 @@ internal/
     middleware/          # identifiant de requête, journal, en-têtes, langue, métriques
     webtest/             # assistant de test : accessibilité, absence de code en ligne
   api/                   # handlers REST (interfaces générées depuis api/openapi.yaml)
-    gen/                 # code généré, jamais modifié à la main
+    gen/                 # code généré, jamais modifié à la main (userapi/ : API utilisateur)
     problem/             # erreurs RFC 9457
   render/                # moteur de gabarits, FuncMap, empreinte des assets, SVG
   agentclient/           # client de l'API agent (généré), partagé par les deux agents
@@ -182,7 +183,9 @@ et de synchronisation, âge d'alerte, délais, taille d'archive, T06), `Secrets`
 de chiffrement versionnées, obligatoires depuis T03 : les secrets TOTP sont chiffrés),
 `Bootstrap` (premier administrateur et procédure de secours, T03), `Login` (débit des
 tentatives de connexion, T03), `AgentAPI` (débit de l'API des agents par jeton et des
-jetons refusés par IP, T04), `Migration`
+jetons refusés par IP, T04), `UserAPI` (débit de l'API utilisateur par jeton personnel,
+jetons refusés par IP, durée et nombre simultané des exports de la recherche, T09),
+`Migration`
 (`migration_dsn` : connexion du rôle propriétaire, utilisée uniquement pour migrer).
 `Database.DSN` est la connexion du rôle d'exécution. `--help` liste toutes les variables
 d'environnement. Un `config.example.yaml` commenté accompagne chaque binaire. Un fragment
@@ -251,6 +254,7 @@ Données **globales** (publiques ou propres à l'instance, jamais des données d
 | `jobs`, `schedules` | file de traitements et échéances du planificateur |
 | `users`, `sessions`, `mfa_*` | tables d'open-go-base ; `users` est écrit par `account` (§ 10) |
 | `account_settings`, `session_auth` | préférences du compte ; méthode d'authentification de chaque session |
+| `personal_access_tokens` | jetons d'accès personnels d'un compte, hachés (ADR 0025) : donnée du compte, sans donnée d'organisation |
 | `instance_audit_events` | journal d'audit de l'instance (événements sans organisation) |
 
 Données **par organisation** (toutes portent `org_id`) :
@@ -260,7 +264,7 @@ Données **par organisation** (toutes portent `org_id`) :
 | `organizations`, `org_memberships` | organisation (slug, nom, langue par défaut) ; compte × organisation × rôle |
 | `projects` | type (`repo`, `host`, `container`), nom, slug, étiquettes, `parent_id` (T13), équipe (T16), archivage |
 | `tracked_refs` | référence suivie (branche, tag, ou l'hôte) |
-| `agents`, `agent_tokens`, `enrollment_tokens`, `personal_access_tokens` | agents et jetons hachés ; pour un agent serveur, demande de scan en attente et dernier contexte d'hôte (T07) |
+| `agents`, `agent_tokens`, `enrollment_tokens` | agents et jetons hachés ; pour un agent serveur, demande de scan en attente et dernier contexte d'hôte (T07) |
 | `components` | composant de l'organisation : purl canonique (unique par organisation), `purl_base`, type, nom, version, CPE, empreintes |
 | `component_sets`, `component_set_items` | ensemble d'inventaire adressé par son empreinte ; ses composants avec origine (`syft`, `ia`), confiance, modèle, preuve, portée, licences, identification faible |
 | `sbom_blobs` | SBOM brut compressé, dédoublonné par empreinte SHA-256 |
@@ -317,8 +321,10 @@ rétention supprime les ensembles orphelins.
   strict nécessaire. Elles vivent toutes dans `internal/db/crossorg`, sont listées dans un
   ADR (0012 : `ogsbom_org_access`, `ogsbom_user_orgs`, `ogsbom_list_organizations`,
   `ogsbom_org_id_by_slug` ; 0014 : `ogsbom_agent_token_org`, `ogsbom_enrollment_token_org`,
-  qui donnent l'organisation d'un jeton présenté à l'API des agents), et tout ajout est
-  relu comme un changement de sécurité.
+  qui donnent l'organisation d'un jeton présenté à l'API des agents ; 0024 :
+  `ogsbom_search_component_names`, `ogsbom_search_component_hashes`, qui ne sortent pas
+  de l'organisation déclarée par `InOrg` mais contournent la RLS pour servir les index de
+  recherche, § 13), et tout ajout est relu comme un changement de sécurité.
 - La RLS s'ajoute aux autres protections sans les remplacer : PostgreSQL ne l'applique pas
   aux contrôles de clés étrangères (d'où les clés composites), et `tenant.OrgID` garde des
   erreurs claires et des plans de requête prévisibles.
@@ -369,7 +375,10 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
   identifiant public (128 bits) et un secret de 256 bits, en base32 minuscule séparés par
   `_`. Seul le SHA-256 du secret est stocké ; comparaison en temps constant ; révocation
   immédiate ; date de dernier usage (écrite une fois par minute au plus). L'organisation
-  d'un jeton est résolue par `crossorg`, le reste vérifié dans `InOrg` (ADR 0014).
+  d'un jeton d'agent est résolue par `crossorg`, le reste vérifié dans `InOrg` (ADR 0014).
+  Un jeton personnel appartient au compte (table globale) : lecture seule, valable dans
+  les organisations dont son propriétaire est membre au moment de chaque requête
+  (`crossorg.Access`), 7 jours à 1 an, 20 actifs au plus (ADR 0025).
 - Agents : un projet est confié à au plus un agent de même nature (clé étrangère
   composite) ; un agent serveur couvre un seul hôte, dont le projet est créé ou rattaché à
   l'inscription ; un agent dépôt reçoit ses dépôts depuis leur fiche.
@@ -467,13 +476,19 @@ qu'aucune mesure ne la justifie (ADR 0015).
 - Une plage de versions `vers` ne s'applique qu'à un `purl_base` exact : SQL réduit
   l'ensemble à ce paquet (un nombre borné de versions), puis Go compare les versions par
   l'écosystème. Une recherche approchée par nom n'accepte pas de plage.
-- Exécution sur `ref_current` + `component_set_items` + `components`, filtrée par
-  organisation (et par équipe après T16). Résultats groupés par projet, paginés,
-  exportables en CSV et JSON en flux.
-- La RLS ajoute le filtre d'organisation à chaque requête, et les opérateurs non
-  `LEAKPROOF` (trigrammes, `ILIKE`) sont évalués après elle. Les index de recherche
-  commencent donc par `org_id` (index composites ; GIN composite via l'extension
-  `btree_gin` pour les trigrammes si la mesure l'exige).
+- Exécution sur `ref_current` + `component_set_items` + `components` (+ `findings` pour la
+  pire vulnérabilité, ou pour une recherche par vulnérabilité), filtrée par organisation
+  (et par équipe après T16). Résultats groupés par projet, paginés par curseur sur les
+  projets (risque, nom ou instantané), exportables en CSV et JSON en flux ; mêmes
+  paramètres d'URL pour l'écran et l'API (`search.Request`).
+- La RLS ajoute le filtre d'organisation à chaque requête, et un opérateur non
+  `LEAKPROOF` (trigrammes, `ILIKE`, `@>` sur un tableau) ne peut alors pas servir de
+  condition d'index. Les recherches par nom et par empreinte passent donc par deux
+  fonctions `SECURITY DEFINER` de `crossorg` qui lisent l'organisation dans
+  `ogsbom.org_id` et appliquent elles-mêmes la condition de la politique, sur des index
+  GIN composites (`btree_gin`) qui commencent par `org_id` ; le reste de la recherche
+  s'exécute sous la RLS sur des index B-tree (ADR 0024). Versions comparées par
+  `internal/version` (ADR 0026).
 - Cible : moins de 2 s au 95e centile pour 1 000 projets et 1 million de liens, **RLS
   active**, selon le protocole de `docs/benchmarks.md`.
 
@@ -493,8 +508,10 @@ qu'aucune mesure ne la justifie (ADR 0015).
     → CSRF (csrfx) → langue → organisation courante → handler ;
   - API agent (`/api/v1/agent/`) : jeton d'agent, limitation par jeton, pas de session ni
     de CSRF ;
-  - API utilisateur (`/api/v1/orgs/{org}/`) : jeton personnel sans CSRF, ou session avec
-    en-tête CSRF pour le JavaScript de l'interface.
+  - API utilisateur (`/api/v1/orgs/{org}/`) : jeton personnel sans CSRF, garde
+    d'organisation à chaque requête (404 hors des organisations du compte), limitation par
+    jeton ; la session avec en-tête CSRF viendra avec le premier écran qui appelle l'API
+    en JavaScript (ADR 0025).
 - CSP : `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;
   frame-ancestors 'none'; form-action 'self'; base-uri 'none'`. Aucun script ni style en
   ligne. Réponses d'API : `default-src 'none'; frame-ancestors 'none'; base-uri 'none'`.
@@ -525,7 +542,8 @@ qu'aucune mesure ne la justifie (ADR 0015).
 
 - `api/openapi.yaml` est la source unique, en OpenAPI 3.1.0 (ADR 0006) ; serveur et client
   des agents sont générés par oapi-codegen dans `internal/api/gen` et
-  `internal/agentclient/gen`. `make generate-check` vérifie en CI que le code généré est à
+  `internal/agentclient/gen`, le serveur de l'API utilisateur (non strict : l'export écrit
+  en flux) dans `internal/api/gen/userapi`. `make generate-check` vérifie en CI que le code généré est à
   jour.
 - Préfixe `/api/v1`. Routes des agents sous `/api/v1/agent/`, routes utilisateur sous
   `/api/v1/orgs/{org}/`. Le point compatible Dependency-Track (T19) vit sous `/dt/` pour ne

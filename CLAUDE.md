@@ -60,6 +60,12 @@ client commun des agents `internal/agentclient` (réessais, mTLS, envoi gzip, su
 ingestion : voir son `doc.go`, à adopter par l'agent dépôt), compte rendu d'inventaire et
 demande de scan par le signal de vie, mTLS exigé sur l'API des agents avec
 `tls.client_ca_file`, unités systemd et paquets deb et rpm (`make packages`).
+T09 terminé : recherche transverse (`internal/search`, ADR 0024 : fonctions de recherche
+par nom et empreinte dans `crossorg`, pagination par projet, export en flux), comparaison
+de versions et plages vers (`internal/version`, `version/grypeversion`, ADR 0026), jetons
+d'accès personnels (`internal/account`, format commun `internal/token`, ADR 0025), API
+utilisateur `GET /api/v1/orgs/{org}/search` (`internal/api/gen/userapi`), écran
+`/o/{slug}/search`, guide d'utilisation `docs/utilisation.md`, `make bench-search`.
 T10 terminé : tableau de bord d'organisation et en-tête de la fiche projet
 (`internal/dashboard`, statistiques quotidiennes réécrites toutes les heures, ADR 0027),
 graphiques SVG serveur (`internal/render/chart.go`, `partials/charts.html`), agent muet
@@ -123,6 +129,7 @@ make vuln               # govulncheck (go tool)
 make generate           # code généré depuis api/openapi.yaml (à committer avant make ci)
 make test-grypedb       # vraie base Grype (OGSBOM_TEST_GRYPEDB_DIR : base v6 installée)
 make bench              # mesures sur le jeu de référence (docs/benchmarks.md)
+make bench-search       # mesures de la recherche sur le jeu de référence, RLS active
 make selfscan           # SBOM des binaires (Syft) et analyse (Grype) ; échec sur une KEV
 make build              # bin/ogsbom-server, bin/ogsbom-host-agent, bin/ogsbom-repo-agent (CGO_ENABLED=0)
 make packages           # ogsbom-host-agent amd64 et arm64, paquets deb et rpm dans dist/ (nfpm)

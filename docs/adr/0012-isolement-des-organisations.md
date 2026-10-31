@@ -46,6 +46,8 @@ forcée, et la liste initiale de ces fonctions.
   | `ogsbom_org_id_by_slug(slug)` | administration de l'instance | l'identifiant seul |
   | `ogsbom_agent_token_org(public_id)` | API des agents (T04, ADR 0014, migration 007) | l'identifiant de l'organisation active du jeton d'agent, rien sinon |
   | `ogsbom_enrollment_token_org(public_id)` | inscription d'un agent serveur (T04, ADR 0014, migration 007) | l'identifiant de l'organisation active du jeton d'inscription, rien sinon |
+  | `ogsbom_search_component_names(query, limit)` | recherche par nom (T09, ADR 0024, migration 013) | identifiants des composants de l'organisation **déclarée par InOrg** (`ogsbom.org_id`, jamais en paramètre), 1 001 au plus ; échoue hors InOrg |
+  | `ogsbom_search_component_hashes(hash, limit)` | recherche par empreinte (T09, ADR 0024, migration 013) | idem, composants portant l'empreinte |
 
   Aucune ne renvoie de donnée métier. Les deux dernières sont appelables par le rôle
   d'exécution comme les autres : c'est le code Go (`requireInstanceAdmin`) qui les réserve

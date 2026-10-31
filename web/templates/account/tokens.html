@@ -1,0 +1,96 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T "tokens.heading"}}</h1>
+    <p class="page-head__lead">{{T "tokens.lead"}}</p>
+  </div>
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  {{- with .Created}}
+  <div class="callout callout--warning" role="status">
+    <div class="callout__body">
+      <p class="callout__title">{{T "token_created.once_title"}}</p>
+      <p class="callout__text">{{T "tokens.created_text" "Name" .Name}}</p>
+    </div>
+  </div>
+  <section class="panel" aria-labelledby="token-value">
+    <div class="panel__head"><h2 class="panel__title" id="token-value">{{T "token_created.value"}}</h2></div>
+    <div class="panel__body stack stack--sm">
+      <code class="token-once">{{$.Plaintext}}</code>
+      <dl class="kv">
+        <dt>{{T "agents.col_expires"}}</dt><dd>{{template "stamp" .Expires}}</dd>
+      </dl>
+      <p class="muted">{{T "tokens.usage"}}</p>
+    </div>
+  </section>
+  {{- end}}
+  <section class="panel" aria-labelledby="tokens-list">
+    <div class="panel__head">
+      <h2 class="panel__title" id="tokens-list">{{T "tokens.list_title"}}</h2>
+      <span class="panel__meta">{{T "tokens.list_meta" "Max" .Max}}</span>
+    </div>
+    {{- if .Tokens}}
+    <div class="table-wrap" role="region" aria-labelledby="tokens-list" tabindex="0">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "tokens.list_title"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "agents.col_token_name"}}</th>
+            <th scope="col">{{T "agents.col_token_prefix"}}</th>
+            <th scope="col">{{T "agents.col_created"}}</th>
+            <th scope="col">{{T "agents.col_last_used"}}</th>
+            <th scope="col">{{T "agents.col_expires"}}</th>
+            <th scope="col">{{T "agents.col_state"}}</th>
+            <th scope="col" class="cell-actions">{{T "table.actions"}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{- $csrf := .Page.CSRFToken}}
+          {{- range .Tokens}}
+          <tr>
+            <th scope="row">{{.Name}}</th>
+            <td class="mono">{{.Prefix}}</td>
+            <td>{{template "stamp" .Created}}</td>
+            <td>{{template "stamp" .LastUsed}}</td>
+            <td>{{template "stamp" .Expires}}</td>
+            <td>{{if .Revoked}}<span class="cell-stack"><span class="status status--revoked">{{T "token_state.revoked"}}</span>{{template "stamp" .Revoked}}</span>{{else if .Active}}<span class="status status--active">{{T "token_state.active"}}</span>{{else}}<span class="status">{{T "token_state.expired"}}</span>{{end}}</td>
+            <td class="cell-actions">
+              {{- if not .Revoked}}
+              <form method="post" action="/account/tokens/{{.ID}}/revoke">
+                {{csrfField $csrf}}
+                <button type="submit" class="btn btn--sm btn--danger">{{T "agents.revoke"}}<span class="visually-hidden"> {{.Name}}</span></button>
+              </form>
+              {{- end}}
+            </td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{- else}}
+    <div class="panel__body"><p class="muted">{{T "tokens.none"}}</p></div>
+    {{- end}}
+  </section>
+  <section class="panel" aria-labelledby="tokens-new">
+    <div class="panel__head"><h2 class="panel__title" id="tokens-new">{{T "tokens.new"}}</h2></div>
+    <form class="panel__body stack" method="post" action="/account/tokens">
+      {{csrfField .Page.CSRFToken}}
+      <div class="field">
+        <label class="field__label" for="tk-name">{{T "agents.col_token_name"}}</label>
+        <input class="input" id="tk-name" name="name" type="text" maxlength="100" required value="{{.Name}}" aria-describedby="tk-name-hint"{{if eq .Error.Field "name"}} aria-invalid="true"{{end}}>
+        <p class="field__hint" id="tk-name-hint">{{T "tokens.name_hint"}}</p>
+      </div>
+      <div class="field">
+        <label class="field__label" for="tk-exp">{{T "agents.col_expires"}}</label>
+        <select class="select" id="tk-exp" name="expires_in"{{if eq .Error.Field "expires_in"}} aria-invalid="true"{{end}}>
+          {{- range .Lifetimes}}
+          <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+          {{- end}}
+        </select>
+      </div>
+      <p class="field__hint">{{T "tokens.scope_hint"}}</p>
+      <p><button class="btn btn--primary" type="submit">{{T "tokens.create"}}</button></p>
+    </form>
+  </section>
+</div>
+{{- end}}

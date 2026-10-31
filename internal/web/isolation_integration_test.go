@@ -49,7 +49,8 @@ func fill(pattern string, params map[string]string) string {
 // soit placée sous /o/{slug} (et donc derrière la garde) ou ajoutée ici en connaissance de
 // cause.
 var globalRoutes = []string{
-	"", "/login", "/login/2fa", "/logout", "/account", "/account/password",
+	"", "/login", "/login/2fa", "/logout", "/account", "/account/password", "/account/tokens",
+	"/account/tokens/{tokenID}/revoke",
 	"/account/totp/setup", "/account/totp/enable", "/static/*", "/api/*",
 }
 

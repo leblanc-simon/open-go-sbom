@@ -1,7 +1,9 @@
 package web
 
 import (
+	"html/template"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	"leblanc.io/open-go-sbom/internal/finding"
 	"leblanc.io/open-go-sbom/internal/project"
 	"leblanc.io/open-go-sbom/internal/render"
+	"leblanc.io/open-go-sbom/internal/search"
 	"leblanc.io/open-go-sbom/internal/vuln"
 )
 
@@ -148,11 +151,13 @@ type exposedRow struct {
 
 type widespreadRow struct {
 	Name, PURLBase, Href string
-	Projects             int
-	Versions             []string
-	More                 int
-	Worst                sevBadge
-	KEV                  bool
+	// SearchHref : la recherche transverse du paquet (tous ses projets, T09).
+	SearchHref template.URL
+	Projects   int
+	Versions   []string
+	More       int
+	Worst      sevBadge
+	KEV        bool
 }
 
 type silentRow struct {
@@ -221,7 +226,8 @@ func (id *identity) orgOverview(w http.ResponseWriter, r *http.Request) {
 	for _, c := range d.Widespread {
 		view.Widespread = append(view.Widespread, widespreadRow{Name: c.Name, PURLBase: c.PURLBase,
 			Href: base + "/components/" + c.ID.String(), Projects: c.Projects, Versions: c.Versions,
-			More: c.VersionCount - len(c.Versions), Worst: sevOf(c.Worst, nil), KEV: c.KEV})
+			More: c.VersionCount - len(c.Versions), Worst: sevOf(c.Worst, nil), KEV: c.KEV,
+			SearchHref: href(base+"/search", url.Values{search.ParamQuery: {c.PURLBase}})})
 	}
 	for _, a := range d.Silent {
 		view.Silent = append(view.Silent, silentRow{Name: a.Name, Href: base + "/agents/" + a.ID.String(), Kind: a.Kind,

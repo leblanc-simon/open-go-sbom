@@ -16,6 +16,7 @@ import (
 	"leblanc.io/open-go-sbom/internal/finding"
 	"leblanc.io/open-go-sbom/internal/inventory"
 	"leblanc.io/open-go-sbom/internal/render"
+	"leblanc.io/open-go-sbom/internal/version"
 	"leblanc.io/open-go-sbom/internal/vuln"
 )
 
@@ -485,7 +486,9 @@ func (id *identity) component(w http.ResponseWriter, r *http.Request) {
 	for _, n := range occ {
 		maxOcc = max(maxOcc, n)
 	}
-	versions := slices.Sorted(maps.Keys(occ))
+	// Versions dans l'ordre de leur écosystème (version.Sort), les illisibles à la fin.
+	sorted, unreadable := version.Sort(id.Search.Comparer(), version.ForPURLType(purlTypeOf(c.PURL)), slices.Collect(maps.Keys(occ)))
+	versions := append(sorted, unreadable...)
 	for _, v := range versions {
 		view.Versions = append(view.Versions, versionBar{Version: v, Width: occ[v] * 100 / maxOcc, Vulnerable: vulnerable[v],
 			Count: occ[v], Projects: len(projs[v])})
@@ -515,4 +518,11 @@ func (id *identity) component(w http.ResponseWriter, r *http.Request) {
 		view.Matrix = append(view.Matrix, *byVuln[v])
 	}
 	id.rd.Render(w, r, http.StatusOK, "components/show", view)
+}
+
+// purlTypeOf lit le type d'un purl canonique (pkg:<type>/…).
+func purlTypeOf(p string) string {
+	rest, _ := strings.CutPrefix(p, "pkg:")
+	t, _, _ := strings.Cut(rest, "/")
+	return t
 }

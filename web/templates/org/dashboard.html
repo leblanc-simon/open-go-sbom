@@ -106,7 +106,7 @@
             <tbody>
               {{- range .Widespread}}
               <tr>
-                <th scope="row"><span class="cell-stack"><a href="{{.Href}}">{{.Name}}</a><span class="mono muted purl">{{.PURLBase}}</span></span></th>
+                <th scope="row"><span class="cell-stack"><a href="{{.Href}}">{{.Name}}</a><a class="mono purl" href="{{.SearchHref}}"><span class="visually-hidden">{{T "dashboard.search_package"}} </span>{{.PURLBase}}</a></span></th>
                 <td class="num">{{.Projects}}</td>
                 <td><span class="cluster">{{range .Versions}}<span class="version">{{.}}</span>{{end}}{{if .More}}<span class="muted">{{Tn "dashboard.more_versions" .More}}</span>{{end}}</span></td>
                 <td><span class="cluster">{{template "sev" .Worst}}{{if .KEV}}{{template "kev" .}}{{end}}</span></td>

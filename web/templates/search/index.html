@@ -1,0 +1,212 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{T "search.heading"}}</h1>
+    </div>
+    <p class="page-head__meta">{{T "search.subtitle"}}</p>
+  </div>
+
+  <form class="stack stack--lg" method="get" action="{{.Action}}" role="search" aria-label="{{T "search.form_label"}}">
+    <div class="search">
+      <div class="search__bar">
+        <div class="search__field">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+          <label class="visually-hidden" for="q">{{T "search.label"}}</label>
+          <input id="q" name="q" type="search" value="{{.Q}}" maxlength="1024" placeholder="{{T "search.placeholder"}}" autocomplete="off" spellcheck="false"{{if .Tokens}} aria-describedby="q-parse"{{end}}{{if .ErrorKey}} aria-invalid="true" aria-errormessage="q-error"{{end}}>
+        </div>
+        <button class="btn btn--primary btn--lg" type="submit">{{T "search.submit"}}</button>
+      </div>
+      {{- if .Tokens}}
+      <p class="search__parse" id="q-parse">
+        <span>{{T "search.interpreted_as"}}</span>
+        {{- range .Tokens}}
+        <span class="qtoken"><span class="qtoken__kind">{{T .KindKey}}</span><code>{{.Value}}</code></span>
+        {{- end}}
+      </p>
+      {{- end}}
+      {{- with .ErrorKey}}
+      <div class="callout callout--danger" role="alert" id="q-error">
+        <div class="callout__body">
+          <p class="callout__title">{{T (print . ".title")}}</p>
+          <p class="callout__text">{{T (print . ".text")}}</p>
+        </div>
+      </div>
+      {{- end}}
+      <details class="search__help"{{if not .Q}} open{{end}}>
+        <summary>{{T "search.syntax"}}</summary>
+        <dl class="syntax-list">
+          {{- range .Syntax}}
+          <dt><code>{{.Example}}</code></dt><dd>{{T .TextKey}}</dd>
+          {{- end}}
+        </dl>
+      </details>
+    </div>
+
+    <div class="search-layout">
+      <div class="facets">
+        <h2 class="facets__title">{{T "search.filters"}}</h2>
+        <fieldset class="facet">
+          <legend>{{T "search.facet_project_type"}}</legend>
+          {{- range .Kinds}}
+          <label class="facet__option"><input type="checkbox" name="type" value="{{.Value}}"{{if .Checked}} checked{{end}}><span class="{{.Class}}">{{T .LabelKey}}</span></label>
+          {{- end}}
+        </fieldset>
+        {{- if .Labels}}
+        <fieldset class="facet">
+          <legend>{{T "search.facet_label"}}</legend>
+          {{- range .Labels}}
+          <label class="facet__option"><input type="checkbox" name="label" value="{{.Value}}"{{if .Checked}} checked{{end}}><span class="{{.Class}}">{{.Label}}</span></label>
+          {{- end}}
+        </fieldset>
+        {{- end}}
+        <fieldset class="facet">
+          <legend>{{T "search.facet_origin"}}</legend>
+          {{- range .Origins}}
+          <label class="facet__option"><input type="checkbox" name="origin" value="{{.Value}}"{{if .Checked}} checked{{end}}><span class="{{.Class}}">{{T .LabelKey}}</span></label>
+          {{- end}}
+        </fieldset>
+        <fieldset class="facet">
+          <legend>{{T "search.facet_exploitation"}}</legend>
+          <label class="facet__option"><input type="checkbox" name="kev" value="{{.KEV.Value}}"{{if .KEV.Checked}} checked{{end}}>{{template "kev"}}<span>{{T "search.kev_only"}}</span></label>
+        </fieldset>
+        <fieldset class="facet">
+          <legend>{{T "search.facet_severity"}}</legend>
+          {{- range .Severities}}
+          <label class="facet__option"><input type="checkbox" name="severity" value="{{.Value}}"{{if .Checked}} checked{{end}}>{{if .Class}}<span class="{{.Class}}"><span>{{T .LabelKey}}</span></span>{{else}}<span>{{T .LabelKey}}</span>{{end}}</label>
+          {{- end}}
+        </fieldset>
+        <fieldset class="facet">
+          <legend>{{T "search.facet_status"}}</legend>
+          <label class="facet__option"><input type="checkbox" name="resolved" value="{{.Resolved.Value}}"{{if .Resolved.Checked}} checked{{end}}><span>{{T "search.include_resolved"}}</span></label>
+        </fieldset>
+        <div class="facet">
+          <label class="field__label" for="sort">{{T "search.sort_by"}}</label>
+          <select class="select select--sm" id="sort" name="sort">
+            {{- range .Sorts}}
+            <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+            {{- end}}
+          </select>
+        </div>
+        <div class="facets__actions">
+          <button class="btn btn--sm" type="submit">{{T "search.apply_filters"}}</button>
+          <a class="btn btn--sm btn--ghost" href="{{.ResetHref}}">{{T "search.reset_filters"}}</a>
+        </div>
+      </div>
+
+      <div class="stack" aria-live="polite">
+        {{- if .Searched}}
+        <div class="toolbar">
+          <p class="toolbar__summary">{{Tn "search.summary_occurrences" .Hits}} {{Tn "search.summary_projects" .Projects}}</p>
+          {{- if .Hits}}
+          <div class="toolbar__end">
+            <a class="btn btn--sm" href="{{.ExportCSV}}" download>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>
+              <span>{{T "search.export_csv"}}</span>
+            </a>
+            <a class="btn btn--sm" href="{{.ExportJSON}}" download>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>
+              <span>{{T "search.export_json"}}</span>
+            </a>
+          </div>
+          {{- end}}
+        </div>
+        {{- end}}
+        {{- if .Chips}}
+        <div class="cluster">
+          <span class="muted">{{T "search.active_filters"}}</span>
+          {{- range .Chips}}
+          <span class="chip chip--filter"><span>{{if .LabelKey}}{{T .LabelKey}}{{else}}{{.Label}}{{end}}</span><a class="chip__remove" href="{{.Href}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18"></path></svg><span class="visually-hidden">{{T "search.remove_filter"}} {{if .LabelKey}}{{T .LabelKey}}{{else}}{{.Label}}{{end}}</span></a></span>
+          {{- end}}
+        </div>
+        {{- end}}
+        {{- if .Truncated}}
+        <div class="callout callout--warning" role="status"><div class="callout__body"><p class="callout__title">{{T "search.truncated_title"}}</p><p class="callout__text">{{T "search.truncated"}}</p></div></div>
+        {{- end}}
+        {{- if .Approx}}
+        <div class="callout" role="status"><div class="callout__body"><p class="callout__title">{{T "search.approximate_title"}}</p><p class="callout__text">{{T "search.approximate"}}</p></div></div>
+        {{- end}}
+
+        {{- $vuln := .VulnMode}}
+        {{- range .Groups}}
+        <section class="result-group" aria-labelledby="{{.ID}}">
+          <div class="result-group__head">
+            {{template "project_kind" .Kind}}
+            <h2 class="result-group__title" id="{{.ID}}"><a href="{{.Href}}">{{.Name}}</a></h2>
+            <span class="result-group__meta">
+              {{- range .Labels}}<span class="chip chip--tag">{{.}}</span>{{end}}
+              {{- with .Scanned}}<span>{{T "search.snapshot_of" "Date" .Display}}</span>{{end}}
+            </span>
+            <span class="result-group__count">{{Tn "search.occurrences" .Count}}</span>
+          </div>
+          <div class="table-wrap" role="region" aria-labelledby="{{.ID}}" tabindex="0">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">{{T "search.col_component"}}</th>
+                  <th scope="col">{{T "search.col_version"}}</th>
+                  <th scope="col">{{T "search.col_ref"}}</th>
+                  <th scope="col">{{T "search.col_origin"}}</th>
+                  <th scope="col">{{if $vuln}}{{T "search.col_vulnerability"}}{{else}}{{T "search.col_vulnerabilities"}}{{end}}</th>
+                  <th scope="col">{{T "search.col_fixed_in"}}</th>
+                  <th scope="col" class="num">{{T "search.col_risk"}}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{- range .Rows}}
+                <tr>
+                  <th scope="row" class="wrap"><span class="cell-stack"><a href="{{.ComponentHref}}">{{.Name}}</a><span class="purl">{{.PURL}}</span></span></th>
+                  <td class="version">{{.Version}}</td>
+                  <td><span class="cell-stack"><span>{{.RefName}}</span>{{with .CommitShort}}<span class="mono muted">{{.}}</span>{{end}}</span></td>
+                  <td>{{if .Origin}}<span class="origin origin--{{.Origin}}">{{T (print "origin." .Origin)}}{{with .Confidence}} {{T "search.confidence" "Pct" .}}{{end}}</span>{{if .Weak}} <span class="muted">{{T "search.weak"}}</span>{{end}}{{else}}<span class="muted">{{T "search.not_in_inventory"}}</span>{{end}}</td>
+                  <td>
+                    <span class="cluster">
+                    {{- if .VulnID}}
+                      <a href="{{.VulnHref}}">{{.VulnID}}</a>{{with .Sev}}{{template "sev" .}}{{end}}{{if .KEV}}{{template "kev"}}{{end}}<span class="status{{if eq .Status "resolved"}} status--revoked{{else}} status--danger{{end}}">{{T (print "search.status_" .Status)}}</span>
+                    {{- else if .Open}}
+                      {{with .Sev}}{{template "sev" .}}{{end}}{{if .KEV}}{{template "kev"}}{{end}}<a href="{{.FindingsHref}}">{{Tn "search.vuln_count" .Open}}</a>
+                    {{- else}}
+                      <span class="muted">{{T "search.no_vulnerability"}}</span>
+                    {{- end}}
+                    </span>
+                  </td>
+                  <td>{{if .Fixed}}<span class="cluster">{{range .Fixed}}<span class="version">{{.}}</span>{{end}}</span>{{else}}<span class="muted">{{T "search.no_fix"}}</span>{{end}}</td>
+                  <td class="num">{{template "risk" .Risk}}</td>
+                </tr>
+                {{- end}}
+              </tbody>
+            </table>
+          </div>
+          {{- if .Truncated}}
+          <p class="result-group__foot muted">{{T "search.group_truncated" "Shown" (len .Rows) "Total" .Count}}</p>
+          {{- end}}
+        </section>
+        {{- end}}
+
+        {{- if and .Searched (not .Groups)}}
+        <p class="muted">{{T "search.no_result"}}</p>
+        {{- end}}
+        {{- if .OutOfRange}}
+        <p class="muted">{{Tn "search.out_of_range" .OutOfRange}}{{with .WithoutRange}} <a href="{{.}}">{{T "search.remove_range"}}</a>{{end}}</p>
+        {{- end}}
+        {{- if .Unreadable}}
+        <div class="callout callout--warning" role="status">
+          <div class="callout__body">
+            <p class="callout__title">{{T "search.unreadable_title"}}</p>
+            <p class="callout__text">{{T "search.unreadable_text"}}</p>
+            <ul class="plain-list">
+              {{- range .Unreadable}}<li><span class="version">{{.Version}}</span> · {{Tn "search.occurrences" .Occurrences}}</li>{{end}}
+            </ul>
+          </div>
+        </div>
+        {{- end}}
+        {{- with .NextHref}}
+        <nav class="pagination" aria-label="{{T "pagination.label"}}">
+          <a class="btn btn--sm" href="{{.}}">{{T "pagination.next"}}</a>
+        </nav>
+        {{- end}}
+      </div>
+    </div>
+  </form>
+</div>
+{{- end}}

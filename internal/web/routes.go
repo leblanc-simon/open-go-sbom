@@ -36,6 +36,9 @@ func registerUI(r chi.Router, h *handlers, loginLimit func(http.Handler) http.Ha
 		r.Get("/", id.home)
 		r.Get("/account", id.profile)
 		r.Post("/account", id.saveProfile)
+		r.Get(pathTokens, id.personalTokens)
+		r.Post(pathTokens, id.createPersonalToken)
+		r.Post(pathTokens+"/{tokenID}/revoke", id.revokePersonalToken)
 		r.Get(pathPassword, id.password)
 		r.Post(pathPassword, id.changePassword)
 
@@ -60,6 +63,8 @@ func registerUI(r chi.Router, h *handlers, loginLimit func(http.Handler) http.Ha
 			r.Use(id.orgGuard)
 			r.Get("/", id.orgOverview)
 			r.Get("/members", id.members)
+			r.Get("/search", id.search)
+			r.Get("/search/export", id.searchExport)
 			r.Get("/projects", id.projects)
 			r.Get("/projects/{project}", id.projectPage)
 			r.Get("/projects/{project}/findings", id.findings)

@@ -7,6 +7,8 @@ layout:
   home_link: Home
 
 nav:
+  search: Search
+  tokens: Access tokens
   vulnerabilities: Vulnerabilities
   components: Components
   admin_vulndb: Vulnerability database
@@ -62,6 +64,7 @@ form:
   save: Save
 
 flash:
+  personal_token_revoked: The access token is revoked; it is refused from now on.
   scan_requested: Scan requested; the agent will start it at its next heartbeat.
   title: Done
   settings_saved: Your preferences are saved.
@@ -92,6 +95,7 @@ pagination:
   next: Next page
 
 validation:
+  token_limit: "You already have the maximum number of active tokens: revoke one first."
   host_context_invalid: The host context is invalid (field too long or forbidden character).
   inventory_report_invalid: The inventory report is invalid (host reference, fingerprint or scan date).
   scan_not_host: Only an active server project followed by a host agent can be scanned on demand.
@@ -233,6 +237,7 @@ org:
   slug_hint: "Lowercase letters, digits and hyphens; it appears in addresses (/o/identifier)."
 
 dashboard:
+  search_package: Search the package
   title: "Dashboard — {{.Name}}"
   heading: Dashboard
   period: Period
@@ -366,6 +371,8 @@ audit:
     agent_token_revoked: "Token {{.Target}} ({{.D_prefix}}) of agent {{.D_agent}} revoked"
     enrollment_token_created: "Enrollment token {{.Target}} ({{.D_prefix}}) created"
     enrollment_token_revoked: "Enrollment token {{.Target}} ({{.D_prefix}}) revoked"
+    personal_token_created: "Personal access token {{.Target}} ({{.D_prefix}}) created"
+    personal_token_revoked: "Personal access token {{.Target}} ({{.D_prefix}}) revoked"
 
 admin:
   vulndb_missing_title: No vulnerability database
@@ -452,6 +459,49 @@ admin_org:
   unarchive: Reactivate
 
 error:
+  search:
+    empty:
+      title: Empty query
+      text: Enter a component, a purl, a CVE or a SHA-256 digest.
+    too_long:
+      title: Query too long
+      text: The query exceeds 1,024 bytes, or a searched name exceeds 200 characters.
+    purl_invalid:
+      title: Unreadable purl
+      text: "A purl reads pkg:<type>/<namespace>/<name>, optionally followed by @<version>, and is searched alone or with a vers range."
+    range_needs_purl:
+      title: Range without a purl
+      text: "A vers range only applies to a package given by its exact purl, without a version: pkg:npm/lodash vers:npm/<4.17.21. A name search accepts no range."
+    range_and_version:
+      title: Both a version and a range
+      text: Remove the version from the purl (@…) or the vers range, one or the other.
+    vers_invalid:
+      title: Unreadable vers range
+      text: "A range reads vers:<scheme>/<constraints>, constraints separated by « | » (=, !=, <, <=, >, >=), for instance vers:npm/>=4.0.0|<4.17.21."
+    vers_scheme:
+      title: Unknown vers scheme
+      text: "Accepted schemes: npm, maven, pypi, gem, golang, deb, rpm, alpine, semver and semver ecosystems (cargo, nuget, composer…)."
+    vers_duplicate:
+      title: Repeated version
+      text: The same version appears in two constraints of the range.
+    vers_version:
+      title: Unreadable version in the range
+      text: A version of the range does not read according to the rules of its ecosystem.
+    vers_mismatch:
+      title: Scheme differs from the purl
+      text: The range scheme must be the package one (vers:npm for pkg:npm, vers:deb for pkg:deb…).
+    vulnerability_invalid:
+      title: Unreadable identifier
+      text: An identifier reads CVE-YYYY-NNNN or GHSA-xxxx-xxxx-xxxx, alone.
+    hash_invalid:
+      title: Unreadable digest
+      text: A digest reads sha256:<64 hexadecimal characters>, or the 64 characters alone.
+    license_unavailable:
+      title: License search to come
+      text: License search comes with license analysis; meanwhile, search by component.
+    filter_invalid:
+      title: Unknown filter
+      text: A filter or an order in the address does not exist; reset the filters.
   client_cert_required:
     title: Client certificate required
     text: This server requires a valid client certificate (mTLS) for the agent API. Configure the agent's certificate and key.
@@ -495,9 +545,12 @@ error:
     title: Authentication required
     text: This address requires a valid token.
   token:
+    account_inactive:
+      title: Account deactivated
+      text: The account that owns this token is deactivated; its tokens are refused.
     invalid:
       title: Token refused
-      text: "The token presented is missing, malformed or unknown. Check that it is complete (ogsbom_agt_… or ogsbom_enr_…) and suits this operation."
+      text: "The token presented is missing, malformed or unknown. Check that it is complete (ogsbom_agt_…, ogsbom_enr_… or ogsbom_pat_…) and suits this operation."
     revoked:
       title: Token revoked
       text: This token has been revoked. Ask an administrator of the organization for a new one.
@@ -1096,3 +1149,104 @@ admin_vulndb:
   is_target: Target
   previous: Previous
   no_archives: No stored archive.
+
+search:
+  title: Search
+  heading: Cross-project search
+  subtitle: "A component, a purl with a version range, a CVE or a SHA-256 digest: across every project of the organization."
+  form_label: Search the projects
+  label: Search the projects
+  placeholder: Component, purl, CVE or SHA-256…
+  submit: Search
+  interpreted_as: Read as
+  kind_name: name
+  kind_purl: purl
+  kind_range: range
+  kind_vulnerability: vulnerability
+  kind_hash: digest
+  syntax: Search syntax
+  syntax_name: Component name, approximate, every version and ecosystem
+  syntax_purl: purl, optionally followed by a version range in vers format (compared by the ecosystem rules)
+  syntax_vulnerability: "CVE or GHSA identifier: affected projects, with status and fixed version"
+  syntax_hash: SHA-256 digest of a file known to an SBOM
+  filters: Filters
+  facet_project_type: Project type
+  facet_label: Label
+  facet_origin: Detection origin
+  facet_exploitation: Exploitation
+  kev_only: only
+  facet_severity: Highest severity
+  severity_none: No vulnerability
+  facet_status: Findings
+  include_resolved: Include resolved findings
+  sort_by: Sort by
+  sort_risk: Highest risk
+  sort_name: Project name
+  sort_snapshot: Most recent snapshot
+  apply_filters: Apply
+  reset_filters: Reset
+  summary_occurrences:
+    one: "{{.Count}} occurrence"
+    other: "{{.Count}} occurrences"
+  summary_projects:
+    one: "in {{.Count}} project"
+    other: "in {{.Count}} projects"
+  export_csv: Export as CSV
+  export_json: Export as JSON
+  active_filters: Active filters
+  remove_filter: Remove the filter
+  filter_kev: KEV only
+  filter_resolved: Resolved findings included
+  truncated_title: Partial result
+  truncated: The query designates too many components; only the closest are searched. Narrow it.
+  approximate_title: Approximate results
+  approximate: No name contains this text; here are the components whose name resembles it.
+  snapshot_of: "Snapshot of {{.Date}}"
+  occurrences:
+    one: "{{.Count}} occurrence"
+    other: "{{.Count}} occurrences"
+  col_component: Component
+  col_version: Version
+  col_ref: Reference
+  col_origin: Origin
+  col_vulnerability: Vulnerability
+  col_vulnerabilities: Vulnerabilities
+  col_fixed_in: Fixed in
+  col_risk: Risk
+  confidence: "({{.Pct}} %)"
+  weak: weak identification
+  not_in_inventory: not in the current inventory
+  status_open: Open
+  status_resolved: Resolved
+  vuln_count:
+    one: "{{.Count}} vulnerability"
+    other: "{{.Count}} vulnerabilities"
+  no_vulnerability: No open vulnerability
+  no_fix: None known
+  group_truncated: "{{.Shown}} of {{.Total}} occurrences shown; the export gives them all."
+  no_result: No project matches this search.
+  out_of_range:
+    one: "{{.Count}} occurrence of the package outside the requested version or range is not shown."
+    other: "{{.Count}} occurrences of the package outside the requested version or range are not shown."
+  remove_range: Remove the range
+  unreadable_title: Versions that cannot be compared
+  unreadable_text: "These versions do not read according to the ecosystem rules: whether they are in the range cannot be told. Their occurrences are not shown."
+
+tokens:
+  title: Access tokens
+  heading: Personal access tokens
+  lead: "A personal token (ogsbom_pat_…) gives read-only access to the search API of the organizations you belong to, never more than your account. It always expires."
+  created_text: "The token « {{.Name}} » is created. Copy it now: it will never be shown again."
+  usage: "Send it in the Authorization: Bearer header, for instance GET /api/v1/orgs/<organization>/search?q=CVE-2021-44228."
+  list_title: Your tokens
+  list_meta: "At most {{.Max}} active tokens"
+  none: No token yet.
+  new: New token
+  name_hint: A name that says what it is for (script, continuous integration…).
+  scope_hint: "Read only: search and export, in the organizations you belong to at the time of each request."
+  create: Create the token
+  expiry_7: 7 days
+  expiry_30: 30 days
+  expiry_90: 90 days
+  expiry_180: 180 days
+  expiry_365: 1 year

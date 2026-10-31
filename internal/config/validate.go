@@ -175,6 +175,12 @@ func (c Config) Validate() error {
 	v.nonNegative("login.rate_limit", int64(c.Login.RateLimit))
 	v.nonNegative("agent_api.rate_limit", int64(c.AgentAPI.RateLimit))
 	v.nonNegative("agent_api.failure_rate_limit", int64(c.AgentAPI.FailureRateLimit))
+	v.nonNegative("user_api.rate_limit", int64(c.UserAPI.RateLimit))
+	v.nonNegative("user_api.failure_rate_limit", int64(c.UserAPI.FailureRateLimit))
+	v.positive("user_api.export_timeout", int64(c.UserAPI.ExportTimeout))
+	if c.UserAPI.MaxExports < 1 || c.UserAPI.MaxExports > 64 {
+		v.fail("user_api.max_exports", "doit être compris entre 1 et 64 (reçu %d)", c.UserAPI.MaxExports)
+	}
 	c.Bootstrap.validate(&v)
 	v.positive("workers.concurrency", int64(c.Workers.Concurrency))
 	v.positive("workers.poll_interval", int64(c.Workers.PollInterval))

@@ -36,7 +36,9 @@ import (
 	"leblanc.io/open-go-sbom/internal/render"
 	"leblanc.io/open-go-sbom/internal/sbom"
 	"leblanc.io/open-go-sbom/internal/sbom/schema"
+	"leblanc.io/open-go-sbom/internal/search"
 	"leblanc.io/open-go-sbom/internal/secret"
+	"leblanc.io/open-go-sbom/internal/version/grypeversion"
 	"leblanc.io/open-go-sbom/internal/vuln"
 	"leblanc.io/open-go-sbom/internal/vuln/grype"
 	"leblanc.io/open-go-sbom/internal/web"
@@ -148,6 +150,8 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	searcher := search.NewService(pool, grypeversion.New())
+	exports := search.NewExportLimiter(cfg.UserAPI.MaxExports, cfg.UserAPI.ExportTimeout)
 	router, err := web.NewRouter(web.RouterOptions{
 		Logger:         logger,
 		Catalog:        catalog,
@@ -167,6 +171,8 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Inventory:      inventory.NewService(pool),
 			Ingest:         ingester,
 			Findings:       finding.NewService(pool),
+			Search:         searcher,
+			Exports:        exports,
 			Dashboard:      dash,
 			VulnDB:         web.VulnDBOptions{MaxAge: cfg.VulnDB.MaxAge, Offline: cfg.VulnDB.Offline, ListingURL: cfg.VulnDB.ListingURL},
 			Secrets:        box,
@@ -181,6 +187,14 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			FailureRateLimit: cfg.AgentAPI.FailureRateLimit,
 			// La validation de la configuration garantit le TLS natif avec client_ca_file.
 			RequireClientCert: cfg.TLS.ClientCAFile != "",
+		},
+		UserAPI: &api.UserOptions{
+			Pool:             pool,
+			Accounts:         accounts,
+			Search:           searcher,
+			Exports:          exports,
+			RateLimit:        cfg.UserAPI.RateLimit,
+			FailureRateLimit: cfg.UserAPI.FailureRateLimit,
 		},
 	})
 	if err != nil {

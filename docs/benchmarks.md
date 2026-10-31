@@ -39,10 +39,17 @@ environ une minute. `benchdata.SyntheticCycloneDX(n, variante)` produit un SBOM
 CycloneDX 1.6 de n composants (dix paquets réellement vulnérables, le reste synthétique),
 chaque variante étant un inventaire distinct.
 
+Pour la recherche (T09), `benchdata.AddSearchFixtures` complète le jeu : `pkg:npm/lodash`
+en 31 versions (4.17.0 à 4.17.29 et « latest », illisible selon npm), une par projet (le
+cas le plus lourd d'une plage `vers` : une occurrence par projet), et une empreinte
+SHA-256 sur 1 000 composants. Le jeu de `Generate` n'a qu'une version par paquet et
+aucune empreinte.
+
 ## Commandes
 
 ```bash
 make bench                         # jeu de référence et lectures des écrans (OGSBOM_BENCH=1)
+make bench-search                  # recherche transverse sur le jeu de référence (T09)
 OGSBOM_TEST_GRYPEDB_DIR=/chemin/db make test-grypedb   # vraie base Grype : acceptation et 5 000 composants
 ```
 
@@ -74,6 +81,38 @@ bascule, hors mesure. Cible tenue.
 | Fiche composant (famille d'un purl) | 1,5 ms | 3,4 ms | 3,9 ms |
 
 Environnement de réalisation (4 cœurs, 15 Gio) ; génération du jeu : 51 s.
+
+### T09 — Recherche transverse (cible : 2 s au 95e centile, RLS active)
+
+`TestSearchBenchmark` (`make bench-search`) : jeu de référence et compléments, `ANALYZE`
+par le propriétaire, puis `search.Service.Search` par le **rôle d'exécution** (RLS
+active), un passage froid et 50 chauds par requête ; une page de 20 projets et leurs
+occurrences, totaux compris. Environnement de réalisation (4 cœurs Xeon 2,8 GHz,
+15 Gio) ; génération du jeu et des compléments : 61 s.
+
+| Requête | Occurrences (projets) | Froid | p50 | p95 | Maximum |
+| --- | --- | --- | --- | --- | --- |
+| Nom large `lib-1` (1 000 composants, borne atteinte) | 16 675 (1 000) | 317 ms | 238 ms | **348 ms** | 355 ms |
+| Nom précis `lib-<i>` | 187 (185) | 19 ms | 19 ms | 24 ms | 34 ms |
+| `pkg:npm/lodash vers:npm/<4.17.20` | 648 (648) | 36 ms | 27 ms | 39 ms | 43 ms |
+| purl d'un paquet | 15 (15) | 12 ms | 11 ms | 17 ms | 17 ms |
+| Vulnérabilité `CVE-2099-…` | 193 (193) | 24 ms | 22 ms | 36 ms | 57 ms |
+| Empreinte SHA-256 | 20 (20) | 113 ms | 92 ms | 128 ms | 175 ms |
+| Nom large, sévérité moyenne, dépôts, tri par instantané | 524 (500) | 428 ms | 176 ms | 283 ms | 423 ms |
+| Nom large, page suivante (curseur) | 16 675 (1 000) | 222 ms | 201 ms | 259 ms | 284 ms |
+| Export CSV de `lib-1` (16 675 lignes, 20 passages) | — | — | 795 ms | 939 ms | 939 ms |
+
+Cible tenue, avec une marge d'un facteur cinq sur le pire cas.
+
+Plans (`EXPLAIN ANALYZE` des occurrences, rôle d'exécution) : la plage sur lodash passe par
+`component_set_items_component_idx` (4,2 ms), le nom large aussi (15,6 ms pour 16 675
+occurrences), la vulnérabilité par `findings_vuln_idx` (8,0 ms) ; `ref_current`,
+`tracked_refs` et `projects` (1 000 lignes) sont lus en entier et joints par hachage, ce
+que le planificateur préfère à ce volume. La résolution des noms et des empreintes passe
+par les fonctions de recherche (ADR 0024) et leurs index GIN `components_name_trgm_idx` et
+`components_hashes_idx` ; l'essentiel du temps du nom large est l'agrégat par projet des
+16 675 occurrences et de leurs constats. `TestSearchPlansUseTheirIndexes` vérifie ces
+index à chaque `make ci` (jeu de 100 projets, parcours séquentiels interdits).
 
 ### T10 — Tableau de bord et fiche projet (cible : 1 s au 95e centile)
 

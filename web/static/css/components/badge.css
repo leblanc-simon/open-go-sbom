@@ -85,6 +85,36 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-pill);
   }
+
+  /* Filtre actif de la recherche, avec son lien de retrait. */
+  &.chip--filter {
+    min-height: var(--control-h-sm);
+    padding: 0 0.25rem 0 0.625rem;
+    background: var(--color-accent-soft);
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-pill);
+    color: var(--color-text);
+    font-size: var(--text-sm);
+  }
+
+  .chip__remove {
+    display: inline-grid;
+    place-items: center;
+    width: 1.375rem;
+    height: 1.375rem;
+    border-radius: 50%;
+    color: var(--color-text);
+    text-decoration: none;
+
+    &:hover {
+      background: var(--color-surface);
+    }
+
+    svg {
+      width: 0.75rem;
+      height: 0.75rem;
+    }
+  }
 }
 
 /* Nature d'un projet : la forme du pictogramme distingue dépôt et serveur. */

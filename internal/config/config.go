@@ -27,6 +27,7 @@ type Config struct {
 	MFA        appconf.MFA     `yaml:"mfa"        env-prefix:"OGSBOM_"`
 	Login      Login           `yaml:"login"      env-prefix:"OGSBOM_"`
 	AgentAPI   AgentAPI        `yaml:"agent_api"  env-prefix:"OGSBOM_"`
+	UserAPI    UserAPI         `yaml:"user_api"   env-prefix:"OGSBOM_"`
 	Bootstrap  Bootstrap       `yaml:"bootstrap"  env-prefix:"OGSBOM_"`
 	Workers    Workers         `yaml:"workers"    env-prefix:"OGSBOM_"`
 	Ingest     Ingest          `yaml:"ingest"     env-prefix:"OGSBOM_"`
@@ -73,6 +74,17 @@ type Login struct {
 type AgentAPI struct {
 	RateLimit        int `yaml:"rate_limit"         env:"AGENT_API_RATE_LIMIT"         env-default:"120" env-description:"Agent API requests per minute and per token (0: unlimited)"`
 	FailureRateLimit int `yaml:"failure_rate_limit" env:"AGENT_API_FAILURE_RATE_LIMIT" env-default:"30"  env-description:"Refused agent API tokens per minute and per IP (0: unlimited)"`
+}
+
+// UserAPI borne l'API utilisateur (/api/v1/orgs/{org}/*, jetons personnels) et les exports
+// de la recherche (écran et API) : débit par jeton, jetons refusés par IP, durée et nombre
+// d'exports simultanés par instance (un export garde une transaction en lecture ouverte
+// pendant qu'il écrit, ADR 0024).
+type UserAPI struct {
+	RateLimit        int           `yaml:"rate_limit"         env:"USER_API_RATE_LIMIT"         env-default:"60" env-description:"User API requests per minute and per personal token (0: unlimited)"`
+	FailureRateLimit int           `yaml:"failure_rate_limit" env:"USER_API_FAILURE_RATE_LIMIT" env-default:"30" env-description:"Refused personal tokens per minute and per IP (0: unlimited)"`
+	ExportTimeout    time.Duration `yaml:"export_timeout"     env:"USER_API_EXPORT_TIMEOUT"     env-default:"5m" env-description:"Maximum duration of one search export (CSV or JSON)"`
+	MaxExports       int           `yaml:"max_exports"        env:"USER_API_MAX_EXPORTS"        env-default:"4"  env-description:"Search exports running at once on this instance, beyond which 429 is returned"`
 }
 
 // Bootstrap crée le premier administrateur d'instance sur une base sans compte (ignoré dès

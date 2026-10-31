@@ -76,6 +76,15 @@ parades prévues, et le lot qui les porte.
 | Injection SQL | requêtes paramétrées uniquement (ADR 0004) | tous |
 | Saturation de l'API par un hôte | limitation par jeton (`agent_api.rate_limit`), sans gêner les autres hôtes de la même IP | T04 |
 
+### Serveur — recherche et API utilisateur
+
+| Menace | Parade | Lot |
+| --- | --- | --- |
+| Jeton personnel volé | lecture seule, expiration obligatoire (365 jours au plus), révocation immédiate, appartenance aux organisations vérifiée à chaque requête (404 sinon), compte désactivé refusé, date de dernier usage, création et révocation au journal | T09 |
+| Recherche qui sort de l'organisation | exécution sous la RLS ; les deux fonctions qui la contournent pour les index (nom, empreinte) lisent l'organisation dans `ogsbom.org_id`, jamais en paramètre, et échouent hors `InOrg` (test d'isolement) | T09 |
+| Saturation par des recherches ou des exports | requête bornée (1 024 octets), composants bornés (1 000 par nom ou empreinte, 5 000 par paquet), pages bornées, exports simultanés et durée bornés (`user_api.max_exports`, `export_timeout`), limitation par jeton | T09 |
+| Injection de formules dans un export CSV | cellule commençant par `=`, `+`, `-`, `@` préfixée d'une apostrophe (noms et versions viennent de SBOM non fiables) | T09 |
+
 ### Serveur — base de données
 
 | Menace | Parade | Lot |

@@ -42,8 +42,10 @@ import (
 	"leblanc.io/open-go-sbom/internal/render"
 	"leblanc.io/open-go-sbom/internal/sbom"
 	"leblanc.io/open-go-sbom/internal/sbom/schema"
+	"leblanc.io/open-go-sbom/internal/search"
 	"leblanc.io/open-go-sbom/internal/secret"
 	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/open-go-sbom/internal/version/grypeversion"
 	"leblanc.io/open-go-sbom/internal/web/middleware"
 	"leblanc.io/open-go-sbom/locales"
 	"leblanc.io/open-go-sbom/web"
@@ -80,6 +82,7 @@ type app struct {
 	agents   *agent.Service
 	ingest   *ingest.Service
 	inv      *inventory.Service
+	search   *search.Service
 	dash     *dashboard.Service
 	clock    *testClock
 	box      *secret.Box
@@ -142,7 +145,8 @@ func newApp(t *testing.T, opts ...appOption) *app {
 	a := &app{t: t, tdb: tdb, box: box, logs: logs, steps: map[int64]int{}, clock: clock,
 		accounts: account.NewService(tdb.App, testCost), orgs: org.NewService(tdb.App),
 		projects: project.NewService(tdb.App), agents: agent.NewService(tdb.App, agent.WithClock(clock.Now)),
-		inv: inventory.NewService(tdb.App), dash: dashboard.NewService(tdb.App, dashboard.WithClock(clock.Now))}
+		inv: inventory.NewService(tdb.App), search: search.NewService(tdb.App, grypeversion.New()),
+		dash: dashboard.NewService(tdb.App, dashboard.WithClock(clock.Now))}
 	if a.ingest, err = ingest.NewService(ingest.Options{Pool: tdb.App, Validator: testValidator(t), Logger: logger,
 		Limits: ingest.Limits{MaxUpload: 8 << 20, SBOM: sbom.Limits{MaxBytes: 32 << 20, MaxDepth: 64, MaxComponents: 20_000}}}); err != nil {
 		t.Fatal(err)
@@ -155,6 +159,7 @@ func newApp(t *testing.T, opts ...appOption) *app {
 		Identity: &IdentityOptions{
 			Pool: tdb.App, Accounts: a.accounts, Orgs: a.orgs, Projects: a.projects, Agents: a.agents, Secrets: box,
 			Inventory: a.inv, Ingest: a.ingest, Findings: finding.NewService(tdb.App),
+			Search: a.search, Exports: search.NewExportLimiter(2, time.Minute),
 			Dashboard:      dashboard.NewService(tdb.App, dashboard.WithClock(clock.Now)),
 			VulnDB:         VulnDBOptions{MaxAge: 120 * time.Hour, ListingURL: "https://grype.anchore.io/databases/v6/latest.json"},
 			Auth:           appconf.Auth{SessionTTL: time.Hour, CookieName: "ogsbom_session", CookieSecure: "off", BcryptCost: testCost},
@@ -162,6 +167,8 @@ func newApp(t *testing.T, opts ...appOption) *app {
 			LoginRateLimit: 0,
 		},
 		AgentAPI: &apiv1.AgentOptions{Agents: a.agents, Ingest: a.ingest},
+		UserAPI: &apiv1.UserOptions{Pool: tdb.App, Accounts: a.accounts, Search: a.search,
+			Exports: search.NewExportLimiter(2, time.Minute)},
 	}
 	for _, opt := range opts {
 		opt(&o)

@@ -1,0 +1,10 @@
+# Serveur de l'API utilisateur (tag user) et ses types, adaptateur chi (make generate).
+# Paquet à part : le serveur des agents occupe déjà les noms générés du paquet gen, et
+# l'export de la recherche écrit en flux, ce que le serveur non strict permet.
+package: userapi
+generate:
+  chi-server: true
+  models: true
+output-options:
+  include-tags: [user]
+output: user.gen.go

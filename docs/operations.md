@@ -441,6 +441,33 @@ vaut 1 : à surveiller (alerte Prometheus conseillée sur `ogsbom_vulndb_stale =
   d'administration (T11). L'archive importée passe les mêmes contrôles d'installation.
 - Rien du contenu des SBOM n'est journalisé par l'analyse.
 
+## Recherche et API utilisateur
+
+La recherche transverse (`/o/<slug>/search`, T09, ADR 0024) et l'API utilisateur
+(`/api/v1/orgs/<slug>/…`) n'ont rien à installer en dehors de la base.
+
+- **Extensions PostgreSQL** : la migration 013 crée `pg_trgm` et `btree_gin` (extensions
+  « trusted », que le propriétaire de la base crée sans être superutilisateur). Sur une base
+  gérée qui les réserve à un administrateur, les créer avant la mise à jour, dans le schéma
+  `public` : `CREATE EXTENSION pg_trgm WITH SCHEMA public; CREATE EXTENSION btree_gin WITH
+  SCHEMA public;` (la migration les trouve alors déjà présentes).
+- **Jetons d'accès personnels** (`ogsbom_pat_…`, ADR 0025) : chaque compte les crée et les
+  révoque depuis « Mon compte » → « Jetons d'accès » (7 jours à 1 an, 20 actifs au plus,
+  secret affiché une seule fois). Lecture seule, sur les organisations dont le compte est
+  membre **au moment de la requête** : retirer un membre lui coupe l'accès sans toucher à
+  ses jetons. Un compte désactivé voit ses jetons refusés. Création et révocation figurent
+  au journal d'audit de l'instance ; les jetons ne sont jamais journalisés.
+- **Limitation** : `user_api.rate_limit` (60 par défaut) borne les requêtes par minute et
+  par jeton, `user_api.failure_rate_limit` (30) les jetons refusés par minute et par IP.
+- **Exports** (écran et API, CSV ou JSON) : lus et écrits en flux, chacun tient une
+  connexion du pool pendant son écriture. `user_api.max_exports` (4) borne les exports
+  simultanés de l'instance (429 au-delà, avec `Retry-After`) et `user_api.export_timeout`
+  (5 min) leur durée, qui remplace pour eux `http.write_timeout`. Garder
+  `max_exports` nettement sous `database.max_open_conns`.
+- **Performance** : `make bench-search` mesure la recherche sur le jeu de référence
+  (`docs/benchmarks.md`). Sur une grosse organisation, un `ANALYZE` après une première
+  ingestion massive aide le planificateur à choisir les index de recherche.
+
 ## Tableau de bord
 
 La page d'accueil d'une organisation (`/o/<slug>`) et l'en-tête de chaque fiche projet
