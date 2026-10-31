@@ -23,6 +23,7 @@ import (
 	"leblanc.io/open-go-sbom/internal/agent"
 	"leblanc.io/open-go-sbom/internal/api"
 	"leblanc.io/open-go-sbom/internal/config"
+	"leblanc.io/open-go-sbom/internal/dashboard"
 	"leblanc.io/open-go-sbom/internal/db"
 	"leblanc.io/open-go-sbom/internal/download"
 	"leblanc.io/open-go-sbom/internal/finding"
@@ -129,6 +130,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		collectors.NewDBStatsCollector(pool.DB(), "app"),
 	)
 	agents := agent.NewService(pool)
+	dash := dashboard.NewService(pool)
 	validator, err := schema.New()
 	if err != nil {
 		return err
@@ -165,6 +167,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Inventory:      inventory.NewService(pool),
 			Ingest:         ingester,
 			Findings:       finding.NewService(pool),
+			Dashboard:      dash,
 			VulnDB:         web.VulnDBOptions{MaxAge: cfg.VulnDB.MaxAge, Offline: cfg.VulnDB.Offline, ListingURL: cfg.VulnDB.ListingURL},
 			Secrets:        box,
 			Auth:           cfg.Auth,
@@ -252,6 +255,9 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		if err := scheduler.Register(account.PurgeSchedule()); err != nil {
 			return err
 		}
+		if err := registerDashboard(runner, scheduler, dash); err != nil {
+			return err
+		}
 		services = append(services, runner.Run, scheduler.Run, vulndb.Run)
 	}
 	return runAll(ctx, services...)
@@ -293,6 +299,17 @@ func registerAnalysis(cfg config.Config, runner *jobs.Runner, scheduler *jobs.Sc
 		return nil
 	}
 	return scheduler.Register(vuln.CheckSchedule(cfg.VulnDB.CheckInterval))
+}
+
+// registerDashboard enregistre les statistiques quotidiennes du tableau de bord.
+func registerDashboard(runner *jobs.Runner, scheduler *jobs.Scheduler, dash *dashboard.Service) error {
+	if err := runner.Register(dashboard.StatsAllKind, dash.StatsAllHandler()); err != nil {
+		return err
+	}
+	if err := runner.Register(dashboard.StatsOrgKind, dash.StatsOrgHandler()); err != nil {
+		return err
+	}
+	return scheduler.Register(dashboard.StatsSchedule())
 }
 
 // runAll lance les services ensemble et attend qu'ils aient tous rendu la main ; le

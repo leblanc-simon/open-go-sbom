@@ -12,6 +12,7 @@
       <h1 class="page-head__title">{{$p.Name}}</h1>
       {{template "project_kind" $p.Kind}}
       {{- with $p.Labels}}{{template "labels" .}}{{end}}
+      {{template "dash_period" .Period}}
     </div>
     <p class="page-head__meta">
       <span class="mono">{{$p.Slug}}</span>
@@ -36,6 +37,11 @@
   </div>
   {{- end}}
   {{template "project_tabs" .Tabs}}
+  {{template "dash_tiles" .Summary}}
+  <div class="layout">
+    {{template "dash_trend" .Summary}}
+    {{template "dash_fix" .Summary}}
+  </div>
   <div class="layout layout--aside">
     <div class="stack">
       <section class="panel" aria-labelledby="project-about">

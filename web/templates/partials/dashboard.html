@@ -1,0 +1,89 @@
+{{/* Indicateurs communs au tableau de bord (org/dashboard) et à la fiche projet
+(projects/show) : modèle de vue summaryView de internal/web/dashboard_pages.go. */}}
+{{define "dash_change" -}}
+{{- if not .Known}}{{T "dashboard.change_unknown" "Days" .Days}}
+{{- else if gt .Sign 0}}<span aria-hidden="true">▲ </span>{{T "dashboard.change_up" "N" .N "Days" .Days}}
+{{- else if lt .Sign 0}}<span aria-hidden="true">▼ </span>{{T "dashboard.change_down" "N" .N "Days" .Days}}
+{{- else}}<span aria-hidden="true">= </span>{{T "dashboard.change_none" "Days" .Days}}{{end}}
+{{- end}}
+
+{{define "dash_period" -}}
+<form class="page-head__actions period-form" method="get" action="{{.Action}}">
+  <label class="period-form__field"><span>{{T "dashboard.period"}}</span>
+    <select class="select select--sm" name="period">
+      {{- range .Periods}}
+      <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+      {{- end}}
+    </select>
+  </label>
+  <button class="btn btn--sm" type="submit">{{T "dashboard.apply"}}</button>
+</form>
+{{- end}}
+
+{{define "dash_tiles" -}}
+<section class="stack stack--sm" aria-labelledby="{{.Prefix}}-open-title">
+  <h2 class="section-title" id="{{.Prefix}}-open-title">{{T "dashboard.open_findings"}}</h2>
+  <ul class="stat-grid">
+    {{- range .Tiles}}
+    <li class="stat">
+      <span class="stat__label"><span class="{{.Sev.Class}}">{{T .Sev.LabelKey}}</span></span>
+      <span class="stat__value">{{.Count}}</span>
+      <span class="stat__delta">{{template "dash_change" .Week}}</span>
+    </li>
+    {{- end}}
+    <li class="stat">
+      <span class="stat__label">{{template "kev" .}}<span>{{T "dashboard.kev_open"}}</span></span>
+      <span class="stat__value">{{.KEVVulns}}</span>
+      <span class="stat__delta">{{Tn "dashboard.kev_findings" .KEVFindings}} {{Tn "dashboard.kev_projects" .KEVProjects}}</span>
+    </li>
+  </ul>
+</section>
+{{- end}}
+
+{{define "dash_trend" -}}
+<section class="panel" aria-labelledby="{{.Prefix}}-trend-title">
+  <div class="panel__head">
+    <h2 class="panel__title" id="{{.Prefix}}-trend-title">{{T "dashboard.trend_title" "Days" .Days}}</h2>
+    <span class="panel__meta">{{T "dashboard.trend_meta"}}</span>
+  </div>
+  <div class="panel__body stack">
+    <div class="trend">
+      {{- range .Trend}}
+      <span class="{{.Sev.Class}}">{{T .Sev.LabelKey}}</span>
+      {{template "chart_line" .Chart}}
+      <span class="trend__value">{{.Value}}{{if .Change.Known}}<span class="trend__delta">{{template "dash_change" .Change}}</span>{{end}}</span>
+      {{- end}}
+      <span class="trend__axis" aria-hidden="true"><span>{{.AxisFrom}}</span><span>{{.AxisTo}}</span></span>
+    </div>
+    {{- if eq (len .Table) 1}}
+    <p class="hint">{{T "dashboard.trend_first_day"}}</p>
+    {{- end}}
+    <details class="chart-data">
+      <summary>{{T "chart.show_data"}}</summary>
+      <div class="table-wrap">
+        <table class="data-table">
+          <caption class="visually-hidden">{{T "dashboard.trend_table_caption"}}</caption>
+          <thead><tr><th scope="col">{{T "dashboard.date"}}</th>{{range .TableHead}}<th scope="col" class="num">{{T .LabelKey}}</th>{{end}}</tr></thead>
+          <tbody>
+            {{- range .Table}}
+            <tr><th scope="row"><time datetime="{{.Date}}">{{.Date}}</time></th>{{range .Values}}<td class="num">{{.}}</td>{{end}}</tr>
+            {{- end}}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </div>
+</section>
+{{- end}}
+
+{{define "dash_fix" -}}
+<section class="panel" aria-labelledby="{{.Prefix}}-fix-title">
+  <div class="panel__head">
+    <h2 class="panel__title" id="{{.Prefix}}-fix-title">{{T "dashboard.fix_title"}}</h2>
+    <span class="panel__meta">{{T "dashboard.fix_meta" "Days" .Days}}</span>
+  </div>
+  <div class="panel__body">
+    {{template "chart_bars" .Fix}}
+  </div>
+</section>
+{{- end}}

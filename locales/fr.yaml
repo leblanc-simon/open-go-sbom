@@ -15,7 +15,7 @@ nav:
   password: Mot de passe
   logout: Se déconnecter
   admin: Administration
-  org_overview: Vue d'ensemble
+  org_overview: Tableau de bord
   members: Membres
   org_settings: Paramètres
   audit: Journal d'audit
@@ -52,6 +52,7 @@ status:
 
 format:
   utc: "{{.Time}} UTC"
+  days: "{{.Value}} j"
   sbom_cyclonedx: CycloneDX
   sbom_spdx: SPDX
   sbom_syft: Syft JSON
@@ -227,11 +228,68 @@ org:
   slug: Identifiant d'URL
   slug_hint: "Minuscules, chiffres et tirets ; il apparaît dans les adresses (/o/identifiant)."
 
-org_overview:
-  title: "{{.Name}}"
-  your_role: "Votre rôle : {{.Role}}."
-  next_title: Pour commencer
-  next_text: Les projets, les agents et le tableau de bord de l'organisation arrivent avec les prochaines versions.
+dashboard:
+  title: "Tableau de bord — {{.Name}}"
+  heading: Tableau de bord
+  period: Période
+  apply: Appliquer
+  period_30: 30 jours
+  period_90: 90 jours
+  period_365: 12 mois
+  projects:
+    one: "{{.Count}} projet actif"
+    other: "{{.Count}} projets actifs"
+  kind_repo:
+    one: "{{.Count}} dépôt"
+    other: "{{.Count}} dépôts"
+  kind_host:
+    one: "{{.Count}} serveur"
+    other: "{{.Count}} serveurs"
+  last_analysis: "Dernière analyse de vulnérabilités :"
+  no_analysis: Aucune analyse de vulnérabilités pour l'instant
+  open_findings: Constats ouverts
+  kev_open: Vulnérabilités KEV ouvertes
+  kev_findings:
+    one: "{{.Count}} constat"
+    other: "{{.Count}} constats"
+  kev_projects:
+    one: "dans {{.Count}} projet"
+    other: "dans {{.Count}} projets"
+  change_up: "+{{.N}} en {{.Days}} jours"
+  change_down: "−{{.N}} en {{.Days}} jours"
+  change_none: "stable en {{.Days}} jours"
+  change_unknown: "pas encore d'historique à {{.Days}} jours"
+  trend_title: "Tendance sur {{.Days}} jours"
+  trend_meta: Constats ouverts par sévérité, échelle propre à chaque ligne, départ à zéro
+  trend_chart_desc: "Constats ouverts : {{.First}} le {{.From}}, {{.Last}} le {{.To}}, au plus {{.Max}}."
+  trend_chart_single: "Constats ouverts : {{.Last}} le {{.Date}}, premier jour de l'historique."
+  trend_first_day: L'historique commence aujourd'hui ; la courbe s'allonge d'un point chaque jour.
+  trend_table_caption: Constats ouverts par jour et par sévérité
+  date: Date
+  fix_title: Délai médian de correction
+  fix_meta: "Constats corrigés sur {{.Days}} jours"
+  fix_desc: "Médiane de la durée entre la première détection et la résolution des constats corrigés sur {{.Days}} jours, en jours."
+  silent_title: Agents muets
+  silent_meta: "{{.Count}} sans contact depuis plus de {{.Days}} jours"
+  silent_none: Aucun agent muet.
+  see_agents: Agents
+  col_agent: Agent
+  col_silence: Silence
+  exposed_title: Projets les plus exposés
+  exposed_none: Aucun projet n'a de constat ouvert.
+  see_projects: Tous les projets
+  col_project: Projet
+  col_open: Constats ouverts
+  col_risk: Risque max.
+  widespread_title: Composants vulnérables les plus répandus
+  widespread_none: Aucun composant vulnérable.
+  col_component: Composant
+  col_projects: Projets
+  col_versions: Versions vulnérables
+  col_worst: Pire sévérité
+  more_versions:
+    one: "+{{.Count}} autre"
+    other: "+{{.Count}} autres"
 
 members:
   title: Membres
@@ -491,6 +549,11 @@ common:
   filter: Filtrer
   never: Jamais
   breadcrumb: Fil d'Ariane
+
+chart:
+  point: "{{.Date}} : {{.Value}}"
+  no_data: Aucune donnée
+  show_data: Afficher les données
 
 project_type:
   repo: Dépôt

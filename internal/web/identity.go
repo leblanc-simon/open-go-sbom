@@ -18,6 +18,7 @@ import (
 	"leblanc.io/open-go-sbom/internal/account"
 	"leblanc.io/open-go-sbom/internal/agent"
 	"leblanc.io/open-go-sbom/internal/audit"
+	"leblanc.io/open-go-sbom/internal/dashboard"
 	"leblanc.io/open-go-sbom/internal/db"
 	"leblanc.io/open-go-sbom/internal/db/crossorg"
 	"leblanc.io/open-go-sbom/internal/finding"
@@ -56,6 +57,8 @@ type IdentityOptions struct {
 	Ingest    *ingest.Service
 	// Findings sert les constats, les fiches vulnérabilité et composant (T06).
 	Findings *finding.Service
+	// Dashboard sert le tableau de bord et l'en-tête de la fiche projet (T10).
+	Dashboard *dashboard.Service
 	// VulnDB règle l'écran de la base de vulnérabilités et son alerte d'âge.
 	VulnDB VulnDBOptions
 	// Secrets chiffre les secrets TOTP en base.
@@ -82,7 +85,7 @@ type identity struct {
 
 func newIdentity(o IdentityOptions, rd *render.Renderer, cat *locale.Catalog, logger *slog.Logger, clientIP func(*http.Request) string) (*identity, error) {
 	if o.Pool == nil || o.Accounts == nil || o.Orgs == nil || o.Projects == nil || o.Agents == nil || o.Inventory == nil ||
-		o.Ingest == nil || o.Findings == nil || o.Secrets == nil || o.VulnDB.MaxAge <= 0 {
+		o.Ingest == nil || o.Findings == nil || o.Dashboard == nil || o.Secrets == nil || o.VulnDB.MaxAge <= 0 {
 		return nil, errors.New("web: dépendances de l'identité incomplètes")
 	}
 	id := &identity{IdentityOptions: o, rd: rd, cat: cat, logger: logger, clientIP: clientIP}

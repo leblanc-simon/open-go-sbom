@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"leblanc.io/open-go-sbom/internal/agent"
+	"leblanc.io/open-go-sbom/internal/dashboard"
 	"leblanc.io/open-go-sbom/internal/project"
 	"leblanc.io/open-go-sbom/internal/render"
 	"leblanc.io/open-go-sbom/internal/tenant"
@@ -308,6 +309,9 @@ type projectView struct {
 	RepoAgents []option
 	FlashKey   string
 	Error      formError
+	// Period et Summary : indicateurs du projet en tête de sa fiche (T10).
+	Period  periodForm
+	Summary summaryView
 }
 
 func (id *identity) projectPage(w http.ResponseWriter, r *http.Request) {
@@ -326,6 +330,13 @@ func (id *identity) renderProject(w http.ResponseWriter, r *http.Request, status
 		Tabs: projectTabs(acc, p, "overview"), Branches: p.RefNames(project.RefBranch), Tags: p.RefNames(project.RefTag),
 		HostRef: p.HostRef(), Created: stampAt(p.CreatedAt), FlashKey: flashKey(r), Error: fe,
 	}
+	period := dashboard.ParsePeriod(r.URL.Query().Get("period"))
+	summary, err := id.Dashboard.Project(r.Context(), acc.Org, p.ID, period)
+	if err != nil {
+		id.serverError(w, r, err)
+		return
+	}
+	view.Period, view.Summary = periodFormOf(orgBase(acc)+"/projects/"+p.Slug, period), summaryOf("project", summary)
 	if view.CanAdmin && p.Kind == project.KindRepo && p.ArchivedAt == nil {
 		agents, err := id.Agents.RepoAgents(r.Context(), acc.Org)
 		if err != nil {
