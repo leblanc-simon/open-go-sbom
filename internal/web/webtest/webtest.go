@@ -42,7 +42,10 @@ func AssertNoInlineCode(t testing.TB, page []byte) {
 // chaque image, nom accessible des liens et boutons, références aria-labelledby et
 // aria-describedby vers des identifiants présents, graphiques SVG décoratifs
 // (aria-hidden) ou nommés (role="img" et un nom : aria-label, aria-labelledby ou
-// <title>), et lien d'évitement en premier élément focalisable, vers une cible qui existe.
+// <title>), lien d'évitement en premier élément focalisable, vers une cible qui existe,
+// aide de champ (aria-describedby) visible de tous et pas seulement des lecteurs d'écran
+// (RGAA 11.10), et nom de langue d'un choix de langue (<select name="language">)
+// marqué de sa langue (RGAA 8.7 : « English » sur une page française).
 func CheckAccessibility(page []byte) []string {
 	doc, err := html.Parse(bytes.NewReader(page))
 	if err != nil {
@@ -60,6 +63,7 @@ func CheckAccessibility(page []byte) []string {
 	}
 
 	ids := map[string]bool{}
+	byID := map[string]*html.Node{}
 	labelled := map[string]bool{}
 	walk(doc, func(n *html.Node) {
 		if n.Type != html.ElementNode {
@@ -70,6 +74,7 @@ func CheckAccessibility(page []byte) []string {
 				add("identifiant %q en double", id)
 			}
 			ids[id] = true
+			byID[id] = n
 		}
 		if n.DataAtom == atom.Label {
 			if f := attr(n, "for"); f != "" {
@@ -99,6 +104,18 @@ func CheckAccessibility(page []byte) []string {
 			for _, ref := range strings.Fields(attr(n, k)) {
 				if !ids[ref] {
 					add("%s=%q sur <%s> : identifiant absent", k, ref, n.Data)
+				}
+			}
+		}
+		for _, ref := range strings.Fields(attr(n, "aria-describedby")) {
+			if target := byID[ref]; target != nil && hasClass(target, "visually-hidden") {
+				add("aria-describedby=%q sur <%s> : aide réservée aux lecteurs d'écran, invisible à l'écran", ref, n.Data)
+			}
+		}
+		if n.DataAtom == atom.Select && attr(n, "name") == "language" {
+			for c := n.FirstChild; c != nil; c = c.NextSibling {
+				if c.Type == html.ElementNode && c.DataAtom == atom.Option && attr(c, "value") != "" && attr(c, "lang") != attr(c, "value") {
+					add("option de langue %q sans lang=%q", attr(c, "value"), attr(c, "value"))
 				}
 			}
 		}
@@ -252,6 +269,15 @@ func attrOK(n *html.Node, key string) (string, bool) {
 func attr(n *html.Node, key string) string {
 	v, _ := attrOK(n, key)
 	return v
+}
+
+func hasClass(n *html.Node, class string) bool {
+	for _, c := range strings.Fields(attr(n, "class")) {
+		if c == class {
+			return true
+		}
+	}
+	return false
 }
 
 func text(n *html.Node) string {

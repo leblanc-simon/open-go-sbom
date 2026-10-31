@@ -1,0 +1,18 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T .HeadingKey .Args}}</h1>
+  </div>
+  <div class="callout callout--warning">
+    <div class="callout__body">
+      <p class="callout__title">{{T "confirm.irreversible"}}</p>
+      <p class="callout__text">{{T .TextKey .Args}}</p>
+    </div>
+  </div>
+  <form class="cluster" method="post" action="{{.Action}}">
+    {{csrfField .Page.CSRFToken}}
+    <button class="btn btn--danger" type="submit">{{T .SubmitKey .Args}}</button>
+    <a class="btn" href="{{.Cancel}}">{{T "confirm.cancel"}}</a>
+  </form>
+</div>
+{{- end}}

@@ -8,7 +8,7 @@
   <section class="panel" aria-labelledby="audit-list">
     <div class="panel__head"><h2 class="panel__title" id="audit-list">{{T "audit.list_title"}}</h2></div>
     {{- if .Rows}}
-    <div class="table-wrap">
+    <div class="table-wrap" role="group" aria-labelledby="audit-list" tabindex="0">
       <table class="data-table">
         <caption class="visually-hidden">{{T "audit.list_title"}}</caption>
         <thead>

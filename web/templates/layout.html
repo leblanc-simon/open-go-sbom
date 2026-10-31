@@ -4,7 +4,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{T .Page.TitleKey .Page.TitleArgs}} · {{T "app.name"}}</title>
+{{- /* Titre : écran, organisation de la page, puis « Erreur » quand l'écran est renvoyé
+     en erreur (RGAA 8.6 : deux onglets de deux organisations restent distincts). */}}
+{{- $title := T .Page.TitleKey .Page.TitleArgs}}
+{{- with .Page.Chrome}}{{with .Current}}{{$title = T "layout.title_org" "Title" $title "Org" .Name}}{{end}}{{end}}
+{{- if .Page.Failed}}{{$title = T "layout.title_error" "Title" $title}}{{end}}
+<title>{{$title}} · {{T "app.name"}}</title>
 <link rel="stylesheet" href="{{asset "css/app.css"}}">
 <link rel="icon" href="{{asset "img/favicon.svg"}}" type="image/svg+xml">
 <script type="module" src="{{asset "js/theme.js"}}"></script>

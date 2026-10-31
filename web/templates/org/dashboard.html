@@ -26,7 +26,7 @@
         </div>
         {{- if .Silent}}
         <div class="panel__body panel__body--flush">
-          <div class="table-wrap">
+          <div class="table-wrap" role="group" aria-labelledby="silent-title" tabindex="0">
             <table class="data-table">
               <caption class="visually-hidden">{{T "dashboard.silent_title"}}</caption>
               <thead><tr><th scope="col">{{T "dashboard.col_agent"}}</th><th scope="col">{{T "dashboard.col_since"}}</th><th scope="col" class="num">{{T "dashboard.col_silence"}}</th></tr></thead>
@@ -57,7 +57,7 @@
       </div>
       {{- if .Exposed}}
       <div class="panel__body panel__body--flush">
-        <div class="table-wrap">
+        <div class="table-wrap" role="group" aria-labelledby="exposed-title" tabindex="0">
           <table class="data-table">
             <caption class="visually-hidden">{{T "dashboard.exposed_title"}}</caption>
             <thead>
@@ -92,7 +92,7 @@
       </div>
       {{- if .Widespread}}
       <div class="panel__body panel__body--flush">
-        <div class="table-wrap">
+        <div class="table-wrap" role="group" aria-labelledby="widespread-title" tabindex="0">
           <table class="data-table">
             <caption class="visually-hidden">{{T "dashboard.widespread_title"}}</caption>
             <thead>

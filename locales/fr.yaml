@@ -3,6 +3,8 @@ app:
   tagline: Gestion des SBOM par projet
 
 layout:
+  title_org: "{{.Title}} — {{.Org}}"
+  title_error: "Erreur : {{.Title}}"
   skip_to_content: Aller au contenu
   home_link: Accueil
 
@@ -243,7 +245,7 @@ org:
 
 dashboard:
   search_package: Rechercher le paquet
-  title: "Tableau de bord — {{.Name}}"
+  title: Tableau de bord
   heading: Tableau de bord
   period: Période
   apply: Appliquer
@@ -319,7 +321,7 @@ members:
   status: État du compte
   you: vous
   role_of: "Rôle de {{.Email}}"
-  change_role: Modifier
+  change_role: Modifier le rôle
   remove: Retirer
 
 org_settings:
@@ -612,6 +614,7 @@ error:
       text: "L'envoi doit comporter, dans cet ordre, une partie « context » (JSON) puis une partie « sbom »."
 
 footer:
+  sitemap: "Plan du site"
   version: "Version {{.Version}}"
   license: Logiciel libre sous licence WTFPL
   source: Code source
@@ -872,6 +875,7 @@ ingestion_outcome:
   unchanged: Inventaire inchangé
 
 snapshots:
+  ref_shown: "Affichée"
   title: "Instantanés — {{.Name}}"
   refs_title: Références
   refs_caption: Références suivies du projet et leur dernier instantané
@@ -1086,6 +1090,7 @@ vulnerability:
   truncated: Liste limitée aux 500 constats les plus risqués.
 
 component:
+  this_version: "Version de cette fiche"
   title: "{{.Name}}"
   projects_count:
     one: "{{.Count}} projet"
@@ -1237,6 +1242,7 @@ admin_jobs:
   not_found: Ce traitement n'est plus en échec (déjà relancé ou abandonné).
 
 search:
+  title_query: "Recherche « {{.Query}} »"
   title: Recherche
   heading: Recherche transverse
   subtitle: "Un composant, un purl avec une plage de versions, une CVE ou une empreinte SHA-256 : dans tous les projets de l'organisation."
@@ -1336,3 +1342,42 @@ tokens:
   expiry_90: 90 jours
   expiry_180: 180 jours
   expiry_365: 1 an
+
+severity_short:
+  critical: "Crit."
+  high: "Élev."
+  medium: "Moy."
+  low: "Faible"
+
+sitemap:
+  title: "Plan du site"
+  heading: "Plan du site"
+  lead: "Toutes les rubriques auxquelles votre compte donne accès."
+  org: "Organisation {{.Name}}"
+  account: "Mon compte"
+  admin: "Administration de l'instance"
+
+confirm:
+  irreversible: "Cette action est définitive"
+  cancel: "Annuler"
+  agent_token_heading: "Révoquer le jeton « {{.Name}} » de l'agent {{.Agent}} ?"
+  agent_token_text: "Le jeton cessera aussitôt de fonctionner : l'agent qui l'utilise ne pourra plus rien envoyer tant qu'il n'aura pas reçu un autre jeton."
+  agent_token_submit: "Révoquer le jeton « {{.Name}} »"
+  agent_disable_heading: "Désactiver l'agent {{.Agent}} ?"
+  agent_disable_text: "Tous ses jetons seront révoqués et ses projets lui seront retirés ; il ne pourra plus rien envoyer. Un agent désactivé ne se réactive pas : un serveur devra s'inscrire de nouveau, un dépôt être confié à un autre agent."
+  enrollment_heading: "Révoquer le jeton d'inscription « {{.Name}} » ?"
+  enrollment_text: "Plus aucun serveur ne pourra s'inscrire avec ce jeton. Les agents déjà inscrits gardent leurs propres jetons et continuent de fonctionner."
+  enrollment_submit: "Révoquer « {{.Name}} »"
+  member_heading: "Retirer {{.Email}} de l'organisation ?"
+  member_text: "{{.Email}} perdra aussitôt l'accès à {{.Org}}. Pour le lui rendre, il faudra l'ajouter de nouveau, avec un rôle."
+  member_self_text: "Vous vous retirez vous-même : vous perdrez aussitôt l'accès à {{.Org}}, et seul un administrateur de l'organisation pourra vous ajouter de nouveau."
+  member_submit: "Retirer {{.Email}}"
+  personal_token_heading: "Révoquer le jeton « {{.Name}} » ?"
+  personal_token_text: "Le jeton {{.Prefix}}… cessera aussitôt de fonctionner : les scripts et intégrations qui l'utilisent recevront une erreur d'authentification."
+  personal_token_submit: "Révoquer le jeton « {{.Name}} »"
+  reset_password_heading: "Réinitialiser le mot de passe de {{.Email}} ?"
+  reset_password_text: "Le mot de passe actuel cessera de fonctionner et les sessions du compte seront fermées. Un mot de passe temporaire, affiché une seule fois, sera à transmettre à son titulaire, qui le changera à sa prochaine connexion."
+  reset_totp_heading: "Réinitialiser le TOTP de {{.Email}} ?"
+  reset_totp_text: "Les codes de son application d'authentification ne seront plus acceptés et les sessions du compte seront fermées. Son titulaire devra configurer un nouveau TOTP à sa prochaine connexion."
+  job_heading: "Abandonner le traitement {{.Kind}} ?"
+  job_text: "Le traitement et sa dernière erreur seront supprimés (tentatives : {{.Attempts}}) ; il ne sera plus relancé. Pour qu'il s'exécute de nouveau, il faudra reproduire la donnée qui l'a mis en file."

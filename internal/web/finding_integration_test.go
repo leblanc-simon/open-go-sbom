@@ -155,6 +155,13 @@ func TestFindingScreens(t *testing.T) {
 	if strings.Contains(tab, "CVE-2099-0002") {
 		t.Error("constat résolu parmi les ouverts")
 	}
+	// RGAA 3.1 et 10.9 : sévérité écrite dans les pastilles, référence affichée écrite.
+	for _, want := range []string{`title="Critique" aria-hidden="true">Crit.</abbr>`, `<span class="visually-hidden">Critique </span><span>1</span>`,
+		`<span class="chip">Affichée</span>`} {
+		if !strings.Contains(tab, want) {
+			t.Errorf("onglet des constats sans %q", want)
+		}
+	}
 	if filtered := unescape(b.get(base + "/findings?severity=low").body); strings.Contains(filtered, "CVE-2021-44228") ||
 		!strings.Contains(filtered, "Aucun constat ne correspond aux filtres") {
 		t.Error("filtre de sévérité")
@@ -175,7 +182,7 @@ func TestFindingScreens(t *testing.T) {
 	}
 	cp := unescape(b.get("/o/org-a/components/" + comp).body)
 	for _, want := range []string{"log4j-core", "pkg:maven/org.apache.logging.log4j/log4j-core", "Vulnérable", "CVE-2021-44228", "Portail client",
-		"1 constat", "1 projet"} {
+		"1 constat", "1 projet", `<span class="status status--danger">Version vulnérable</span>`, `<span class="chip">Version de cette fiche</span>`} {
 		if !strings.Contains(cp, want) {
 			t.Errorf("fiche composant sans %q", want)
 		}

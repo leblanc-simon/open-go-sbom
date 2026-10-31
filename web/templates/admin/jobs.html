@@ -21,7 +21,7 @@
     {{- if .Jobs}}
     <div class="panel__body"><p class="muted">{{T "admin_jobs.dead_hint"}}</p></div>
     <div class="panel__body panel__body--flush">
-      <div class="table-wrap" role="region" aria-labelledby="dead-title" tabindex="0">
+      <div class="table-wrap" role="group" aria-labelledby="dead-title" tabindex="0">
         <table class="data-table">
           <thead>
             <tr>
@@ -45,7 +45,7 @@
               <td>
                 <div class="cluster">
                   <form method="post" action="/admin/jobs/{{.ID}}/retry">{{csrfField $csrf}}<button type="submit" class="btn btn--sm">{{T "admin_jobs.retry"}}<span class="visually-hidden"> {{.Kind}}</span></button></form>
-                  <form method="post" action="/admin/jobs/{{.ID}}/discard">{{csrfField $csrf}}<button type="submit" class="btn btn--sm btn--danger">{{T "admin_jobs.discard"}}<span class="visually-hidden"> {{.Kind}}</span></button></form>
+                  <a class="btn btn--sm btn--danger" href="/admin/jobs/{{.ID}}/discard">{{T "admin_jobs.discard"}}<span class="visually-hidden"> {{.Kind}}</span></a>
                 </div>
               </td>
             </tr>

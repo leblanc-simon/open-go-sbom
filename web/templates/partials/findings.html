@@ -4,12 +4,12 @@
 
 {{define "sevcounts" -}}
 <ul class="sevcounts">
-  {{- range .}}<li class="{{.Class}}"><span class="visually-hidden">{{T .LabelKey}}</span>{{.Count}}</li>{{end -}}
+  {{- range .}}<li class="{{.Class}}"><abbr class="sev__abbr" title="{{T .LabelKey}}" aria-hidden="true">{{T .ShortKey}}</abbr><span class="visually-hidden">{{T .LabelKey}} </span><span>{{.Count}}</span></li>{{end -}}
 </ul>
 {{- end}}
 
 {{define "kev" -}}
-<span class="kev"><span>{{T "badge.kev"}}</span><span class="visually-hidden">{{T "badge.kev_long"}}</span></span>
+<span class="kev"><span>{{T "badge.kev"}}</span><span class="visually-hidden"> {{T "badge.kev_long"}}</span></span>
 {{- end}}
 
 {{define "epss" -}}

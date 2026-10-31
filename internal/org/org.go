@@ -304,6 +304,24 @@ func (s *Service) Members(ctx context.Context, org tenant.OrgID, cursor string, 
 	return page, wrap("liste des membres", err)
 }
 
+// Member renvoie le membre userID de l'organisation ; ErrNotFound s'il n'en est pas
+// membre.
+func (s *Service) Member(ctx context.Context, org tenant.OrgID, userID int64) (Member, error) {
+	var m Member
+	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
+		var err error
+		m, err = scanMember(tx.QueryRowContext(ctx, `
+			SELECT `+memberColumns+`
+			  FROM org_memberships m JOIN users u ON u.id = m.user_id
+			 WHERE m.org_id = $1 AND m.user_id = $2`, tx.OrgID(), userID))
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}, db.ReadOnly())
+	return m, wrap("lecture d'un membre", err)
+}
+
 // Admins renvoie les administrateurs de l'organisation (50 au plus).
 func (s *Service) Admins(ctx context.Context, org tenant.OrgID) ([]Member, error) {
 	var out []Member

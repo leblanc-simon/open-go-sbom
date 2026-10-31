@@ -50,9 +50,16 @@
     font-weight: var(--weight-bold);
   }
 
+  /* Ligne sélectionnée : le fond ne suffit pas (RGAA 3.1), un filet et la graisse de la
+     première cellule la distinguent aussi ; le gabarit l'écrit en clair. */
   .row--selected {
     > * {
       background: var(--color-accent-soft);
+    }
+
+    > :first-child {
+      box-shadow: inset 3px 0 0 var(--color-accent);
+      font-weight: var(--weight-bold);
     }
   }
 
@@ -66,6 +73,19 @@
 
     form {
       display: inline-block;
+    }
+
+    /* Changement de rôle dans la ligne : la liste garde sa largeur naturelle, pour que
+       ses boutons restent visibles à côté. */
+    .form--inline {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      vertical-align: middle;
+    }
+
+    .select {
+      width: auto;
     }
   }
 

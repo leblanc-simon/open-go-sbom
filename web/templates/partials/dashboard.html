@@ -60,7 +60,7 @@
     {{- end}}
     <details class="chart-data">
       <summary>{{T "chart.show_data"}}</summary>
-      <div class="table-wrap">
+      <div class="table-wrap" role="group" aria-label="{{T "dashboard.trend_table_caption"}}" tabindex="0">
         <table class="data-table">
           <caption class="visually-hidden">{{T "dashboard.trend_table_caption"}}</caption>
           <thead><tr><th scope="col">{{T "dashboard.date"}}</th>{{range .TableHead}}<th scope="col" class="num">{{T .LabelKey}}</th>{{end}}</tr></thead>

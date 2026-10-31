@@ -19,7 +19,7 @@
           <label class="field__label" for="org-language">{{T "org.language"}}</label>
           <select class="select" id="org-language" name="language" aria-describedby="org-language-hint">
             {{- range .Languages}}
-            <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+            <option value="{{.Value}}"{{with .Lang}} lang="{{.}}"{{end}}{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
             {{- end}}
           </select>
           <p class="field__hint" id="org-language-hint">{{T "org.language_hint"}}</p>

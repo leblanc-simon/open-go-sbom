@@ -30,7 +30,7 @@
     <div class="field field--narrow">
       <label class="field__label" for="p-label">{{T "projects.filter_label_field"}}</label>
       <input class="input" id="p-label" name="label" type="text" value="{{.Label}}" aria-describedby="p-label-hint">
-      <p class="field__hint visually-hidden" id="p-label-hint">{{T "projects.filter_label_hint"}}</p>
+      <p class="field__hint" id="p-label-hint">{{T "projects.filter_label_hint"}}</p>
     </div>
     <label class="check"><input type="checkbox" name="archived" value="1"{{if .Archived}} checked{{end}}> <span>{{T "projects.filter_archived"}}</span></label>
     <button class="btn" type="submit">{{T "common.filter"}}</button>
@@ -38,7 +38,7 @@
   <section class="panel" aria-labelledby="projects-list">
     <div class="panel__head"><h2 class="panel__title" id="projects-list">{{if .Archived}}{{T "projects.list_archived"}}{{else}}{{T "projects.list_title"}}{{end}}</h2></div>
     {{- if .Rows}}
-    <div class="table-wrap" role="region" aria-labelledby="projects-list" tabindex="0">
+    <div class="table-wrap" role="group" aria-labelledby="projects-list" tabindex="0">
       <table class="data-table">
         <caption class="visually-hidden">{{T "projects.caption"}}</caption>
         <thead>

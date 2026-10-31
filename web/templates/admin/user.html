@@ -28,8 +28,8 @@
       <p class="muted">{{T "admin_user.actions_hint"}}</p>
       <div class="cluster">
         {{- $id := .User.ID}}{{$csrf := .Page.CSRFToken}}
-        <form method="post" action="/admin/users/{{$id}}/reset-password">{{csrfField $csrf}}<button type="submit" class="btn">{{T "admin_user.reset_password"}}</button></form>
-        <form method="post" action="/admin/users/{{$id}}/reset-totp">{{csrfField $csrf}}<button type="submit" class="btn">{{T "admin_user.reset_totp"}}</button></form>
+        <a class="btn" href="/admin/users/{{$id}}/reset-password">{{T "admin_user.reset_password"}}</a>
+        <a class="btn" href="/admin/users/{{$id}}/reset-totp">{{T "admin_user.reset_totp"}}</a>
         {{- if .User.Admin}}
         <form method="post" action="/admin/users/{{$id}}/demote">{{csrfField $csrf}}<button type="submit" class="btn">{{T "admin_user.demote"}}</button></form>
         {{- else}}

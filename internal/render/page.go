@@ -26,6 +26,9 @@ type Page struct {
 	CSRFToken string  // à insérer dans chaque formulaire par {{csrfField .Page.CSRFToken}}
 	RequestID string
 	Version   string
+	// Failed : écran rendu avec un statut d'erreur (formulaire refusé, recherche
+	// illisible) ; le titre de la page le dit (RGAA 8.6).
+	Failed bool
 }
 
 // NavItem est une entrée de la navigation latérale.

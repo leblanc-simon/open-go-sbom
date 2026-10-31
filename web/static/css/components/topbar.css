@@ -1,5 +1,6 @@
 /* En-tête de l'application : marque, organisation (T03), recherche (T09), actions. */
 .topbar {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;

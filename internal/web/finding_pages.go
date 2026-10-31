@@ -44,10 +44,13 @@ func sevOf(s vuln.Severity, score *float64) sevBadge {
 	return sevBadge{Class: class, LabelKey: "severity." + string(s), Score: score}
 }
 
-// sevCount est un décompte par sévérité (pastilles de la liste des références).
+// sevCount est un décompte par sévérité (pastilles de la liste des références). ShortKey
+// est l'abréviation écrite dans la pastille : la sévérité ne tient pas qu'à la couleur et
+// à la forme du repère (RGAA 3.1 et 10.9).
 type sevCount struct {
 	Class    string
 	LabelKey string
+	ShortKey string
 	Count    int
 }
 
@@ -59,7 +62,7 @@ func sevCounts(c finding.Counts) []sevCount {
 		if c.Of(s) == 0 {
 			class += " sev--zero"
 		}
-		out = append(out, sevCount{Class: class, LabelKey: "severity." + string(s), Count: c.Of(s)})
+		out = append(out, sevCount{Class: class, LabelKey: "severity." + string(s), ShortKey: "severity_short." + string(s), Count: c.Of(s)})
 	}
 	return out
 }

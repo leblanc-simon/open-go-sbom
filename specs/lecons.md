@@ -484,3 +484,41 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   inverse sur un port fixe qui injecte les cookies de session ; Playwright navigue alors
   sur l'application réelle, CSS embarquées comprises. Une variante « avant correctif » se
   mesure en modifiant le style par le CSSOM (`element.style`), permis par la CSP.
+
+## Audit RGAA du lot 1 (T11)
+
+- **Bouton recouvert dans une cellule d'actions** : `.data-table .cell-actions form`
+  (`inline-block`) l'emportait par spécificité sur `.form--inline` ; la liste de rôles
+  en `width: 100 %` remplissait la cellule et « Retirer » recouvrait « Modifier » sur
+  chaque ligne des membres depuis T03, sans qu'aucun test ni capture ne le voie. Règle :
+  dans une cellule, un contrôle de formulaire garde sa largeur naturelle
+  (`.cell-actions .select { width: auto }`) ; capture de bureau de chaque tableau à
+  actions, pas seulement du mobile.
+- **Information portée par la couleur ou la forme** : une pastille « repère coloré +
+  nombre » avec le libellé en `visually-hidden` reste non conforme (3.1, 10.9) pour un
+  voyant. Règle : libellé écrit, au moins abrégé (`<abbr title="…" aria-hidden="true">`
+  plus libellé complet masqué), et une espace entre texte masqué et texte visible
+  (« Critique 1 », pas « Critique1 »). Une ligne sélectionnée se dit aussi en texte.
+- **Aide de champ masquée** : `aria-describedby` vers un `.visually-hidden` donne le
+  format aux seuls lecteurs d'écran (11.10). `webtest` le refuse désormais.
+- **Région dans une région du même nom** : un panneau `section aria-labelledby=X` qui
+  contient une zone de tableau `role="region" aria-labelledby=X` crée deux repères
+  homonymes (axe `landmark-unique`, 116 rendus). Règle : la zone défilante d'un tableau
+  est un `role="group"` nommé et `tabindex="0"`.
+- **Actions irréversibles** : une action qui révoque, désactive, retire, réinitialise ou
+  supprime passe par la page de confirmation commune (`GET` de l'URL de l'action,
+  `identity.confirm`), jamais par un bouton `POST` dans une liste. Le harnais d'isolement
+  par route couvre automatiquement les `GET` ajoutés : un objet d'une autre organisation
+  y répond 404 comme au `POST`.
+- **Titres identiques entre organisations** : chaque écran fixait son titre sans
+  l'organisation. Règle : le layout ajoute l'organisation courante (`Chrome.Current`)
+  et le préfixe « Erreur : » (statut 4xx) ; un écran ne répète pas le nom de
+  l'organisation dans sa clé de titre.
+- **Instance peuplée et `make ci`** : le test temporaire qui sert l'instance d'audit
+  attend un fichier d'arrêt ; laissé dans `internal/web`, `make test-integration`
+  l'exécute et ne finit jamais. Règle : le sortir du paquet (fichier hors dépôt) avant
+  tout passage de la CI locale.
+- **Outil d'isolement des agents (suite)** : refusés aussi une boucle shell qui lit des
+  intervalles de lignes (`sed -n "$a,$b p"` calculé) et `node` lancé par un chemin en
+  variable. Accepté : `python3 -I /dev/stdin <<'EOF' … EOF` seul dans sa commande, et
+  `node scripts/x.js $PWD` après un `cd` littéral.
