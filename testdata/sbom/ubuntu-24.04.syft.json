@@ -1,0 +1,5104 @@
+{
+ "artifacts": [
+  {
+   "id": "ea7ca06a89f2b455",
+   "name": "adduser",
+   "version": "3.137ubuntu1",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/adduser/copyright",
+     "accessPath": "/usr/share/doc/adduser/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/adduser/copyright",
+       "accessPath": "/usr/share/doc/adduser/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/adduser/copyright",
+       "accessPath": "/usr/share/doc/adduser/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:adduser:adduser:3.137ubuntu1:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/adduser@3.137ubuntu1?arch=all&distro=ubuntu-24.04",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "adduser",
+    "source": "",
+    "version": "3.137ubuntu1",
+    "sourceVersion": "",
+    "architecture": "all",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 452,
+    "depends": [
+     "passwd"
+    ],
+    "files": [
+     {
+      "path": "/etc/adduser.conf",
+      "digest": {
+       "algorithm": "md5",
+       "value": "4869da5f5f508dfbc341342a272c36c8"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/deluser.conf",
+      "digest": {
+       "algorithm": "md5",
+       "value": "11a06baf8245fd8d690b99024d228c1f"
+      },
+      "isConfigFile": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "e06c9d8d18fc4ea0",
+   "name": "apt",
+   "version": "2.8.3",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/apt/copyright",
+     "accessPath": "/usr/share/doc/apt/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "BSD-3-clause",
+     "spdxExpression": "BSD-3-Clause",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/apt/copyright",
+       "accessPath": "/usr/share/doc/apt/copyright"
+      }
+     ]
+    },
+    {
+     "value": "Expat",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/apt/copyright",
+       "accessPath": "/usr/share/doc/apt/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/apt/copyright",
+       "accessPath": "/usr/share/doc/apt/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/apt/copyright",
+       "accessPath": "/usr/share/doc/apt/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:apt:apt:2.8.3:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/apt@2.8.3?arch=amd64&distro=ubuntu-24.04",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "apt",
+    "source": "",
+    "version": "2.8.3",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 4108,
+    "provides": [
+     "apt-transport-https (= 2.8.3)"
+    ],
+    "depends": [
+     "base-passwd (>= 3.6.1) | adduser",
+     "gpgv",
+     "libapt-pkg6.0t64 (>= 2.8.3)",
+     "ubuntu-keyring",
+     "libc6 (>= 2.38)",
+     "libgcc-s1 (>= 3.3.1)",
+     "libgnutls30t64 (>= 3.8.1)",
+     "libseccomp2 (>= 2.4.2)",
+     "libstdc++6 (>= 13.1)",
+     "libsystemd0"
+    ],
+    "files": [
+     {
+      "path": "/etc/apt/apt.conf.d/01-vendor-ubuntu",
+      "digest": {
+       "algorithm": "md5",
+       "value": "c69ce53f5f0755e5ac4441702e820505"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/apt/apt.conf.d/01autoremove",
+      "digest": {
+       "algorithm": "md5",
+       "value": "879455db9b938ce287b23383629aedce"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/cron.daily/apt-compat",
+      "digest": {
+       "algorithm": "md5",
+       "value": "1400ab07a4a2905b04c33e3e93d42b7b"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/logrotate.d/apt",
+      "digest": {
+       "algorithm": "md5",
+       "value": "179f2ed4f85cbaca12fa3d69c2a4a1c3"
+      },
+      "isConfigFile": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "f5889bcd9191ebb3",
+   "name": "base-files",
+   "version": "13ubuntu10.5",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/base-files/copyright",
+     "accessPath": "/usr/share/doc/base-files/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "sha256:fd7e4aae7e7b05f217bcf2d02322825c360e66c52c4c2f1b28d784d6297a1c23",
+     "spdxExpression": "",
+     "type": "concluded",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/base-files/copyright",
+       "accessPath": "/usr/share/doc/base-files/copyright",
+       "annotations": {
+        "evidence": "supporting"
+       }
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:base-files:base-files:13ubuntu10.5:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:base-files:base_files:13ubuntu10.5:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:base_files:base-files:13ubuntu10.5:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:base_files:base_files:13ubuntu10.5:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:base:base-files:13ubuntu10.5:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:base:base_files:13ubuntu10.5:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/base-files@13ubuntu10.5?arch=amd64&distro=ubuntu-24.04",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "base-files",
+    "source": "",
+    "version": "13ubuntu10.5",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 426,
+    "provides": [
+     "base",
+     "usr-is-merged"
+    ],
+    "depends": [
+     "libc6 (>= 2.34)",
+     "libcrypt1 (>= 1:4.4.10-10ubuntu3)"
+    ],
+    "preDepends": [
+     "awk"
+    ],
+    "files": [
+     {
+      "path": "/etc/debian_version",
+      "digest": {
+       "algorithm": "md5",
+       "value": "418bf63c34339f803ffaab19df71f611"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/dpkg/origins/debian",
+      "digest": {
+       "algorithm": "md5",
+       "value": "c47b6815f67ad1aeccb0d4529bd0b990"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/dpkg/origins/ubuntu",
+      "digest": {
+       "algorithm": "md5",
+       "value": "ea35901c45553c3451f60476be94d2d8"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/host.conf",
+      "digest": {
+       "algorithm": "md5",
+       "value": "89408008f2585c957c031716600d5a80"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/issue",
+      "digest": {
+       "algorithm": "md5",
+       "value": "1fd8b22ff287a77717f4ed62774e4576"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/issue.net",
+      "digest": {
+       "algorithm": "md5",
+       "value": "7ad49cfe45b1d23848c13dcef2eed74e"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/legal",
+      "digest": {
+       "algorithm": "md5",
+       "value": "0110925f6e068836ef2e09356e3651d9"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/lsb-release",
+      "digest": {
+       "algorithm": "md5",
+       "value": "b89fd43b8da8245a7e6b1b873e1c7c0f"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/profile.d/01-locale-fix.sh",
+      "digest": {
+       "algorithm": "md5",
+       "value": "870346d97b16faac4a371b04ffe4cc2f"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/update-motd.d/00-header",
+      "digest": {
+       "algorithm": "md5",
+       "value": "4a1e6eed7a59f200b4267085721750a3"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/update-motd.d/10-help-text",
+      "digest": {
+       "algorithm": "md5",
+       "value": "077515e01cab84009bfa20cf88cb34bc"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/update-motd.d/50-motd-news",
+      "digest": {
+       "algorithm": "md5",
+       "value": "54567afa89b3a7983d05ff217fe4a9fd"
+      },
+      "isConfigFile": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "fcad23f596226c82",
+   "name": "bash",
+   "version": "5.2.21-2ubuntu4",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/bash/copyright",
+     "accessPath": "/usr/share/doc/bash/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "BSD-4-clause-UC",
+     "spdxExpression": "BSD-4-Clause-UC",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bash/copyright",
+       "accessPath": "/usr/share/doc/bash/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GFDL-1.3",
+     "spdxExpression": "GFDL-1.3-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bash/copyright",
+       "accessPath": "/usr/share/doc/bash/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GFDL-NIV-1.3",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bash/copyright",
+       "accessPath": "/usr/share/doc/bash/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bash/copyright",
+       "accessPath": "/usr/share/doc/bash/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bash/copyright",
+       "accessPath": "/usr/share/doc/bash/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3",
+     "spdxExpression": "GPL-3.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bash/copyright",
+       "accessPath": "/usr/share/doc/bash/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3+",
+     "spdxExpression": "GPL-3.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bash/copyright",
+       "accessPath": "/usr/share/doc/bash/copyright"
+      }
+     ]
+    },
+    {
+     "value": "Latex2e",
+     "spdxExpression": "Latex2e",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bash/copyright",
+       "accessPath": "/usr/share/doc/bash/copyright"
+      }
+     ]
+    },
+    {
+     "value": "MIT-like",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bash/copyright",
+       "accessPath": "/usr/share/doc/bash/copyright"
+      }
+     ]
+    },
+    {
+     "value": "permissive",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bash/copyright",
+       "accessPath": "/usr/share/doc/bash/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:bash:bash:5.2.21-2ubuntu4:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/bash@5.2.21-2ubuntu4?arch=amd64&distro=ubuntu-24.04",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "bash",
+    "source": "",
+    "version": "5.2.21-2ubuntu4",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 1900,
+    "depends": [
+     "base-files (>= 2.1.12)",
+     "debianutils (>= 5.6-0.1)"
+    ],
+    "preDepends": [
+     "libc6 (>= 2.38)",
+     "libtinfo6 (>= 6)"
+    ],
+    "files": [
+     {
+      "path": "/etc/bash.bashrc",
+      "digest": {
+       "algorithm": "md5",
+       "value": "3aa8b92d1dd6ddf4daaedc019662f1dc"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/skel/.bash_logout",
+      "digest": {
+       "algorithm": "md5",
+       "value": "22bfb8c1dd94b5f3813a2b25da67463f"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/skel/.bashrc",
+      "digest": {
+       "algorithm": "md5",
+       "value": "1f98b8f3f3c8f8927eca945d59dcc1c6"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/skel/.profile",
+      "digest": {
+       "algorithm": "md5",
+       "value": "f4e81ade7d6f9fb342541152d08e7a97"
+      },
+      "isConfigFile": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "00f2e663853a1548",
+   "name": "bsdutils",
+   "version": "1:2.39.3-9ubuntu6.6",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/bsdutils/copyright",
+     "accessPath": "/usr/share/doc/bsdutils/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "BSD-3-clause",
+     "spdxExpression": "BSD-3-Clause",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "BSD-4-clause",
+     "spdxExpression": "BSD-4-Clause",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "BSLA",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3",
+     "spdxExpression": "GPL-3.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3+",
+     "spdxExpression": "GPL-3.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2",
+     "spdxExpression": "LGPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2+",
+     "spdxExpression": "LGPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2.1",
+     "spdxExpression": "LGPL-2.1-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2.1+",
+     "spdxExpression": "LGPL-2.1-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-3",
+     "spdxExpression": "LGPL-3.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-3+",
+     "spdxExpression": "LGPL-3.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "MIT",
+     "spdxExpression": "MIT",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "public-domain",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/bsdutils/copyright",
+       "accessPath": "/usr/share/doc/bsdutils/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:bsdutils:bsdutils:1\\:2.39.3-9ubuntu6.6:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/bsdutils@1%3A2.39.3-9ubuntu6.6?arch=amd64&distro=ubuntu-24.04&upstream=util-linux%402.39.3-9ubuntu6.6",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "bsdutils",
+    "source": "util-linux",
+    "version": "1:2.39.3-9ubuntu6.6",
+    "sourceVersion": "2.39.3-9ubuntu6.6",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 289,
+    "preDepends": [
+     "libc6 (>= 2.38)",
+     "libsystemd0"
+    ],
+    "files": []
+   }
+  },
+  {
+   "id": "d82e5fc85b9e72bd",
+   "name": "ca-certificates",
+   "version": "20260816ubuntu0.24.04.1",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/ca-certificates/copyright",
+     "accessPath": "/usr/share/doc/ca-certificates/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/ca-certificates/copyright",
+       "accessPath": "/usr/share/doc/ca-certificates/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/ca-certificates/copyright",
+       "accessPath": "/usr/share/doc/ca-certificates/copyright"
+      }
+     ]
+    },
+    {
+     "value": "MPL-2.0",
+     "spdxExpression": "MPL-2.0",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/ca-certificates/copyright",
+       "accessPath": "/usr/share/doc/ca-certificates/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:ca-certificates:ca-certificates:20260816ubuntu0.24.04.1:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:ca-certificates:ca_certificates:20260816ubuntu0.24.04.1:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:ca_certificates:ca-certificates:20260816ubuntu0.24.04.1:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:ca_certificates:ca_certificates:20260816ubuntu0.24.04.1:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:ca:ca-certificates:20260816ubuntu0.24.04.1:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:ca:ca_certificates:20260816ubuntu0.24.04.1:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/ca-certificates@20260816ubuntu0.24.04.1?arch=all&distro=ubuntu-24.04",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "ca-certificates",
+    "source": "",
+    "version": "20260816ubuntu0.24.04.1",
+    "sourceVersion": "",
+    "architecture": "all",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 330,
+    "depends": [
+     "openssl (>= 1.1.1)",
+     "debconf (>= 0.5) | debconf-2.0"
+    ],
+    "files": []
+   }
+  },
+  {
+   "id": "f51ba532662e5722",
+   "name": "coreutils",
+   "version": "9.4-3ubuntu6.3",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/coreutils/copyright",
+     "accessPath": "/usr/share/doc/coreutils/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "BSD-4-clause-UC",
+     "spdxExpression": "BSD-4-Clause-UC",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/coreutils/copyright",
+       "accessPath": "/usr/share/doc/coreutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "FSFULLR",
+     "spdxExpression": "FSFULLR",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/coreutils/copyright",
+       "accessPath": "/usr/share/doc/coreutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GFDL-1.3",
+     "spdxExpression": "GFDL-1.3-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/coreutils/copyright",
+       "accessPath": "/usr/share/doc/coreutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GFDL-NIV-1.3",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/coreutils/copyright",
+       "accessPath": "/usr/share/doc/coreutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3",
+     "spdxExpression": "GPL-3.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/coreutils/copyright",
+       "accessPath": "/usr/share/doc/coreutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3+",
+     "spdxExpression": "GPL-3.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/coreutils/copyright",
+       "accessPath": "/usr/share/doc/coreutils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "ISC",
+     "spdxExpression": "ISC",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/coreutils/copyright",
+       "accessPath": "/usr/share/doc/coreutils/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:coreutils:coreutils:9.4-3ubuntu6.3:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/coreutils@9.4-3ubuntu6.3?arch=amd64&distro=ubuntu-24.04",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "coreutils",
+    "source": "",
+    "version": "9.4-3ubuntu6.3",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 6944,
+    "preDepends": [
+     "libacl1 (>= 2.2.23)",
+     "libattr1 (>= 1:2.4.48)",
+     "libc6 (>= 2.38)",
+     "libgmp10 (>= 2:6.3.0+dfsg)",
+     "libselinux1 (>= 3.1~)",
+     "libssl3t64 (>= 3.0.0)"
+    ],
+    "files": []
+   }
+  },
+  {
+   "id": "5bc2713598d15ef0",
+   "name": "curl",
+   "version": "8.5.0-2ubuntu10.16",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/curl/copyright",
+     "accessPath": "/usr/share/doc/curl/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "BSD-3-Clause",
+     "spdxExpression": "BSD-3-Clause",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/curl/copyright",
+       "accessPath": "/usr/share/doc/curl/copyright"
+      }
+     ]
+    },
+    {
+     "value": "BSD-3-clause",
+     "spdxExpression": "BSD-3-Clause",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/curl/copyright",
+       "accessPath": "/usr/share/doc/curl/copyright"
+      }
+     ]
+    },
+    {
+     "value": "BSD-4-Clause-UC",
+     "spdxExpression": "BSD-4-Clause-UC",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/curl/copyright",
+       "accessPath": "/usr/share/doc/curl/copyright"
+      }
+     ]
+    },
+    {
+     "value": "FSFULLR",
+     "spdxExpression": "FSFULLR",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/curl/copyright",
+       "accessPath": "/usr/share/doc/curl/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/curl/copyright",
+       "accessPath": "/usr/share/doc/curl/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/curl/copyright",
+       "accessPath": "/usr/share/doc/curl/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3+",
+     "spdxExpression": "GPL-3.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/curl/copyright",
+       "accessPath": "/usr/share/doc/curl/copyright"
+      }
+     ]
+    },
+    {
+     "value": "ISC",
+     "spdxExpression": "ISC",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/curl/copyright",
+       "accessPath": "/usr/share/doc/curl/copyright"
+      }
+     ]
+    },
+    {
+     "value": "OLDAP-2.8",
+     "spdxExpression": "OLDAP-2.8",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/curl/copyright",
+       "accessPath": "/usr/share/doc/curl/copyright"
+      }
+     ]
+    },
+    {
+     "value": "X11",
+     "spdxExpression": "X11",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/curl/copyright",
+       "accessPath": "/usr/share/doc/curl/copyright"
+      }
+     ]
+    },
+    {
+     "value": "curl",
+     "spdxExpression": "curl",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/curl/copyright",
+       "accessPath": "/usr/share/doc/curl/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:curl:curl:8.5.0-2ubuntu10.16:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/curl@8.5.0-2ubuntu10.16?arch=amd64&distro=ubuntu-24.04",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "curl",
+    "source": "",
+    "version": "8.5.0-2ubuntu10.16",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 524,
+    "depends": [
+     "libc6 (>= 2.34)",
+     "libcurl4t64 (= 8.5.0-2ubuntu10.16)",
+     "zlib1g (>= 1:1.1.4)"
+    ],
+    "files": []
+   }
+  },
+  {
+   "id": "ca0d3f8c74e87655",
+   "name": "dpkg",
+   "version": "1.22.6ubuntu6.6",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/dpkg/copyright",
+     "accessPath": "/usr/share/doc/dpkg/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/dpkg/copyright",
+       "accessPath": "/usr/share/doc/dpkg/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/dpkg/copyright",
+       "accessPath": "/usr/share/doc/dpkg/copyright"
+      }
+     ]
+    },
+    {
+     "value": "public-domain-s-s-d",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/dpkg/copyright",
+       "accessPath": "/usr/share/doc/dpkg/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:dpkg:dpkg:1.22.6ubuntu6.6:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/dpkg@1.22.6ubuntu6.6?arch=amd64&distro=ubuntu-24.04",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "dpkg",
+    "source": "",
+    "version": "1.22.6ubuntu6.6",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 6238,
+    "depends": [
+     "tar (>= 1.28-1)"
+    ],
+    "preDepends": [
+     "libbz2-1.0",
+     "libc6 (>= 2.38)",
+     "liblzma5 (>= 5.4.0)",
+     "libmd0 (>= 0.0.0)",
+     "libselinux1 (>= 3.1~)",
+     "libzstd1 (>= 1.5.5)",
+     "zlib1g (>= 1:1.1.4)"
+    ],
+    "files": [
+     {
+      "path": "/etc/alternatives/README",
+      "digest": {
+       "algorithm": "md5",
+       "value": "7be88b21f7e386c8d5a8790c2461c92b"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/cron.daily/dpkg",
+      "digest": {
+       "algorithm": "md5",
+       "value": "94bb6c1363245e46256908a5d52ba4fb"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/dpkg/dpkg.cfg",
+      "digest": {
+       "algorithm": "md5",
+       "value": "f4413ffb515f8f753624ae3bb365b81b"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/logrotate.d/alternatives",
+      "digest": {
+       "algorithm": "md5",
+       "value": "5fe0af6ce1505fefdc158d9e5dbf6286"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/logrotate.d/dpkg",
+      "digest": {
+       "algorithm": "md5",
+       "value": "9e25c8505966b5829785f34a548ae11f"
+      },
+      "isConfigFile": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "f08cfed11a13d785",
+   "name": "gzip",
+   "version": "1.12-1ubuntu3.2",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/gzip/copyright",
+     "accessPath": "/usr/share/doc/gzip/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "FSF-manpages",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/gzip/copyright",
+       "accessPath": "/usr/share/doc/gzip/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GFDL-1.3+-no-invariant",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/gzip/copyright",
+       "accessPath": "/usr/share/doc/gzip/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GFDL-3",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/gzip/copyright",
+       "accessPath": "/usr/share/doc/gzip/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3",
+     "spdxExpression": "GPL-3.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/gzip/copyright",
+       "accessPath": "/usr/share/doc/gzip/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3+",
+     "spdxExpression": "GPL-3.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/gzip/copyright",
+       "accessPath": "/usr/share/doc/gzip/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:gzip:gzip:1.12-1ubuntu3.2:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/gzip@1.12-1ubuntu3.2?arch=amd64&distro=ubuntu-24.04",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "gzip",
+    "source": "",
+    "version": "1.12-1ubuntu3.2",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 244,
+    "depends": [
+     "dpkg (>= 1.15.4) | install-info"
+    ],
+    "preDepends": [
+     "libc6 (>= 2.38)"
+    ],
+    "files": []
+   }
+  },
+  {
+   "id": "8642e00b397d4127",
+   "name": "libc6",
+   "version": "2.39-0ubuntu8.9",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/libc6/copyright",
+     "accessPath": "/usr/share/doc/libc6/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "sha256:d3c95b56fa33e28b57860580f0baf4e4f4de2a268a2b80f1d031a5191bade265",
+     "spdxExpression": "",
+     "type": "concluded",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libc6/copyright",
+       "accessPath": "/usr/share/doc/libc6/copyright",
+       "annotations": {
+        "evidence": "supporting"
+       }
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:libc6:libc6:2.39-0ubuntu8.9:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/libc6@2.39-0ubuntu8.9?arch=amd64&distro=ubuntu-24.04&upstream=glibc",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "libc6",
+    "source": "glibc",
+    "version": "2.39-0ubuntu8.9",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 13432,
+    "depends": [
+     "libgcc-s1"
+    ],
+    "files": [
+     {
+      "path": "/etc/ld.so.conf.d/x86_64-linux-gnu.conf",
+      "digest": {
+       "algorithm": "md5",
+       "value": "d4e7a7b88a71b5ffd9e2644e71a0cfab"
+      },
+      "isConfigFile": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "4908a8e62eb41f84",
+   "name": "libcurl4t64",
+   "version": "8.5.0-2ubuntu10.16",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/libcurl4t64/copyright",
+     "accessPath": "/usr/share/doc/libcurl4t64/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "BSD-3-Clause",
+     "spdxExpression": "BSD-3-Clause",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libcurl4t64/copyright",
+       "accessPath": "/usr/share/doc/libcurl4t64/copyright"
+      }
+     ]
+    },
+    {
+     "value": "BSD-3-clause",
+     "spdxExpression": "BSD-3-Clause",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libcurl4t64/copyright",
+       "accessPath": "/usr/share/doc/libcurl4t64/copyright"
+      }
+     ]
+    },
+    {
+     "value": "BSD-4-Clause-UC",
+     "spdxExpression": "BSD-4-Clause-UC",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libcurl4t64/copyright",
+       "accessPath": "/usr/share/doc/libcurl4t64/copyright"
+      }
+     ]
+    },
+    {
+     "value": "FSFULLR",
+     "spdxExpression": "FSFULLR",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libcurl4t64/copyright",
+       "accessPath": "/usr/share/doc/libcurl4t64/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libcurl4t64/copyright",
+       "accessPath": "/usr/share/doc/libcurl4t64/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libcurl4t64/copyright",
+       "accessPath": "/usr/share/doc/libcurl4t64/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3+",
+     "spdxExpression": "GPL-3.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libcurl4t64/copyright",
+       "accessPath": "/usr/share/doc/libcurl4t64/copyright"
+      }
+     ]
+    },
+    {
+     "value": "ISC",
+     "spdxExpression": "ISC",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libcurl4t64/copyright",
+       "accessPath": "/usr/share/doc/libcurl4t64/copyright"
+      }
+     ]
+    },
+    {
+     "value": "OLDAP-2.8",
+     "spdxExpression": "OLDAP-2.8",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libcurl4t64/copyright",
+       "accessPath": "/usr/share/doc/libcurl4t64/copyright"
+      }
+     ]
+    },
+    {
+     "value": "X11",
+     "spdxExpression": "X11",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libcurl4t64/copyright",
+       "accessPath": "/usr/share/doc/libcurl4t64/copyright"
+      }
+     ]
+    },
+    {
+     "value": "curl",
+     "spdxExpression": "curl",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libcurl4t64/copyright",
+       "accessPath": "/usr/share/doc/libcurl4t64/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:libcurl4t64:libcurl4t64:8.5.0-2ubuntu10.16:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/libcurl4t64@8.5.0-2ubuntu10.16?arch=amd64&distro=ubuntu-24.04&upstream=curl",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "libcurl4t64",
+    "source": "curl",
+    "version": "8.5.0-2ubuntu10.16",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 928,
+    "provides": [
+     "libcurl4 (= 8.5.0-2ubuntu10.16)"
+    ],
+    "depends": [
+     "libbrotli1 (>= 0.6.0)",
+     "libc6 (>= 2.34)",
+     "libgssapi-krb5-2 (>= 1.17)",
+     "libidn2-0 (>= 2.0.0)",
+     "libldap2 (>= 2.6.2)",
+     "libnghttp2-14 (>= 1.50.0)",
+     "libpsl5t64 (>= 0.16.0)",
+     "librtmp1 (>= 2.3)",
+     "libssh-4 (>= 0.9.0)",
+     "libssl3t64 (>= 3.0.0)",
+     "libzstd1 (>= 1.5.5)",
+     "zlib1g (>= 1:1.1.4)"
+    ],
+    "files": []
+   }
+  },
+  {
+   "id": "3467be210ce20339",
+   "name": "liblzma5",
+   "version": "5.6.1+really5.4.5-1ubuntu0.4",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/liblzma5/copyright",
+     "accessPath": "/usr/share/doc/liblzma5/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "Autoconf",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/liblzma5/copyright",
+       "accessPath": "/usr/share/doc/liblzma5/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/liblzma5/copyright",
+       "accessPath": "/usr/share/doc/liblzma5/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/liblzma5/copyright",
+       "accessPath": "/usr/share/doc/liblzma5/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3",
+     "spdxExpression": "GPL-3.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/liblzma5/copyright",
+       "accessPath": "/usr/share/doc/liblzma5/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2",
+     "spdxExpression": "LGPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/liblzma5/copyright",
+       "accessPath": "/usr/share/doc/liblzma5/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2.1",
+     "spdxExpression": "LGPL-2.1-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/liblzma5/copyright",
+       "accessPath": "/usr/share/doc/liblzma5/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2.1+",
+     "spdxExpression": "LGPL-2.1-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/liblzma5/copyright",
+       "accessPath": "/usr/share/doc/liblzma5/copyright"
+      }
+     ]
+    },
+    {
+     "value": "PD",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/liblzma5/copyright",
+       "accessPath": "/usr/share/doc/liblzma5/copyright"
+      }
+     ]
+    },
+    {
+     "value": "PD-debian",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/liblzma5/copyright",
+       "accessPath": "/usr/share/doc/liblzma5/copyright"
+      }
+     ]
+    },
+    {
+     "value": "config-h",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/liblzma5/copyright",
+       "accessPath": "/usr/share/doc/liblzma5/copyright"
+      }
+     ]
+    },
+    {
+     "value": "noderivs",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/liblzma5/copyright",
+       "accessPath": "/usr/share/doc/liblzma5/copyright"
+      }
+     ]
+    },
+    {
+     "value": "permissive-fsf",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/liblzma5/copyright",
+       "accessPath": "/usr/share/doc/liblzma5/copyright"
+      }
+     ]
+    },
+    {
+     "value": "permissive-nowarranty",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/liblzma5/copyright",
+       "accessPath": "/usr/share/doc/liblzma5/copyright"
+      }
+     ]
+    },
+    {
+     "value": "probably-PD",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/liblzma5/copyright",
+       "accessPath": "/usr/share/doc/liblzma5/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:liblzma5:liblzma5:5.6.1\\+really5.4.5-1ubuntu0.4:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/liblzma5@5.6.1%2Breally5.4.5-1ubuntu0.4?arch=amd64&distro=ubuntu-24.04&upstream=xz-utils",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "liblzma5",
+    "source": "xz-utils",
+    "version": "5.6.1+really5.4.5-1ubuntu0.4",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 379,
+    "depends": [
+     "libc6 (>= 2.34)"
+    ],
+    "files": []
+   }
+  },
+  {
+   "id": "d055e4b4b490737c",
+   "name": "libssl3t64",
+   "version": "3.0.13-0ubuntu3.16",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/libssl3t64/copyright",
+     "accessPath": "/usr/share/doc/libssl3t64/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "Apache-2.0",
+     "spdxExpression": "Apache-2.0",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libssl3t64/copyright",
+       "accessPath": "/usr/share/doc/libssl3t64/copyright"
+      }
+     ]
+    },
+    {
+     "value": "Artistic",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libssl3t64/copyright",
+       "accessPath": "/usr/share/doc/libssl3t64/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-1",
+     "spdxExpression": "GPL-1.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libssl3t64/copyright",
+       "accessPath": "/usr/share/doc/libssl3t64/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-1+",
+     "spdxExpression": "GPL-1.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libssl3t64/copyright",
+       "accessPath": "/usr/share/doc/libssl3t64/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:libssl3t64:libssl3t64:3.0.13-0ubuntu3.16:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/libssl3t64@3.0.13-0ubuntu3.16?arch=amd64&distro=ubuntu-24.04&upstream=openssl",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "libssl3t64",
+    "source": "openssl",
+    "version": "3.0.13-0ubuntu3.16",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 6615,
+    "provides": [
+     "libssl3 (= 3.0.13-0ubuntu3.16)"
+    ],
+    "depends": [
+     "libc6 (>= 2.38)"
+    ],
+    "files": []
+   }
+  },
+  {
+   "id": "0ec1ba4d94a91e47",
+   "name": "libsystemd0",
+   "version": "255.4-1ubuntu8.18",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/libsystemd0/copyright",
+     "accessPath": "/usr/share/doc/libsystemd0/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "CC0-1.0",
+     "spdxExpression": "CC0-1.0",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libsystemd0/copyright",
+       "accessPath": "/usr/share/doc/libsystemd0/copyright"
+      }
+     ]
+    },
+    {
+     "value": "Expat",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libsystemd0/copyright",
+       "accessPath": "/usr/share/doc/libsystemd0/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libsystemd0/copyright",
+       "accessPath": "/usr/share/doc/libsystemd0/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libsystemd0/copyright",
+       "accessPath": "/usr/share/doc/libsystemd0/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2.1",
+     "spdxExpression": "LGPL-2.1-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libsystemd0/copyright",
+       "accessPath": "/usr/share/doc/libsystemd0/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2.1+",
+     "spdxExpression": "LGPL-2.1-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libsystemd0/copyright",
+       "accessPath": "/usr/share/doc/libsystemd0/copyright"
+      }
+     ]
+    },
+    {
+     "value": "public-domain",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libsystemd0/copyright",
+       "accessPath": "/usr/share/doc/libsystemd0/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:libsystemd0:libsystemd0:255.4-1ubuntu8.18:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/libsystemd0@255.4-1ubuntu8.18?arch=amd64&distro=ubuntu-24.04&upstream=systemd",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "libsystemd0",
+    "source": "systemd",
+    "version": "255.4-1ubuntu8.18",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 1028,
+    "depends": [
+     "libc6 (>= 2.38)",
+     "libcap2 (>= 1:2.10)",
+     "libgcrypt20 (>= 1.10.0)",
+     "liblz4-1 (>= 0.0~r122)",
+     "liblzma5 (>= 5.1.1alpha+20120614)",
+     "libzstd1 (>= 1.5.5)"
+    ],
+    "files": []
+   }
+  },
+  {
+   "id": "4afcc6c281acfe93",
+   "name": "libzstd1",
+   "version": "1.5.5+dfsg2-2build1.1",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/libzstd1/copyright",
+     "accessPath": "/usr/share/doc/libzstd1/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "BSD-3-clause",
+     "spdxExpression": "BSD-3-Clause",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libzstd1/copyright",
+       "accessPath": "/usr/share/doc/libzstd1/copyright"
+      }
+     ]
+    },
+    {
+     "value": "Expat",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libzstd1/copyright",
+       "accessPath": "/usr/share/doc/libzstd1/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libzstd1/copyright",
+       "accessPath": "/usr/share/doc/libzstd1/copyright"
+      }
+     ]
+    },
+    {
+     "value": "zlib",
+     "spdxExpression": "Zlib",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/libzstd1/copyright",
+       "accessPath": "/usr/share/doc/libzstd1/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:libzstd1:libzstd1:1.5.5\\+dfsg2-2build1.1:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/libzstd1@1.5.5%2Bdfsg2-2build1.1?arch=amd64&distro=ubuntu-24.04&upstream=libzstd",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "libzstd1",
+    "source": "libzstd",
+    "version": "1.5.5+dfsg2-2build1.1",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 761,
+    "depends": [
+     "libc6 (>= 2.34)"
+    ],
+    "files": []
+   }
+  },
+  {
+   "id": "07344d111011a071",
+   "name": "login",
+   "version": "1:4.13+dfsg1-4ubuntu3.2",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/login/copyright",
+     "accessPath": "/usr/share/doc/login/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "BSD-3-clause",
+     "spdxExpression": "BSD-3-Clause",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/login/copyright",
+       "accessPath": "/usr/share/doc/login/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-1",
+     "spdxExpression": "GPL-1.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/login/copyright",
+       "accessPath": "/usr/share/doc/login/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/login/copyright",
+       "accessPath": "/usr/share/doc/login/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/login/copyright",
+       "accessPath": "/usr/share/doc/login/copyright"
+      }
+     ]
+    },
+    {
+     "value": "public-domain",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/login/copyright",
+       "accessPath": "/usr/share/doc/login/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:login:login:1\\:4.13\\+dfsg1-4ubuntu3.2:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/login@1%3A4.13%2Bdfsg1-4ubuntu3.2?arch=amd64&distro=ubuntu-24.04&upstream=shadow",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "login",
+    "source": "shadow",
+    "version": "1:4.13+dfsg1-4ubuntu3.2",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 884,
+    "preDepends": [
+     "libaudit1 (>= 1:2.2.1)",
+     "libc6 (>= 2.38)",
+     "libcrypt1 (>= 1:4.1.0)",
+     "libpam0g (>= 0.99.7.1)",
+     "libpam-runtime",
+     "libpam-modules"
+    ],
+    "files": [
+     {
+      "path": "/etc/login.defs",
+      "digest": {
+       "algorithm": "md5",
+       "value": "6577ffcffe56502b0e9a79ee8e5bb8c6"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/pam.d/login",
+      "digest": {
+       "algorithm": "md5",
+       "value": "d10e26d07799aaa674a125e89d525c39"
+      },
+      "isConfigFile": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "591c8cbbca6ff26e",
+   "name": "openssl",
+   "version": "3.0.13-0ubuntu3.16",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/openssl/copyright",
+     "accessPath": "/usr/share/doc/openssl/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "Apache-2.0",
+     "spdxExpression": "Apache-2.0",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/openssl/copyright",
+       "accessPath": "/usr/share/doc/openssl/copyright"
+      }
+     ]
+    },
+    {
+     "value": "Artistic",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/openssl/copyright",
+       "accessPath": "/usr/share/doc/openssl/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-1",
+     "spdxExpression": "GPL-1.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/openssl/copyright",
+       "accessPath": "/usr/share/doc/openssl/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-1+",
+     "spdxExpression": "GPL-1.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/openssl/copyright",
+       "accessPath": "/usr/share/doc/openssl/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:openssl:openssl:3.0.13-0ubuntu3.16:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/openssl@3.0.13-0ubuntu3.16?arch=amd64&distro=ubuntu-24.04",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "openssl",
+    "source": "",
+    "version": "3.0.13-0ubuntu3.16",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 1885,
+    "depends": [
+     "libc6 (>= 2.34)",
+     "libssl3t64 (>= 3.0.9)"
+    ],
+    "files": [
+     {
+      "path": "/etc/ssl/openssl.cnf",
+      "digest": {
+       "algorithm": "md5",
+       "value": "953fe829df1b6f2b1b39c7742ab6d0b8"
+      },
+      "isConfigFile": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "884df49f48363a01",
+   "name": "passwd",
+   "version": "1:4.13+dfsg1-4ubuntu3.2",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/passwd/copyright",
+     "accessPath": "/usr/share/doc/passwd/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "BSD-3-clause",
+     "spdxExpression": "BSD-3-Clause",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/passwd/copyright",
+       "accessPath": "/usr/share/doc/passwd/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-1",
+     "spdxExpression": "GPL-1.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/passwd/copyright",
+       "accessPath": "/usr/share/doc/passwd/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/passwd/copyright",
+       "accessPath": "/usr/share/doc/passwd/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/passwd/copyright",
+       "accessPath": "/usr/share/doc/passwd/copyright"
+      }
+     ]
+    },
+    {
+     "value": "public-domain",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/passwd/copyright",
+       "accessPath": "/usr/share/doc/passwd/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:passwd:passwd:1\\:4.13\\+dfsg1-4ubuntu3.2:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/passwd@1%3A4.13%2Bdfsg1-4ubuntu3.2?arch=amd64&distro=ubuntu-24.04&upstream=shadow",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "passwd",
+    "source": "shadow",
+    "version": "1:4.13+dfsg1-4ubuntu3.2",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 2419,
+    "depends": [
+     "libaudit1 (>= 1:2.2.1)",
+     "libc6 (>= 2.38)",
+     "libcrypt1 (>= 1:4.1.0)",
+     "libpam0g (>= 0.99.7.1)",
+     "libselinux1 (>= 3.1~)",
+     "libsemanage2 (>= 2.0.32)",
+     "libpam-modules"
+    ],
+    "files": [
+     {
+      "path": "/etc/default/useradd",
+      "digest": {
+       "algorithm": "md5",
+       "value": "e03965d134c26725cbc51a57969da6c9"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/pam.d/chfn",
+      "digest": {
+       "algorithm": "md5",
+       "value": "4d466e00a348ba426130664d795e8afa"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/pam.d/chpasswd",
+      "digest": {
+       "algorithm": "md5",
+       "value": "9900720564cb4ee98b7da29e2d183cb2"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/pam.d/chsh",
+      "digest": {
+       "algorithm": "md5",
+       "value": "a6e9b589e90009334ffd030d819290a6"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/pam.d/newusers",
+      "digest": {
+       "algorithm": "md5",
+       "value": "1454e29bfa9f2a10836563e76936cea5"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/pam.d/passwd",
+      "digest": {
+       "algorithm": "md5",
+       "value": "eaf2ad85b5ccd06cceb19a3e75f40c63"
+      },
+      "isConfigFile": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "333d9a0e7c528add",
+   "name": "perl-base",
+   "version": "5.38.2-3.2ubuntu0.6",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/perl-base/copyright",
+     "accessPath": "/usr/share/doc/perl-base/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "Artistic",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "Artistic-2",
+     "spdxExpression": "Artistic-2.0",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "Artistic-dist",
+     "spdxExpression": "Artistic-dist",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "BSD-3-clause",
+     "spdxExpression": "BSD-3-Clause",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "BSD-3-clause-GENERIC",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "BSD-3-clause-with-weird-numbering",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "BSD-4-clause-POWERDOG",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "BZIP",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "DONT-CHANGE-THE-GPL",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "Expat",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "FSFAP",
+     "spdxExpression": "FSFAP",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-1",
+     "spdxExpression": "GPL-1.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-1+",
+     "spdxExpression": "GPL-1.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3+-WITH-BISON-EXCEPTION",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2.1",
+     "spdxExpression": "LGPL-2.1-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "REGCOMP",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "REGCOMP,",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "SDBM-PUBLIC-DOMAIN",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "TEXT-TABS",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "Unicode",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    },
+    {
+     "value": "ZLIB",
+     "spdxExpression": "Zlib",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/perl-base/copyright",
+       "accessPath": "/usr/share/doc/perl-base/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:perl-base:perl-base:5.38.2-3.2ubuntu0.6:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:perl-base:perl_base:5.38.2-3.2ubuntu0.6:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:perl_base:perl-base:5.38.2-3.2ubuntu0.6:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:perl_base:perl_base:5.38.2-3.2ubuntu0.6:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:perl:perl-base:5.38.2-3.2ubuntu0.6:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:perl:perl_base:5.38.2-3.2ubuntu0.6:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/perl-base@5.38.2-3.2ubuntu0.6?arch=amd64&distro=ubuntu-24.04&upstream=perl",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "perl-base",
+    "source": "perl",
+    "version": "5.38.2-3.2ubuntu0.6",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 7919,
+    "provides": [
+     "libfile-path-perl (= 2.18)",
+     "libfile-temp-perl (= 0.2311)",
+     "libio-socket-ip-perl (= 0.41)",
+     "libscalar-list-utils-perl (= 1:1.63)",
+     "libsocket-perl (= 2.036)",
+     "libxsloader-perl (= 0.32)",
+     "perlapi-5.38.2"
+    ],
+    "preDepends": [
+     "libc6 (>= 2.38)",
+     "libcrypt1 (>= 1:4.1.0)",
+     "dpkg (>= 1.17.17)"
+    ],
+    "files": []
+   }
+  },
+  {
+   "id": "4330eec29ca74145",
+   "name": "tar",
+   "version": "1.35+dfsg-3ubuntu0.4",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/tar/copyright",
+     "accessPath": "/usr/share/doc/tar/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/tar/copyright",
+       "accessPath": "/usr/share/doc/tar/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/tar/copyright",
+       "accessPath": "/usr/share/doc/tar/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3",
+     "spdxExpression": "GPL-3.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/tar/copyright",
+       "accessPath": "/usr/share/doc/tar/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3+",
+     "spdxExpression": "GPL-3.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/tar/copyright",
+       "accessPath": "/usr/share/doc/tar/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2.1",
+     "spdxExpression": "LGPL-2.1-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/tar/copyright",
+       "accessPath": "/usr/share/doc/tar/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2.1+",
+     "spdxExpression": "LGPL-2.1-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/tar/copyright",
+       "accessPath": "/usr/share/doc/tar/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-3",
+     "spdxExpression": "LGPL-3.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/tar/copyright",
+       "accessPath": "/usr/share/doc/tar/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-3+",
+     "spdxExpression": "LGPL-3.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/tar/copyright",
+       "accessPath": "/usr/share/doc/tar/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:tar:tar:1.35\\+dfsg-3ubuntu0.4:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/tar@1.35%2Bdfsg-3ubuntu0.4?arch=amd64&distro=ubuntu-24.04",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "tar",
+    "source": "",
+    "version": "1.35+dfsg-3ubuntu0.4",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 716,
+    "preDepends": [
+     "libacl1 (>= 2.2.23)",
+     "libc6 (>= 2.38)",
+     "libselinux1 (>= 3.1~)"
+    ],
+    "files": []
+   }
+  },
+  {
+   "id": "1be9ea965607fe18",
+   "name": "util-linux",
+   "version": "2.39.3-9ubuntu6.6",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/util-linux/copyright",
+     "accessPath": "/usr/share/doc/util-linux/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "BSD-3-clause",
+     "spdxExpression": "BSD-3-Clause",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    },
+    {
+     "value": "BSD-4-clause",
+     "spdxExpression": "BSD-4-Clause",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    },
+    {
+     "value": "BSLA",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3",
+     "spdxExpression": "GPL-3.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3+",
+     "spdxExpression": "GPL-3.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2",
+     "spdxExpression": "LGPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2+",
+     "spdxExpression": "LGPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2.1",
+     "spdxExpression": "LGPL-2.1-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2.1+",
+     "spdxExpression": "LGPL-2.1-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-3",
+     "spdxExpression": "LGPL-3.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-3+",
+     "spdxExpression": "LGPL-3.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    },
+    {
+     "value": "MIT",
+     "spdxExpression": "MIT",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    },
+    {
+     "value": "public-domain",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/util-linux/copyright",
+       "accessPath": "/usr/share/doc/util-linux/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:util-linux:util-linux:2.39.3-9ubuntu6.6:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:util-linux:util_linux:2.39.3-9ubuntu6.6:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:util_linux:util-linux:2.39.3-9ubuntu6.6:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:util_linux:util_linux:2.39.3-9ubuntu6.6:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:util:util-linux:2.39.3-9ubuntu6.6:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:util:util_linux:2.39.3-9ubuntu6.6:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/util-linux@2.39.3-9ubuntu6.6?arch=amd64&distro=ubuntu-24.04",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "util-linux",
+    "source": "",
+    "version": "2.39.3-9ubuntu6.6",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 3439,
+    "provides": [
+     "hardlink"
+    ],
+    "preDepends": [
+     "libblkid1 (>= 2.37.2)",
+     "libc6 (>= 2.38)",
+     "libcap-ng0 (>= 0.7.9)",
+     "libcrypt1 (>= 1:4.1.0)",
+     "libmount1 (>= 2.39.1)",
+     "libpam0g (>= 0.99.7.1)",
+     "libselinux1 (>= 3.1~)",
+     "libsmartcols1 (>= 2.38)",
+     "libsystemd0",
+     "libtinfo6 (>= 6)",
+     "libudev1 (>= 183)",
+     "libuuid1 (>= 2.16)",
+     "zlib1g (>= 1:1.1.4)"
+    ],
+    "files": [
+     {
+      "path": "/etc/pam.d/runuser",
+      "digest": {
+       "algorithm": "md5",
+       "value": "b8b44b045259525e0fae9e38fdb2aeeb"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/pam.d/runuser-l",
+      "digest": {
+       "algorithm": "md5",
+       "value": "2106ea05877e8913f34b2c77fa02be45"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/pam.d/su",
+      "digest": {
+       "algorithm": "md5",
+       "value": "60fbbe65c90d741bc0d380543cefe8af"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/pam.d/su-l",
+      "digest": {
+       "algorithm": "md5",
+       "value": "756fef5687fecc0d986e5951427b0c4f"
+      },
+      "isConfigFile": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "50dabdc76b334916",
+   "name": "xz-utils",
+   "version": "5.6.1+really5.4.5-1ubuntu0.4",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/xz-utils/copyright",
+     "accessPath": "/usr/share/doc/xz-utils/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "Autoconf",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/xz-utils/copyright",
+       "accessPath": "/usr/share/doc/xz-utils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2",
+     "spdxExpression": "GPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/xz-utils/copyright",
+       "accessPath": "/usr/share/doc/xz-utils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-2+",
+     "spdxExpression": "GPL-2.0-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/xz-utils/copyright",
+       "accessPath": "/usr/share/doc/xz-utils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "GPL-3",
+     "spdxExpression": "GPL-3.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/xz-utils/copyright",
+       "accessPath": "/usr/share/doc/xz-utils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2",
+     "spdxExpression": "LGPL-2.0-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/xz-utils/copyright",
+       "accessPath": "/usr/share/doc/xz-utils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2.1",
+     "spdxExpression": "LGPL-2.1-only",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/xz-utils/copyright",
+       "accessPath": "/usr/share/doc/xz-utils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "LGPL-2.1+",
+     "spdxExpression": "LGPL-2.1-or-later",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/xz-utils/copyright",
+       "accessPath": "/usr/share/doc/xz-utils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "PD",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/xz-utils/copyright",
+       "accessPath": "/usr/share/doc/xz-utils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "PD-debian",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/xz-utils/copyright",
+       "accessPath": "/usr/share/doc/xz-utils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "config-h",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/xz-utils/copyright",
+       "accessPath": "/usr/share/doc/xz-utils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "noderivs",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/xz-utils/copyright",
+       "accessPath": "/usr/share/doc/xz-utils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "permissive-fsf",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/xz-utils/copyright",
+       "accessPath": "/usr/share/doc/xz-utils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "permissive-nowarranty",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/xz-utils/copyright",
+       "accessPath": "/usr/share/doc/xz-utils/copyright"
+      }
+     ]
+    },
+    {
+     "value": "probably-PD",
+     "spdxExpression": "",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/xz-utils/copyright",
+       "accessPath": "/usr/share/doc/xz-utils/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:xz-utils:xz-utils:5.6.1\\+really5.4.5-1ubuntu0.4:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:xz-utils:xz_utils:5.6.1\\+really5.4.5-1ubuntu0.4:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:xz_utils:xz-utils:5.6.1\\+really5.4.5-1ubuntu0.4:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:xz_utils:xz_utils:5.6.1\\+really5.4.5-1ubuntu0.4:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:xz:xz-utils:5.6.1\\+really5.4.5-1ubuntu0.4:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:xz:xz_utils:5.6.1\\+really5.4.5-1ubuntu0.4:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/xz-utils@5.6.1%2Breally5.4.5-1ubuntu0.4?arch=amd64&distro=ubuntu-24.04",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "xz-utils",
+    "source": "",
+    "version": "5.6.1+really5.4.5-1ubuntu0.4",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 732,
+    "provides": [
+     "lzma"
+    ],
+    "depends": [
+     "libc6 (>= 2.34)",
+     "liblzma5 (>= 5.4.0)"
+    ],
+    "files": []
+   }
+  },
+  {
+   "id": "322375e2c8454035",
+   "name": "zlib1g",
+   "version": "1:1.3.dfsg-3.1ubuntu2.3",
+   "type": "deb",
+   "foundBy": "dpkg-db-cataloger",
+   "locations": [
+    {
+     "path": "/var/lib/dpkg/status",
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     }
+    },
+    {
+     "path": "/usr/share/doc/zlib1g/copyright",
+     "accessPath": "/usr/share/doc/zlib1g/copyright",
+     "annotations": {
+      "evidence": "supporting"
+     }
+    }
+   ],
+   "licenses": [
+    {
+     "value": "Zlib",
+     "spdxExpression": "Zlib",
+     "type": "declared",
+     "urls": [],
+     "locations": [
+      {
+       "path": "/usr/share/doc/zlib1g/copyright",
+       "accessPath": "/usr/share/doc/zlib1g/copyright"
+      }
+     ]
+    }
+   ],
+   "language": "",
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:zlib1g:zlib1g:1\\:1.3.dfsg-3.1ubuntu2.3:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "purl": "pkg:deb/ubuntu/zlib1g@1%3A1.3.dfsg-3.1ubuntu2.3?arch=amd64&distro=ubuntu-24.04&upstream=zlib",
+   "metadataType": "dpkg-db-entry",
+   "metadata": {
+    "package": "zlib1g",
+    "source": "zlib",
+    "version": "1:1.3.dfsg-3.1ubuntu2.3",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+    "installedSize": 163,
+    "provides": [
+     "libz1"
+    ],
+    "depends": [
+     "libc6 (>= 2.14)"
+    ],
+    "files": []
+   }
+  }
+ ],
+ "artifactRelationships": [
+  {
+   "parent": "00f2e663853a1548",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "00f2e663853a1548",
+   "child": "b97fece782652b03",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "07344d111011a071",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "07344d111011a071",
+   "child": "416c6ed3be26e785",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "0ec1ba4d94a91e47",
+   "child": "00f2e663853a1548",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "0ec1ba4d94a91e47",
+   "child": "1be9ea965607fe18",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "0ec1ba4d94a91e47",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "0ec1ba4d94a91e47",
+   "child": "e06c9d8d18fc4ea0",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "0ec1ba4d94a91e47",
+   "child": "e67c9dc0c4a36895",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "1be9ea965607fe18",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "1be9ea965607fe18",
+   "child": "923b331d63136b61",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "322375e2c8454035",
+   "child": "1be9ea965607fe18",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "322375e2c8454035",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "322375e2c8454035",
+   "child": "431b21ea93878d28",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "322375e2c8454035",
+   "child": "4908a8e62eb41f84",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "322375e2c8454035",
+   "child": "5bc2713598d15ef0",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "322375e2c8454035",
+   "child": "ca0d3f8c74e87655",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "333d9a0e7c528add",
+   "child": "2df530a90ccdd25f",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "333d9a0e7c528add",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "3467be210ce20339",
+   "child": "0ec1ba4d94a91e47",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "3467be210ce20339",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "3467be210ce20339",
+   "child": "50dabdc76b334916",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "3467be210ce20339",
+   "child": "ca0d3f8c74e87655",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "3467be210ce20339",
+   "child": "fb97589371511ebe",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "4330eec29ca74145",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "4330eec29ca74145",
+   "child": "ca0d3f8c74e87655",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "4330eec29ca74145",
+   "child": "f976999d9fb1c661",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "4908a8e62eb41f84",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "4908a8e62eb41f84",
+   "child": "5bc2713598d15ef0",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "4908a8e62eb41f84",
+   "child": "f31e5af20c21fc6c",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "4afcc6c281acfe93",
+   "child": "0ec1ba4d94a91e47",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "4afcc6c281acfe93",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "4afcc6c281acfe93",
+   "child": "4908a8e62eb41f84",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "4afcc6c281acfe93",
+   "child": "ca0d3f8c74e87655",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "4afcc6c281acfe93",
+   "child": "eb9af70576b42043",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "50dabdc76b334916",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "50dabdc76b334916",
+   "child": "c879d1b726be3221",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "591c8cbbca6ff26e",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "591c8cbbca6ff26e",
+   "child": "c239e3d04dc057a9",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "591c8cbbca6ff26e",
+   "child": "d82e5fc85b9e72bd",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "5bc2713598d15ef0",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "5bc2713598d15ef0",
+   "child": "8dbeeff96d971550",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "00f2e663853a1548",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "07344d111011a071",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "0ec1ba4d94a91e47",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "1be9ea965607fe18",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "322375e2c8454035",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "333d9a0e7c528add",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "3467be210ce20339",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "4330eec29ca74145",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "4908a8e62eb41f84",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "4afcc6c281acfe93",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "50dabdc76b334916",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "591c8cbbca6ff26e",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "5bc2713598d15ef0",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "884df49f48363a01",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "c5e8abe6b556c09b",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "ca0d3f8c74e87655",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "d055e4b4b490737c",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "e06c9d8d18fc4ea0",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "f08cfed11a13d785",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "f51ba532662e5722",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "f5889bcd9191ebb3",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "8642e00b397d4127",
+   "child": "fcad23f596226c82",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "884df49f48363a01",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "884df49f48363a01",
+   "child": "654ae4986dcad778",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "884df49f48363a01",
+   "child": "ea7ca06a89f2b455",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "ca0d3f8c74e87655",
+   "child": "0b764611c09c7aee",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "ca0d3f8c74e87655",
+   "child": "333d9a0e7c528add",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "ca0d3f8c74e87655",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "ca0d3f8c74e87655",
+   "child": "f08cfed11a13d785",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "d055e4b4b490737c",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "d055e4b4b490737c",
+   "child": "48b0deeadd4a3c2d",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "d055e4b4b490737c",
+   "child": "4908a8e62eb41f84",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "d055e4b4b490737c",
+   "child": "591c8cbbca6ff26e",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "d055e4b4b490737c",
+   "child": "f51ba532662e5722",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "d82e5fc85b9e72bd",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "d82e5fc85b9e72bd",
+   "child": "e5b5e24c86c05973",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "e06c9d8d18fc4ea0",
+   "child": "2f8a12f1a9dadb23",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "e06c9d8d18fc4ea0",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "ea7ca06a89f2b455",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "ea7ca06a89f2b455",
+   "child": "a6b1170bc2fced0c",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "ea7ca06a89f2b455",
+   "child": "e06c9d8d18fc4ea0",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "f08cfed11a13d785",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "f08cfed11a13d785",
+   "child": "c8c19de7d8fa9153",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "f51ba532662e5722",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "f51ba532662e5722",
+   "child": "6ee1ac61889712c1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "f5889bcd9191ebb3",
+   "child": "24a83bbf072fdf9f",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "f5889bcd9191ebb3",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  },
+  {
+   "parent": "f5889bcd9191ebb3",
+   "child": "fcad23f596226c82",
+   "type": "dependency-of"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "00f2e663853a1548",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "07344d111011a071",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "0ec1ba4d94a91e47",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "1be9ea965607fe18",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "322375e2c8454035",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "333d9a0e7c528add",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "3467be210ce20339",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "4330eec29ca74145",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "4908a8e62eb41f84",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "4afcc6c281acfe93",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "50dabdc76b334916",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "591c8cbbca6ff26e",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "5bc2713598d15ef0",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "8642e00b397d4127",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "884df49f48363a01",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "ca0d3f8c74e87655",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "d055e4b4b490737c",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "d82e5fc85b9e72bd",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "e06c9d8d18fc4ea0",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "ea7ca06a89f2b455",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "f08cfed11a13d785",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "f51ba532662e5722",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "f5889bcd9191ebb3",
+   "type": "contains"
+  },
+  {
+   "parent": "f9feabff219ae32f9b9736d6a1776b14afdd773de7c75ae3fd535e9f536805bc",
+   "child": "fcad23f596226c82",
+   "type": "contains"
+  },
+  {
+   "parent": "fcad23f596226c82",
+   "child": "359a447cbd650448",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "supporting"
+   }
+  },
+  {
+   "parent": "fcad23f596226c82",
+   "child": "3e140e9b56072de1",
+   "type": "evident-by",
+   "metadata": {
+    "kind": "primary"
+   }
+  }
+ ],
+ "files": [
+  {
+   "id": "a6b1170bc2fced0c",
+   "location": {
+    "path": "/usr/share/doc/adduser/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 13398
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "92e5c09d4194cf3474b617d493613717c82c7f067c017bc6f1b6469124c5c731"
+    }
+   ]
+  },
+  {
+   "id": "2f8a12f1a9dadb23",
+   "location": {
+    "path": "/usr/share/doc/apt/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 7668
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "b4701305243d8d746f4acaafe15d94f946251b05691bd6917fef41dd15e9ee12"
+    }
+   ]
+  },
+  {
+   "id": "24a83bbf072fdf9f",
+   "location": {
+    "path": "/usr/share/doc/base-files/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 1208
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "fd7e4aae7e7b05f217bcf2d02322825c360e66c52c4c2f1b28d784d6297a1c23"
+    }
+   ]
+  },
+  {
+   "id": "359a447cbd650448",
+   "location": {
+    "path": "/usr/share/doc/bash/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 9764
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "06319d84c3e5ed096036f6a9310a030c7e84e50dff2b8a6792285c83ec0ada73"
+    }
+   ]
+  },
+  {
+   "id": "b97fece782652b03",
+   "location": {
+    "path": "/usr/share/doc/bsdutils/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 23160
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "3492fb92cb56cf517d9a899828b4f989038421a38736e49e5525ffbd33196eab"
+    }
+   ]
+  },
+  {
+   "id": "e5b5e24c86c05973",
+   "location": {
+    "path": "/usr/share/doc/ca-certificates/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 18940
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "e85e1bcad3a915dc7e6f41412bc5bdeba275cadd817896ea0451f2140a93967c"
+    }
+   ]
+  },
+  {
+   "id": "6ee1ac61889712c1",
+   "location": {
+    "path": "/usr/share/doc/coreutils/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 5551
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "d23a4fb17c4a2e5bc46dafe9d22192ecf3905473317e17139d210339dcf50fa9"
+    }
+   ]
+  },
+  {
+   "id": "8dbeeff96d971550",
+   "location": {
+    "path": "/usr/share/doc/curl/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 21749
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "a7c131b21e6e73b3b085a7d9f1637b68f5f92b832cc6f462e0c978fbe7841ccb"
+    }
+   ]
+  },
+  {
+   "id": "0b764611c09c7aee",
+   "location": {
+    "path": "/usr/share/doc/dpkg/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 5661
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "6511e06b27f2297fde6ee8fb2e59807b7712dda61837ca00a0980da1e5df07ac"
+    }
+   ]
+  },
+  {
+   "id": "c8c19de7d8fa9153",
+   "location": {
+    "path": "/usr/share/doc/gzip/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 2895
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "1ca5dd5098fe2e1c0f0d05196f5b3da8b414a807702e6ca8b536eb5fd3059130"
+    }
+   ]
+  },
+  {
+   "id": "c5e8abe6b556c09b",
+   "location": {
+    "path": "/usr/share/doc/libc6/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 26462
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "d3c95b56fa33e28b57860580f0baf4e4f4de2a268a2b80f1d031a5191bade265"
+    }
+   ]
+  },
+  {
+   "id": "f31e5af20c21fc6c",
+   "location": {
+    "path": "/usr/share/doc/libcurl4t64/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 21749
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "a7c131b21e6e73b3b085a7d9f1637b68f5f92b832cc6f462e0c978fbe7841ccb"
+    }
+   ]
+  },
+  {
+   "id": "fb97589371511ebe",
+   "location": {
+    "path": "/usr/share/doc/liblzma5/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 15465
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "a2dc8fac0f496e1c58aff67018cf0c6b88336316afa5642f9335b71642e28aa8"
+    }
+   ]
+  },
+  {
+   "id": "48b0deeadd4a3c2d",
+   "location": {
+    "path": "/usr/share/doc/libssl3t64/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 2543
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "6a7da622fe0637a334d2a8fc470852d2ffb77d9a2b2f930f854e32a41ad6ef35"
+    }
+   ]
+  },
+  {
+   "id": "e67c9dc0c4a36895",
+   "location": {
+    "path": "/usr/share/doc/libsystemd0/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 12776
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "a7d06854714a1ca99f6dbd1a1641dde5bcf28635be149f6554449618f8f427f3"
+    }
+   ]
+  },
+  {
+   "id": "eb9af70576b42043",
+   "location": {
+    "path": "/usr/share/doc/libzstd1/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 5389
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "35e85e8e9bbb71492c5f5dddf39ed65b68775a02ad8d710c25d097b497f06c49"
+    }
+   ]
+  },
+  {
+   "id": "416c6ed3be26e785",
+   "location": {
+    "path": "/usr/share/doc/login/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 7044
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "a4c3e5b19700dd3cc5961663d204bd7150f65f913314682aede5931548c436d5"
+    }
+   ]
+  },
+  {
+   "id": "c239e3d04dc057a9",
+   "location": {
+    "path": "/usr/share/doc/openssl/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 2543
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "6a7da622fe0637a334d2a8fc470852d2ffb77d9a2b2f930f854e32a41ad6ef35"
+    }
+   ]
+  },
+  {
+   "id": "654ae4986dcad778",
+   "location": {
+    "path": "/usr/share/doc/passwd/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 7044
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "a4c3e5b19700dd3cc5961663d204bd7150f65f913314682aede5931548c436d5"
+    }
+   ]
+  },
+  {
+   "id": "2df530a90ccdd25f",
+   "location": {
+    "path": "/usr/share/doc/perl-base/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 108292
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "657ac19622868be1f2bf8ac3823a952b28c7a2a467f61353743e9c9d89291921"
+    }
+   ]
+  },
+  {
+   "id": "f976999d9fb1c661",
+   "location": {
+    "path": "/usr/share/doc/tar/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 6560
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "a0a44d41b2a045eb5946a8952487151cfa6ff0cd080bbf4b2eec220751d23024"
+    }
+   ]
+  },
+  {
+   "id": "923b331d63136b61",
+   "location": {
+    "path": "/usr/share/doc/util-linux/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 23160
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "3492fb92cb56cf517d9a899828b4f989038421a38736e49e5525ffbd33196eab"
+    }
+   ]
+  },
+  {
+   "id": "c879d1b726be3221",
+   "location": {
+    "path": "/usr/share/doc/xz-utils/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 15465
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "a2dc8fac0f496e1c58aff67018cf0c6b88336316afa5642f9335b71642e28aa8"
+    }
+   ]
+  },
+  {
+   "id": "431b21ea93878d28",
+   "location": {
+    "path": "/usr/share/doc/zlib1g/copyright"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 2927
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "9e5b96d63773a5d177ba264254390f792be07e41748ebd94730981c6cac31cc6"
+    }
+   ]
+  },
+  {
+   "id": "3e140e9b56072de1",
+   "location": {
+    "path": "/var/lib/dpkg/status"
+   },
+   "metadata": {
+    "mode": 644,
+    "type": "RegularFile",
+    "userID": 0,
+    "groupID": 0,
+    "mimeType": "text/plain",
+    "size": 28221
+   },
+   "digests": [
+    {
+     "algorithm": "sha256",
+     "value": "02a1eb9f597bb59d99f587866a21a0a191623d425add35225797fde530343d52"
+    }
+   ]
+  }
+ ],
+ "source": {
+  "id": "0000000000000000",
+  "name": "ubuntu-24.04",
+  "version": "",
+  "type": "directory",
+  "metadata": {
+   "path": "/"
+  }
+ },
+ "distro": {
+  "prettyName": "Ubuntu 24.04.5 LTS",
+  "name": "Ubuntu",
+  "id": "ubuntu",
+  "idLike": [
+   "debian"
+  ],
+  "version": "24.04.5 LTS (Noble Numbat)",
+  "versionID": "24.04",
+  "versionCodename": "noble",
+  "homeURL": "https://www.ubuntu.com/",
+  "supportURL": "https://help.ubuntu.com/",
+  "bugReportURL": "https://bugs.launchpad.net/ubuntu/",
+  "privacyPolicyURL": "https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+ },
+ "descriptor": {
+  "name": "syft",
+  "version": "1.55.0"
+ },
+ "schema": {
+  "version": "16.1.11",
+  "url": "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-16.1.11.json"
+ }
+}

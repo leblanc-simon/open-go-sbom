@@ -1,0 +1,214 @@
+{
+  "format": "cyclonedx",
+  "spec_version": "1.6",
+  "components": [
+    {
+      "purl": "pkg:generic/libfoo-interne@1.2",
+      "purl_base": "pkg:generic/libfoo-interne",
+      "type": "generic",
+      "name": "libfoo-interne",
+      "version": "1.2",
+      "origin": "ia",
+      "confidence": 0.4,
+      "model": "example-model",
+      "evidence": {
+        "occurrences": [
+          {
+            "location": "third_party/libfoo/foo.c"
+          }
+        ]
+      },
+      "scope": "optional",
+      "weak_id": true
+    },
+    {
+      "purl": "pkg:golang/github.com/burntsushi/toml@v1.3.2",
+      "purl_base": "pkg:golang/github.com/burntsushi/toml",
+      "type": "golang",
+      "name": "github.com/BurntSushi/toml",
+      "version": "v1.3.2",
+      "cpes": [
+        "cpe:2.3:a:BurntSushi:toml:v1.3.2:*:*:*:*:*:*:*"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:golang/golang.org/x/text@v0.14.0",
+      "purl_base": "pkg:golang/golang.org/x/text",
+      "type": "golang",
+      "name": "golang.org/x/text",
+      "version": "v0.14.0",
+      "cpes": [
+        "cpe:2.3:a:golang:text:v0.14.0:*:*:*:*:*:*:*"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:npm/%40babel/runtime@7.24.7",
+      "purl_base": "pkg:npm/%40babel/runtime",
+      "type": "npm",
+      "name": "@babel/runtime",
+      "version": "7.24.7",
+      "cpes": [
+        "cpe:2.3:a:\\@babel\\/runtime:\\@babel\\/runtime:7.24.7:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "MIT"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:npm/express@4.19.2",
+      "purl_base": "pkg:npm/express",
+      "type": "npm",
+      "name": "express",
+      "version": "4.19.2",
+      "cpes": [
+        "cpe:2.3:a:openjsf:express:4.19.2:*:*:*:*:node.js:*:*"
+      ],
+      "licenses": [
+        "MIT"
+      ],
+      "hashes": [
+        "sha512:18a980a29abd8c92f3994580f63d7c4d8c1427b874a809c5e16caf2ff822327127547bdb941d7cd3c6516e7d55c909ea2a3192843e3e1ed88266e9a299601544"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:npm/jquery@3.4.1",
+      "purl_base": "pkg:npm/jquery",
+      "type": "npm",
+      "name": "jquery",
+      "version": "3.4.1",
+      "licenses": [
+        "MIT"
+      ],
+      "hashes": [
+        "sha256:0925e8ad7bd971391a8b1e98be8e87a6971919eb5b60c196485941c3c1df089a"
+      ],
+      "origin": "ia",
+      "confidence": 0.82,
+      "model": "example-model",
+      "evidence": {
+        "identity": [
+          {
+            "confidence": 0.82,
+            "field": "version",
+            "methods": [
+              {
+                "confidence": 0.82,
+                "technique": "source-code-analysis",
+                "value": "/*! jQuery v3.4.1 | (c) JS Foundation */"
+              }
+            ]
+          }
+        ],
+        "occurrences": [
+          {
+            "line": 2,
+            "location": "public/vendor/jquery.min.js"
+          }
+        ]
+      },
+      "scope": "required"
+    },
+    {
+      "purl": "pkg:npm/lodash@4.17.21",
+      "purl_base": "pkg:npm/lodash",
+      "type": "npm",
+      "name": "lodash",
+      "version": "4.17.21",
+      "cpes": [
+        "cpe:2.3:a:lodash:lodash:4.17.21:*:*:*:*:node.js:*:*"
+      ],
+      "licenses": [
+        "MIT"
+      ],
+      "origin": "syft",
+      "scope": "required"
+    },
+    {
+      "purl": "pkg:npm/portail-client@2.3.0",
+      "purl_base": "pkg:npm/portail-client",
+      "type": "npm",
+      "name": "portail-client",
+      "version": "2.3.0",
+      "cpes": [
+        "cpe:2.3:a:portail-client:portail-client:2.3.0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:portail-client:portail_client:2.3.0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:portail:portail-client:2.3.0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:portail:portail_client:2.3.0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:portail_client:portail-client:2.3.0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:portail_client:portail_client:2.3.0:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "MIT"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:pypi/django-extensions@3.2.3?repository_url=https:%2F%2Fpypi.org%2Fsimple",
+      "purl_base": "pkg:pypi/django-extensions",
+      "type": "pypi",
+      "name": "Django_Extensions",
+      "version": "3.2.3",
+      "origin": "ia",
+      "confidence": 0.95
+    },
+    {
+      "purl": "pkg:pypi/django@4.2.11",
+      "purl_base": "pkg:pypi/django",
+      "type": "pypi",
+      "name": "django",
+      "version": "4.2.11",
+      "cpes": [
+        "cpe:2.3:a:django:django:4.2.11:*:*:*:*:*:*:*",
+        "cpe:2.3:a:django:python-django:4.2.11:*:*:*:*:*:*:*",
+        "cpe:2.3:a:django:python_django:4.2.11:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python-django:django:4.2.11:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python-django:python-django:4.2.11:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python-django:python_django:4.2.11:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python:django:4.2.11:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python:python-django:4.2.11:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python:python_django:4.2.11:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python_django:django:4.2.11:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python_django:python-django:4.2.11:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python_django:python_django:4.2.11:*:*:*:*:*:*:*"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:pypi/pyyaml@6.0.1",
+      "purl_base": "pkg:pypi/pyyaml",
+      "type": "pypi",
+      "name": "pyyaml",
+      "version": "6.0.1",
+      "cpes": [
+        "cpe:2.3:a:python-pyyaml:python-pyyaml:6.0.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python-pyyaml:python_pyyaml:6.0.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python-pyyaml:pyyaml:6.0.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python:python-pyyaml:6.0.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python:python_pyyaml:6.0.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python:pyyaml:6.0.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python_pyyaml:python-pyyaml:6.0.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python_pyyaml:python_pyyaml:6.0.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python_pyyaml:pyyaml:6.0.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:pyyaml:python-pyyaml:6.0.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:pyyaml:python_pyyaml:6.0.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:pyyaml:pyyaml:6.0.1:*:*:*:*:*:*:*"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:pypi/requests@2.31.0",
+      "purl_base": "pkg:pypi/requests",
+      "type": "pypi",
+      "name": "requests",
+      "version": "2.31.0",
+      "cpes": [
+        "cpe:2.3:a:python:requests:2.31.0:*:*:*:*:*:*:*"
+      ],
+      "origin": "syft"
+    }
+  ]
+}

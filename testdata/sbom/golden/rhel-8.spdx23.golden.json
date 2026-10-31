@@ -1,0 +1,370 @@
+{
+  "format": "spdx",
+  "spec_version": "2.3",
+  "distro": {
+    "id": "rhel",
+    "version_id": "8.6",
+    "name": "rhel"
+  },
+  "components": [
+    {
+      "purl": "pkg:rpm/redhat/bash@4.4.20-3.el8?arch=s390x\u0026distro=rhel-8.6\u0026upstream=bash-4.4.20-3.el8.src.rpm",
+      "purl_base": "pkg:rpm/redhat/bash",
+      "type": "rpm",
+      "name": "bash",
+      "version": "4.4.20-3.el8",
+      "cpes": [
+        "cpe:2.3:a:bash:bash:4.4.20-3.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:bash:4.4.20-3.el8:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "GPLv3-"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/curl@7.61.1-22.el8?arch=s390x\u0026distro=rhel-8.6\u0026upstream=curl-7.61.1-22.el8.src.rpm",
+      "purl_base": "pkg:rpm/redhat/curl",
+      "type": "rpm",
+      "name": "curl",
+      "version": "7.61.1-22.el8",
+      "cpes": [
+        "cpe:2.3:a:curl:curl:7.61.1-22.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:curl:7.61.1-22.el8:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "MIT"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/dbus-libs@1.12.8-18.el8?arch=s390x\u0026distro=rhel-8.6\u0026epoch=1\u0026upstream=dbus-1.12.8-18.el8.src.rpm",
+      "purl_base": "pkg:rpm/redhat/dbus-libs",
+      "type": "rpm",
+      "name": "dbus-libs",
+      "version": "1:1.12.8-18.el8",
+      "cpes": [
+        "cpe:2.3:a:dbus-libs:dbus-libs:1\\:1.12.8-18.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:dbus-libs:dbus_libs:1\\:1.12.8-18.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:dbus:dbus-libs:1\\:1.12.8-18.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:dbus:dbus_libs:1\\:1.12.8-18.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:dbus_libs:dbus-libs:1\\:1.12.8-18.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:dbus_libs:dbus_libs:1\\:1.12.8-18.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:dbus-libs:1\\:1.12.8-18.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:dbus_libs:1\\:1.12.8-18.el8:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "-GPLv2--or-AFL--and-GPLv2-"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/device-mapper-libs@1.02.181-3.el8?arch=s390x\u0026distro=rhel-8.6\u0026epoch=8\u0026upstream=lvm2-2.03.14-3.el8.src.rpm",
+      "purl_base": "pkg:rpm/redhat/device-mapper-libs",
+      "type": "rpm",
+      "name": "device-mapper-libs",
+      "version": "8:1.02.181-3.el8",
+      "cpes": [
+        "cpe:2.3:a:device-mapper-libs:device-mapper-libs:8\\:1.02.181-3.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:device-mapper-libs:device_mapper_libs:8\\:1.02.181-3.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:device-mapper:device-mapper-libs:8\\:1.02.181-3.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:device-mapper:device_mapper_libs:8\\:1.02.181-3.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:device:device-mapper-libs:8\\:1.02.181-3.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:device:device_mapper_libs:8\\:1.02.181-3.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:device_mapper:device-mapper-libs:8\\:1.02.181-3.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:device_mapper:device_mapper_libs:8\\:1.02.181-3.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:device_mapper_libs:device-mapper-libs:8\\:1.02.181-3.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:device_mapper_libs:device_mapper_libs:8\\:1.02.181-3.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:device-mapper-libs:8\\:1.02.181-3.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:device_mapper_libs:8\\:1.02.181-3.el8:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "LGPLv2"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/glibc-common@2.28-189.1.el8?arch=s390x\u0026distro=rhel-8.6\u0026upstream=glibc-2.28-189.1.el8.src.rpm",
+      "purl_base": "pkg:rpm/redhat/glibc-common",
+      "type": "rpm",
+      "name": "glibc-common",
+      "version": "2.28-189.1.el8",
+      "cpes": [
+        "cpe:2.3:a:glibc-common:glibc-common:2.28-189.1.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:glibc-common:glibc_common:2.28-189.1.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:glibc:glibc-common:2.28-189.1.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:glibc:glibc_common:2.28-189.1.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:glibc_common:glibc-common:2.28-189.1.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:glibc_common:glibc_common:2.28-189.1.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:glibc-common:2.28-189.1.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:glibc_common:2.28-189.1.el8:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "LGPLv2--and-LGPLv2--with-exceptions-and-GPLv2--and-GPLv2--with-exceptions-and-BSD-and-Inner-Net-and-ISC-and-Public-Domain-and-GFDL"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/glibc@2.28-189.1.el8?arch=s390x\u0026distro=rhel-8.6\u0026upstream=glibc-2.28-189.1.el8.src.rpm",
+      "purl_base": "pkg:rpm/redhat/glibc",
+      "type": "rpm",
+      "name": "glibc",
+      "version": "2.28-189.1.el8",
+      "cpes": [
+        "cpe:2.3:a:glibc:glibc:2.28-189.1.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:glibc:2.28-189.1.el8:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "LGPLv2--and-LGPLv2--with-exceptions-and-GPLv2--and-GPLv2--with-exceptions-and-BSD-and-Inner-Net-and-ISC-and-Public-Domain-and-GFDL"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/krb5-libs@1.18.2-14.el8?arch=s390x\u0026distro=rhel-8.6\u0026upstream=krb5-1.18.2-14.el8.src.rpm",
+      "purl_base": "pkg:rpm/redhat/krb5-libs",
+      "type": "rpm",
+      "name": "krb5-libs",
+      "version": "1.18.2-14.el8",
+      "cpes": [
+        "cpe:2.3:a:krb5-libs:krb5-libs:1.18.2-14.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:krb5-libs:krb5_libs:1.18.2-14.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:krb5:krb5-libs:1.18.2-14.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:krb5:krb5_libs:1.18.2-14.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:krb5_libs:krb5-libs:1.18.2-14.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:krb5_libs:krb5_libs:1.18.2-14.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:krb5-libs:1.18.2-14.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:krb5_libs:1.18.2-14.el8:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "MIT"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/libcurl@7.61.1-22.el8?arch=s390x\u0026distro=rhel-8.6\u0026upstream=curl-7.61.1-22.el8.src.rpm",
+      "purl_base": "pkg:rpm/redhat/libcurl",
+      "type": "rpm",
+      "name": "libcurl",
+      "version": "7.61.1-22.el8",
+      "cpes": [
+        "cpe:2.3:a:libcurl:libcurl:7.61.1-22.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:libcurl:7.61.1-22.el8:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "MIT"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/libgcc@8.5.0-10.el8?arch=s390x\u0026distro=rhel-8.6\u0026upstream=gcc-8.5.0-10.el8.src.rpm",
+      "purl_base": "pkg:rpm/redhat/libgcc",
+      "type": "rpm",
+      "name": "libgcc",
+      "version": "8.5.0-10.el8",
+      "cpes": [
+        "cpe:2.3:a:libgcc:libgcc:8.5.0-10.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:libgcc:8.5.0-10.el8:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "GPLv3--and-GPLv3--with-exceptions-and-GPLv2--with-exceptions-and-LGPLv2--and-BSD"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/openssl-libs@1.1.1k-6.el8_5?arch=s390x\u0026distro=rhel-8.6\u0026epoch=1\u0026upstream=openssl-1.1.1k-6.el8_5.src.rpm",
+      "purl_base": "pkg:rpm/redhat/openssl-libs",
+      "type": "rpm",
+      "name": "openssl-libs",
+      "version": "1:1.1.1k-6.el8_5",
+      "cpes": [
+        "cpe:2.3:a:openssl-libs:openssl-libs:1\\:1.1.1k-6.el8_5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:openssl-libs:openssl_libs:1\\:1.1.1k-6.el8_5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:openssl:openssl-libs:1\\:1.1.1k-6.el8_5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:openssl:openssl_libs:1\\:1.1.1k-6.el8_5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:openssl_libs:openssl-libs:1\\:1.1.1k-6.el8_5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:openssl_libs:openssl_libs:1\\:1.1.1k-6.el8_5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:openssl-libs:1\\:1.1.1k-6.el8_5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:openssl_libs:1\\:1.1.1k-6.el8_5:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "OpenSSL-and-ASL-2.0"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/python3-libs@3.6.8-45.el8?arch=s390x\u0026distro=rhel-8.6\u0026upstream=python3-3.6.8-45.el8.src.rpm",
+      "purl_base": "pkg:rpm/redhat/python3-libs",
+      "type": "rpm",
+      "name": "python3-libs",
+      "version": "3.6.8-45.el8",
+      "cpes": [
+        "cpe:2.3:a:python3-libs:python3-libs:3.6.8-45.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python3-libs:python3_libs:3.6.8-45.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python3:python3-libs:3.6.8-45.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python3:python3_libs:3.6.8-45.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python3_libs:python3-libs:3.6.8-45.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python3_libs:python3_libs:3.6.8-45.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:python3-libs:3.6.8-45.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:python3_libs:3.6.8-45.el8:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "Python"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/python3-requests@2.20.0-2.1.el8_1?arch=noarch\u0026distro=rhel-8.6\u0026upstream=python-requests-2.20.0-2.1.el8_1.src.rpm",
+      "purl_base": "pkg:rpm/redhat/python3-requests",
+      "type": "rpm",
+      "name": "python3-requests",
+      "version": "2.20.0-2.1.el8_1",
+      "cpes": [
+        "cpe:2.3:a:python3-requests:python3-requests:2.20.0-2.1.el8_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python3-requests:python3_requests:2.20.0-2.1.el8_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python3:python3-requests:2.20.0-2.1.el8_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python3:python3_requests:2.20.0-2.1.el8_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python3_requests:python3-requests:2.20.0-2.1.el8_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:python3_requests:python3_requests:2.20.0-2.1.el8_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:python3-requests:2.20.0-2.1.el8_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:python3_requests:2.20.0-2.1.el8_1:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "ASL-2.0"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/redhat-release@8.6-0.1.el8?arch=s390x\u0026distro=rhel-8.6\u0026upstream=redhat-release-8.6-0.1.el8.src.rpm",
+      "purl_base": "pkg:rpm/redhat/redhat-release",
+      "type": "rpm",
+      "name": "redhat-release",
+      "version": "8.6-0.1.el8",
+      "cpes": [
+        "cpe:2.3:a:redhat-release:redhat-release:8.6-0.1.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat-release:redhat_release:8.6-0.1.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:redhat-release:8.6-0.1.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:redhat_release:8.6-0.1.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat_release:redhat-release:8.6-0.1.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat_release:redhat_release:8.6-0.1.el8:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "GPLv2"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/shadow-utils@4.6-16.el8?arch=s390x\u0026distro=rhel-8.6\u0026epoch=2\u0026upstream=shadow-utils-4.6-16.el8.src.rpm",
+      "purl_base": "pkg:rpm/redhat/shadow-utils",
+      "type": "rpm",
+      "name": "shadow-utils",
+      "version": "2:4.6-16.el8",
+      "cpes": [
+        "cpe:2.3:a:redhat:shadow-utils:2\\:4.6-16.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:shadow_utils:2\\:4.6-16.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:shadow-utils:shadow-utils:2\\:4.6-16.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:shadow-utils:shadow_utils:2\\:4.6-16.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:shadow:shadow-utils:2\\:4.6-16.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:shadow:shadow_utils:2\\:4.6-16.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:shadow_utils:shadow-utils:2\\:4.6-16.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:shadow_utils:shadow_utils:2\\:4.6-16.el8:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "BSD-and-GPLv2-"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/systemd-libs@239-58.el8?arch=s390x\u0026distro=rhel-8.6\u0026upstream=systemd-239-58.el8.src.rpm",
+      "purl_base": "pkg:rpm/redhat/systemd-libs",
+      "type": "rpm",
+      "name": "systemd-libs",
+      "version": "239-58.el8",
+      "cpes": [
+        "cpe:2.3:a:redhat:systemd-libs:239-58.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:systemd_libs:239-58.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:systemd-libs:systemd-libs:239-58.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:systemd-libs:systemd_libs:239-58.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:systemd:systemd-libs:239-58.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:systemd:systemd_libs:239-58.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:systemd_libs:systemd-libs:239-58.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:systemd_libs:systemd_libs:239-58.el8:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "LGPLv2--and-MIT"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/tar@1.30-5.el8?arch=s390x\u0026distro=rhel-8.6\u0026epoch=2\u0026upstream=tar-1.30-5.el8.src.rpm",
+      "purl_base": "pkg:rpm/redhat/tar",
+      "type": "rpm",
+      "name": "tar",
+      "version": "2:1.30-5.el8",
+      "cpes": [
+        "cpe:2.3:a:redhat:tar:2\\:1.30-5.el8:*:*:*:*:*:*:*",
+        "cpe:2.3:a:tar:tar:2\\:1.30-5.el8:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "GPLv3-"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/vim-minimal@8.0.1763-16.el8_5.13?arch=s390x\u0026distro=rhel-8.6\u0026epoch=2\u0026upstream=vim-8.0.1763-16.el8_5.13.src.rpm",
+      "purl_base": "pkg:rpm/redhat/vim-minimal",
+      "type": "rpm",
+      "name": "vim-minimal",
+      "version": "2:8.0.1763-16.el8_5.13",
+      "cpes": [
+        "cpe:2.3:a:redhat:vim-minimal:2\\:8.0.1763-16.el8_5.13:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:vim_minimal:2\\:8.0.1763-16.el8_5.13:*:*:*:*:*:*:*",
+        "cpe:2.3:a:vim-minimal:vim-minimal:2\\:8.0.1763-16.el8_5.13:*:*:*:*:*:*:*",
+        "cpe:2.3:a:vim-minimal:vim_minimal:2\\:8.0.1763-16.el8_5.13:*:*:*:*:*:*:*",
+        "cpe:2.3:a:vim:vim-minimal:2\\:8.0.1763-16.el8_5.13:*:*:*:*:*:*:*",
+        "cpe:2.3:a:vim:vim_minimal:2\\:8.0.1763-16.el8_5.13:*:*:*:*:*:*:*",
+        "cpe:2.3:a:vim_minimal:vim-minimal:2\\:8.0.1763-16.el8_5.13:*:*:*:*:*:*:*",
+        "cpe:2.3:a:vim_minimal:vim_minimal:2\\:8.0.1763-16.el8_5.13:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "Vim-and-MIT"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/xz-libs@5.2.4-4.el8_6?arch=s390x\u0026distro=rhel-8.6\u0026upstream=xz-5.2.4-4.el8_6.src.rpm",
+      "purl_base": "pkg:rpm/redhat/xz-libs",
+      "type": "rpm",
+      "name": "xz-libs",
+      "version": "5.2.4-4.el8_6",
+      "cpes": [
+        "cpe:2.3:a:redhat:xz-libs:5.2.4-4.el8_6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:xz_libs:5.2.4-4.el8_6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:xz-libs:xz-libs:5.2.4-4.el8_6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:xz-libs:xz_libs:5.2.4-4.el8_6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:xz:xz-libs:5.2.4-4.el8_6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:xz:xz_libs:5.2.4-4.el8_6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:xz_libs:xz-libs:5.2.4-4.el8_6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:xz_libs:xz_libs:5.2.4-4.el8_6:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "Public-Domain"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:rpm/redhat/zlib@1.2.11-18.el8_5?arch=s390x\u0026distro=rhel-8.6\u0026upstream=zlib-1.2.11-18.el8_5.src.rpm",
+      "purl_base": "pkg:rpm/redhat/zlib",
+      "type": "rpm",
+      "name": "zlib",
+      "version": "1.2.11-18.el8_5",
+      "cpes": [
+        "cpe:2.3:a:redhat:zlib:1.2.11-18.el8_5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:zlib:zlib:1.2.11-18.el8_5:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "zlib-and-Boost"
+      ],
+      "origin": "syft"
+    }
+  ]
+}

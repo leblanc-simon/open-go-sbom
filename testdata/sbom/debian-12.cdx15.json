@@ -1,0 +1,576 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:ae44f59b-8d11-4190-8a98-c7367837595b",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-10-31T05:40:51Z",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "author": "anchore",
+          "name": "syft",
+          "version": "1.55.0"
+        }
+      ]
+    },
+    "component": {
+      "bom-ref": "af63bd4c8601b7f0",
+      "type": "file",
+      "name": "debian-12"
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "pkg:deb/debian/base-files@12.4%2Bdeb12u7?arch=amd64&distro=debian-12&package-id=758b1dc99ba20844",
+      "type": "library",
+      "publisher": "Santiago Vila <sanvila@debian.org>",
+      "name": "base-files",
+      "version": "12.4+deb12u7",
+      "cpe": "cpe:2.3:a:base-files:base-files:12.4\\+deb12u7:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/debian/base-files@12.4%2Bdeb12u7?arch=amd64&distro=debian-12",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:base-files:base_files:12.4\\+deb12u7:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:base_files:base-files:12.4\\+deb12u7:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:base_files:base_files:12.4\\+deb12u7:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:base:base-files:12.4\\+deb12u7:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:base:base_files:12.4\\+deb12u7:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "341"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/debian/bash@5.2.15-2%2Bb7?arch=amd64&distro=debian-12&package-id=92b9f4aee07e58e5",
+      "type": "library",
+      "publisher": "Matthias Klose <doko@debian.org>",
+      "name": "bash",
+      "version": "5.2.15-2+b7",
+      "cpe": "cpe:2.3:a:bash:bash:5.2.15-2\\+b7:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/debian/bash@5.2.15-2%2Bb7?arch=amd64&distro=debian-12",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "7163"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/debian/curl@7.88.1-10%2Bdeb12u8?arch=amd64&distro=debian-12&package-id=1c81c8b89546243e",
+      "type": "library",
+      "publisher": "Alessandro Ghedini <ghedo@debian.org>",
+      "name": "curl",
+      "version": "7.88.1-10+deb12u8",
+      "cpe": "cpe:2.3:a:curl:curl:7.88.1-10\\+deb12u8:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/debian/curl@7.88.1-10%2Bdeb12u8?arch=amd64&distro=debian-12",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "500"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/debian/libc6@2.36-9%2Bdeb12u8?arch=amd64&distro=debian-12&package-id=2d680ca71804f738&upstream=glibc",
+      "type": "library",
+      "publisher": "GNU Libc Maintainers <debian-glibc@lists.debian.org>",
+      "name": "libc6",
+      "version": "2.36-9+deb12u8",
+      "cpe": "cpe:2.3:a:libc6:libc6:2.36-9\\+deb12u8:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/debian/libc6@2.36-9%2Bdeb12u8?arch=amd64&distro=debian-12&upstream=glibc",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "12986"
+        },
+        {
+          "name": "syft:metadata:source",
+          "value": "glibc"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/debian/libcurl4@7.88.1-10%2Bdeb12u8?arch=amd64&distro=debian-12&package-id=7c863564c9d2c446&upstream=curl",
+      "type": "library",
+      "publisher": "Alessandro Ghedini <ghedo@debian.org>",
+      "name": "libcurl4",
+      "version": "7.88.1-10+deb12u8",
+      "cpe": "cpe:2.3:a:libcurl4:libcurl4:7.88.1-10\\+deb12u8:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/debian/libcurl4@7.88.1-10%2Bdeb12u8?arch=amd64&distro=debian-12&upstream=curl",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "1027"
+        },
+        {
+          "name": "syft:metadata:source",
+          "value": "curl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/debian/libssl3@3.0.14-1~deb12u2?arch=amd64&distro=debian-12&package-id=f15f5166cf114c5d&upstream=openssl",
+      "type": "library",
+      "publisher": "Debian OpenSSL Team <pkg-openssl-devel@alioth-lists.debian.net>",
+      "name": "libssl3",
+      "version": "3.0.14-1~deb12u2",
+      "cpe": "cpe:2.3:a:libssl3:libssl3:3.0.14-1\\~deb12u2:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/debian/libssl3@3.0.14-1~deb12u2?arch=amd64&distro=debian-12&upstream=openssl",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "6175"
+        },
+        {
+          "name": "syft:metadata:source",
+          "value": "openssl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/debian/libsystemd0@252.31-1~deb12u1?arch=amd64&distro=debian-12&package-id=6a251c2f5aa9c43b&upstream=systemd",
+      "type": "library",
+      "publisher": "Debian systemd Maintainers <pkg-systemd-maintainers@lists.alioth.debian.org>",
+      "name": "libsystemd0",
+      "version": "252.31-1~deb12u1",
+      "cpe": "cpe:2.3:a:libsystemd0:libsystemd0:252.31-1\\~deb12u1:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/debian/libsystemd0@252.31-1~deb12u1?arch=amd64&distro=debian-12&upstream=systemd",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "949"
+        },
+        {
+          "name": "syft:metadata:source",
+          "value": "systemd"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/debian/login@1%3A4.13%2Bdfsg1-1%2Bb1?arch=amd64&distro=debian-12&package-id=f86a7dd60b0455a7&upstream=shadow%401%3A4.13%2Bdfsg1-1",
+      "type": "library",
+      "publisher": "Shadow package maintainers <pkg-shadow-devel@lists.alioth.debian.org>",
+      "name": "login",
+      "version": "1:4.13+dfsg1-1+b1",
+      "cpe": "cpe:2.3:a:login:login:1\\:4.13\\+dfsg1-1\\+b1:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/debian/login@1%3A4.13%2Bdfsg1-1%2Bb1?arch=amd64&distro=debian-12&upstream=shadow%401%3A4.13%2Bdfsg1-1",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "2603"
+        },
+        {
+          "name": "syft:metadata:source",
+          "value": "shadow"
+        },
+        {
+          "name": "syft:metadata:sourceVersion",
+          "value": "1:4.13+dfsg1-1"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/debian/openssl@3.0.14-1~deb12u2?arch=amd64&distro=debian-12&package-id=87c3d07d6a2a71e6",
+      "type": "library",
+      "publisher": "Debian OpenSSL Team <pkg-openssl-devel@alioth-lists.debian.net>",
+      "name": "openssl",
+      "version": "3.0.14-1~deb12u2",
+      "cpe": "cpe:2.3:a:openssl:openssl:3.0.14-1\\~deb12u2:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/debian/openssl@3.0.14-1~deb12u2?arch=amd64&distro=debian-12",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "2296"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/debian/passwd@1%3A4.13%2Bdfsg1-1%2Bb1?arch=amd64&distro=debian-12&package-id=98a6516791d236f2&upstream=shadow%401%3A4.13%2Bdfsg1-1",
+      "type": "library",
+      "publisher": "Shadow package maintainers <pkg-shadow-devel@lists.alioth.debian.org>",
+      "name": "passwd",
+      "version": "1:4.13+dfsg1-1+b1",
+      "cpe": "cpe:2.3:a:passwd:passwd:1\\:4.13\\+dfsg1-1\\+b1:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/debian/passwd@1%3A4.13%2Bdfsg1-1%2Bb1?arch=amd64&distro=debian-12&upstream=shadow%401%3A4.13%2Bdfsg1-1",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "2756"
+        },
+        {
+          "name": "syft:metadata:source",
+          "value": "shadow"
+        },
+        {
+          "name": "syft:metadata:sourceVersion",
+          "value": "1:4.13+dfsg1-1"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/debian/tar@1.34%2Bdfsg-1.2%2Bdeb12u1?arch=amd64&distro=debian-12&package-id=7d58fba5d594425f",
+      "type": "library",
+      "publisher": "Janos Lenart <ocsi@debian.org>",
+      "name": "tar",
+      "version": "1.34+dfsg-1.2+deb12u1",
+      "cpe": "cpe:2.3:a:tar:tar:1.34\\+dfsg-1.2\\+deb12u1:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/debian/tar@1.34%2Bdfsg-1.2%2Bdeb12u1?arch=amd64&distro=debian-12",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "3152"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/debian/zlib1g@1%3A1.2.13.dfsg-1?arch=amd64&distro=debian-12&package-id=4441db8aa79e8fe6&upstream=zlib",
+      "type": "library",
+      "publisher": "Mark Brown <broonie@debian.org>",
+      "name": "zlib1g",
+      "version": "1:1.2.13.dfsg-1",
+      "cpe": "cpe:2.3:a:zlib1g:zlib1g:1\\:1.2.13.dfsg-1:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/debian/zlib1g@1%3A1.2.13.dfsg-1?arch=amd64&distro=debian-12&upstream=zlib",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "168"
+        },
+        {
+          "name": "syft:metadata:source",
+          "value": "zlib"
+        }
+      ]
+    },
+    {
+      "bom-ref": "os:debian@12",
+      "type": "operating-system",
+      "name": "debian",
+      "version": "12",
+      "description": "Debian GNU/Linux 12 (bookworm)",
+      "swid": {
+        "tagId": "debian",
+        "name": "debian",
+        "version": "12"
+      },
+      "externalReferences": [
+        {
+          "url": "https://bugs.debian.org/",
+          "type": "issue-tracker"
+        },
+        {
+          "url": "https://www.debian.org/",
+          "type": "website"
+        },
+        {
+          "url": "https://www.debian.org/support",
+          "comment": "support",
+          "type": "other"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:distro:extendedSupport",
+          "value": "false"
+        },
+        {
+          "name": "syft:distro:id",
+          "value": "debian"
+        },
+        {
+          "name": "syft:distro:prettyName",
+          "value": "Debian GNU/Linux 12 (bookworm)"
+        },
+        {
+          "name": "syft:distro:versionCodename",
+          "value": "bookworm"
+        },
+        {
+          "name": "syft:distro:versionID",
+          "value": "12"
+        }
+      ]
+    },
+    {
+      "bom-ref": "3e140e9b56072de1",
+      "type": "file",
+      "name": "/var/lib/dpkg/status",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4c4ec7bd99f519292822d5e46da56ed0cbe231d39a9683e6c682dc4f15cb00c1"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:deb/debian/bash@5.2.15-2%2Bb7?arch=amd64&distro=debian-12&package-id=92b9f4aee07e58e5",
+      "dependsOn": [
+        "pkg:deb/debian/base-files@12.4%2Bdeb12u7?arch=amd64&distro=debian-12&package-id=758b1dc99ba20844"
+      ]
+    },
+    {
+      "ref": "pkg:deb/debian/curl@7.88.1-10%2Bdeb12u8?arch=amd64&distro=debian-12&package-id=1c81c8b89546243e",
+      "dependsOn": [
+        "pkg:deb/debian/libc6@2.36-9%2Bdeb12u8?arch=amd64&distro=debian-12&package-id=2d680ca71804f738&upstream=glibc",
+        "pkg:deb/debian/libcurl4@7.88.1-10%2Bdeb12u8?arch=amd64&distro=debian-12&package-id=7c863564c9d2c446&upstream=curl",
+        "pkg:deb/debian/zlib1g@1%3A1.2.13.dfsg-1?arch=amd64&distro=debian-12&package-id=4441db8aa79e8fe6&upstream=zlib"
+      ]
+    },
+    {
+      "ref": "pkg:deb/debian/libcurl4@7.88.1-10%2Bdeb12u8?arch=amd64&distro=debian-12&package-id=7c863564c9d2c446&upstream=curl",
+      "dependsOn": [
+        "pkg:deb/debian/libc6@2.36-9%2Bdeb12u8?arch=amd64&distro=debian-12&package-id=2d680ca71804f738&upstream=glibc",
+        "pkg:deb/debian/libssl3@3.0.14-1~deb12u2?arch=amd64&distro=debian-12&package-id=f15f5166cf114c5d&upstream=openssl",
+        "pkg:deb/debian/zlib1g@1%3A1.2.13.dfsg-1?arch=amd64&distro=debian-12&package-id=4441db8aa79e8fe6&upstream=zlib"
+      ]
+    },
+    {
+      "ref": "pkg:deb/debian/libssl3@3.0.14-1~deb12u2?arch=amd64&distro=debian-12&package-id=f15f5166cf114c5d&upstream=openssl",
+      "dependsOn": [
+        "pkg:deb/debian/libc6@2.36-9%2Bdeb12u8?arch=amd64&distro=debian-12&package-id=2d680ca71804f738&upstream=glibc"
+      ]
+    },
+    {
+      "ref": "pkg:deb/debian/libsystemd0@252.31-1~deb12u1?arch=amd64&distro=debian-12&package-id=6a251c2f5aa9c43b&upstream=systemd",
+      "dependsOn": [
+        "pkg:deb/debian/libc6@2.36-9%2Bdeb12u8?arch=amd64&distro=debian-12&package-id=2d680ca71804f738&upstream=glibc"
+      ]
+    },
+    {
+      "ref": "pkg:deb/debian/openssl@3.0.14-1~deb12u2?arch=amd64&distro=debian-12&package-id=87c3d07d6a2a71e6",
+      "dependsOn": [
+        "pkg:deb/debian/libc6@2.36-9%2Bdeb12u8?arch=amd64&distro=debian-12&package-id=2d680ca71804f738&upstream=glibc",
+        "pkg:deb/debian/libssl3@3.0.14-1~deb12u2?arch=amd64&distro=debian-12&package-id=f15f5166cf114c5d&upstream=openssl"
+      ]
+    },
+    {
+      "ref": "pkg:deb/debian/passwd@1%3A4.13%2Bdfsg1-1%2Bb1?arch=amd64&distro=debian-12&package-id=98a6516791d236f2&upstream=shadow%401%3A4.13%2Bdfsg1-1",
+      "dependsOn": [
+        "pkg:deb/debian/libc6@2.36-9%2Bdeb12u8?arch=amd64&distro=debian-12&package-id=2d680ca71804f738&upstream=glibc"
+      ]
+    },
+    {
+      "ref": "pkg:deb/debian/tar@1.34%2Bdfsg-1.2%2Bdeb12u1?arch=amd64&distro=debian-12&package-id=7d58fba5d594425f",
+      "dependsOn": [
+        "pkg:deb/debian/libc6@2.36-9%2Bdeb12u8?arch=amd64&distro=debian-12&package-id=2d680ca71804f738&upstream=glibc"
+      ]
+    },
+    {
+      "ref": "pkg:deb/debian/zlib1g@1%3A1.2.13.dfsg-1?arch=amd64&distro=debian-12&package-id=4441db8aa79e8fe6&upstream=zlib",
+      "dependsOn": [
+        "pkg:deb/debian/libc6@2.36-9%2Bdeb12u8?arch=amd64&distro=debian-12&package-id=2d680ca71804f738&upstream=glibc"
+      ]
+    }
+  ]
+}

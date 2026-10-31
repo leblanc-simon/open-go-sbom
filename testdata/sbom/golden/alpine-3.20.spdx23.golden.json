@@ -1,0 +1,171 @@
+{
+  "format": "spdx",
+  "spec_version": "2.3",
+  "distro": {
+    "id": "alpine",
+    "version_id": "3.20.3",
+    "name": "alpine"
+  },
+  "components": [
+    {
+      "purl": "pkg:apk/alpine/alpine-baselayout@3.6.5-r0?arch=x86_64\u0026distro=alpine-3.20.3",
+      "purl_base": "pkg:apk/alpine/alpine-baselayout",
+      "type": "apk",
+      "name": "alpine-baselayout",
+      "version": "3.6.5-r0",
+      "cpes": [
+        "cpe:2.3:a:alpine-baselayout:alpine-baselayout:3.6.5-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:alpine-baselayout:alpine_baselayout:3.6.5-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:alpine:alpine-baselayout:3.6.5-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:alpine:alpine_baselayout:3.6.5-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:alpine_baselayout:alpine-baselayout:3.6.5-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:alpine_baselayout:alpine_baselayout:3.6.5-r0:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "GPL-2.0-only"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:apk/alpine/apk-tools@2.14.4-r1?arch=x86_64\u0026distro=alpine-3.20.3",
+      "purl_base": "pkg:apk/alpine/apk-tools",
+      "type": "apk",
+      "name": "apk-tools",
+      "version": "2.14.4-r1",
+      "cpes": [
+        "cpe:2.3:a:apk-tools:apk-tools:2.14.4-r1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:apk-tools:apk_tools:2.14.4-r1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:apk:apk-tools:2.14.4-r1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:apk:apk_tools:2.14.4-r1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:apk_tools:apk-tools:2.14.4-r1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:apk_tools:apk_tools:2.14.4-r1:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "GPL-2.0-only"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:apk/alpine/busybox@1.36.1-r29?arch=x86_64\u0026distro=alpine-3.20.3",
+      "purl_base": "pkg:apk/alpine/busybox",
+      "type": "apk",
+      "name": "busybox",
+      "version": "1.36.1-r29",
+      "cpes": [
+        "cpe:2.3:a:busybox:busybox:1.36.1-r29:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "GPL-2.0-only"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:apk/alpine/ca-certificates-bundle@20240705-r0?arch=x86_64\u0026distro=alpine-3.20.3\u0026upstream=ca-certificates",
+      "purl_base": "pkg:apk/alpine/ca-certificates-bundle",
+      "type": "apk",
+      "name": "ca-certificates-bundle",
+      "version": "20240705-r0",
+      "cpes": [
+        "cpe:2.3:a:ca-certificates-bundle:ca-certificates-bundle:20240705-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ca-certificates-bundle:ca_certificates_bundle:20240705-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ca-certificates:ca-certificates-bundle:20240705-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ca-certificates:ca_certificates_bundle:20240705-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ca:ca-certificates-bundle:20240705-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ca:ca_certificates_bundle:20240705-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ca_certificates:ca-certificates-bundle:20240705-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ca_certificates:ca_certificates_bundle:20240705-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ca_certificates_bundle:ca-certificates-bundle:20240705-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ca_certificates_bundle:ca_certificates_bundle:20240705-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:mozilla:ca-certificates-bundle:20240705-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:mozilla:ca_certificates_bundle:20240705-r0:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "(MPL-2.0 AND MIT)"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:apk/alpine/libcrypto3@3.3.2-r1?arch=x86_64\u0026distro=alpine-3.20.3\u0026upstream=openssl",
+      "purl_base": "pkg:apk/alpine/libcrypto3",
+      "type": "apk",
+      "name": "libcrypto3",
+      "version": "3.3.2-r1",
+      "cpes": [
+        "cpe:2.3:a:libcrypto3:libcrypto3:3.3.2-r1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:libcrypto3:libcrypto:3.3.2-r1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:libcrypto:libcrypto3:3.3.2-r1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:libcrypto:libcrypto:3.3.2-r1:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "Apache-2.0"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:apk/alpine/libssl3@3.3.2-r1?arch=x86_64\u0026distro=alpine-3.20.3\u0026upstream=openssl",
+      "purl_base": "pkg:apk/alpine/libssl3",
+      "type": "apk",
+      "name": "libssl3",
+      "version": "3.3.2-r1",
+      "cpes": [
+        "cpe:2.3:a:libssl3:libssl3:3.3.2-r1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:libssl3:libssl:3.3.2-r1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:libssl:libssl3:3.3.2-r1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:libssl:libssl:3.3.2-r1:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "Apache-2.0"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:apk/alpine/musl@1.2.5-r0?arch=x86_64\u0026distro=alpine-3.20.3",
+      "purl_base": "pkg:apk/alpine/musl",
+      "type": "apk",
+      "name": "musl",
+      "version": "1.2.5-r0",
+      "cpes": [
+        "cpe:2.3:a:musl-libc:musl:1.2.5-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:musl:musl:1.2.5-r0:*:*:*:*:*:*:*",
+        "cpe:2.3:a:musl_libc:musl:1.2.5-r0:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "MIT"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:apk/alpine/ssl_client@1.36.1-r29?arch=x86_64\u0026distro=alpine-3.20.3\u0026upstream=busybox",
+      "purl_base": "pkg:apk/alpine/ssl_client",
+      "type": "apk",
+      "name": "ssl_client",
+      "version": "1.36.1-r29",
+      "cpes": [
+        "cpe:2.3:a:ssl-client:ssl-client:1.36.1-r29:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ssl-client:ssl_client:1.36.1-r29:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ssl:ssl-client:1.36.1-r29:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ssl:ssl_client:1.36.1-r29:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ssl_client:ssl-client:1.36.1-r29:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ssl_client:ssl_client:1.36.1-r29:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "GPL-2.0-only"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:apk/alpine/zlib@1.3.1-r1?arch=x86_64\u0026distro=alpine-3.20.3",
+      "purl_base": "pkg:apk/alpine/zlib",
+      "type": "apk",
+      "name": "zlib",
+      "version": "1.3.1-r1",
+      "cpes": [
+        "cpe:2.3:a:zlib:zlib:1.3.1-r1:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "Zlib"
+      ],
+      "origin": "syft"
+    }
+  ]
+}
