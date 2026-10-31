@@ -42,6 +42,51 @@ var orgTables = []orgTable{
 			VALUES ($1, $2, $3, 'member.added')`, tx.OrgID(), uuid.Must(uuid.NewV7()), userID)
 		return err
 	}},
+	{"agents", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO agents (org_id, id, kind, name) VALUES ($1, $2, 'host', 'srv-01')`,
+			tx.OrgID(), seedID(tx, "agent"))
+		return err
+	}},
+	{"projects", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO projects (org_id, id, kind, slug, name, agent_id)
+			VALUES ($1, $2, 'host', 'srv-01', 'srv-01', $3)`, tx.OrgID(), seedID(tx, "project"), seedID(tx, "agent"))
+		return err
+	}},
+	{"tracked_refs", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO tracked_refs (org_id, id, project_id, project_kind, kind, name)
+			VALUES ($1, $2, $3, 'host', 'host', 'srv-01')`, tx.OrgID(), uuid.Must(uuid.NewV7()), seedID(tx, "project"))
+		return err
+	}},
+	{"agent_tokens", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO agent_tokens (org_id, id, agent_id, public_id, secret_hash, name)
+			VALUES ($1, $2, $3, $4, sha256('a'::bytea), 'initial')`,
+			tx.OrgID(), uuid.Must(uuid.NewV7()), seedID(tx, "agent"), publicID(tx, "a"))
+		return err
+	}},
+	{"enrollment_tokens", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO enrollment_tokens (org_id, id, public_id, secret_hash, name, expires_at, max_uses)
+			VALUES ($1, $2, $3, sha256('e'::bytea), 'parc', now() + interval '1 day', 5)`,
+			tx.OrgID(), uuid.Must(uuid.NewV7()), publicID(tx, "e"))
+		return err
+	}},
+}
+
+// seedID dérive un identifiant stable de l'organisation et d'un nom, pour relier les
+// lignes du harnais entre elles.
+func seedID(tx *db.OrgTx, name string) uuid.UUID {
+	return uuid.NewSHA1(tx.OrgID().UUID(), []byte(name))
+}
+
+// publicID dérive un identifiant public de jeton unique par organisation (26 caractères
+// base32 minuscules).
+func publicID(tx *db.OrgTx, name string) string {
+	const alphabet = "abcdefghijklmnopqrstuvwxyz234567"
+	id := seedID(tx, "token-"+name)
+	out := make([]byte, 26)
+	for i := range out {
+		out[i] = alphabet[int(id[i%16]+byte(i))%32]
+	}
+	return string(out)
 }
 
 // errAbort annule volontairement une transaction de test.

@@ -5,6 +5,7 @@ package crossorg_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"leblanc.io/open-go-sbom/internal/db"
@@ -75,5 +76,58 @@ func TestCrossOrgReturnsOnlyWhatIsNeeded(t *testing.T) {
 	}
 	if _, err := crossorg.OrgIDBySlug(ctx, q, "z"); !errors.Is(err, crossorg.ErrNotFound) {
 		t.Fatalf("slug inconnu : %v", err)
+	}
+}
+
+// TestTokenOrgResolvesOnlyActiveOrganizations : l'organisation d'un jeton n'est résolue
+// que si elle est active, et la fonction ne renvoie rien d'autre que son identifiant.
+func TestTokenOrgResolvesOnlyActiveOrganizations(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	tdb := dbtest.New(t)
+	q := tdb.App.DB()
+	mk := func(slug, agentPub, enrPub string, archived bool) tenant.OrgID {
+		id, _ := tenant.NewOrgID()
+		if err := tdb.App.InOrg(ctx, id, func(tx *db.OrgTx) error {
+			if _, err := tx.ExecContext(ctx, `INSERT INTO organizations (id, slug, name, default_language, archived_at)
+				VALUES ($1, $2, $2, 'fr', CASE WHEN $3 THEN now() END)`, id, slug, archived); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, `INSERT INTO agents (org_id, id, kind, name) VALUES ($1, gen_random_uuid(), 'repo', 'ci')`, id); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, `INSERT INTO agent_tokens (org_id, id, agent_id, public_id, secret_hash, name)
+				SELECT $1, gen_random_uuid(), a.id, $2, sha256('s'::bytea), 'initial' FROM agents a`, id, agentPub); err != nil {
+				return err
+			}
+			_, err := tx.ExecContext(ctx, `INSERT INTO enrollment_tokens (org_id, id, public_id, secret_hash, name, expires_at, max_uses)
+				VALUES ($1, gen_random_uuid(), $2, sha256('s'::bytea), 'parc', now() + interval '1 hour', 1)`, id, enrPub)
+			return err
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	a := mk("a", strings.Repeat("a", 26), strings.Repeat("b", 26), false)
+	mk("z", strings.Repeat("c", 26), strings.Repeat("d", 26), true)
+
+	if got, err := crossorg.AgentTokenOrg(ctx, q, strings.Repeat("a", 26)); err != nil || got != a {
+		t.Fatalf("jeton d'agent : %v %v", got, err)
+	}
+	if got, err := crossorg.EnrollmentTokenOrg(ctx, q, strings.Repeat("b", 26)); err != nil || got != a {
+		t.Fatalf("jeton d'inscription : %v %v", got, err)
+	}
+	for name, c := range map[string]struct {
+		fn  func(context.Context, db.Querier, string) (tenant.OrgID, error)
+		pub string
+	}{
+		"agent, organisation archivée":       {crossorg.AgentTokenOrg, strings.Repeat("c", 26)},
+		"inscription, organisation archivée": {crossorg.EnrollmentTokenOrg, strings.Repeat("d", 26)},
+		"agent inconnu":                      {crossorg.AgentTokenOrg, strings.Repeat("e", 26)},
+		"identifiant d'inscription en agent": {crossorg.AgentTokenOrg, strings.Repeat("b", 26)},
+	} {
+		if _, err := c.fn(ctx, q, c.pub); !errors.Is(err, crossorg.ErrUnknownToken) {
+			t.Errorf("%s : %v", name, err)
+		}
 	}
 }

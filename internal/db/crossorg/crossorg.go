@@ -131,3 +131,31 @@ func OrgIDBySlug(ctx context.Context, q db.Querier, slug string) (tenant.OrgID, 
 	}
 	return id.V, nil
 }
+
+// ErrUnknownToken : aucun jeton actif d'une organisation active ne porte cet identifiant
+// public.
+var ErrUnknownToken = errors.New("crossorg: jeton inconnu")
+
+// AgentTokenOrg renvoie l'organisation (active) d'un jeton d'agent désigné par son
+// identifiant public (fonction ogsbom_agent_token_org). Le secret, la révocation et
+// l'expiration se vérifient ensuite dans InOrg.
+func AgentTokenOrg(ctx context.Context, q db.Querier, publicID string) (tenant.OrgID, error) {
+	return tokenOrg(ctx, q, `SELECT ogsbom_agent_token_org($1)`, publicID)
+}
+
+// EnrollmentTokenOrg fait de même pour un jeton d'inscription (fonction
+// ogsbom_enrollment_token_org).
+func EnrollmentTokenOrg(ctx context.Context, q db.Querier, publicID string) (tenant.OrgID, error) {
+	return tokenOrg(ctx, q, `SELECT ogsbom_enrollment_token_org($1)`, publicID)
+}
+
+func tokenOrg(ctx context.Context, q db.Querier, query, publicID string) (tenant.OrgID, error) {
+	var id sql.Null[tenant.OrgID]
+	if err := q.QueryRowContext(ctx, query, publicID).Scan(&id); err != nil {
+		return tenant.OrgID{}, fmt.Errorf("crossorg: organisation d'un jeton : %w", err)
+	}
+	if !id.Valid {
+		return tenant.OrgID{}, ErrUnknownToken
+	}
+	return id.V, nil
+}
