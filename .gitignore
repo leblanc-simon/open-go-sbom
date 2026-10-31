@@ -1,0 +1,17 @@
+# Binaires et artefacts de construction
+/bin/
+/dist/
+*.test
+*.out
+coverage.*
+
+# Configuration locale
+/config.yaml
+/*.local.yaml
+.env
+
+# Éditeurs
+.idea/
+.vscode/
+*.swp
+.DS_Store

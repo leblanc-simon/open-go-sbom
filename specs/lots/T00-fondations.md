@@ -2,7 +2,7 @@
 
 | Lot fonctionnel | Dépend de | Statut |
 | --- | --- | --- |
-| 1 · MVP inventaire | — | À faire |
+| 1 · MVP inventaire | — | Terminé |
 
 ## Objectif
 
@@ -14,7 +14,7 @@ Aucun code métier.
 
 **Inclus**
 
-- `go.mod` : module `leblanc.io/open-go-sbom` (à confirmer), `go 1.26`, directives `tool`
+- `go.mod` : module `leblanc.io/open-go-sbom`, `go 1.26`, directives `tool`
   pour `staticcheck`, `govulncheck`, `oapi-codegen` (et `sqlc` si retenu).
 - Arborescence de [`architecture.md` § 3](../architecture.md) avec un `doc.go` par paquet
   prévu au lot 1, et les trois `cmd/*/main.go` réduits à `--version`.
@@ -67,14 +67,14 @@ dépendances validées (avec version) dans le Journal.
 
 ## Critères d'acceptation
 
-- [ ] `make ci` passe sur le squelette, en local et en CI.
-- [ ] Un import interdit volontaire (par exemple Grype dans `web`) fait échouer `archtest`.
-- [ ] `ogsbom-server --version`, `ogsbom-host-agent --version`, `ogsbom-repo-agent --version`
+- [x] `make ci` passe sur le squelette, en local et en CI.
+- [x] Un import interdit volontaire (par exemple Grype dans `web`) fait échouer `archtest`.
+- [x] `ogsbom-server --version`, `ogsbom-host-agent --version`, `ogsbom-repo-agent --version`
       affichent la version injectée.
-- [ ] Les dépendances du § 5 « À valider en T00 » sont validées ou remplacées par
+- [x] Les dépendances du § 5 « À valider en T00 » sont validées ou remplacées par
       l'utilisateur, et le tableau de l'architecture est mis à jour.
-- [ ] Les quatre explorations ont une conclusion écrite.
-- [ ] `CLAUDE.md` reflète les commandes réelles du `Makefile`.
+- [x] Les six explorations ont une conclusion écrite.
+- [x] `CLAUDE.md` reflète les commandes réelles du `Makefile`.
 
 ## Tests attendus
 
@@ -94,4 +94,42 @@ Prises le 31 octobre 2026 :
 
 ## Journal
 
-_À remplir pendant la réalisation._
+Réalisé le 31 octobre 2026, branche `lot/T00-fondations`.
+
+### Livré
+
+- Module `leblanc.io/open-go-sbom`, `go 1.26`, `toolchain go1.26.10` (dernière corrective
+  de la 1.26 : govulncheck juge la bibliothèque standard de la chaîne utilisée).
+- 30 paquets du lot 1 avec leur `doc.go` ; paquets des lots 2 et 3 non créés.
+- `Makefile` (cibles de la fiche + `help`), `deploy/compose.yaml` et `deploy/initdb/`,
+  `.github/workflows/ci.yml`, `internal/archtest`, ADR 0001 à 0008, modèle de menace,
+  `LICENSE`, `README.md`, `.gitignore`, `.editorconfig`.
+
+### Explorations (programmes jetables, hors dépôt)
+
+| Question | Conclusion | ADR |
+| --- | --- | --- |
+| Syft et CycloneDX 1.7 | Syft v1.55.0 encode et décode CycloneDX JSON 1.7 (version par défaut), ainsi que SPDX 2.3 et Syft JSON, sans perte de distribution. | 0007 |
+| Grype en bibliothèque | Grype v0.121.0 : `LoadVulnerabilityDB` sur un répertoire, `pkg.ProvideFromReader` sur le SBOM brut, `VulnerabilityMatcher` ; même résultat pour les trois formats ; purl d'origine, EPSS, KEV et `RiskScore()` disponibles par correspondance. Base v6 : 3,2 Gio décompressée. | 0007 |
+| Client Docker | Déjà dans le graphe de stereoscope : `github.com/moby/moby/client` v0.6.0 et le client containerd v2. | 0007 |
+| Taille de l'agent | Binaire important Syft, `CGO_ENABLED=0 -trimpath -s -w` : 82 Mo amd64, 77 Mo arm64. | 0007 |
+| sqlc et tableaux | En `database/sql`, sqlc v1.31.1 génère `pq.Array` (dépendance `lib/pq`) : SQL écrit à la main. | 0004 |
+| oapi-codegen et 3.1 | v2.8.1 gère OpenAPI 3.1 (nullabilité par tableau de types) : l'API est écrite en 3.1.0. | 0006 |
+
+### Décisions et écarts
+
+- Constat imprévu : Syft exige un pilote SQLite enregistré pour les bases RPM récentes ;
+  `modernc.org/sqlite` (pur Go, déjà dans le graphe d'open-go-base) est ajouté au § 5
+  (décision prise en autonomie, l'utilisateur ayant délégué les choix du lot 1).
+- `archtest` applique les règles aux imports de test aussi ; il ne vérifie pas
+  « `cmd` sans logique » ni « pas de variable globale mutable » (relecture), ce que le
+  § 4 dit désormais.
+- Les tests d'intégration utilisent `OGSBOM_TEST_DATABASE_DSN`, connexion
+  d'administration où chaque test créera sa base et ses rôles jetables (helper en T01).
+- `generate-check` ne regarde que les répertoires générés (`internal/api/gen`,
+  `internal/agentclient/gen`), pour ne pas échouer sur un arbre de travail modifié.
+- Critère « quatre explorations » corrigé en « six » : la fiche en listait six.
+
+### ADR créés
+
+0001 à 0008.

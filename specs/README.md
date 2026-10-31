@@ -7,8 +7,8 @@ sur les choix techniques ; une fiche de lot précise le quoi et le comment d'une
 
 ## Façon de travailler
 
-1. Lire `CLAUDE.md`, [`architecture.md`](architecture.md), la fiche du lot et la section
-   « Journal » des lots dont il dépend.
+1. Lire `CLAUDE.md`, [`architecture.md`](architecture.md), [`lecons.md`](lecons.md), la
+   fiche du lot et la section « Journal » des lots dont il dépend.
 2. Vérifier que ces lots sont au statut « Terminé ».
 3. Proposer un plan court. Toute nouvelle dépendance tierce, tout écart à l'architecture et
    tout point « à trancher » de la fiche sont soumis à l'utilisateur avant d'écrire du code.
@@ -42,7 +42,7 @@ sur les choix techniques ; une fiche de lot précise le quoi et le comment d'une
 
 | Id | Lot technique | Lot fonctionnel | Dépend de | Statut |
 | --- | --- | --- | --- | --- |
-| [T00](lots/T00-fondations.md) | Fondations du dépôt et outillage qualité | 1 | — | À faire |
+| [T00](lots/T00-fondations.md) | Fondations du dépôt et outillage qualité | 1 | — | Terminé |
 | [T01](lots/T01-socle-serveur.md) | Socle du serveur | 1 | T00 | À faire |
 | [T02](lots/T02-file-de-traitements.md) | File de traitements PostgreSQL | 1 | T01 | À faire |
 | [T03](lots/T03-comptes-organisations.md) | Comptes, TOTP et organisations | 1 | T01 | À faire |
