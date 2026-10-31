@@ -44,6 +44,8 @@ forcée, et la liste initiale de ces fonctions.
   | `ogsbom_user_orgs(user_id)` | sélecteur d'organisation, organisation par défaut | id, slug, nom, rôle des organisations actives du compte (200 au plus) |
   | `ogsbom_list_organizations(after, limit)` | administration de l'instance | métadonnées (id, slug, nom, langue, archivage, création, nombre de membres), page bornée à 200 |
   | `ogsbom_org_id_by_slug(slug)` | administration de l'instance | l'identifiant seul |
+  | `ogsbom_agent_token_org(public_id)` | API des agents (T04, ADR 0014, migration 007) | l'identifiant de l'organisation active du jeton d'agent, rien sinon |
+  | `ogsbom_enrollment_token_org(public_id)` | inscription d'un agent serveur (T04, ADR 0014, migration 007) | l'identifiant de l'organisation active du jeton d'inscription, rien sinon |
 
   Aucune ne renvoie de donnée métier. Les deux dernières sont appelables par le rôle
   d'exécution comme les autres : c'est le code Go (`requireInstanceAdmin`) qui les réserve

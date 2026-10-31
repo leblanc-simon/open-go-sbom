@@ -67,11 +67,12 @@ parades prévues, et le lot qui les porte.
 
 | Menace | Parade | Lot |
 | --- | --- | --- |
-| Jeton d'agent volé | jeton haché (SHA-256), révocation immédiate, date de dernier usage, référence autorisée par agent | T04 |
+| Jeton d'agent volé | jeton haché (SHA-256), révocation immédiate, date de dernier usage, projets et références confiés à l'agent seuls ; jeton d'inscription borné en durée et en usages | T04 |
+| Énumération ou force brute de jetons | secret de 256 bits, comparaison en temps constant, refus uniforme tant que le secret n'est pas vérifié, jetons refusés limités par IP | T04 |
 | Faux inventaire pour masquer une faille | un agent n'écrit que sur ses références ; instantanés historisés et attribués ; signature au lot 3 | T04, T05, T24 |
 | Déni de service par SBOM énorme ou piégé | bornes en flux (taille compressée et décompressée, profondeur JSON, nombre de composants) avant tout décodage complet ; plafond de jobs par organisation | T05 |
 | Injection SQL | requêtes paramétrées uniquement (ADR 0004) | tous |
-| Saturation de l'API par un hôte | limitation par jeton | T04 |
+| Saturation de l'API par un hôte | limitation par jeton (`agent_api.rate_limit`), sans gêner les autres hôtes de la même IP | T04 |
 
 ### Serveur — base de données
 

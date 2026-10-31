@@ -242,6 +242,31 @@ qui perd aussi son mot de passe relève d'une intervention en base, hors de l'ap
 `mfa.max_attempts` codes faux. Les sessions et défis expirés sont purgés toutes les
 heures (job `auth.purge`, instances à workers).
 
+## Agents et jetons
+
+Les écrans **Projets** et **Agents** d'une organisation (`/o/<slug>/projects`,
+`/o/<slug>/agents`) sont réservés en écriture à ses administrateurs.
+
+- **Agent serveur** (`ogsbom-host-agent`, T07) : créer un **jeton d'inscription**
+  (« Inscrire des serveurs ») : validité (1 heure à 30 jours), nombre d'usages (un par
+  hôte), étiquettes des projets créés, ou projet de serveur existant à rattacher. Chaque
+  hôte l'échange contre son propre jeton d'agent (`POST /api/v1/agent/enroll`) ; le
+  serveur crée le projet de l'hôte, ou rattache l'agent au projet désigné, ou au projet
+  qui suit déjà ce nom d'hôte s'il n'a plus d'agent actif.
+- **Agent dépôt** (`ogsbom-repo-agent`, T08) : « Nouvel agent dépôt » crée l'agent et son
+  premier jeton ; les dépôts lui sont confiés depuis leur fiche.
+- Un jeton n'est **affiché qu'une fois** ; seul son SHA-256 est conservé. Le fournir à
+  l'agent par un fichier en `0600` ou un credential systemd, jamais dans un fichier de
+  configuration. **Rotation** : créer un second jeton sur la fiche de l'agent, le
+  déployer, vérifier sa date de dernière utilisation, révoquer l'ancien. Une révocation
+  vaut dès la requête suivante.
+- **Désactiver** un agent révoque ses jetons et lui retire ses projets ; un hôte peut
+  ensuite s'inscrire de nouveau sous le même nom.
+- **Limitation** : `agent_api.rate_limit` (120 par défaut) borne les requêtes par minute et
+  **par jeton**, `agent_api.failure_rate_limit` (30) les jetons refusés par minute et par
+  IP. Au-delà : 429 avec `Retry-After`. Ces compteurs sont propres à chaque instance.
+- Un agent est dit **muet** après 3 jours sans contact.
+
 ## Clés de chiffrement des secrets
 
 Les secrets stockés en base (canaux de notification, OIDC, dans les lots qui les

@@ -46,7 +46,7 @@ sur les choix techniques ; une fiche de lot précise le quoi et le comment d'une
 | [T01](lots/T01-socle-serveur.md) | Socle du serveur | 1 | T00 | Terminé |
 | [T02](lots/T02-file-de-traitements.md) | File de traitements PostgreSQL | 1 | T01 | Terminé |
 | [T03](lots/T03-comptes-organisations.md) | Comptes, TOTP et organisations | 1 | T01 | Terminé |
-| [T04](lots/T04-projets-agents.md) | Projets, agents et jetons | 1 | T03 | À faire |
+| [T04](lots/T04-projets-agents.md) | Projets, agents et jetons | 1 | T03 | Terminé |
 | [T05](lots/T05-ingestion.md) | Ingestion des SBOM et inventaire | 1 | T02, T04 | À faire |
 | [T06](lots/T06-analyse-vulnerabilites.md) | Analyse de vulnérabilités | 1 | T05 | À faire |
 | [T07](lots/T07-agent-serveur.md) | Agent serveur Linux | 1 | T05 | À faire |

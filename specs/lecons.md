@@ -158,8 +158,9 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   commande git par appel, avec `git -C` pour un autre dépôt.
 - **Pousser une étiquette** : le mandataire git de la session refuse les pushs
   d'étiquettes (HTTP 403) mais accepte les branches. Règle : pseudo-version du commit
-  fusionné (`go get module@<sha>`) et étiquette laissée à pousser par l'utilisateur,
-  consignée dans le Journal.
+  fusionné (`go get module@<sha>`), étiquette annotée créée seulement dans le clone local,
+  et action consignée pour l'utilisateur dans la section « Actions pour l'utilisateur » de
+  `specs/avancement.md` (et dans le Journal). Ne pas chercher à la pousser autrement.
 - **Tests d'un binaire et configuration obligatoire** : rendre un réglage obligatoire
   (`secrets.keys`) casse le test de bout en bout du binaire, qui part d'un environnement
   vide. Règle : mettre à jour `start()` de `cmd/ogsbom-server/main_integration_test.go`
@@ -167,3 +168,38 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
 - **Codes TOTP en test** : mfax refuse un pas déjà consommé et tolère ±1 pas. Règle : au
   plus trois connexions TOTP par compte et par test, avec des pas croissants (−30 s, 0,
   +30 s) ; voir `app.code` dans `internal/web/app_integration_test.go`.
+
+## Projets, agents et API générée (T04)
+
+- **Index git partagé entre commits** : un `git rm` fait tôt reste indexé et part dans le
+  commit suivant, même si celui-ci n'ajoute (`git add`) que d'autres chemins. Règle :
+  supprimer un fichier dans le commit qui en tire la conséquence (`git rm` juste avant
+  lui), et relire `git show --stat` après chaque commit.
+- **oapi-codegen, client** : le client génère un type `<OperationId>Response` par
+  opération ; un schéma nommé `EnrollResponse` pour l'opération `enroll` entre en
+  collision (« redeclared »). Règle : nommer les schémas de réponse autrement
+  (`EnrollmentResult`, `HeartbeatStatus`).
+- **oapi-codegen, chi** : le serveur généré enregistre les chemins complets du contrat
+  (`/agent/enroll`, relatifs à `servers: /api/v1`) sur le routeur fourni. Le monter dans
+  `Route("/api/v1/agent")` donnerait `/api/v1/agent/agent/enroll`. Règle : groupe dans le
+  sous-routeur `/api/v1`, `NotFound` et `MethodNotAllowed` de ce sous-routeur enveloppés
+  dans la chaîne d'API (`chi.Chain(...).Handler`).
+- **Limitation par clé** : une clé lue telle quelle dans la requête (identifiant public
+  d'un jeton non vérifié) donnerait un compteur neuf par valeur inventée. Règle : la clé
+  est posée par le middleware d'authentification, le limiteur passe après lui ; les refus
+  passent par un limiteur par IP placé sur le seul chemin du refus.
+- **Captures d'écran** : une page enregistrée en fichier et ouverte en `file://` ne charge
+  pas les feuilles du serveur (`Cross-Origin-Resource-Policy: same-origin`). Règle : servir
+  la page capturée depuis un serveur de test de même origine, qui relaie `/static/` vers
+  l'application (`httputil.NewSingleHostReverseProxy`).
+- **Onglets** : `overflow-x: auto` avec des liens à `margin-bottom: -1px` fait apparaître
+  une barre de défilement verticale. Règle : `overflow-y: hidden` sur `.tabs`.
+- **Couverture par paquet** : `go test -cover` ne compte que les tests du paquet lui-même ;
+  `agent` qui appelle `project.ListForAgent` ne couvre pas `project`. Règle : chaque
+  paquet métier teste ses propres fonctions exportées, même celles qu'un autre paquet
+  exerce déjà.
+- **Outil d'isolement des agents (suite)** : refusées aussi, les commandes qui citent un
+  DSN entre guillemets (`'postgres://…'`) ou combinent `cd sous-dossier && heredoc`.
+  Règle : DSN sans guillemets (`OGSBOM_TEST_DATABASE_DSN=postgres://…?sslmode=disable go
+  test …`), fichiers écrits par l'outil d'écriture, éditions multiples par un script
+  Python du répertoire temporaire lancé seul.
