@@ -61,6 +61,9 @@ func registerUI(r chi.Router, h *handlers, loginLimit func(http.Handler) http.Ha
 			r.Get("/members", id.members)
 			r.Get("/projects", id.projects)
 			r.Get("/projects/{project}", id.projectPage)
+			r.Get("/projects/{project}/snapshots", id.snapshots)
+			r.Get("/projects/{project}/snapshots/{snapshotID}", id.snapshotPage)
+			r.Get("/projects/{project}/snapshots/{snapshotID}/sbom", id.downloadSBOM)
 			r.Get("/agents", id.agents)
 			r.Get("/agents/{agentID}", id.agentPage)
 			r.Group(func(r chi.Router) {

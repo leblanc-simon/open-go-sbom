@@ -1,0 +1,357 @@
+{
+  "format": "spdx",
+  "spec_version": "2.3",
+  "distro": {
+    "id": "ubuntu",
+    "version_id": "24.04",
+    "name": "ubuntu"
+  },
+  "components": [
+    {
+      "purl": "pkg:deb/ubuntu/adduser@3.137ubuntu1?arch=all\u0026distro=ubuntu-24.04",
+      "purl_base": "pkg:deb/ubuntu/adduser",
+      "type": "deb",
+      "name": "adduser",
+      "version": "3.137ubuntu1",
+      "cpes": [
+        "cpe:2.3:a:adduser:adduser:3.137ubuntu1:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "GPL-2.0-only AND GPL-2.0-or-later"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/apt@2.8.3?arch=amd64\u0026distro=ubuntu-24.04",
+      "purl_base": "pkg:deb/ubuntu/apt",
+      "type": "deb",
+      "name": "apt",
+      "version": "2.8.3",
+      "cpes": [
+        "cpe:2.3:a:apt:apt:2.8.3:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "BSD-3-Clause AND LicenseRef-Expat AND GPL-2.0-only AND GPL-2.0-or-later"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/base-files@13ubuntu10.5?arch=amd64\u0026distro=ubuntu-24.04",
+      "purl_base": "pkg:deb/ubuntu/base-files",
+      "type": "deb",
+      "name": "base-files",
+      "version": "13ubuntu10.5",
+      "cpes": [
+        "cpe:2.3:a:base-files:base-files:13ubuntu10.5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:base-files:base_files:13ubuntu10.5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:base:base-files:13ubuntu10.5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:base:base_files:13ubuntu10.5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:base_files:base-files:13ubuntu10.5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:base_files:base_files:13ubuntu10.5:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "fd7e4aae7e7b05f217bcf2d02322825c360e66c52c4c2f1b28d784d6297a1c23"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/bash@5.2.21-2ubuntu4?arch=amd64\u0026distro=ubuntu-24.04",
+      "purl_base": "pkg:deb/ubuntu/bash",
+      "type": "deb",
+      "name": "bash",
+      "version": "5.2.21-2ubuntu4",
+      "cpes": [
+        "cpe:2.3:a:bash:bash:5.2.21-2ubuntu4:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "BSD-4-Clause-UC AND GFDL-1.3-only AND LicenseRef-GFDL-NIV-1.3 AND GPL-2.0-only AND GPL-2.0-or-later AND GPL-3.0-only AND GPL-3.0-or-later AND Latex2e AND LicenseRef-MIT-like AND LicenseRef-permissive"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/bsdutils@1:2.39.3-9ubuntu6.6?arch=amd64\u0026distro=ubuntu-24.04\u0026upstream=util-linux%402.39.3-9ubuntu6.6",
+      "purl_base": "pkg:deb/ubuntu/bsdutils",
+      "type": "deb",
+      "name": "bsdutils",
+      "version": "1:2.39.3-9ubuntu6.6",
+      "cpes": [
+        "cpe:2.3:a:bsdutils:bsdutils:1\\:2.39.3-9ubuntu6.6:*:*:*:*:*:*:*"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/ca-certificates@20260816ubuntu0.24.04.1?arch=all\u0026distro=ubuntu-24.04",
+      "purl_base": "pkg:deb/ubuntu/ca-certificates",
+      "type": "deb",
+      "name": "ca-certificates",
+      "version": "20260816ubuntu0.24.04.1",
+      "cpes": [
+        "cpe:2.3:a:ca-certificates:ca-certificates:20260816ubuntu0.24.04.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ca-certificates:ca_certificates:20260816ubuntu0.24.04.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ca:ca-certificates:20260816ubuntu0.24.04.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ca:ca_certificates:20260816ubuntu0.24.04.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ca_certificates:ca-certificates:20260816ubuntu0.24.04.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:ca_certificates:ca_certificates:20260816ubuntu0.24.04.1:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "GPL-2.0-only AND GPL-2.0-or-later AND MPL-2.0"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/coreutils@9.4-3ubuntu6.3?arch=amd64\u0026distro=ubuntu-24.04",
+      "purl_base": "pkg:deb/ubuntu/coreutils",
+      "type": "deb",
+      "name": "coreutils",
+      "version": "9.4-3ubuntu6.3",
+      "cpes": [
+        "cpe:2.3:a:coreutils:coreutils:9.4-3ubuntu6.3:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "BSD-4-Clause-UC AND FSFULLR AND GFDL-1.3-only AND LicenseRef-GFDL-NIV-1.3 AND GPL-3.0-only AND GPL-3.0-or-later AND ISC"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/curl@8.5.0-2ubuntu10.16?arch=amd64\u0026distro=ubuntu-24.04",
+      "purl_base": "pkg:deb/ubuntu/curl",
+      "type": "deb",
+      "name": "curl",
+      "version": "8.5.0-2ubuntu10.16",
+      "cpes": [
+        "cpe:2.3:a:curl:curl:8.5.0-2ubuntu10.16:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "BSD-3-Clause AND BSD-3-Clause AND BSD-4-Clause-UC AND FSFULLR AND GPL-2.0-only AND GPL-2.0-or-later AND GPL-3.0-or-later AND ISC AND OLDAP-2.8 AND X11 AND curl"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/dpkg@1.22.6ubuntu6.6?arch=amd64\u0026distro=ubuntu-24.04",
+      "purl_base": "pkg:deb/ubuntu/dpkg",
+      "type": "deb",
+      "name": "dpkg",
+      "version": "1.22.6ubuntu6.6",
+      "cpes": [
+        "cpe:2.3:a:dpkg:dpkg:1.22.6ubuntu6.6:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "GPL-2.0-only AND GPL-2.0-or-later AND LicenseRef-public-domain-s-s-d"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/gzip@1.12-1ubuntu3.2?arch=amd64\u0026distro=ubuntu-24.04",
+      "purl_base": "pkg:deb/ubuntu/gzip",
+      "type": "deb",
+      "name": "gzip",
+      "version": "1.12-1ubuntu3.2",
+      "cpes": [
+        "cpe:2.3:a:gzip:gzip:1.12-1ubuntu3.2:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "FSF-manpages AND LicenseRef-GFDL-1.3--no-invariant AND LicenseRef-GFDL-3 AND GPL-3.0-only AND GPL-3.0-or-later"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/libc6@2.39-0ubuntu8.9?arch=amd64\u0026distro=ubuntu-24.04\u0026upstream=glibc",
+      "purl_base": "pkg:deb/ubuntu/libc6",
+      "type": "deb",
+      "name": "libc6",
+      "version": "2.39-0ubuntu8.9",
+      "cpes": [
+        "cpe:2.3:a:libc6:libc6:2.39-0ubuntu8.9:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "d3c95b56fa33e28b57860580f0baf4e4f4de2a268a2b80f1d031a5191bade265"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/libcurl4t64@8.5.0-2ubuntu10.16?arch=amd64\u0026distro=ubuntu-24.04\u0026upstream=curl",
+      "purl_base": "pkg:deb/ubuntu/libcurl4t64",
+      "type": "deb",
+      "name": "libcurl4t64",
+      "version": "8.5.0-2ubuntu10.16",
+      "cpes": [
+        "cpe:2.3:a:libcurl4t64:libcurl4t64:8.5.0-2ubuntu10.16:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "BSD-3-Clause AND BSD-3-Clause AND BSD-4-Clause-UC AND FSFULLR AND GPL-2.0-only AND GPL-2.0-or-later AND GPL-3.0-or-later AND ISC AND OLDAP-2.8 AND X11 AND curl"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/liblzma5@5.6.1%2Breally5.4.5-1ubuntu0.4?arch=amd64\u0026distro=ubuntu-24.04\u0026upstream=xz-utils",
+      "purl_base": "pkg:deb/ubuntu/liblzma5",
+      "type": "deb",
+      "name": "liblzma5",
+      "version": "5.6.1+really5.4.5-1ubuntu0.4",
+      "cpes": [
+        "cpe:2.3:a:liblzma5:liblzma5:5.6.1\\+really5.4.5-1ubuntu0.4:*:*:*:*:*:*:*"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/libssl3t64@3.0.13-0ubuntu3.16?arch=amd64\u0026distro=ubuntu-24.04\u0026upstream=openssl",
+      "purl_base": "pkg:deb/ubuntu/libssl3t64",
+      "type": "deb",
+      "name": "libssl3t64",
+      "version": "3.0.13-0ubuntu3.16",
+      "cpes": [
+        "cpe:2.3:a:libssl3t64:libssl3t64:3.0.13-0ubuntu3.16:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "Apache-2.0 AND LicenseRef-Artistic AND GPL-1.0-only AND GPL-1.0-or-later"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/libsystemd0@255.4-1ubuntu8.18?arch=amd64\u0026distro=ubuntu-24.04\u0026upstream=systemd",
+      "purl_base": "pkg:deb/ubuntu/libsystemd0",
+      "type": "deb",
+      "name": "libsystemd0",
+      "version": "255.4-1ubuntu8.18",
+      "cpes": [
+        "cpe:2.3:a:libsystemd0:libsystemd0:255.4-1ubuntu8.18:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "CC0-1.0 AND LicenseRef-Expat AND GPL-2.0-only AND GPL-2.0-or-later AND LGPL-2.1-only AND LGPL-2.1-or-later AND LicenseRef-public-domain"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/libzstd1@1.5.5%2Bdfsg2-2build1.1?arch=amd64\u0026distro=ubuntu-24.04\u0026upstream=libzstd",
+      "purl_base": "pkg:deb/ubuntu/libzstd1",
+      "type": "deb",
+      "name": "libzstd1",
+      "version": "1.5.5+dfsg2-2build1.1",
+      "cpes": [
+        "cpe:2.3:a:libzstd1:libzstd1:1.5.5\\+dfsg2-2build1.1:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "BSD-3-Clause AND LicenseRef-Expat AND GPL-2.0-only AND Zlib"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/login@1:4.13%2Bdfsg1-4ubuntu3.2?arch=amd64\u0026distro=ubuntu-24.04\u0026upstream=shadow",
+      "purl_base": "pkg:deb/ubuntu/login",
+      "type": "deb",
+      "name": "login",
+      "version": "1:4.13+dfsg1-4ubuntu3.2",
+      "cpes": [
+        "cpe:2.3:a:login:login:1\\:4.13\\+dfsg1-4ubuntu3.2:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "BSD-3-Clause AND GPL-1.0-only AND GPL-2.0-only AND GPL-2.0-or-later AND LicenseRef-public-domain"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/openssl@3.0.13-0ubuntu3.16?arch=amd64\u0026distro=ubuntu-24.04",
+      "purl_base": "pkg:deb/ubuntu/openssl",
+      "type": "deb",
+      "name": "openssl",
+      "version": "3.0.13-0ubuntu3.16",
+      "cpes": [
+        "cpe:2.3:a:openssl:openssl:3.0.13-0ubuntu3.16:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "Apache-2.0 AND LicenseRef-Artistic AND GPL-1.0-only AND GPL-1.0-or-later"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/passwd@1:4.13%2Bdfsg1-4ubuntu3.2?arch=amd64\u0026distro=ubuntu-24.04\u0026upstream=shadow",
+      "purl_base": "pkg:deb/ubuntu/passwd",
+      "type": "deb",
+      "name": "passwd",
+      "version": "1:4.13+dfsg1-4ubuntu3.2",
+      "cpes": [
+        "cpe:2.3:a:passwd:passwd:1\\:4.13\\+dfsg1-4ubuntu3.2:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "BSD-3-Clause AND GPL-1.0-only AND GPL-2.0-only AND GPL-2.0-or-later AND LicenseRef-public-domain"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/perl-base@5.38.2-3.2ubuntu0.6?arch=amd64\u0026distro=ubuntu-24.04\u0026upstream=perl",
+      "purl_base": "pkg:deb/ubuntu/perl-base",
+      "type": "deb",
+      "name": "perl-base",
+      "version": "5.38.2-3.2ubuntu0.6",
+      "cpes": [
+        "cpe:2.3:a:perl-base:perl-base:5.38.2-3.2ubuntu0.6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:perl-base:perl_base:5.38.2-3.2ubuntu0.6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:perl:perl-base:5.38.2-3.2ubuntu0.6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:perl:perl_base:5.38.2-3.2ubuntu0.6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:perl_base:perl-base:5.38.2-3.2ubuntu0.6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:perl_base:perl_base:5.38.2-3.2ubuntu0.6:*:*:*:*:*:*:*"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/tar@1.35%2Bdfsg-3ubuntu0.4?arch=amd64\u0026distro=ubuntu-24.04",
+      "purl_base": "pkg:deb/ubuntu/tar",
+      "type": "deb",
+      "name": "tar",
+      "version": "1.35+dfsg-3ubuntu0.4",
+      "cpes": [
+        "cpe:2.3:a:tar:tar:1.35\\+dfsg-3ubuntu0.4:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "GPL-2.0-only AND GPL-2.0-or-later AND GPL-3.0-only AND GPL-3.0-or-later AND LGPL-2.1-only AND LGPL-2.1-or-later AND LGPL-3.0-only AND LGPL-3.0-or-later"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/util-linux@2.39.3-9ubuntu6.6?arch=amd64\u0026distro=ubuntu-24.04",
+      "purl_base": "pkg:deb/ubuntu/util-linux",
+      "type": "deb",
+      "name": "util-linux",
+      "version": "2.39.3-9ubuntu6.6",
+      "cpes": [
+        "cpe:2.3:a:util-linux:util-linux:2.39.3-9ubuntu6.6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:util-linux:util_linux:2.39.3-9ubuntu6.6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:util:util-linux:2.39.3-9ubuntu6.6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:util:util_linux:2.39.3-9ubuntu6.6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:util_linux:util-linux:2.39.3-9ubuntu6.6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:util_linux:util_linux:2.39.3-9ubuntu6.6:*:*:*:*:*:*:*"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/xz-utils@5.6.1%2Breally5.4.5-1ubuntu0.4?arch=amd64\u0026distro=ubuntu-24.04",
+      "purl_base": "pkg:deb/ubuntu/xz-utils",
+      "type": "deb",
+      "name": "xz-utils",
+      "version": "5.6.1+really5.4.5-1ubuntu0.4",
+      "cpes": [
+        "cpe:2.3:a:xz-utils:xz-utils:5.6.1\\+really5.4.5-1ubuntu0.4:*:*:*:*:*:*:*",
+        "cpe:2.3:a:xz-utils:xz_utils:5.6.1\\+really5.4.5-1ubuntu0.4:*:*:*:*:*:*:*",
+        "cpe:2.3:a:xz:xz-utils:5.6.1\\+really5.4.5-1ubuntu0.4:*:*:*:*:*:*:*",
+        "cpe:2.3:a:xz:xz_utils:5.6.1\\+really5.4.5-1ubuntu0.4:*:*:*:*:*:*:*",
+        "cpe:2.3:a:xz_utils:xz-utils:5.6.1\\+really5.4.5-1ubuntu0.4:*:*:*:*:*:*:*",
+        "cpe:2.3:a:xz_utils:xz_utils:5.6.1\\+really5.4.5-1ubuntu0.4:*:*:*:*:*:*:*"
+      ],
+      "origin": "syft"
+    },
+    {
+      "purl": "pkg:deb/ubuntu/zlib1g@1:1.3.dfsg-3.1ubuntu2.3?arch=amd64\u0026distro=ubuntu-24.04\u0026upstream=zlib",
+      "purl_base": "pkg:deb/ubuntu/zlib1g",
+      "type": "deb",
+      "name": "zlib1g",
+      "version": "1:1.3.dfsg-3.1ubuntu2.3",
+      "cpes": [
+        "cpe:2.3:a:zlib1g:zlib1g:1\\:1.3.dfsg-3.1ubuntu2.3:*:*:*:*:*:*:*"
+      ],
+      "licenses": [
+        "Zlib"
+      ],
+      "origin": "syft"
+    }
+  ]
+}

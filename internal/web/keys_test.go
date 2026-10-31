@@ -8,8 +8,11 @@ import (
 	"leblanc.io/open-go-sbom/internal/account"
 	"leblanc.io/open-go-sbom/internal/agent"
 	"leblanc.io/open-go-sbom/internal/audit"
+	"leblanc.io/open-go-sbom/internal/ingest"
+	"leblanc.io/open-go-sbom/internal/inventory"
 	"leblanc.io/open-go-sbom/internal/org"
 	"leblanc.io/open-go-sbom/internal/project"
+	"leblanc.io/open-go-sbom/internal/sbom"
 	"leblanc.io/open-go-sbom/internal/tenant"
 	"leblanc.io/open-go-sbom/locales"
 )
@@ -47,6 +50,28 @@ func TestDynamicKeysExist(t *testing.T) {
 	want = append(want, agent.ValidationKeys()...)
 	for _, k := range agent.ErrorKeys() {
 		want = append(want, k+".title", k+".text")
+	}
+	want = append(want, ingest.ValidationKeys()...)
+	for _, k := range append(sbom.ErrorKeys(), ingest.ErrorKeys()...) {
+		want = append(want, k+".title", k+".text")
+	}
+	for _, s := range ingest.Statuses() {
+		want = append(want, "ingestion_status."+string(s))
+	}
+	for _, o := range []inventory.Outcome{inventory.OutcomeCreated, inventory.OutcomeReplaced, inventory.OutcomeUnchanged} {
+		want = append(want, "ingestion_outcome."+string(o))
+	}
+	for _, o := range sbom.Origins() {
+		want = append(want, "origin."+string(o))
+	}
+	for _, s := range []sbom.Scope{sbom.ScopeRequired, sbom.ScopeOptional, sbom.ScopeExcluded} {
+		want = append(want, "scope."+string(s))
+	}
+	for _, f := range []sbom.Format{sbom.FormatCycloneDX, sbom.FormatSPDX, sbom.FormatSyft} {
+		want = append(want, "format.sbom_"+string(f))
+	}
+	for _, k := range []project.RefKind{project.RefBranch, project.RefTag, project.RefHost} {
+		want = append(want, "ref_kind."+string(k))
 	}
 	for _, k := range project.Kinds() {
 		want = append(want, "project_type."+string(k))

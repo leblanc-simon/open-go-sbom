@@ -1,0 +1,621 @@
+{
+ "spdxVersion": "SPDX-2.3",
+ "dataLicense": "CC0-1.0",
+ "SPDXID": "SPDXRef-DOCUMENT",
+ "name": "alpine-3.20",
+ "documentNamespace": "https://anchore.com/syft/dir/alpine-3.20-37fd5b91-29cf-4601-88e8-e03d4cdc3aae",
+ "creationInfo": {
+  "licenseListVersion": "3.29",
+  "creators": [
+   "Organization: Anchore, Inc",
+   "Tool: syft-1.55.0"
+  ],
+  "created": "2026-10-31T05:40:52Z"
+ },
+ "packages": [
+  {
+   "name": "alpine-baselayout",
+   "SPDXID": "SPDXRef-Package-apk-alpine-baselayout-701e5003df7f8f37",
+   "versionInfo": "3.6.5-r0",
+   "supplier": "Person: Natanael Copa (ncopa@alpinelinux.org)",
+   "originator": "Person: Natanael Copa (ncopa@alpinelinux.org)",
+   "downloadLocation": "https://git.alpinelinux.org/cgit/aports/tree/main/alpine-baselayout",
+   "filesAnalyzed": false,
+   "sourceInfo": "acquired package info from APK DB: /lib/apk/db/installed",
+   "licenseConcluded": "NOASSERTION",
+   "licenseDeclared": "GPL-2.0-only",
+   "copyrightText": "NOASSERTION",
+   "description": "Alpine base dir structure and init scripts",
+   "externalRefs": [
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:alpine-baselayout:alpine-baselayout:3.6.5-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:alpine-baselayout:alpine_baselayout:3.6.5-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:alpine_baselayout:alpine-baselayout:3.6.5-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:alpine_baselayout:alpine_baselayout:3.6.5-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:alpine:alpine-baselayout:3.6.5-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:alpine:alpine_baselayout:3.6.5-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "PACKAGE-MANAGER",
+     "referenceType": "purl",
+     "referenceLocator": "pkg:apk/alpine/alpine-baselayout@3.6.5-r0?arch=x86_64&distro=alpine-3.20.3"
+    }
+   ]
+  },
+  {
+   "name": "apk-tools",
+   "SPDXID": "SPDXRef-Package-apk-apk-tools-903fd902a8b4c796",
+   "versionInfo": "2.14.4-r1",
+   "supplier": "Person: Natanael Copa (ncopa@alpinelinux.org)",
+   "originator": "Person: Natanael Copa (ncopa@alpinelinux.org)",
+   "downloadLocation": "https://gitlab.alpinelinux.org/alpine/apk-tools",
+   "filesAnalyzed": false,
+   "sourceInfo": "acquired package info from APK DB: /lib/apk/db/installed",
+   "licenseConcluded": "NOASSERTION",
+   "licenseDeclared": "GPL-2.0-only",
+   "copyrightText": "NOASSERTION",
+   "description": "Alpine Package Keeper - package manager for alpine",
+   "externalRefs": [
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:apk-tools:apk-tools:2.14.4-r1:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:apk-tools:apk_tools:2.14.4-r1:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:apk_tools:apk-tools:2.14.4-r1:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:apk_tools:apk_tools:2.14.4-r1:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:apk:apk-tools:2.14.4-r1:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:apk:apk_tools:2.14.4-r1:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "PACKAGE-MANAGER",
+     "referenceType": "purl",
+     "referenceLocator": "pkg:apk/alpine/apk-tools@2.14.4-r1?arch=x86_64&distro=alpine-3.20.3"
+    }
+   ]
+  },
+  {
+   "name": "busybox",
+   "SPDXID": "SPDXRef-Package-apk-busybox-b3e8617096a64611",
+   "versionInfo": "1.36.1-r29",
+   "supplier": "NOASSERTION",
+   "downloadLocation": "https://busybox.net/",
+   "filesAnalyzed": false,
+   "sourceInfo": "acquired package info from APK DB: /lib/apk/db/installed",
+   "licenseConcluded": "NOASSERTION",
+   "licenseDeclared": "GPL-2.0-only",
+   "copyrightText": "NOASSERTION",
+   "description": "Size optimized toolbox of many common UNIX utilities",
+   "externalRefs": [
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:busybox:busybox:1.36.1-r29:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "PACKAGE-MANAGER",
+     "referenceType": "purl",
+     "referenceLocator": "pkg:apk/alpine/busybox@1.36.1-r29?arch=x86_64&distro=alpine-3.20.3"
+    }
+   ]
+  },
+  {
+   "name": "ca-certificates-bundle",
+   "SPDXID": "SPDXRef-Package-apk-ca-certificates-bundle-64b3e0ab52910515",
+   "versionInfo": "20240705-r0",
+   "supplier": "Person: Natanael Copa (ncopa@alpinelinux.org)",
+   "originator": "Person: Natanael Copa (ncopa@alpinelinux.org)",
+   "downloadLocation": "https://www.mozilla.org/en-US/about/governance/policies/security-group/certs/",
+   "filesAnalyzed": false,
+   "sourceInfo": "acquired package info from APK DB: /lib/apk/db/installed",
+   "licenseConcluded": "NOASSERTION",
+   "licenseDeclared": "(MPL-2.0 AND MIT)",
+   "copyrightText": "NOASSERTION",
+   "description": "Pre generated bundle of Mozilla certificates",
+   "externalRefs": [
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ca-certificates-bundle:ca-certificates-bundle:20240705-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ca-certificates-bundle:ca_certificates_bundle:20240705-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ca_certificates_bundle:ca-certificates-bundle:20240705-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ca_certificates_bundle:ca_certificates_bundle:20240705-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ca-certificates:ca-certificates-bundle:20240705-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ca-certificates:ca_certificates_bundle:20240705-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ca_certificates:ca-certificates-bundle:20240705-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ca_certificates:ca_certificates_bundle:20240705-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:mozilla:ca-certificates-bundle:20240705-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:mozilla:ca_certificates_bundle:20240705-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ca:ca-certificates-bundle:20240705-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ca:ca_certificates_bundle:20240705-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "PACKAGE-MANAGER",
+     "referenceType": "purl",
+     "referenceLocator": "pkg:apk/alpine/ca-certificates-bundle@20240705-r0?arch=x86_64&distro=alpine-3.20.3&upstream=ca-certificates"
+    }
+   ]
+  },
+  {
+   "name": "libcrypto3",
+   "SPDXID": "SPDXRef-Package-apk-libcrypto3-9bc42ab6ce572efc",
+   "versionInfo": "3.3.2-r1",
+   "supplier": "Person: Ariadne Conill (ariadne@dereferenced.org)",
+   "originator": "Person: Ariadne Conill (ariadne@dereferenced.org)",
+   "downloadLocation": "https://www.openssl.org/",
+   "filesAnalyzed": false,
+   "sourceInfo": "acquired package info from APK DB: /lib/apk/db/installed",
+   "licenseConcluded": "NOASSERTION",
+   "licenseDeclared": "Apache-2.0",
+   "copyrightText": "NOASSERTION",
+   "description": "Crypto library from openssl",
+   "externalRefs": [
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:libcrypto3:libcrypto3:3.3.2-r1:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:libcrypto3:libcrypto:3.3.2-r1:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:libcrypto:libcrypto3:3.3.2-r1:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:libcrypto:libcrypto:3.3.2-r1:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "PACKAGE-MANAGER",
+     "referenceType": "purl",
+     "referenceLocator": "pkg:apk/alpine/libcrypto3@3.3.2-r1?arch=x86_64&distro=alpine-3.20.3&upstream=openssl"
+    }
+   ]
+  },
+  {
+   "name": "libssl3",
+   "SPDXID": "SPDXRef-Package-apk-libssl3-c90ea427a541a540",
+   "versionInfo": "3.3.2-r1",
+   "supplier": "Person: Ariadne Conill (ariadne@dereferenced.org)",
+   "originator": "Person: Ariadne Conill (ariadne@dereferenced.org)",
+   "downloadLocation": "https://www.openssl.org/",
+   "filesAnalyzed": false,
+   "sourceInfo": "acquired package info from APK DB: /lib/apk/db/installed",
+   "licenseConcluded": "NOASSERTION",
+   "licenseDeclared": "Apache-2.0",
+   "copyrightText": "NOASSERTION",
+   "description": "SSL shared libraries",
+   "externalRefs": [
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:libssl3:libssl3:3.3.2-r1:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:libssl3:libssl:3.3.2-r1:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:libssl:libssl3:3.3.2-r1:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:libssl:libssl:3.3.2-r1:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "PACKAGE-MANAGER",
+     "referenceType": "purl",
+     "referenceLocator": "pkg:apk/alpine/libssl3@3.3.2-r1?arch=x86_64&distro=alpine-3.20.3&upstream=openssl"
+    }
+   ]
+  },
+  {
+   "name": "musl",
+   "SPDXID": "SPDXRef-Package-apk-musl-745cb1ca0131dd67",
+   "versionInfo": "1.2.5-r0",
+   "supplier": "Person: Natanael Copa (ncopa@alpinelinux.org)",
+   "originator": "Person: Natanael Copa (ncopa@alpinelinux.org)",
+   "downloadLocation": "https://musl.libc.org/",
+   "filesAnalyzed": false,
+   "sourceInfo": "acquired package info from APK DB: /lib/apk/db/installed",
+   "licenseConcluded": "NOASSERTION",
+   "licenseDeclared": "MIT",
+   "copyrightText": "NOASSERTION",
+   "description": "the musl c library (libc) implementation",
+   "externalRefs": [
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:musl-libc:musl:1.2.5-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:musl_libc:musl:1.2.5-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:musl:musl:1.2.5-r0:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "PACKAGE-MANAGER",
+     "referenceType": "purl",
+     "referenceLocator": "pkg:apk/alpine/musl@1.2.5-r0?arch=x86_64&distro=alpine-3.20.3"
+    }
+   ]
+  },
+  {
+   "name": "ssl_client",
+   "SPDXID": "SPDXRef-Package-apk-ssl-client-8f9d2a4c2efddf51",
+   "versionInfo": "1.36.1-r29",
+   "supplier": "NOASSERTION",
+   "downloadLocation": "https://busybox.net/",
+   "filesAnalyzed": false,
+   "sourceInfo": "acquired package info from APK DB: /lib/apk/db/installed",
+   "licenseConcluded": "NOASSERTION",
+   "licenseDeclared": "GPL-2.0-only",
+   "copyrightText": "NOASSERTION",
+   "description": "EXternal ssl_client for busybox wget",
+   "externalRefs": [
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ssl-client:ssl-client:1.36.1-r29:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ssl-client:ssl_client:1.36.1-r29:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ssl_client:ssl-client:1.36.1-r29:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ssl_client:ssl_client:1.36.1-r29:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ssl:ssl-client:1.36.1-r29:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:ssl:ssl_client:1.36.1-r29:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "PACKAGE-MANAGER",
+     "referenceType": "purl",
+     "referenceLocator": "pkg:apk/alpine/ssl_client@1.36.1-r29?arch=x86_64&distro=alpine-3.20.3&upstream=busybox"
+    }
+   ]
+  },
+  {
+   "name": "zlib",
+   "SPDXID": "SPDXRef-Package-apk-zlib-99a0385f05948133",
+   "versionInfo": "1.3.1-r1",
+   "supplier": "Person: Natanael Copa (ncopa@alpinelinux.org)",
+   "originator": "Person: Natanael Copa (ncopa@alpinelinux.org)",
+   "downloadLocation": "https://zlib.net/",
+   "filesAnalyzed": false,
+   "sourceInfo": "acquired package info from APK DB: /lib/apk/db/installed",
+   "licenseConcluded": "NOASSERTION",
+   "licenseDeclared": "Zlib",
+   "copyrightText": "NOASSERTION",
+   "description": "A compression/decompression Library",
+   "externalRefs": [
+    {
+     "referenceCategory": "SECURITY",
+     "referenceType": "cpe23Type",
+     "referenceLocator": "cpe:2.3:a:zlib:zlib:1.3.1-r1:*:*:*:*:*:*:*"
+    },
+    {
+     "referenceCategory": "PACKAGE-MANAGER",
+     "referenceType": "purl",
+     "referenceLocator": "pkg:apk/alpine/zlib@1.3.1-r1?arch=x86_64&distro=alpine-3.20.3"
+    }
+   ]
+  },
+  {
+   "name": "alpine-3.20",
+   "SPDXID": "SPDXRef-DocumentRoot-Directory-alpine-3.20",
+   "supplier": "NOASSERTION",
+   "downloadLocation": "NOASSERTION",
+   "filesAnalyzed": false,
+   "licenseConcluded": "NOASSERTION",
+   "licenseDeclared": "NOASSERTION",
+   "copyrightText": "NOASSERTION",
+   "primaryPackagePurpose": "FILE"
+  }
+ ],
+ "files": [
+  {
+   "fileName": "lib/apk/db/installed",
+   "SPDXID": "SPDXRef-File-lib-apk-db-installed-9f5aca292136191a",
+   "fileTypes": [
+    "TEXT"
+   ],
+   "checksums": [
+    {
+     "algorithm": "SHA256",
+     "checksumValue": "05fe73b1fb9477c2a66ee8eb79eb7df38bce703f42764b897e32f42ec5b12d38"
+    }
+   ],
+   "licenseConcluded": "NOASSERTION",
+   "licenseInfoInFiles": [
+    "NOASSERTION"
+   ],
+   "copyrightText": "NOASSERTION"
+  }
+ ],
+ "relationships": [
+  {
+   "spdxElementId": "SPDXRef-Package-apk-ca-certificates-bundle-64b3e0ab52910515",
+   "relatedSpdxElement": "SPDXRef-Package-apk-apk-tools-903fd902a8b4c796",
+   "relationshipType": "DEPENDENCY_OF"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-musl-745cb1ca0131dd67",
+   "relatedSpdxElement": "SPDXRef-Package-apk-ssl-client-8f9d2a4c2efddf51",
+   "relationshipType": "DEPENDENCY_OF"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-musl-745cb1ca0131dd67",
+   "relatedSpdxElement": "SPDXRef-Package-apk-apk-tools-903fd902a8b4c796",
+   "relationshipType": "DEPENDENCY_OF"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-musl-745cb1ca0131dd67",
+   "relatedSpdxElement": "SPDXRef-Package-apk-zlib-99a0385f05948133",
+   "relationshipType": "DEPENDENCY_OF"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-musl-745cb1ca0131dd67",
+   "relatedSpdxElement": "SPDXRef-Package-apk-libcrypto3-9bc42ab6ce572efc",
+   "relationshipType": "DEPENDENCY_OF"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-musl-745cb1ca0131dd67",
+   "relatedSpdxElement": "SPDXRef-Package-apk-busybox-b3e8617096a64611",
+   "relationshipType": "DEPENDENCY_OF"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-musl-745cb1ca0131dd67",
+   "relatedSpdxElement": "SPDXRef-Package-apk-libssl3-c90ea427a541a540",
+   "relationshipType": "DEPENDENCY_OF"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-zlib-99a0385f05948133",
+   "relatedSpdxElement": "SPDXRef-Package-apk-apk-tools-903fd902a8b4c796",
+   "relationshipType": "DEPENDENCY_OF"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-libcrypto3-9bc42ab6ce572efc",
+   "relatedSpdxElement": "SPDXRef-Package-apk-ssl-client-8f9d2a4c2efddf51",
+   "relationshipType": "DEPENDENCY_OF"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-libcrypto3-9bc42ab6ce572efc",
+   "relatedSpdxElement": "SPDXRef-Package-apk-apk-tools-903fd902a8b4c796",
+   "relationshipType": "DEPENDENCY_OF"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-libcrypto3-9bc42ab6ce572efc",
+   "relatedSpdxElement": "SPDXRef-Package-apk-libssl3-c90ea427a541a540",
+   "relationshipType": "DEPENDENCY_OF"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-libssl3-c90ea427a541a540",
+   "relatedSpdxElement": "SPDXRef-Package-apk-ssl-client-8f9d2a4c2efddf51",
+   "relationshipType": "DEPENDENCY_OF"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-libssl3-c90ea427a541a540",
+   "relatedSpdxElement": "SPDXRef-Package-apk-apk-tools-903fd902a8b4c796",
+   "relationshipType": "DEPENDENCY_OF"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-ca-certificates-bundle-64b3e0ab52910515",
+   "relatedSpdxElement": "SPDXRef-File-lib-apk-db-installed-9f5aca292136191a",
+   "relationshipType": "OTHER",
+   "comment": "evident-by: indicates the package's existence is evident by the given file"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-alpine-baselayout-701e5003df7f8f37",
+   "relatedSpdxElement": "SPDXRef-File-lib-apk-db-installed-9f5aca292136191a",
+   "relationshipType": "OTHER",
+   "comment": "evident-by: indicates the package's existence is evident by the given file"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-musl-745cb1ca0131dd67",
+   "relatedSpdxElement": "SPDXRef-File-lib-apk-db-installed-9f5aca292136191a",
+   "relationshipType": "OTHER",
+   "comment": "evident-by: indicates the package's existence is evident by the given file"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-ssl-client-8f9d2a4c2efddf51",
+   "relatedSpdxElement": "SPDXRef-File-lib-apk-db-installed-9f5aca292136191a",
+   "relationshipType": "OTHER",
+   "comment": "evident-by: indicates the package's existence is evident by the given file"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-apk-tools-903fd902a8b4c796",
+   "relatedSpdxElement": "SPDXRef-File-lib-apk-db-installed-9f5aca292136191a",
+   "relationshipType": "OTHER",
+   "comment": "evident-by: indicates the package's existence is evident by the given file"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-zlib-99a0385f05948133",
+   "relatedSpdxElement": "SPDXRef-File-lib-apk-db-installed-9f5aca292136191a",
+   "relationshipType": "OTHER",
+   "comment": "evident-by: indicates the package's existence is evident by the given file"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-libcrypto3-9bc42ab6ce572efc",
+   "relatedSpdxElement": "SPDXRef-File-lib-apk-db-installed-9f5aca292136191a",
+   "relationshipType": "OTHER",
+   "comment": "evident-by: indicates the package's existence is evident by the given file"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-busybox-b3e8617096a64611",
+   "relatedSpdxElement": "SPDXRef-File-lib-apk-db-installed-9f5aca292136191a",
+   "relationshipType": "OTHER",
+   "comment": "evident-by: indicates the package's existence is evident by the given file"
+  },
+  {
+   "spdxElementId": "SPDXRef-Package-apk-libssl3-c90ea427a541a540",
+   "relatedSpdxElement": "SPDXRef-File-lib-apk-db-installed-9f5aca292136191a",
+   "relationshipType": "OTHER",
+   "comment": "evident-by: indicates the package's existence is evident by the given file"
+  },
+  {
+   "spdxElementId": "SPDXRef-DocumentRoot-Directory-alpine-3.20",
+   "relatedSpdxElement": "SPDXRef-Package-apk-alpine-baselayout-701e5003df7f8f37",
+   "relationshipType": "CONTAINS"
+  },
+  {
+   "spdxElementId": "SPDXRef-DocumentRoot-Directory-alpine-3.20",
+   "relatedSpdxElement": "SPDXRef-Package-apk-apk-tools-903fd902a8b4c796",
+   "relationshipType": "CONTAINS"
+  },
+  {
+   "spdxElementId": "SPDXRef-DocumentRoot-Directory-alpine-3.20",
+   "relatedSpdxElement": "SPDXRef-Package-apk-busybox-b3e8617096a64611",
+   "relationshipType": "CONTAINS"
+  },
+  {
+   "spdxElementId": "SPDXRef-DocumentRoot-Directory-alpine-3.20",
+   "relatedSpdxElement": "SPDXRef-Package-apk-ca-certificates-bundle-64b3e0ab52910515",
+   "relationshipType": "CONTAINS"
+  },
+  {
+   "spdxElementId": "SPDXRef-DocumentRoot-Directory-alpine-3.20",
+   "relatedSpdxElement": "SPDXRef-Package-apk-libcrypto3-9bc42ab6ce572efc",
+   "relationshipType": "CONTAINS"
+  },
+  {
+   "spdxElementId": "SPDXRef-DocumentRoot-Directory-alpine-3.20",
+   "relatedSpdxElement": "SPDXRef-Package-apk-libssl3-c90ea427a541a540",
+   "relationshipType": "CONTAINS"
+  },
+  {
+   "spdxElementId": "SPDXRef-DocumentRoot-Directory-alpine-3.20",
+   "relatedSpdxElement": "SPDXRef-Package-apk-musl-745cb1ca0131dd67",
+   "relationshipType": "CONTAINS"
+  },
+  {
+   "spdxElementId": "SPDXRef-DocumentRoot-Directory-alpine-3.20",
+   "relatedSpdxElement": "SPDXRef-Package-apk-ssl-client-8f9d2a4c2efddf51",
+   "relationshipType": "CONTAINS"
+  },
+  {
+   "spdxElementId": "SPDXRef-DocumentRoot-Directory-alpine-3.20",
+   "relatedSpdxElement": "SPDXRef-Package-apk-zlib-99a0385f05948133",
+   "relationshipType": "CONTAINS"
+  },
+  {
+   "spdxElementId": "SPDXRef-DOCUMENT",
+   "relatedSpdxElement": "SPDXRef-DocumentRoot-Directory-alpine-3.20",
+   "relationshipType": "DESCRIBES"
+  }
+ ]
+}

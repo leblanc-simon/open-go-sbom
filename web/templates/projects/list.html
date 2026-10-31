@@ -48,6 +48,7 @@
             <th scope="col">{{T "projects.col_labels"}}</th>
             <th scope="col">{{T "projects.col_agent"}}</th>
             <th scope="col">{{T "projects.col_last_contact"}}</th>
+            <th scope="col">{{T "projects.col_last_snapshot"}}</th>
           </tr>
         </thead>
         <tbody>
@@ -59,6 +60,7 @@
             <td class="wrap">{{template "labels" .Labels}}</td>
             <td>{{with .Agent}}<span class="cell-stack"><a href="{{$base}}/agents/{{.ID}}">{{.Name}}</a>{{with .Version}}<span class="version">{{.}}</span>{{end}}</span>{{else}}<span class="muted">{{T "projects.no_agent"}}</span>{{end}}</td>
             <td>{{if .AgentStatus}}<span class="cell-stack">{{template "agent_status" .AgentStatus}}{{template "stamp" .LastSeen}}</span>{{else}}<span class="muted">{{T "projects.no_agent"}}</span>{{end}}</td>
+            <td>{{if .LastSnapshot}}<a href="{{$base}}/projects/{{.Slug}}/snapshots">{{template "stamp" .LastSnapshot}}</a>{{else}}<span class="muted">{{T "projects.no_snapshot"}}</span>{{end}}</td>
           </tr>
           {{- end}}
         </tbody>

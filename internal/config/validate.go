@@ -186,8 +186,31 @@ func (c Config) Validate() error {
 	v.positive("workers.retention", int64(c.Workers.Retention))
 	v.positive("workers.schedule_interval", int64(c.Workers.ScheduleInterval))
 	v.positive("workers.shutdown_timeout", int64(c.Workers.ShutdownTimeout))
+	v.positive("workers.org_limit", int64(c.Workers.OrgLimit))
+	c.Ingest.validate(&v)
 
 	return errors.Join(v.errs...)
+}
+
+// Plafonds des bornes de l'ingestion : au-delà, un seul envoi suffirait à épuiser la
+// mémoire d'un worker, ou la pile du lecteur préalable.
+const (
+	maxIngestMiB   = 4096
+	maxIngestDepth = 1000
+)
+
+func (i Ingest) validate(v *validator) {
+	if i.MaxUploadMiB < 1 || i.MaxUploadMiB > maxIngestMiB {
+		v.fail("ingest.max_upload_mib", "doit être compris entre 1 et %d (reçu %d)", maxIngestMiB, i.MaxUploadMiB)
+	}
+	if i.MaxDecompressedMiB < i.MaxUploadMiB || i.MaxDecompressedMiB > maxIngestMiB {
+		v.fail("ingest.max_decompressed_mib", "doit être compris entre ingest.max_upload_mib et %d (reçu %d)", maxIngestMiB, i.MaxDecompressedMiB)
+	}
+	if i.MaxDepth < 8 || i.MaxDepth > maxIngestDepth {
+		v.fail("ingest.max_depth", "doit être compris entre 8 et %d (reçu %d)", maxIngestDepth, i.MaxDepth)
+	}
+	v.positive("ingest.max_components", int64(i.MaxComponents))
+	v.positive("ingest.decode_timeout", int64(i.DecodeTimeout))
 }
 
 func (b Bootstrap) validate(v *validator) {

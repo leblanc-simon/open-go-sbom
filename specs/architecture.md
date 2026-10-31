@@ -142,7 +142,7 @@ relevées en T00 (une montée de version ultérieure ne demande pas de nouvelle 
 | Routeur HTTP | `github.com/go-chi/chi/v5` (comme open-go-canivet) | v5.5.0 | Validé (ADR 0003) |
 | SBOM, vulnérabilités, licences | `github.com/anchore/syft`, `grype`, `grant` | v1.55.0, v0.121.0, v0.6.8 | Décidé (ADR 0007) |
 | Pilote SQLite pur Go, exigé par Syft pour les bases RPM récentes | `modernc.org/sqlite` (déjà dans le graphe d'open-go-base) | celle du graphe | Validé en T00 (ADR 0007) |
-| Manipulation CycloneDX côté agents | `github.com/CycloneDX/cyclonedx-go` (déjà dans le graphe de Syft) | v0.12.0 | Validé |
+| Manipulation CycloneDX côté agents et dans l'adaptateur `sbom/syft` (réencodage) | `github.com/CycloneDX/cyclonedx-go` (déjà dans le graphe de Syft) | v0.12.0 | Validé |
 | purl | `github.com/package-url/packageurl-go` (déjà dans le graphe de Syft) | v0.1.7 | Validé |
 | UUID v7 | `github.com/google/uuid` (déjà indirect) | v1.6.0 | Validé |
 | Contrat d'API | `oapi-codegen` en directive `tool` + `github.com/oapi-codegen/runtime` | v2.8.1, v1.8.0 | Validé (ADR 0006) |
@@ -169,7 +169,9 @@ démarrage), `Auth` et `MFA` (avec authx et mfax, T03), `CORS` (API utilisateur)
 propres au projet : `HTTP` (délais des serveurs, délai d'arrêt propre),
 `TLS` (certificat, clé, autorité des certificats clients pour le mTLS des agents),
 `Management` (écoute séparée métriques et sondes), `Workers` (activation, nombre de
-workers, scrutation, bail, réessais, rétention, planificateur, délai d'arrêt), `Ingest` (bornes),
+workers, scrutation, bail, réessais, rétention, planificateur, délai d'arrêt, plafond de
+jobs lourds par organisation), `Ingest` (bornes de taille reçue et décompressée, de profondeur
+et de composants, délai du décodage, T05),
 `VulnDB` (URL de la liste, répertoire local, fréquence, mode hors ligne), `Secrets` (clés
 de chiffrement versionnées, obligatoires depuis T03 : les secrets TOTP sont chiffrés),
 `Bootstrap` (premier administrateur et procédure de secours, T03), `Login` (débit des
@@ -254,7 +256,7 @@ Données **par organisation** (toutes portent `org_id`) :
 | `tracked_refs` | référence suivie (branche, tag, ou l'hôte) |
 | `agents`, `agent_tokens`, `enrollment_tokens`, `personal_access_tokens` | agents et jetons hachés |
 | `components` | composant de l'organisation : purl canonique (unique par organisation), `purl_base`, type, nom, version, CPE, empreintes |
-| `component_sets`, `component_set_items` | ensemble d'inventaire adressé par son empreinte ; ses composants avec origine (`syft`, `ia`), confiance, preuve, portée, licences |
+| `component_sets`, `component_set_items` | ensemble d'inventaire adressé par son empreinte ; ses composants avec origine (`syft`, `ia`), confiance, modèle, preuve, portée, licences, identification faible |
 | `sbom_blobs` | SBOM brut compressé, dédoublonné par empreinte SHA-256 |
 | `ingestions` | réception d'un SBOM : statut, erreurs, instantané produit |
 | `snapshots` | instantané d'une référence : commit, date, agent, version d'agent, blob, ensemble d'inventaire |
@@ -369,36 +371,52 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
 
 ## 11. Pipeline d'ingestion
 
-1. `POST /api/v1/agent/ingestions` (jeton d'agent), multipart : `context` (JSON : référence,
-   commit, version d'agent, date de scan) et `sbom` (fichier JSON). Contrôles synchrones :
-   taille, type, référence autorisée pour cet agent. Le blob est stocké, l'ingestion créée,
-   un job `ingest.decode` mis en file dans la même transaction ; réponse `202`.
+1. `POST /api/v1/agent/ingestions` (jeton d'agent), multipart dans cet ordre : `context`
+   (JSON : projet, référence, commit, version d'agent, date de scan) puis `sbom` (JSON, gzip
+   de préférence). Contrôles synchrones : contexte, référence confiée à l'agent
+   (`project.RefForAgent`, avant toute lecture du SBOM et de nouveau dans la transaction),
+   taille reçue (413 au-delà, sans ingestion), taille décompressée d'un envoi gzip. Le blob
+   (gzip, dédoublonné par le SHA-256 du JSON) est stocké, l'ingestion créée, un job
+   `ingest.decode` mis en file dans la même transaction ; réponse `202`. Un envoi
+   impossible à stocker (gzip corrompu, trop gros décompressé) donne une ingestion
+   `failed` ; le même SBOM renvoyé pour la même référence et le même commit d'un dépôt
+   renvoie l'ingestion existante (`200`), sans rien créer.
 2. `ingest.decode` :
    - bornes préalables par lecture en flux, avant tout décodage complet : taille
-     décompressée, profondeur JSON, nombre de composants ;
-   - décodage par `sbom/syft` vers `sbom.Document`, normalisation des purl ;
+     décompressée, profondeur JSON, nombre de composants (`sbom.Precheck`) ;
+   - validation par le schéma officiel embarqué (`sbom/schema` ; l'énumération des
+     licences SPDX de CycloneDX n'est pas imposée à la réception, ADR 0016) ;
+   - décodage par `sbom/syft` (décodeurs de Syft, ceux de Grype) vers `sbom.Document`,
+     normalisation des purl et fusion des doublons ;
    - calcul de l'**empreinte d'inventaire** (composants canoniques triés, origine, preuve),
      indépendante des horodatages et numéros de série du document ;
-   - dans une transaction : upsert trié des composants de l'organisation, ensemble
-     d'inventaire réutilisé ou créé, puis instantané.
+   - dans une transaction, référence verrouillée : upsert trié des composants de
+     l'organisation, ensemble d'inventaire réutilisé ou créé, instantané, `ref_current`,
+     fin de l'ingestion ; un SBOM refusé termine l'ingestion en `failed` avec sa clé, sans
+     rien ranger.
 3. Règle d'instantané : pour un dépôt, un instantané par (référence, commit), même si
-   l'inventaire n'a pas changé (il réutilise alors l'ensemble existant) ; pour un hôte ou un
-   conteneur, un inventaire identique au courant met seulement à jour la date de dernière
-   analyse.
-4. Si l'ensemble courant de la référence a changé, job `analysis.ref` mis en file.
+   l'inventaire n'a pas changé (il réutilise alors l'ensemble existant) ; le même commit
+   renvoyé avec un autre inventaire remplace l'ensemble de son instantané. Pour un hôte ou
+   un conteneur, un inventaire identique au courant met seulement à jour la date de
+   dernière analyse. L'instantané courant est le plus récent par date de scan.
+4. Si l'ensemble courant de la référence a changé, job `analysis.ref` (charge
+   `{"ref_id"}`, clé `ref:<id>`, priorité haute) mis en file dans la même transaction.
 5. `GET /api/v1/agent/ingestions/{id}` expose le statut (`queued`, `processing`, `done`,
    `failed` + clé d'erreur traduisible) et l'instantané produit.
 
 Formats acceptés : CycloneDX JSON 1.5 à 1.7, SPDX JSON 2.3, Syft JSON. Pas de XML.
 Canonicalisation des purl : encodage, casse et tri des qualificatifs normalisés selon la
-spécification purl ; **les qualificatifs d'identité (`distro`, `arch`, `epoch`, `upstream`…)
-sont conservés**, car Grype en a besoin. Les CPE sont conservés. Propriétés CycloneDX propres
+spécification purl, telle que l'applique `packageurl-go` (ADR 0016) ; **les qualificatifs
+d'identité (`distro`, `arch`, `epoch`, `upstream`…) sont conservés**, car Grype en a
+besoin. Un composant sans purl utilisable reçoit `pkg:generic/<nom>@<version>` et
+l'« identification faible ». Les CPE sont conservés. Propriétés CycloneDX propres
 au projet, espace de noms `ogsbom:` : `ogsbom:origin` (`syft` ou `ia`), `ogsbom:confidence` (0 à 1),
 `ogsbom:model` ; la preuve IA utilise le champ standard `evidence`.
 
-Le décodage s'exécute dans le processus worker ; les bornes préalables et le plafond de
-jobs simultanés par organisation empêchent un seul agent de saturer une instance. Une
-isolation en sous-processus est étudiée en ADR pendant T05.
+Le décodage s'exécute dans le processus worker ; les bornes préalables, le délai du job
+et le plafond de jobs simultanés par organisation (`workers.org_limit`) empêchent un seul
+agent de saturer une instance. L'isolation en sous-processus a été étudiée et écartée tant
+qu'aucune mesure ne la justifie (ADR 0015).
 
 ## 12. Analyse de vulnérabilités
 

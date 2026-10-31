@@ -94,9 +94,18 @@ func enqueue(t testing.TB, pool *db.Pool, j Job) uuid.UUID {
 	return id
 }
 
-func newOrg(t testing.TB) tenant.OrgID {
+// newOrg crée une organisation : jobs.org_id la référence (migration 008).
+func newOrg(t testing.TB, pool *db.Pool) tenant.OrgID {
 	t.Helper()
 	o, err := tenant.NewOrgID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = pool.InOrg(context.Background(), o, func(tx *db.OrgTx) error {
+		_, err := tx.ExecContext(context.Background(), `INSERT INTO organizations (id, slug, name, default_language)
+			VALUES ($1::uuid, 'o-' || right($1::uuid::text, 12), 'Organisation', 'fr')`, o)
+		return err
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

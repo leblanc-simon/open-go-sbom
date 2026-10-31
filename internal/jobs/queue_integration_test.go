@@ -30,7 +30,7 @@ func TestLoadTenThousandJobs(t *testing.T) {
 	const total, orgCount, limit = 10000, 10, 3
 	orgs := make([]tenant.OrgID, orgCount)
 	for i := range orgs {
-		orgs[i] = newOrg(t)
+		orgs[i] = newOrg(t, tdb.App)
 	}
 	err := tdb.App.InTx(ctx, func(tx *db.Tx) error {
 		for i := range total {
@@ -256,7 +256,7 @@ func TestEnqueueInOrgTransaction(t *testing.T) {
 	t.Parallel()
 	tdb := dbtest.New(t)
 	ctx := context.Background()
-	org := newOrg(t)
+	org := newOrg(t, tdb.App)
 	var id uuid.UUID
 	err := tdb.App.InOrg(ctx, org, func(tx *db.OrgTx) error {
 		var err error
@@ -270,7 +270,7 @@ func TestEnqueueInOrgTransaction(t *testing.T) {
 		t.Fatal("l'organisation de la transaction n'a pas été reprise")
 	}
 	err = tdb.App.InOrg(ctx, org, func(tx *db.OrgTx) error {
-		_, err := Enqueue(ctx, tx, Job{Kind: "test.org", OrgID: newOrg(t)})
+		_, err := Enqueue(ctx, tx, Job{Kind: "test.org", OrgID: newOrg(t, tdb.App)})
 		return err
 	})
 	if !errors.Is(err, ErrOrgMismatch) {

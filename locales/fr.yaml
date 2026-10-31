@@ -49,6 +49,9 @@ status:
 
 format:
   utc: "{{.Time}} UTC"
+  sbom_cyclonedx: CycloneDX
+  sbom_spdx: SPDX
+  sbom_syft: Syft JSON
 
 form:
   error_title: La saisie n'a pas été acceptée
@@ -126,6 +129,13 @@ validation:
   agent_version_invalid: La version de l'agent compte au plus 64 caractères, sans espace.
   enrollment_project_invalid: Choisissez un projet de serveur actif de l'organisation.
   token_already_revoked: Ce jeton est déjà révoqué.
+  ingest:
+    commit: "Le commit s'écrit en hexadécimal : 40 caractères (SHA-1) ou 64 (SHA-256)."
+    commit_required: Indiquez le commit analysé pour une branche ou une étiquette.
+    commit_forbidden: Un hôte n'a pas de commit.
+    ref: Indiquez un projet confié à l'agent et une référence (branche, étiquette ou hôte).
+    agent_version: La version de l'agent compte au plus 64 caractères, sans espace.
+    scanned_at: "La date de scan est obligatoire, postérieure à l'an 2000, et au plus une heure en avance sur l'horloge du serveur."
 
 home:
   title: Accueil
@@ -427,6 +437,34 @@ error:
     project_unavailable:
       title: Projet indisponible
       text: Le projet désigné par ce jeton est archivé, ou a déjà un agent actif.
+  ingest:
+    too_large:
+      title: SBOM trop volumineux
+      text: Le SBOM dépasse la taille admise, compressé ou une fois décompressé. Envoyez-le compressé en gzip, ou demandez à l'exploitant de relever la borne.
+    too_deep:
+      title: SBOM trop profond
+      text: Le document imbrique trop d'objets ou de tableaux JSON pour être décodé sans risque.
+    too_many_components:
+      title: Trop de composants
+      text: Le SBOM compte plus de composants que la borne de l'instance n'en admet.
+    malformed:
+      title: SBOM illisible
+      text: Le document n'est pas un JSON valide, ou son flux gzip est corrompu.
+    unsupported_format:
+      title: Format non pris en charge
+      text: "Formats acceptés : CycloneDX JSON 1.5 à 1.7, SPDX JSON 2.3 et Syft JSON. Le XML n'est pas pris en charge."
+    schema_invalid:
+      title: SBOM non conforme
+      text: Le document ne respecte pas le schéma officiel de son format.
+    decode_failed:
+      title: Décodage impossible
+      text: Le document est conforme à son schéma mais n'a pas pu être décodé.
+    ref_unknown:
+      title: Référence inconnue
+      text: Ce projet n'est pas confié à cet agent, n'est plus actif, ou ne suit pas cette référence.
+    missing_part:
+      title: Envoi incomplet
+      text: "L'envoi doit comporter, dans cet ordre, une partie « context » (JSON) puis une partie « sbom »."
 
 footer:
   version: "Version {{.Version}}"
@@ -481,6 +519,8 @@ projects:
   col_labels: Étiquettes
   col_agent: Agent
   col_last_contact: Dernier contact de l'agent
+  col_last_snapshot: Dernier instantané
+  no_snapshot: Aucun
   no_agent: Aucun agent
   no_labels: Aucune
   empty: Aucun projet ne correspond. Créez un dépôt, ou inscrivez un serveur avec un jeton d'inscription.
@@ -490,6 +530,7 @@ project:
   title: "{{.Name}}"
   tabs: Sections du projet
   tab_overview: Vue d'ensemble
+  tab_snapshots: Instantanés
   tab_settings: Paramètres
   agent_value: "Agent : {{.Name}}"
   archived_title: Projet archivé
@@ -652,3 +693,95 @@ enrollment_new:
   project_hint: Un projet de serveur existant, sans agent, ou un projet créé pour chaque hôte.
   labels_hint: "Appliquées aux projets créés à l'inscription : env=prod, dc=paris."
   create: Créer le jeton
+
+ref_kind:
+  branch: Branche
+  tag: Étiquette
+  host: Hôte
+
+origin:
+  syft: Syft
+  ia: IA
+
+scope:
+  required: Requis
+  optional: Facultatif
+  excluded: Exclu
+
+ingestion_status:
+  queued: En attente
+  processing: En cours
+  done: Terminée
+  failed: En échec
+
+ingestion_outcome:
+  created: Nouvel instantané
+  replaced: Inventaire du commit remplacé
+  unchanged: Inventaire inchangé
+
+snapshots:
+  title: "Instantanés — {{.Name}}"
+  refs_title: Références
+  refs_caption: Références suivies du projet et leur dernier instantané
+  col_ref: Référence
+  col_last: Dernier
+  count:
+    one: "{{.Count}} instantané"
+    other: "{{.Count}} instantanés"
+  removed: retirée
+  no_refs: Ce projet ne suit aucune référence.
+  of_ref: "Instantanés de {{.Ref}}"
+  none: Aucun instantané pour cette référence ; l'agent n'a encore rien envoyé.
+  current: Courant
+  agent: "Agent {{.Name}}"
+  agent_version: "Agent {{.Name}} {{.Version}}"
+  agent_unknown: Agent inconnu
+  components: "{{.Syft}} Syft · {{.IA}} IA"
+  weak:
+    one: "{{.Count}} identification faible"
+    other: "{{.Count}} identifications faibles"
+  component_count:
+    one: "({{.Count}} composant)"
+    other: "({{.Count}} composants)"
+  last_scanned: "Dernière analyse :"
+  older: Instantanés plus anciens
+  ingestions_title: Dernières réceptions
+  ingestions_meta: Envois de SBOM et leur décodage
+  ingestions_caption: Derniers SBOM reçus pour ce projet, leur état et leur résultat
+  col_received: Reçu
+  col_status: État
+  col_result: Résultat
+  pending: Décodage à venir
+  no_ingestions: Aucun SBOM reçu pour ce projet.
+
+snapshot:
+  title: "Instantané du {{.Date}} — {{.Name}}"
+  heading: "Instantané de {{.Name}}"
+  about_title: Instantané
+  ref: Référence
+  commit: Commit
+  scanned_at: Date du scan
+  agent: Agent
+  format: Format reçu
+  components: Composants
+  download_title: Télécharger le SBOM
+  download_original: SBOM reçu, dans son format d'origine
+  download_cyclonedx: Réencodé en CycloneDX 1.6
+  download_spdx: Réencodé en SPDX 2.3
+  download_hint: Les formats réencodés reprennent l'inventaire décodé par Syft ; les propriétés ogsbom et les preuves de l'IA ne figurent que dans le SBOM reçu.
+  components_title: Composants
+  components_caption: Composants de l'instantané, avec leur origine, leur type, leur purl et leurs licences
+  filter_label: Filtrer les composants
+  filter_query: Nom ou purl
+  filter_origin: Origine
+  filter_type: Type
+  filter_weak: Identification faible seulement
+  col_component: Composant
+  col_type: Type
+  col_purl: purl
+  col_licenses: Licences
+  confidence: "{{.Percent}} %"
+  weak: Identification faible
+  no_license: Aucune
+  no_match: Aucun composant ne correspond à ces filtres.
+  empty: Cet instantané ne contient aucun composant.

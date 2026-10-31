@@ -1,0 +1,121 @@
+{{define "content" -}}
+{{- $p := .Project}}
+{{- $s := .Snapshot}}
+<div class="stack">
+  <div class="page-head">
+    <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
+      <ol>
+        <li><a href="{{.Base}}/projects">{{T "nav.projects"}}</a></li>
+        <li><a href="{{.Base}}/projects/{{$p.Slug}}">{{$p.Name}}</a></li>
+        <li><a href="{{.Base}}/projects/{{$p.Slug}}/snapshots">{{T "project.tab_snapshots"}}</a></li>
+        <li><span aria-current="page">{{template "stamp" $s.Scanned}}</span></li>
+      </ol>
+    </nav>
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{T "snapshot.heading" "Name" $p.Name}}</h1>
+      {{- if $s.Current}}<span class="status status--active">{{T "snapshots.current"}}</span>{{end}}
+    </div>
+    <p class="page-head__meta">
+      <span class="mono">{{.RefName}}</span>
+      {{- if $s.Commit}}<span class="mono" title="{{$s.Commit}}">{{$s.CommitShort}}</span>{{end}}
+    </p>
+  </div>
+  {{template "project_tabs" .Tabs}}
+  <div class="layout layout--aside">
+    <section class="panel" aria-labelledby="snapshot-about">
+      <div class="panel__head"><h2 class="panel__title" id="snapshot-about">{{T "snapshot.about_title"}}</h2></div>
+      <div class="panel__body">
+        <dl class="kv">
+          <dt>{{T "snapshot.ref"}}</dt><dd><span class="mono">{{.RefName}}</span> <span class="muted">{{T (print "ref_kind." .RefKind)}}</span></dd>
+          {{- if $s.Commit}}<dt>{{T "snapshot.commit"}}</dt><dd class="mono">{{$s.Commit}}</dd>{{end}}
+          <dt>{{T "snapshot.scanned_at"}}</dt><dd>{{template "stamp" $s.Scanned}}</dd>
+          {{- with $s.LastScanned}}<dt>{{T "snapshots.last_scanned"}}</dt><dd>{{template "stamp" .}}</dd>{{end}}
+          <dt>{{T "snapshot.agent"}}</dt><dd>{{if $s.AgentName}}{{$s.AgentName}}{{with $s.AgentVer}} <span class="version">{{.}}</span>{{end}}{{else}}<span class="muted">{{T "snapshots.agent_unknown"}}</span>{{end}}</dd>
+          <dt>{{T "snapshot.format"}}</dt><dd>{{T (print "format.sbom_" .Format)}} {{.Spec}}</dd>
+          <dt>{{T "snapshot.components"}}</dt><dd>{{T "snapshots.components" "Syft" $s.Counts.Syft "IA" $s.Counts.IA}}{{if $s.Counts.Weak}} · {{Tn "snapshots.weak" $s.Counts.Weak}}{{end}}</dd>
+        </dl>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="snapshot-download">
+      <div class="panel__head"><h2 class="panel__title" id="snapshot-download">{{T "snapshot.download_title"}}</h2></div>
+      <div class="panel__body stack stack--sm">
+        <ul class="download-list">
+          {{- range .Downloads}}
+          <li><a href="{{.Href}}" download>{{T .LabelKey}}</a></li>
+          {{- end}}
+        </ul>
+        <p class="field__hint">{{T "snapshot.download_hint"}}</p>
+      </div>
+    </section>
+  </div>
+  <section class="panel" aria-labelledby="snapshot-components">
+    <div class="panel__head"><h2 class="panel__title" id="snapshot-components">{{T "snapshot.components_title"}}</h2></div>
+    <div class="panel__body">
+      <form class="form-row" method="get" action="{{$s.Href}}" role="search" aria-label="{{T "snapshot.filter_label"}}">
+        <div class="field">
+          <label class="field__label" for="c-q">{{T "snapshot.filter_query"}}</label>
+          <input class="input" id="c-q" name="q" type="search" maxlength="200" value="{{.Query}}">
+        </div>
+        <div class="field field--narrow">
+          <label class="field__label" for="c-origin">{{T "snapshot.filter_origin"}}</label>
+          <select class="select" id="c-origin" name="origin">
+            {{- range .Origins}}
+            <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+            {{- end}}
+          </select>
+        </div>
+        <div class="field field--narrow">
+          <label class="field__label" for="c-type">{{T "snapshot.filter_type"}}</label>
+          <select class="select" id="c-type" name="type">
+            {{- range .Types}}
+            <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{if .LabelKey}}{{T .LabelKey}}{{else}}{{.Label}}{{end}}</option>
+            {{- end}}
+          </select>
+        </div>
+        <label class="check"><input type="checkbox" name="weak" value="1"{{if .WeakOnly}} checked{{end}}> <span>{{T "snapshot.filter_weak"}}</span></label>
+        <button class="btn" type="submit">{{T "common.filter"}}</button>
+      </form>
+    </div>
+    {{- if .Items}}
+    <div class="table-wrap" role="region" aria-labelledby="snapshot-components" tabindex="0">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "snapshot.components_caption"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "snapshot.col_component"}}</th>
+            <th scope="col">{{T "snapshot.col_type"}}</th>
+            <th scope="col">{{T "snapshot.col_purl"}}</th>
+            <th scope="col">{{T "snapshot.col_licenses"}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{- range .Items}}
+          <tr>
+            <th scope="row">
+              <span class="cell-stack">
+                <span>{{.Name}}{{with .Version}} <span class="version">{{.}}</span>{{end}}</span>
+                <span class="cluster">
+                  {{- if eq .Origin "ia"}}<span class="origin origin--ai"><span>{{T "origin.ia"}}</span>{{with .Confidence}}<span class="origin__conf">{{T "snapshot.confidence" "Percent" .}}</span>{{end}}</span>
+                  {{- else}}<span class="origin">{{T "origin.syft"}}</span>{{end}}
+                  {{- if .Weak}}<span class="chip">{{T "snapshot.weak"}}</span>{{end}}
+                  {{- with .Scope}}<span class="chip">{{T (print "scope." .)}}</span>{{end}}
+                </span>
+              </span>
+            </th>
+            <td class="mono">{{.Type}}</td>
+            <td class="mono wrap purl">{{.PURL}}</td>
+            <td class="wrap">{{if .Licenses}}{{range $i, $l := .Licenses}}{{if $i}}, {{end}}{{$l}}{{end}}{{else}}<span class="muted">{{T "snapshot.no_license"}}</span>{{end}}</td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{- with .NextHref}}
+    <nav class="pagination" aria-label="{{T "pagination.label"}}"><a class="btn btn--sm" href="{{.}}">{{T "pagination.next"}}</a></nav>
+    {{- end}}
+    {{- else}}
+    <div class="panel__body"><p class="muted">{{if .Filtered}}{{T "snapshot.no_match"}}{{else}}{{T "snapshot.empty"}}{{end}}</p></div>
+    {{- end}}
+  </section>
+</div>
+{{- end}}

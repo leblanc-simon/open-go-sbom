@@ -48,6 +48,12 @@
     font-weight: var(--weight-bold);
   }
 
+  .row--selected {
+    > * {
+      background: var(--color-accent-soft);
+    }
+  }
+
   .wrap {
     min-width: 14rem;
     white-space: normal;

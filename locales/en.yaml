@@ -49,6 +49,9 @@ status:
 
 format:
   utc: "{{.Time}} UTC"
+  sbom_cyclonedx: CycloneDX
+  sbom_spdx: SPDX
+  sbom_syft: Syft JSON
 
 form:
   error_title: The form was not accepted
@@ -126,6 +129,13 @@ validation:
   agent_version_invalid: The agent version is 64 characters at most, without spaces.
   enrollment_project_invalid: Choose an active server project of the organization.
   token_already_revoked: This token is already revoked.
+  ingest:
+    commit: "The commit is written in hexadecimal: 40 characters (SHA-1) or 64 (SHA-256)."
+    commit_required: Give the scanned commit for a branch or a tag.
+    commit_forbidden: A host has no commit.
+    ref: Give a project assigned to the agent and a reference (branch, tag or host).
+    agent_version: The agent version has at most 64 characters, without spaces.
+    scanned_at: "The scan date is required, after the year 2000, and at most one hour ahead of the server clock."
 
 home:
   title: Home
@@ -427,6 +437,34 @@ error:
     project_unavailable:
       title: Project unavailable
       text: The project designated by this token is archived, or already has an active agent.
+  ingest:
+    too_large:
+      title: SBOM too large
+      text: The SBOM exceeds the allowed size, compressed or once decompressed. Send it gzip-compressed, or ask the operator to raise the limit.
+    too_deep:
+      title: SBOM too deep
+      text: The document nests too many JSON objects or arrays to be decoded safely.
+    too_many_components:
+      title: Too many components
+      text: The SBOM has more components than this instance allows.
+    malformed:
+      title: Unreadable SBOM
+      text: The document is not valid JSON, or its gzip stream is corrupt.
+    unsupported_format:
+      title: Unsupported format
+      text: "Accepted formats: CycloneDX JSON 1.5 to 1.7, SPDX JSON 2.3 and Syft JSON. XML is not supported."
+    schema_invalid:
+      title: Non-conforming SBOM
+      text: The document does not follow the official schema of its format.
+    decode_failed:
+      title: Decoding failed
+      text: The document conforms to its schema but could not be decoded.
+    ref_unknown:
+      title: Unknown reference
+      text: This project is not assigned to this agent, is no longer active, or does not track this reference.
+    missing_part:
+      title: Incomplete upload
+      text: "The upload must contain, in this order, a \"context\" part (JSON) then an \"sbom\" part."
 
 footer:
   version: "Version {{.Version}}"
@@ -481,6 +519,8 @@ projects:
   col_labels: Labels
   col_agent: Agent
   col_last_contact: Agent's last contact
+  col_last_snapshot: Last snapshot
+  no_snapshot: None
   no_agent: No agent
   no_labels: None
   empty: No project matches. Create a repository, or enroll a server with an enrollment token.
@@ -490,6 +530,7 @@ project:
   title: "{{.Name}}"
   tabs: Project sections
   tab_overview: Overview
+  tab_snapshots: Snapshots
   tab_settings: Settings
   agent_value: "Agent: {{.Name}}"
   archived_title: Archived project
@@ -652,3 +693,95 @@ enrollment_new:
   project_hint: An existing server project without an agent, or a project created for each host.
   labels_hint: "Applied to the projects created on enrollment: env=prod, dc=paris."
   create: Create the token
+
+ref_kind:
+  branch: Branch
+  tag: Tag
+  host: Host
+
+origin:
+  syft: Syft
+  ia: AI
+
+scope:
+  required: Required
+  optional: Optional
+  excluded: Excluded
+
+ingestion_status:
+  queued: Queued
+  processing: Processing
+  done: Done
+  failed: Failed
+
+ingestion_outcome:
+  created: New snapshot
+  replaced: Commit inventory replaced
+  unchanged: Inventory unchanged
+
+snapshots:
+  title: "Snapshots — {{.Name}}"
+  refs_title: References
+  refs_caption: References tracked by the project and their last snapshot
+  col_ref: Reference
+  col_last: Last
+  count:
+    one: "{{.Count}} snapshot"
+    other: "{{.Count}} snapshots"
+  removed: removed
+  no_refs: This project tracks no reference.
+  of_ref: "Snapshots of {{.Ref}}"
+  none: No snapshot for this reference; the agent has not sent anything yet.
+  current: Current
+  agent: "Agent {{.Name}}"
+  agent_version: "Agent {{.Name}} {{.Version}}"
+  agent_unknown: Unknown agent
+  components: "{{.Syft}} Syft · {{.IA}} AI"
+  weak:
+    one: "{{.Count}} weak identification"
+    other: "{{.Count}} weak identifications"
+  component_count:
+    one: "({{.Count}} component)"
+    other: "({{.Count}} components)"
+  last_scanned: "Last scan:"
+  older: Older snapshots
+  ingestions_title: Latest uploads
+  ingestions_meta: SBOM uploads and their decoding
+  ingestions_caption: Latest SBOMs received for this project, their state and their result
+  col_received: Received
+  col_status: State
+  col_result: Result
+  pending: Decoding pending
+  no_ingestions: No SBOM received for this project.
+
+snapshot:
+  title: "Snapshot of {{.Date}} — {{.Name}}"
+  heading: "Snapshot of {{.Name}}"
+  about_title: Snapshot
+  ref: Reference
+  commit: Commit
+  scanned_at: Scan date
+  agent: Agent
+  format: Format received
+  components: Components
+  download_title: Download the SBOM
+  download_original: SBOM as received, in its original format
+  download_cyclonedx: Re-encoded as CycloneDX 1.6
+  download_spdx: Re-encoded as SPDX 2.3
+  download_hint: Re-encoded formats carry the inventory decoded by Syft; ogsbom properties and AI evidence only appear in the SBOM as received.
+  components_title: Components
+  components_caption: Components of the snapshot, with their origin, type, purl and licenses
+  filter_label: Filter components
+  filter_query: Name or purl
+  filter_origin: Origin
+  filter_type: Type
+  filter_weak: Weak identification only
+  col_component: Component
+  col_type: Type
+  col_purl: purl
+  col_licenses: Licenses
+  confidence: "{{.Percent}}%"
+  weak: Weak identification
+  no_license: None
+  no_match: No component matches these filters.
+  empty: This snapshot has no component.

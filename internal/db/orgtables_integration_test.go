@@ -54,7 +54,49 @@ var orgTables = []orgTable{
 	}},
 	{"tracked_refs", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
 		_, err := tx.ExecContext(ctx, `INSERT INTO tracked_refs (org_id, id, project_id, project_kind, kind, name)
-			VALUES ($1, $2, $3, 'host', 'host', 'srv-01')`, tx.OrgID(), uuid.Must(uuid.NewV7()), seedID(tx, "project"))
+			VALUES ($1, $2, $3, 'host', 'host', 'srv-01')`, tx.OrgID(), seedID(tx, "ref"), seedID(tx, "project"))
+		return err
+	}},
+	{"sbom_blobs", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO sbom_blobs (org_id, id, sha256, size, compressed_size, content)
+			VALUES ($1, $2, sha256('{}'::bytea), 2, 1, '\x00'::bytea)`, tx.OrgID(), seedID(tx, "blob"))
+		return err
+	}},
+	{"components", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO components (org_id, id, purl, purl_base, type, name, version)
+			VALUES ($1, $2, 'pkg:npm/a@1', 'pkg:npm/a', 'npm', 'a', '1')`, tx.OrgID(), seedID(tx, "component"))
+		return err
+	}},
+	{"component_sets", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO component_sets (org_id, id, fingerprint, component_count, syft_count, ia_count, weak_count)
+			VALUES ($1, $2, sha256('set'::bytea), 1, 1, 0, 0)`, tx.OrgID(), seedID(tx, "set"))
+		return err
+	}},
+	{"component_set_items", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO component_set_items (org_id, set_id, component_id, origin)
+			VALUES ($1, $2, $3, 'syft')`, tx.OrgID(), seedID(tx, "set"), seedID(tx, "component"))
+		return err
+	}},
+	{"snapshots", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO snapshots (org_id, id, project_id, ref_id, agent_id, scanned_at, last_scanned_at,
+			blob_id, set_id, format, spec_version, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, now(), now(), $6, $7, 'cyclonedx', '1.6', now(), now())`,
+			tx.OrgID(), seedID(tx, "snapshot"), seedID(tx, "project"), seedID(tx, "ref"), seedID(tx, "agent"),
+			seedID(tx, "blob"), seedID(tx, "set"))
+		return err
+	}},
+	{"ref_current", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO ref_current (org_id, ref_id, project_id, snapshot_id, set_id, updated_at)
+			VALUES ($1, $2, $3, $4, $5, now())`,
+			tx.OrgID(), seedID(tx, "ref"), seedID(tx, "project"), seedID(tx, "snapshot"), seedID(tx, "set"))
+		return err
+	}},
+	{"ingestions", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO ingestions (org_id, id, agent_id, project_id, ref_id, scanned_at, blob_id,
+			status, snapshot_id, outcome, received_at, finished_at)
+			VALUES ($1, $2, $3, $4, $5, now(), $6, 'done', $7, 'created', now(), now())`,
+			tx.OrgID(), uuid.Must(uuid.NewV7()), seedID(tx, "agent"), seedID(tx, "project"), seedID(tx, "ref"),
+			seedID(tx, "blob"), seedID(tx, "snapshot"))
 		return err
 	}},
 	{"agent_tokens", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {

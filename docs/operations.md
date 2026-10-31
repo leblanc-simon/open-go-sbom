@@ -165,9 +165,10 @@ prend n'importe quel job, et un job survit au redémarrage de toutes les instanc
   statut `dead` avec sa dernière erreur ; il y reste jusqu'à ce qu'un administrateur le
   relance ou le supprime (écran d'administration, T11).
 - **Priorités et plafonds** : un job prioritaire (une ingestion fraîche) passe avant le
-  travail de fond (réanalyse de toutes les références). Les types lourds sont plafonnés
-  par organisation, toutes instances confondues : une organisation très active ne prive
-  pas les autres.
+  travail de fond (réanalyse de toutes les références). Les types lourds (décodage des
+  SBOM, analyses) sont plafonnés à `workers.org_limit` (2) jobs simultanés par
+  organisation, toutes instances confondues : une organisation très active ne prive pas
+  les autres.
 - **Échéances** : chaque échéance (vérification de la base de vulnérabilités, statistiques
   quotidiennes…) est cherchée toutes les `workers.schedule_interval` (10 s) et n'est prise
   que par une seule instance, même si toutes tournent. Les échéances suivent une grille en
@@ -266,6 +267,43 @@ Les écrans **Projets** et **Agents** d'une organisation (`/o/<slug>/projects`,
   **par jeton**, `agent_api.failure_rate_limit` (30) les jetons refusés par minute et par
   IP. Au-delà : 429 avec `Retry-After`. Ces compteurs sont propres à chaque instance.
 - Un agent est dit **muet** après 3 jours sans contact.
+
+## Ingestion
+
+Un agent envoie un SBOM par `POST /api/v1/agent/ingestions` (deux parties : `context`
+puis `sbom`, compressé en gzip de préférence) pour une référence d'un projet qui lui est
+confié. Formats acceptés : **CycloneDX JSON 1.5 à 1.7, SPDX JSON 2.3, Syft JSON** ; pas
+de XML. La requête stocke le SBOM et met son décodage en file ; l'agent suit l'état par
+`GET /api/v1/agent/ingestions/{id}` (`queued`, `processing`, `done`, `failed` avec une
+clé d'erreur traduite). L'onglet **Instantanés** de chaque projet montre les dernières
+réceptions, leurs erreurs, et permet de télécharger le SBOM reçu ou réencodé en
+CycloneDX 1.6 ou SPDX 2.3.
+
+Bornes (`ingest.*`) :
+
+| Réglage | Défaut | Au-delà |
+| --- | --- | --- |
+| `max_upload_mib` | 32 | refus 413 dans la requête, sans ingestion |
+| `max_decompressed_mib` | 64 | ingestion `failed` (`error.ingest.too_large`) |
+| `max_depth` | 64 | ingestion `failed` (`error.ingest.too_deep`) |
+| `max_components` | 50 000 | ingestion `failed` (`error.ingest.too_many_components`) |
+| `decode_timeout` | 5 min | job réessayé, puis `dead` |
+
+- Un JSON non compressé compte tout entier dans `max_upload_mib` : les agents envoient du
+  gzip (un SBOM se compresse d'environ dix fois).
+- **Mémoire** : le décodage charge le document ; le pic mesuré vaut environ **trente fois
+  sa taille** (1,5 Mio pour un hôte de 800 paquets : quelques dizaines de Mio ; 10 Mio et
+  50 000 composants : environ 330 Mio). Prévoir, par job de décodage simultané
+  (`workers.concurrency`, et au plus `workers.org_limit` par organisation), trente fois le
+  plus gros SBOM attendu, et poser `GOMEMLIMIT` à environ 80 % de la mémoire de
+  l'instance. Une instance web (`workers.enabled: false`) ne garde en mémoire que l'envoi
+  en cours de réception (`max_upload_mib` par requête simultanée).
+- Le SBOM brut est conservé compressé et dédoublonné : renvoyer le même document ne le
+  stocke pas deux fois. Un dépôt qui renvoie le même SBOM pour le même commit ne crée rien.
+- Rien du contenu d'un SBOM n'est journalisé ; seuls l'identifiant de l'ingestion, sa clé
+  d'erreur et le nombre de composants le sont.
+- Décision de conception : ADR 0015 (décodage dans le worker) et ADR 0016 (règles de
+  l'inventaire).
 
 ## Clés de chiffrement des secrets
 

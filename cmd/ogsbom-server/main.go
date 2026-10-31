@@ -24,11 +24,15 @@ import (
 	"leblanc.io/open-go-sbom/internal/api"
 	"leblanc.io/open-go-sbom/internal/config"
 	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/open-go-sbom/internal/ingest"
+	"leblanc.io/open-go-sbom/internal/inventory"
 	"leblanc.io/open-go-sbom/internal/jobs"
 	"leblanc.io/open-go-sbom/internal/locale"
 	"leblanc.io/open-go-sbom/internal/org"
 	"leblanc.io/open-go-sbom/internal/project"
 	"leblanc.io/open-go-sbom/internal/render"
+	"leblanc.io/open-go-sbom/internal/sbom"
+	"leblanc.io/open-go-sbom/internal/sbom/schema"
 	"leblanc.io/open-go-sbom/internal/secret"
 	"leblanc.io/open-go-sbom/internal/web"
 	"leblanc.io/open-go-sbom/internal/web/middleware"
@@ -121,6 +125,23 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		collectors.NewDBStatsCollector(pool.DB(), "app"),
 	)
 	agents := agent.NewService(pool)
+	validator, err := schema.New()
+	if err != nil {
+		return err
+	}
+	ingester, err := ingest.NewService(ingest.Options{
+		Pool: pool, Validator: validator, Logger: logger,
+		Limits: ingest.Limits{
+			MaxUpload: config.MiB(cfg.Ingest.MaxUploadMiB),
+			SBOM: sbom.Limits{
+				MaxBytes: config.MiB(cfg.Ingest.MaxDecompressedMiB), MaxDepth: cfg.Ingest.MaxDepth,
+				MaxComponents: cfg.Ingest.MaxComponents,
+			},
+		},
+	})
+	if err != nil {
+		return err
+	}
 	router, err := web.NewRouter(web.RouterOptions{
 		Logger:         logger,
 		Catalog:        catalog,
@@ -137,6 +158,8 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Orgs:           org.NewService(pool),
 			Projects:       project.NewService(pool),
 			Agents:         agents,
+			Inventory:      inventory.NewService(pool),
+			Ingest:         ingester,
 			Secrets:        box,
 			Auth:           cfg.Auth,
 			MFA:            cfg.MFA,
@@ -144,6 +167,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		},
 		AgentAPI: &api.AgentOptions{
 			Agents:           agents,
+			Ingest:           ingester,
 			RateLimit:        cfg.AgentAPI.RateLimit,
 			FailureRateLimit: cfg.AgentAPI.FailureRateLimit,
 		},
@@ -198,6 +222,11 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Metrics:  jobMetrics,
 		})
 		if err := runner.Register(account.PurgeKind, accounts.PurgeHandler()); err != nil {
+			return err
+		}
+		// analysis.ref (mis en file par l'ingestion) est enregistré par l'analyse (T06).
+		if err := runner.Register(ingest.DecodeKind, ingester.DecodeHandler(),
+			jobs.WithOrgLimit(cfg.Workers.OrgLimit), jobs.WithTimeout(cfg.Ingest.DecodeTimeout)); err != nil {
 			return err
 		}
 		if err := scheduler.Register(account.PurgeSchedule()); err != nil {

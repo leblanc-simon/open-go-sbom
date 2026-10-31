@@ -1,0 +1,118 @@
+{{define "content" -}}
+{{- $p := .Project}}
+<div class="stack">
+  <div class="page-head">
+    <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
+      <ol>
+        <li><a href="{{.Base}}/projects">{{T "nav.projects"}}</a></li>
+        <li><a href="{{.Base}}/projects/{{$p.Slug}}">{{$p.Name}}</a></li>
+        <li><span aria-current="page">{{T "project.tab_snapshots"}}</span></li>
+      </ol>
+    </nav>
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{$p.Name}}</h1>
+      {{template "project_kind" $p.Kind}}
+    </div>
+    <p class="page-head__meta">
+      <span class="mono">{{$p.Slug}}</span>
+      {{- with $p.Agent}}<span>{{T "project.agent_value" "Name" .Name}}</span>{{end}}
+    </p>
+  </div>
+  {{template "project_tabs" .Tabs}}
+  <div class="layout layout--rail">
+    <section class="panel" aria-labelledby="refs-title">
+      <div class="panel__head"><h2 class="panel__title" id="refs-title">{{T "snapshots.refs_title"}}</h2></div>
+      {{- if .Refs}}
+      <div class="panel__body panel__body--flush">
+        <div class="table-wrap" role="region" aria-labelledby="refs-title" tabindex="0">
+          <table class="data-table">
+            <caption class="visually-hidden">{{T "snapshots.refs_caption"}}</caption>
+            <thead><tr><th scope="col">{{T "snapshots.col_ref"}}</th><th scope="col">{{T "snapshots.col_last"}}</th></tr></thead>
+            <tbody>
+              {{- range .Refs}}
+              <tr{{if .Selected}} class="row--selected"{{end}}>
+                <th scope="row"><span class="cell-stack"><a class="mono" href="{{.Href}}"{{if .Selected}} aria-current="true"{{end}}>{{.Name}}</a><span class="muted">{{T (print "ref_kind." .Kind)}}{{if .Removed}} · {{T "snapshots.removed"}}{{end}}</span></span></th>
+                <td><span class="cell-stack">{{template "stamp" .Last}}<span class="muted">{{Tn "snapshots.count" .Count}}</span></span></td>
+              </tr>
+              {{- end}}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {{- else}}
+      <div class="panel__body"><p class="muted">{{T "snapshots.no_refs"}}</p></div>
+      {{- end}}
+    </section>
+    <div class="stack">
+      {{- with .Selected}}
+      <section aria-labelledby="snapshots-title" class="stack stack--sm">
+        <h2 class="section-title" id="snapshots-title">{{T "snapshots.of_ref" "Ref" .Name}}</h2>
+        {{- if $.Snapshots}}
+        <ol class="snapshot-list">
+          {{- range $.Snapshots}}
+          <li class="snapshot{{if .Current}} snapshot--selected{{end}}">
+            <div class="snapshot__head">
+              <a class="snapshot__date" href="{{.Href}}">{{template "stamp" .Scanned}}</a>
+              {{- if .Commit}}<span class="snapshot__commit" title="{{.Commit}}">{{.CommitShort}}</span>{{end}}
+              {{- if .Current}}<span class="snapshot__role">{{T "snapshots.current"}}</span>{{end}}
+            </div>
+            <div class="snapshot__meta">
+              <span>{{if .AgentName}}{{if .AgentVer}}{{T "snapshots.agent_version" "Name" .AgentName "Version" .AgentVer}}{{else}}{{T "snapshots.agent" "Name" .AgentName}}{{end}}{{else}}{{T "snapshots.agent_unknown"}}{{end}}</span>
+              <span>{{T "snapshots.components" "Syft" .Counts.Syft "IA" .Counts.IA}}</span>
+              {{- if .Counts.Weak}}<span>{{Tn "snapshots.weak" .Counts.Weak}}</span>{{end}}
+            </div>
+            {{- with .LastScanned}}
+            <div class="snapshot__stats"><span>{{T "snapshots.last_scanned"}} {{template "stamp" .}}</span></div>
+            {{- end}}
+          </li>
+          {{- end}}
+        </ol>
+        {{- with $.NextHref}}
+        <nav class="pagination" aria-label="{{T "pagination.label"}}"><a class="btn btn--sm" href="{{.}}">{{T "snapshots.older"}}</a></nav>
+        {{- end}}
+        {{- else}}
+        <p class="muted">{{T "snapshots.none"}}</p>
+        {{- end}}
+      </section>
+      {{- end}}
+      <section class="panel" aria-labelledby="ingestions-title">
+        <div class="panel__head">
+          <h2 class="panel__title" id="ingestions-title">{{T "snapshots.ingestions_title"}}</h2>
+          <span class="panel__meta">{{T "snapshots.ingestions_meta"}}</span>
+        </div>
+        {{- if .Ingestions}}
+        <div class="table-wrap" role="region" aria-labelledby="ingestions-title" tabindex="0">
+          <table class="data-table">
+            <caption class="visually-hidden">{{T "snapshots.ingestions_caption"}}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{{T "snapshots.col_received"}}</th>
+                <th scope="col">{{T "snapshots.col_ref"}}</th>
+                <th scope="col">{{T "snapshots.col_status"}}</th>
+                <th scope="col">{{T "snapshots.col_result"}}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{- range .Ingestions}}
+              <tr>
+                <td>{{template "stamp" .Received}}</td>
+                <td><span class="cell-stack"><span class="mono">{{.RefName}}</span>{{with .CommitShort}}<span class="mono muted">{{.}}</span>{{end}}</span></td>
+                <td><span class="{{.StatusClass}}">{{T (print "ingestion_status." .Status)}}</span></td>
+                <td class="wrap">
+                  {{- if .ErrorKey}}<span class="cell-stack"><span>{{T (print .ErrorKey ".title")}}</span><span class="muted">{{T (print .ErrorKey ".text")}}</span></span>
+                  {{- else if .SnapshotHref}}<a href="{{.SnapshotHref}}">{{T (print "ingestion_outcome." .Outcome)}}</a>{{with .Components}} <span class="muted">{{Tn "snapshots.component_count" .}}</span>{{end}}
+                  {{- else}}<span class="muted">{{T "snapshots.pending"}}</span>{{end}}
+                </td>
+              </tr>
+              {{- end}}
+            </tbody>
+          </table>
+        </div>
+        {{- else}}
+        <div class="panel__body"><p class="muted">{{T "snapshots.no_ingestions"}}</p></div>
+        {{- end}}
+      </section>
+    </div>
+  </div>
+</div>
+{{- end}}

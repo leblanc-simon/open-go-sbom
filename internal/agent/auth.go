@@ -15,6 +15,7 @@ import (
 	"leblanc.io/open-go-sbom/internal/audit"
 	"leblanc.io/open-go-sbom/internal/db"
 	"leblanc.io/open-go-sbom/internal/db/crossorg"
+	"leblanc.io/open-go-sbom/internal/inventory"
 	"leblanc.io/open-go-sbom/internal/project"
 	"leblanc.io/open-go-sbom/internal/tenant"
 )
@@ -348,6 +349,23 @@ func (s *Service) Heartbeat(ctx context.Context, p Principal, version string) er
 		return err
 	})
 	return wrap("signal de vie", err)
+}
+
+// CurrentSnapshots renvoie l'instantané courant de celles des références refIDs qui en
+// ont un (commit du dernier instantané, pour le rattrapage de l'agent dépôt). Les
+// références viennent d'AssignedProjects ; la RLS borne de toute façon la lecture à
+// l'organisation du jeton.
+func (s *Service) CurrentSnapshots(ctx context.Context, p Principal, refIDs []uuid.UUID) (map[uuid.UUID]inventory.Current, error) {
+	if p.Kind != KindAgent {
+		return nil, errInvalid
+	}
+	var out map[uuid.UUID]inventory.Current
+	err := s.pool.InOrg(ctx, p.Org, func(tx *db.OrgTx) error {
+		var err error
+		out, err = inventory.CurrentByRef(ctx, tx, refIDs)
+		return err
+	}, db.ReadOnly())
+	return out, wrap("instantanés courants", err)
 }
 
 // AssignedProjects renvoie une page des projets actifs confiés à l'agent de p.
