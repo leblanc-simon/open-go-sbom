@@ -44,7 +44,7 @@ func valid() Config {
 	c.Workers = Workers{Enabled: true, Concurrency: 4, PollInterval: time.Second, Lease: 30 * time.Second,
 		RetryBase: 10 * time.Second, RetryMax: 30 * time.Minute, Retention: time.Hour,
 		ScheduleInterval: 10 * time.Second, ShutdownTimeout: 30 * time.Second, OrgLimit: 2}
-	c.Ingest = Ingest{MaxUploadMiB: 32, MaxDecompressedMiB: 128, MaxDepth: 64, MaxComponents: 100000, DecodeTimeout: 5 * time.Minute}
+	c.Ingest = Ingest{MaxUploadMiB: 32, MaxDecompressedMiB: 64, MaxDepth: 64, MaxComponents: 50000, DecodeTimeout: 5 * time.Minute}
 	return c
 }
 
@@ -70,7 +70,7 @@ func TestLoadFromEnvironmentWithDefaults(t *testing.T) {
 	if !cfg.Workers.Enabled || cfg.Workers.Concurrency != 4 || cfg.Workers.Retention != 168*time.Hour || cfg.Workers.OrgLimit != 2 {
 		t.Errorf("défauts des workers : %+v", cfg.Workers)
 	}
-	if cfg.Ingest != (Ingest{MaxUploadMiB: 32, MaxDecompressedMiB: 128, MaxDepth: 64, MaxComponents: 100000, DecodeTimeout: 5 * time.Minute}) ||
+	if cfg.Ingest != (Ingest{MaxUploadMiB: 32, MaxDecompressedMiB: 64, MaxDepth: 64, MaxComponents: 50000, DecodeTimeout: 5 * time.Minute}) ||
 		MiB(cfg.Ingest.MaxUploadMiB) != 32<<20 {
 		t.Errorf("défauts de l'ingestion : %+v", cfg.Ingest)
 	}

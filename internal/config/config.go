@@ -36,9 +36,9 @@ type Config struct {
 // sont en Mio.
 type Ingest struct {
 	MaxUploadMiB       int           `yaml:"max_upload_mib"       env:"INGEST_MAX_UPLOAD_MIB"       env-default:"32"     env-description:"Maximum size of an uploaded SBOM as sent (gzip or raw JSON), in MiB"`
-	MaxDecompressedMiB int           `yaml:"max_decompressed_mib" env:"INGEST_MAX_DECOMPRESSED_MIB" env-default:"128"    env-description:"Maximum size of an SBOM once decompressed, in MiB"`
+	MaxDecompressedMiB int           `yaml:"max_decompressed_mib" env:"INGEST_MAX_DECOMPRESSED_MIB" env-default:"64"     env-description:"Maximum size of an SBOM once decompressed, in MiB"`
 	MaxDepth           int           `yaml:"max_depth"            env:"INGEST_MAX_DEPTH"            env-default:"64"     env-description:"Maximum JSON nesting depth of an SBOM"`
-	MaxComponents      int           `yaml:"max_components"       env:"INGEST_MAX_COMPONENTS"       env-default:"100000" env-description:"Maximum number of components (CycloneDX components, SPDX packages, Syft artifacts)"`
+	MaxComponents      int           `yaml:"max_components"       env:"INGEST_MAX_COMPONENTS"       env-default:"50000"  env-description:"Maximum number of components (CycloneDX components, SPDX packages, Syft artifacts)"`
 	DecodeTimeout      time.Duration `yaml:"decode_timeout"       env:"INGEST_DECODE_TIMEOUT"       env-default:"5m"     env-description:"Maximum duration of one SBOM decoding job"`
 }
 

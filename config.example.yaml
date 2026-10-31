@@ -129,12 +129,12 @@ workers:
 
 # Ingestion des SBOM (docs/operations.md, « Ingestion ») : bornes vérifiées à la réception
 # (taille reçue, taille décompressée d'un envoi gzip) puis en flux avant tout décodage
-# (taille, profondeur JSON, nombre de composants). Un job de décodage garde le SBOM
-# décompressé en mémoire : prévoir quelques fois max_decompressed_mib par job simultané
-# (workers.concurrency).
+# (taille, profondeur JSON, nombre de composants). Un job de décodage occupe en pointe
+# environ trente fois la taille du SBOM décompressé : dimensionner la mémoire des workers
+# en conséquence (workers.concurrency jobs simultanés ; ADR 0015).
 ingest:
   max_upload_mib: 32         # envoi tel que reçu (gzip ou JSON brut) ; au-delà : 413
-  max_decompressed_mib: 128  # JSON décompressé ; au-delà : ingestion en échec
+  max_decompressed_mib: 64   # JSON décompressé ; au-delà : ingestion en échec
   max_depth: 64              # profondeur d'imbrication du JSON
-  max_components: 100000     # composants CycloneDX, paquets SPDX, artefacts Syft
+  max_components: 50000      # composants CycloneDX, paquets SPDX, artefacts Syft
   decode_timeout: 5m         # durée maximale d'un job de décodage
