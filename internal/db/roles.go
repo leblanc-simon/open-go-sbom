@@ -59,6 +59,11 @@ func CheckRuntimeRole(ctx context.Context, q Querier) error {
 	if owned != "" {
 		reasons = append(reasons, "propriétaire (directement ou par appartenance) de "+owned)
 	}
+	more, err := hardeningReasons(ctx, q)
+	if err != nil {
+		return err
+	}
+	reasons = append(reasons, more...)
 	if len(reasons) > 0 {
 		return fmt.Errorf("%w : %q : %s", ErrUnsafeRole, role, strings.Join(reasons, " ; "))
 	}
@@ -103,4 +108,44 @@ func CheckOrgIsolation(ctx context.Context, q Querier) error {
 		return fmt.Errorf("%w : %s (appeler ogsbom_enforce_org_rls)", ErrUnprotectedOrgTable, bad)
 	}
 	return nil
+}
+
+// auditTables sont les journaux d'audit, en ajout seul pour le rôle d'exécution.
+var auditTables = []string{"audit_events", "instance_audit_events"}
+
+// hardeningReasons complète CheckRuntimeRole : le rôle d'exécution ne crée aucun objet
+// (droit CREATE sur la base ou sur le schéma public : un objet à lui échapperait à la RLS)
+// et ne modifie ni n'efface le journal d'audit (ADR 0030).
+func hardeningReasons(ctx context.Context, q Querier) ([]string, error) {
+	var createDB, createPublic bool
+	if err := q.QueryRowContext(ctx, `
+		SELECT has_database_privilege(current_user, current_database(), 'CREATE'),
+		       coalesce((SELECT has_schema_privilege(current_user, n.oid, 'CREATE')
+		                   FROM pg_namespace n WHERE n.nspname = 'public'), false)`,
+	).Scan(&createDB, &createPublic); err != nil {
+		return nil, fmt.Errorf("db: lecture des droits de création : %w", err)
+	}
+	var reasons []string
+	if createDB {
+		reasons = append(reasons, "droit CREATE sur la base")
+	}
+	if createPublic {
+		reasons = append(reasons, "droit CREATE sur le schéma public")
+	}
+	var audit string
+	if err := q.QueryRowContext(ctx, `
+		SELECT coalesce(string_agg(c.relname, ', ' ORDER BY c.relname), '')
+		  FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+		 WHERE `+userSchemas+`
+		   AND c.relkind IN ('r', 'p') AND c.relname = ANY($1)
+		   AND (has_table_privilege(current_user, c.oid, 'UPDATE')
+		     OR has_table_privilege(current_user, c.oid, 'DELETE')
+		     OR has_table_privilege(current_user, c.oid, 'TRUNCATE'))`, auditTables,
+	).Scan(&audit); err != nil {
+		return nil, fmt.Errorf("db: lecture des droits sur le journal d'audit : %w", err)
+	}
+	if audit != "" {
+		reasons = append(reasons, "droit de modifier ou d'effacer le journal d'audit ("+audit+")")
+	}
+	return reasons, nil
 }

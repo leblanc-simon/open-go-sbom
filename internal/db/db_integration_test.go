@@ -358,6 +358,89 @@ func TestCheckRuntimeRoleRefusesPowerfulRoles(t *testing.T) {
 	}
 }
 
+// TestCheckRuntimeRoleRefusesCreateAndAuditRights : le rôle d'exécution ne crée aucun
+// objet et ne modifie ni n'efface le journal d'audit (SEC-04, SEC-12) ; un droit accordé à
+// la main après les migrations empêche le démarrage.
+func TestCheckRuntimeRoleRefusesCreateAndAuditRights(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	tdb := dbtest.New(t)
+	app := quote(tdb.AppRole)
+	cases := []struct {
+		name, grant, revoke, want string
+	}{
+		{"CREATE sur la base", "GRANT CREATE ON DATABASE " + quote(tdb.Name) + " TO " + app,
+			"REVOKE CREATE ON DATABASE " + quote(tdb.Name) + " FROM " + app, "CREATE sur la base"},
+		{"CREATE sur public par PUBLIC", "GRANT CREATE ON SCHEMA public TO PUBLIC",
+			"REVOKE CREATE ON SCHEMA public FROM PUBLIC", "CREATE sur le schéma public"},
+		{"UPDATE du journal", "GRANT UPDATE ON audit_events TO " + app,
+			"REVOKE UPDATE ON audit_events FROM " + app, "journal d'audit (audit_events)"},
+		{"DELETE du journal d'instance", "GRANT DELETE ON instance_audit_events TO " + app,
+			"REVOKE DELETE ON instance_audit_events FROM " + app, "journal d'audit (instance_audit_events)"},
+		{"TRUNCATE du journal", "GRANT TRUNCATE ON audit_events TO " + app,
+			"REVOKE TRUNCATE ON audit_events FROM " + app, "journal d'audit (audit_events)"},
+	}
+	for _, c := range cases {
+		tdb.AdminExec(t, c.grant)
+		err := db.CheckRuntimeRole(ctx, tdb.App.DB())
+		if !errors.Is(err, db.ErrUnsafeRole) || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s : err = %v, attendu ErrUnsafeRole (%s)", c.name, err, c.want)
+		}
+		tdb.AdminExec(t, c.revoke)
+	}
+	if err := db.CheckRuntimeRole(ctx, tdb.App.DB()); err != nil {
+		t.Fatalf("rôle d'exécution refusé après retrait des droits : %v", err)
+	}
+}
+
+// TestAuditIsAppendOnly : le rôle d'exécution écrit et lit le journal d'audit, mais ne
+// peut ni modifier ni effacer une entrée (SEC-04, test de la revue inversé).
+func TestAuditIsAppendOnly(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	tdb := dbtest.New(t)
+	app := tdb.App.DB()
+	if _, err := app.ExecContext(ctx, `INSERT INTO instance_audit_events (id, action) VALUES (gen_random_uuid(), 'auth.login')`); err != nil {
+		t.Fatalf("écriture du journal refusée : %v", err)
+	}
+	for _, q := range []string{
+		`UPDATE instance_audit_events SET actor_email = 'personne'`,
+		`DELETE FROM instance_audit_events`,
+		`TRUNCATE instance_audit_events`,
+		`TRUNCATE audit_events`,
+	} {
+		if _, err := app.ExecContext(ctx, q); err == nil || !strings.Contains(err.Error(), "permission denied") {
+			t.Errorf("%s : err = %v, attendu un refus", q, err)
+		}
+	}
+	org := newOrg(t)
+	tdb.AdminExec(t, `INSERT INTO organizations (id, slug, name, default_language) VALUES ('`+org.String()+`', 'acme', 'Acme', 'fr')`)
+	err := tdb.App.InOrg(ctx, org, func(tx *db.OrgTx) error {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO audit_events (id, org_id, action) VALUES (gen_random_uuid(), $1, 'member.added')`, org); err != nil {
+			t.Fatalf("écriture du journal d'organisation refusée : %v", err)
+		}
+		for _, q := range []string{`UPDATE audit_events SET actor_email = 'personne'`, `DELETE FROM audit_events`} {
+			if _, err := tx.ExecContext(ctx, `SAVEPOINT s`); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, q); err == nil || !strings.Contains(err.Error(), "permission denied") {
+				t.Errorf("%s : err = %v, attendu un refus", q, err)
+			}
+			if _, err := tx.ExecContext(ctx, `ROLLBACK TO SAVEPOINT s`); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var n int
+	if err := app.QueryRowContext(ctx, `SELECT count(*) FROM instance_audit_events`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("journal d'instance relu : %d, %v", n, err)
+	}
+}
+
 func quote(s string) string { return `"` + s + `"` }
 
 // rlsDB crée une base avec une table d'organisation de test sous la politique standard.
