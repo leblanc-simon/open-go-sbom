@@ -25,3 +25,4 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0017](0017-base-grype-commune.md) | Base Grype commune : archives en blocs dans PostgreSQL, cible, copie locale par instance | Accepté |
 | [0018](0018-analyse-et-constats.md) | Analyse et constats : correspondance hors transaction, écriture sous verrou, identifiants CVE | Accepté |
 | [0019](0019-mesures-et-autoanalyse.md) | Mesures de référence et autoanalyse en CI | Accepté |
+| [0023](0023-agent-depot.md) | Pipeline de l'agent dépôt et accès aux forges : webhook comme signal, extraction d'un commit précis, scan hors ligne, SBOM déterministe | Accepté |

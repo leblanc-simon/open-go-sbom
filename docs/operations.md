@@ -366,6 +366,131 @@ vaut 1 : à surveiller (alerte Prometheus conseillée sur `ogsbom_vulndb_stale =
   d'administration (T11). L'archive importée passe les mêmes contrôles d'installation.
 - Rien du contenu des SBOM n'est journalisé par l'analyse.
 
+## Agent dépôt
+
+`ogsbom-repo-agent` est un service externe aux CI : il détient seul les accès aux forges,
+reçoit leurs webhooks de push, extrait le commit visé, l'analyse avec Syft et envoie le
+SBOM (CycloneDX 1.6, composants marqués `ogsbom:origin=syft`). Configuration d'exemple
+commentée et unité systemd durcie : `deploy/ogsbom-repo-agent/`.
+
+### Mode d'exploitation
+
+- **Une instance par organisation** : elle porte le jeton d'un agent dépôt de cette
+  organisation (« Agents › Nouvel agent dépôt »). Les dépôts lui sont confiés depuis leur
+  fiche ; leur **URL de forge** (`https://github.com/acme/app`,
+  `https://gitlab.example.org/groupe/sous-groupe/projet`) désigne la forge configurée dont
+  l'URL web la préfixe. Un dépôt sans forge configurée est signalé au journal et ignoré.
+- **Webhooks** : l'URL publique de l'instance est `https://<hôte public>/webhooks/<nom de
+  la forge>` (le `name` de la forge dans la configuration). Seule cette route et
+  `GET /healthz` sont servies. Le récepteur borne le corps (`webhook.max_body_kib`),
+  limite le débit par IP (`webhook.rate_limit`), **refuse tout webhook mal signé**
+  (401, journalisé avec la forge et l'IP, sans contenu), ignore une livraison déjà reçue
+  (`X-GitHub-Delivery`, `X-Gitlab-Event-UUID`) et répond aussitôt (202) : l'analyse est
+  asynchrone. Un webhook ne sert que de signal : l'agent résout lui-même la tête de la
+  référence auprès de la forge, si bien qu'un webhook rejoué ou en retard ne fait jamais
+  analyser un commit dépassé.
+- **Rattrapage** : il n'y a pas de file durable côté agent. Au démarrage puis toutes les
+  `catchup.interval` (15 min), l'agent relit ses dépôts (`GET /api/v1/agent/projects`),
+  envoie un signal de vie, compare la tête de chaque référence suivie au commit du
+  dernier instantané du serveur et analyse les commits manqués, **du plus ancien au plus
+  récent** (`catchup.max_commits`, 20 au plus, les plus récents). Un webhook perdu, une
+  file pleine ou un agent arrêté sont donc rattrapés au passage suivant. Une étiquette, une
+  première analyse ou une histoire réécrite donnent l'analyse de la seule tête. Coût : un
+  appel d'API de forge par référence et par passage (plus une comparaison s'il y a du
+  neuf) ; 500 références toutes les 15 minutes font environ 2 000 appels par heure, sous la
+  limite de 5 000 par heure d'une installation de GitHub App.
+- **Analyse** : un sous-répertoire de `work.dir` par commit, supprimé à la fin quoi qu'il
+  arrive (et au démarrage s'il en reste après un arrêt brutal). git est lancé avec un
+  environnement maîtrisé : ni configuration système ni globale, aucune invite, crochets
+  désactivés, `core.symlinks=false` (un lien symbolique du dépôt devient un simple fichier
+  qui contient sa cible), LFS inerte, un seul protocole (celui de l'URL de clonage), pas de
+  redirection, objets vérifiés (`transfer.fsckObjects`). Le commit exact est récupéré
+  (`git fetch --depth 1 --no-tags <url> <commit>`), extrait puis vérifié ; `.git` est
+  supprimé avant le scan. Syft ne lance aucun programme et n'accède pas au réseau (le
+  catalogueur Go n'appelle pas `go list`). Aucun fichier du dépôt n'est exécuté.
+- **Bornes** : `work.max_clone_mib` (1 024) mesuré pendant le clonage, qui est tué
+  au-delà (échec définitif pour ce commit, non retenté avant redémarrage) ;
+  `work.clone_timeout` (10 min) et `work.scan_timeout` (15 min), retentés au passage
+  suivant ; `work.parallelism` (2) analyses simultanées, jamais deux à la fois pour une
+  même référence ; `work.queue_size` (1 000) références en attente.
+- Le SBOM produit ne porte ni numéro de série ni horodatage : deux analyses du même
+  commit donnent les mêmes octets, que le serveur reconnaît comme un renvoi (200, rien de
+  créé). Le composant décrit est le projet (son slug) à ce commit.
+- **Réseau sortant** : le serveur open-go-sbom, l'API et le service git HTTPS des forges.
+  Entrant : le récepteur de webhooks seul.
+
+### GitHub : GitHub App
+
+1. Paramètres de l'organisation GitHub › *Developer settings* › *GitHub Apps* › *New GitHub
+   App*. URL du webhook : `https://<hôte public>/webhooks/github` ; secret de webhook : une
+   valeur aléatoire (`openssl rand -hex 32`), conservée pour l'agent.
+2. **Droits minimaux** (*Repository permissions*) : **Contents : Read-only** (clonage,
+   lecture des références et comparaisons) ; *Metadata : Read-only* est imposé par GitHub.
+   Aucun autre droit, aucun droit d'organisation ni de compte. (T15 ajoutera *Commit
+   statuses : Read and write* pour publier le verdict.) Événements : **Push** seulement.
+3. Générer une clé privée (fichier PEM) ; noter l'*App ID*.
+4. Installer l'application sur l'organisation, en limitant l'accès aux dépôts suivis
+   (*Only select repositories*). L'installation est trouvée pour chaque dépôt ; la fixer
+   par `installation_id` si l'application a plusieurs installations.
+
+L'agent signe un JWT RS256 de 9 minutes avec la clé, obtient un jeton d'installation
+**restreint à `contents: read`** (même si l'application a d'autres droits), le garde en
+mémoire jusqu'à cinq minutes de son expiration, et le présente à git dans un en-tête HTTP
+(`x-access-token`). Vérification : un dépôt non sélectionné dans l'installation est refusé
+(`installation de l'application : … introuvable` au journal), et un push sur un dépôt
+suivi apparaît dans l'onglet *Advanced › Recent deliveries* de l'application avec une
+réponse 202.
+
+### GitLab : compte de service
+
+1. Créer un compte de service (GitLab 16.1 et plus, Premium) ou, à défaut, un utilisateur
+   dédié ; lui donner le rôle **Reporter** (le plus faible qui lit le code) sur les
+   groupes ou projets suivis. Un jeton d'accès de groupe ou de projet, au rôle Reporter,
+   convient aussi.
+2. Jeton d'accès avec les **portées minimales** `read_api` (références et comparaisons) et
+   `read_repository` (clonage) ; aucune portée d'écriture. Prévoir sa rotation avant son
+   expiration (déposer le nouveau credential et redémarrer l'agent).
+3. Sur chaque projet (ou groupe) : *Settings › Webhooks*, URL
+   `https://<hôte public>/webhooks/gitlab`, *Secret token* aléatoire, déclencheurs **Push
+   events** et **Tag push events**, vérification SSL activée.
+
+Le secret est comparé en temps constant à `X-Gitlab-Token`. Vérification : *Test › Push
+events* sur la page du webhook doit répondre 202 ; un secret faux, 401.
+
+### Secrets et credentials systemd
+
+Les secrets (jeton d'agent, clé privée de la GitHub App, jeton GitLab, secrets de
+webhook, clé TLS du récepteur) ne sont **jamais dans le fichier de configuration** : celui-ci
+les désigne par `credential:<nom>` (credential systemd) ou par le chemin absolu d'un
+fichier lisible du seul compte de l'agent (`0600` ou `0400`, refusé sinon). Avec l'unité
+fournie (`DynamicUser=yes`, `StateDirectory=ogsbom-repo-agent`, durcissement
+`ProtectSystem=strict`, `NoNewPrivileges=yes`, aucune capacité) :
+
+```bash
+install -d -m 0700 /etc/ogsbom-repo-agent
+systemd-creds encrypt --name=agent-token agent-token.txt /etc/ogsbom-repo-agent/agent-token.cred
+systemd-creds encrypt --name=github-app-key app.private-key.pem /etc/ogsbom-repo-agent/github-app-key.cred
+systemd-creds encrypt --name=github-webhook-secret github-secret.txt /etc/ogsbom-repo-agent/github-webhook-secret.cred
+systemd-creds encrypt --name=gitlab-token gitlab-token.txt /etc/ogsbom-repo-agent/gitlab-token.cred
+systemd-creds encrypt --name=gitlab-webhook-secret gitlab-secret.txt /etc/ogsbom-repo-agent/gitlab-webhook-secret.cred
+shred -u agent-token.txt app.private-key.pem github-secret.txt gitlab-token.txt gitlab-secret.txt
+```
+
+Retirer de l'unité les `LoadCredentialEncrypted=` des forges non utilisées. Les
+identifiants de clonage n'apparaissent ni dans les arguments des processus (`ps`), ni
+dans l'URL, ni dans les journaux : ils passent à git par l'environnement
+(`GIT_CONFIG_KEY_n`/`GIT_CONFIG_VALUE_n`, en-tête `Authorization`), que `ProtectProc=
+invisible` cache aux autres comptes.
+
+### Exploitation
+
+- Journaux `slog` (`logging.format: json` en production) : rattrapages, pushs reçus et
+  refusés, envois (`project`, `ref`, `commit`), échecs d'analyse avec leur cause.
+- `GET /healthz` sur l'écoute du récepteur sert de sonde de vie.
+- Arrêt sur SIGTERM : le récepteur termine ses requêtes (10 s), les clonages en cours
+  sont tués et leurs répertoires supprimés ; le travail perdu est rattrapé au démarrage.
+- Décision de conception : ADR 0023.
+
 ## Clés de chiffrement des secrets
 
 Les secrets stockés en base (canaux de notification, OIDC, dans les lots qui les
