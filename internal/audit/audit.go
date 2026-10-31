@@ -45,6 +45,18 @@ const (
 	MemberAdded            Action = "member.added"
 	MemberRoleChanged      Action = "member.role_changed"
 	MemberRemoved          Action = "member.removed"
+	ProjectCreated         Action = "project.created"
+	ProjectUpdated         Action = "project.updated"
+	ProjectArchived        Action = "project.archived"
+	ProjectUnarchived      Action = "project.unarchived"
+	ProjectAgentChanged    Action = "project.agent_changed"
+	AgentCreated           Action = "agent.created"
+	AgentEnrolled          Action = "agent.enrolled"
+	AgentDisabled          Action = "agent.disabled"
+	AgentTokenCreated      Action = "agent_token.created"
+	AgentTokenRevoked      Action = "agent_token.revoked"
+	EnrollmentTokenCreated Action = "enrollment_token.created"
+	EnrollmentTokenRevoked Action = "enrollment_token.revoked"
 )
 
 // Actions renvoie toutes les actions connues (tests de traduction).
@@ -56,6 +68,9 @@ func Actions() []Action {
 		AccountBootstrapped, AccountRescueTOTPReset,
 		OrgCreated, OrgRenamed, OrgLanguageChanged, OrgArchived, OrgUnarchived,
 		MemberAdded, MemberRoleChanged, MemberRemoved,
+		ProjectCreated, ProjectUpdated, ProjectArchived, ProjectUnarchived, ProjectAgentChanged,
+		AgentCreated, AgentEnrolled, AgentDisabled, AgentTokenCreated, AgentTokenRevoked,
+		EnrollmentTokenCreated, EnrollmentTokenRevoked,
 	}
 }
 
