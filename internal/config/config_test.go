@@ -45,8 +45,13 @@ func valid() Config {
 		RetryBase: 10 * time.Second, RetryMax: 30 * time.Minute, Retention: time.Hour,
 		ScheduleInterval: 10 * time.Second, ShutdownTimeout: 30 * time.Second, OrgLimit: 2}
 	c.Ingest = Ingest{MaxUploadMiB: 32, MaxDecompressedMiB: 64, MaxDepth: 64, MaxComponents: 50000, DecodeTimeout: 5 * time.Minute}
+	c.VulnDB = defaultVulnDB
 	return c
 }
+
+var defaultVulnDB = VulnDB{ListingURL: "https://grype.anchore.io/databases/v6/latest.json", Dir: "/var/lib/ogsbom/vulndb",
+	CheckInterval: 6 * time.Hour, SyncInterval: time.Minute, MaxAge: 120 * time.Hour, DownloadTimeout: 30 * time.Minute,
+	MaxArchiveMiB: 2048, AnalysisTimeout: 10 * time.Minute}
 
 func TestLoadFromEnvironmentWithDefaults(t *testing.T) {
 	t.Setenv("OGSBOM_DB_DSN", testDSN)
@@ -73,6 +78,15 @@ func TestLoadFromEnvironmentWithDefaults(t *testing.T) {
 	if cfg.Ingest != (Ingest{MaxUploadMiB: 32, MaxDecompressedMiB: 64, MaxDepth: 64, MaxComponents: 50000, DecodeTimeout: 5 * time.Minute}) ||
 		MiB(cfg.Ingest.MaxUploadMiB) != 32<<20 {
 		t.Errorf("défauts de l'ingestion : %+v", cfg.Ingest)
+	}
+	if cfg.VulnDB != defaultVulnDB {
+		t.Errorf("défauts de la base de vulnérabilités : %+v", cfg.VulnDB)
+	}
+	// Hors ligne, la liste n'est pas exigée.
+	off := valid()
+	off.VulnDB.Offline, off.VulnDB.ListingURL = true, ""
+	if err := off.Validate(); err != nil {
+		t.Errorf("hors ligne : %v", err)
 	}
 	if cfg.Secrets.Keys["k1"] == "" {
 		t.Errorf("clés de secrets non lues : %v", cfg.Secrets.Keys)
@@ -209,6 +223,14 @@ func TestValidate(t *testing.T) {
 		{"profondeur", "ingest.max_depth", func(c *Config) { c.Ingest.MaxDepth = 4 }},
 		{"composants", "ingest.max_components", func(c *Config) { c.Ingest.MaxComponents = 0 }},
 		{"délai de décodage", "ingest.decode_timeout", func(c *Config) { c.Ingest.DecodeTimeout = 0 }},
+		{"liste de la base", "vulndb.listing_url", func(c *Config) { c.VulnDB.ListingURL = "ftp://x" }},
+		{"répertoire de la base", "vulndb.dir", func(c *Config) { c.VulnDB.Dir = "relatif" }},
+		{"vérification trop fréquente", "vulndb.check_interval", func(c *Config) { c.VulnDB.CheckInterval = time.Minute }},
+		{"synchronisation", "vulndb.sync_interval", func(c *Config) { c.VulnDB.SyncInterval = 0 }},
+		{"âge maximal", "vulndb.max_age", func(c *Config) { c.VulnDB.MaxAge = time.Minute }},
+		{"délai de téléchargement", "vulndb.download_timeout", func(c *Config) { c.VulnDB.DownloadTimeout = 0 }},
+		{"délai d'analyse", "vulndb.analysis_timeout", func(c *Config) { c.VulnDB.AnalysisTimeout = 0 }},
+		{"archive démesurée", "vulndb.max_archive_mib", func(c *Config) { c.VulnDB.MaxArchiveMiB = 1 << 20 }},
 		{"clé trop courte", "secrets.keys", func(c *Config) {
 			c.Secrets = Secrets{Keys: map[string]string{"k1": "c2hvcnQ="}, ActiveKey: "k1"}
 		}},

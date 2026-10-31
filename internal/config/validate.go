@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
+	"net/url"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -188,8 +190,40 @@ func (c Config) Validate() error {
 	v.positive("workers.shutdown_timeout", int64(c.Workers.ShutdownTimeout))
 	v.positive("workers.org_limit", int64(c.Workers.OrgLimit))
 	c.Ingest.validate(&v)
+	c.VulnDB.validate(&v)
 
 	return errors.Join(v.errs...)
+}
+
+// Bornes de la base de vulnérabilités.
+const (
+	minVulnDBCheck   = 10 * time.Minute
+	maxVulnDBArchive = 16384
+)
+
+func (d VulnDB) validate(v *validator) {
+	if !d.Offline {
+		if u, err := url.Parse(d.ListingURL); err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+			v.fail("vulndb.listing_url", "adresse http(s) attendue (reçu %q)", d.ListingURL)
+		}
+	}
+	if !filepath.IsAbs(d.Dir) {
+		v.fail("vulndb.dir", "chemin absolu attendu (reçu %q)", d.Dir)
+	}
+	if d.CheckInterval < minVulnDBCheck {
+		v.fail("vulndb.check_interval", "au moins %s (reçu %s)", minVulnDBCheck, d.CheckInterval)
+	}
+	if d.SyncInterval < time.Second {
+		v.fail("vulndb.sync_interval", "au moins 1s (reçu %s)", d.SyncInterval)
+	}
+	if d.MaxAge < time.Hour {
+		v.fail("vulndb.max_age", "au moins 1h (reçu %s)", d.MaxAge)
+	}
+	v.positive("vulndb.download_timeout", int64(d.DownloadTimeout))
+	v.positive("vulndb.analysis_timeout", int64(d.AnalysisTimeout))
+	if d.MaxArchiveMiB < 1 || d.MaxArchiveMiB > maxVulnDBArchive {
+		v.fail("vulndb.max_archive_mib", "doit être compris entre 1 et %d (reçu %d)", maxVulnDBArchive, d.MaxArchiveMiB)
+	}
 }
 
 // Plafonds des bornes de l'ingestion : au-delà, un seul envoi suffirait à épuiser la

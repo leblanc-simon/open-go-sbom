@@ -1,9 +1,7 @@
 package grype
 
 import (
-	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"context"
 	"errors"
 	"io"
@@ -13,51 +11,20 @@ import (
 	"testing"
 	"time"
 
-	v6 "github.com/anchore/grype/grype/db/v6"
 	v6dist "github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 
 	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/open-go-sbom/internal/vuln/grype/grypetest"
 )
 
-// TinyArchive construit une archive tar.gz d'une base Grype v6 vide mais valide (schéma et
-// date de construction), pour les tests d'installation sans la vraie base.
+// tinyArchive construit une vraie archive de base Grype v6, vide.
 func tinyArchive(t *testing.T) string {
 	t.Helper()
-	dir := t.TempDir()
-	w, err := v6.NewWriter(v6.Config{DBDirPath: dir})
+	path, err := grypetest.TinyArchive(t.TempDir())
 	if err != nil {
-		t.Fatal(err)
-	}
-	if err := w.SetDBMetadata(); err != nil {
-		t.Fatal(err)
-	}
-	if err := w.Close(); err != nil {
-		t.Fatal(err)
-	}
-	db, err := os.ReadFile(filepath.Join(dir, v6.VulnerabilityDBFileName))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
-	tw := tar.NewWriter(gz)
-	if err := tw.WriteHeader(&tar.Header{Name: v6.VulnerabilityDBFileName, Mode: 0o644, Size: int64(len(db)), ModTime: time.Now()}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := tw.Write(db); err != nil {
-		t.Fatal(err)
-	}
-	if err := tw.Close(); err != nil {
-		t.Fatal(err)
-	}
-	if err := gz.Close(); err != nil {
-		t.Fatal(err)
-	}
-	path := filepath.Join(t.TempDir(), "vulnerability-db.tar.gz")
-	if err := os.WriteFile(path, buf.Bytes(), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	return path

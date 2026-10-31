@@ -20,6 +20,9 @@ import (
 	"leblanc.io/open-go-sbom/internal/db"
 	"leblanc.io/open-go-sbom/internal/db/dbtest"
 	"leblanc.io/open-go-sbom/internal/db/migrations"
+	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/open-go-sbom/internal/vuln/grype"
+	"leblanc.io/open-go-sbom/internal/vuln/grype/grypetest"
 )
 
 // binary construit ogsbom-server une fois pour les tests de ce fichier.
@@ -100,6 +103,10 @@ func start(t *testing.T, tdb *dbtest.DB, env ...string) *instance {
 		"OGSBOM_SECRETS_ACTIVE_KEY=test",
 		"OGSBOM_BOOTSTRAP_ADMIN_EMAIL=admin@example.org",
 		"OGSBOM_BOOTSTRAP_ADMIN_PASSWORD=mot de passe temporaire",
+		// Jamais de réseau en test : la base de vulnérabilités est importée.
+		"OGSBOM_VULNDB_OFFLINE=true",
+		"OGSBOM_VULNDB_DIR=" + t.TempDir(),
+		"OGSBOM_VULNDB_SYNC_INTERVAL=1s",
 	}, env...)
 	out := &output{}
 	cmd.Stdout, cmd.Stderr = out, out
@@ -146,18 +153,70 @@ func (i *instance) exit(t *testing.T) int {
 	return i.cmd.ProcessState.ExitCode()
 }
 
+// readyStatus renvoie le statut de /readyz dès que l'écoute de gestion répond.
+func (i *instance) readyStatus() int {
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		resp, err := http.Get(i.management + "/readyz")
+		if err == nil {
+			resp.Body.Close()
+			return resp.StatusCode
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return 0
+}
+
+// waitMigrated attend que les instances aient appliqué les n migrations.
+func waitMigrated(t *testing.T, tdb *dbtest.DB, n int) {
+	t.Helper()
+	owner := tdb.Owner(t)
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		var got int
+		if err := owner.QueryRow("SELECT count(*) FROM " + db.MigrationsTable).Scan(&got); err == nil && got == n {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	t.Fatal("migrations jamais appliquées")
+}
+
+// importVulnDB importe une vraie base Grype, vide, comme le ferait l'écran d'import (T11).
+func importVulnDB(t *testing.T, tdb *dbtest.DB) {
+	t.Helper()
+	dir := t.TempDir()
+	path, err := grypetest.TinyArchive(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := vuln.NewChecker(vuln.CheckerOptions{Pool: tdb.App, Engine: grype.NewEngine(), Dir: dir, MaxArchive: 1 << 30})
+	if _, err := c.Import(context.Background(), path); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestServerEndToEnd(t *testing.T) {
 	t.Parallel()
 	tdb := dbtest.New(t, dbtest.WithoutMigrations())
 
 	// Deux instances démarrent ensemble sur une base vide : une seule migre.
 	a, b := start(t, tdb), start(t, tdb)
-	a.waitReady(t)
-	b.waitReady(t)
 	all, err := db.LoadMigrations(migrations.FS)
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Instances worker : /readyz échoue tant qu'aucune base de vulnérabilités n'est
+	// chargée ; une fois la base importée, chacune la synchronise et devient prête.
+	waitMigrated(t, tdb, len(all))
+	for _, i := range []*instance{a, b} {
+		if code := i.readyStatus(); code != http.StatusServiceUnavailable {
+			t.Fatalf("/readyz sans base de vulnérabilités : %d\n%s", code, i.out)
+		}
+	}
+	importVulnDB(t, tdb)
+	a.waitReady(t)
+	b.waitReady(t)
 	applied := strings.Count(a.out.String(), `"msg":"migration appliquée"`) + strings.Count(b.out.String(), `"msg":"migration appliquée"`)
 	if applied != len(all) {
 		t.Fatalf("migrations appliquées par les deux instances = %d, attendu %d\nA:\n%s\nB:\n%s", applied, len(all), a.out, b.out)
@@ -188,7 +247,8 @@ func TestServerEndToEnd(t *testing.T) {
 	var metrics bytes.Buffer
 	_, _ = metrics.ReadFrom(resp.Body)
 	resp.Body.Close()
-	if !strings.Contains(metrics.String(), "ogsbom_http_requests_total") || !strings.Contains(metrics.String(), "go_sql_open_connections") {
+	if !strings.Contains(metrics.String(), "ogsbom_http_requests_total") || !strings.Contains(metrics.String(), "go_sql_open_connections") ||
+		!strings.Contains(metrics.String(), "ogsbom_vulndb_loaded 1") {
 		t.Fatal("métriques attendues absentes")
 	}
 
