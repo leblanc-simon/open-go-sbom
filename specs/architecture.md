@@ -545,8 +545,22 @@ qu'aucune mesure ne la justifie (ADR 0015).
   par classes ; l'assistant de `webtest` exige qu'un `<svg>` soit décoratif
   (`aria-hidden`) ou une image nommée (`role="img"`), ADR 0027.
 - Accessibilité RGAA / WCAG 2.1 AA : HTML sémantique, lien d'évitement, focus visible,
-  sévérité jamais portée par la seule couleur. Des tests Go analysent le HTML rendu ; un
-  audit manuel clôt chaque lot fonctionnel.
+  sévérité jamais portée par la seule couleur ni la seule forme (libellé écrit, au moins
+  abrégé). Des tests Go analysent le HTML rendu ; un audit manuel clôt chaque lot
+  fonctionnel (grille du lot 1 : `docs/accessibilite/grille-rgaa-lot1.md`). Conventions
+  issues de cet audit (T11) :
+  - **action irréversible** (révoquer, désactiver, retirer, réinitialiser, supprimer) :
+    l'écran n'a qu'un lien vers l'URL de l'action ; un `GET` sur cette URL rend la page
+    de confirmation commune (`confirm/action`, `identity.confirm` : objet nommé,
+    conséquences, bouton d'action, lien « Annuler »), sans effet et avec les mêmes 404
+    que le `POST`, qui agit. Une action réversible (archiver, réactiver, rétablir un
+    rôle) agit en un clic ;
+  - **titre de page** : « écran — organisation · open-go-sbom », préfixé « Erreur : »
+    quand un écran est rendu avec un statut 4xx (`render.Page.Failed`) ;
+  - **plan du site** `/sitemap`, lié du pied de page, construit par les fonctions des
+    navigations latérales : une rubrique ajoutée à une navigation y paraît d'elle-même ;
+  - zone défilante d'un tableau : `role="group"` nommé et `tabindex="0"`, jamais une
+    seconde région du même nom que son panneau.
 
 ## 15. API REST
 

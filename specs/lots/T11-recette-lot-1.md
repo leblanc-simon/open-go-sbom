@@ -37,7 +37,9 @@ documenter et publier une préversion.
       charges.
 - [ ] Aucune faiblesse de gravité haute ou critique (OWASP Risk Rating) ouverte à l'issue de
       la revue.
-- [ ] Grille RGAA remplie pour chaque écran, sans non-conformité bloquante.
+- [x] Grille RGAA remplie pour chaque écran, sans non-conformité bloquante
+      ([grille](../../docs/accessibilite/grille-rgaa-lot1.md) : 100 % des critères
+      applicables après corrections, aucune NC bloquante ni avant ni après).
 - [ ] Sur le parc pilote : tous les serveurs et dépôts prévus ont un instantané de moins de
       24 h.
 - [ ] Pour trois CVE choisies avant la recette, la recherche renvoie exactement la liste de
@@ -183,3 +185,105 @@ Réalisée le 31 octobre 2026, branche `lot/T11-administration`.
 
 0028.
 
+### Audit RGAA
+
+Réalisé le 31 octobre 2026, branche `lot/T11-accessibilite`. Grille finale :
+[`docs/accessibilite/grille-rgaa-lot1.md`](../../docs/accessibilite/grille-rgaa-lot1.md).
+
+#### Résultat
+
+Audit initial sur `main` (8369ad0) : 85,7 % (60 critères conformes sur 70 applicables),
+13 constats, 0 bloquant, 4 majeurs, 9 mineurs. Après corrections : **100 %** (72 sur 72 ;
+12.3 et 12.4 deviennent applicables avec le plan du site), aucun constat ouvert. Contre-audit
+outillé sur 88 pages, les 11 pages de confirmation et le plan du site, en français et en
+anglais, thèmes clair et sombre : axe-core sans aucun écart (368 rendus), aucun défilement
+horizontal à 320 et 390 px ni à 200 % de texte, parcours clavier sans piège, captures de
+contrôle des écrans corrigés dans les deux thèmes.
+
+| NC | Gravité | Critère | Statut | Commit |
+| --- | --- | --- | --- | --- |
+| NC-01 navigation latérale trop large | majeure | 10.11 | corrigé, vérifié | PR #13 |
+| NC-02 texte masqué hors des tableaux | majeure | 10.11 | corrigé, vérifié | PR #13 |
+| bande vide sous la navigation | défaut | 10.11 | corrigé, vérifié | PR #13 |
+| NC-03 menu d'organisation à 320 px | mineure | 10.11 | corrigé | 9bd0e4a |
+| NC-04 PURL insécable | mineure | 10.11 | corrigé | 9bd0e4a |
+| NC-05 compteurs de sévérité sans libellé | majeure | 3.1, 10.9, 10.10 | corrigé | 9bd0e4a |
+| NC-06 ligne sélectionnée par la couleur | mineure | 3.1 | corrigé | 9bd0e4a |
+| NC-07 version vulnérable par la couleur | mineure | 3.1 | corrigé | 9bd0e4a |
+| NC-08 titres peu discriminants | mineure | 8.6 | corrigé | 9bd0e4a |
+| NC-09 noms de langue sans `lang` | mineure | 8.7 | corrigé | 9bd0e4a |
+| NC-10 bouton « Modifier » sans contexte | mineure | 11.9 | corrigé | 9bd0e4a |
+| NC-11 format attendu masqué | mineure | 11.10 | corrigé | 9bd0e4a |
+| NC-12 actions irréversibles en un clic | majeure | 11.12 | corrigé | 9bd0e4a |
+| NC-13 un seul système de navigation | mineure | 12.1 | corrigé | 9bd0e4a |
+
+#### Livré
+
+- **Confirmation des actions irréversibles** (NC-12) : `GET` sur l'URL de l'action →
+  page commune `confirm/action` (`internal/web/confirm_pages.go`), `POST` sur la même URL
+  → action ; lien « Annuler ». Jetons d'agent, d'inscription et personnels, désactivation
+  d'un agent, retrait d'un membre (texte propre pour soi-même), réinitialisation du mot de
+  passe et du TOTP, abandon d'un traitement en échec. Les `POST` existants sont inchangés.
+  Nouvelle lecture `org.Service.Member`.
+- **Titres de page** (NC-08) : « écran — organisation » par le layout (organisation
+  courante de l'en-tête), requête de la recherche, préfixe « Erreur : » posé par
+  `render.Render` pour un écran rendu en 4xx (`render.Page.Failed`, jamais sur les pages
+  d'erreur) ; `dashboard.title` ne répète plus le nom.
+- **Plan du site** (NC-13) : `/sitemap`, lié du pied de page des sessions complètes
+  (`render.Chrome.Authenticated`), construit par `orgNav` (selon le rôle dans chaque
+  organisation), `accountNav` et `adminNav`.
+- Présentation : sélecteur d'organisation (NC-03), en-tête de page (NC-04), compteurs de
+  sévérité abrégés et repliables (NC-05), ligne sélectionnée (NC-06), répartition des
+  versions (NC-07), `lang` des noms de langue (NC-09, option `option.Lang`), « Modifier le
+  rôle » et colonne Actions des membres de nouveau lisible (NC-10 ; le bouton était
+  recouvert par « Retirer »), aide des étiquettes visible (NC-11).
+- Recommandations traitées : zones défilantes de tableau en `role="group"` nommé et
+  focalisable partout (R-01, R-06), espaces entre texte masqué et visible (R-05), couleur
+  des textes indicatifs (R-11), aide de l'import de la base liée au champ.
+- Garde-fous : `webtest.CheckAccessibility` refuse une aide `aria-describedby` masquée
+  visuellement et une option de `<select name="language">` sans `lang` égal à sa valeur ;
+  tests d'intégration `TestIrreversibleActionsAreConfirmed` (lien, page sans effet,
+  fr/en, accessibilité, `POST`, objet déjà révoqué, 404), `TestPageTitlesAreDistinct`,
+  `TestSiteMap`, assertions de `TestFindingScreens` ; `TestRenderTitle` ; les nouvelles
+  routes `GET` passent dans les harnais d'isolement par route et d'administration.
+- Clés de traduction (fr, en) : `layout.title_org`, `layout.title_error`,
+  `search.title_query`, `severity_short.*`, `component.this_version`,
+  `snapshots.ref_shown`, `footer.sitemap`, `sitemap.*`, `confirm.*` ;
+  `members.change_role` et `dashboard.title` modifiées.
+- `architecture.md` § 14 : conventions issues de l'audit (actions irréversibles, titres,
+  plan du site, zones de tableau).
+
+#### Décisions
+
+- **Page de confirmation plutôt que case « je confirme »** **[à relire]** : un seul
+  gabarit et une seule fonction pour toutes les actions, l'objet et les conséquences
+  écrits en toutes lettres, aucune modification des `POST` existants (moins de conflits
+  avec la revue de sécurité menée en parallèle), et une case dans chaque ligne de tableau
+  aurait alourdi les listes. Prix : un aller-retour de plus. La purge des archives garde
+  sa case (partie 1), conforme elle aussi.
+- **Abandon d'un traitement confirmé** **[à relire]** : il supprime le job et sa dernière
+  erreur (irréversible pour l'administrateur) ; revient sur la décision de la partie 1
+  (« sans confirmation »). « Relancer » reste en un clic.
+- **NC-13 : plan du site** plutôt que la recherche comme second système **[à relire]** :
+  la recherche transverse cherche des composants et des vulnérabilités, pas des pages ;
+  elle ne satisfait pas 12.1. Plan simple, sans nouvelle donnée, réservé aux sessions
+  complètes.
+- **« Erreur : » sur tout écran rendu en 4xx** **[à relire]** : règle centrale dans
+  `render` plutôt qu'écran par écran ; vaut aussi pour une recherche illisible (400) et
+  l'écran des traitements renvoyé en 404 après un double envoi.
+- **Abréviations des sévérités** (« Crit. », « Élev. », « Moy. », « Faible » ; « Crit »,
+  « High », « Med », « Low ») avec le libellé complet en `title` et pour les lecteurs
+  d'écran **[à relire]**.
+- Pas d'ADR : pas de décision structurante au-delà des conventions consignées au § 14.
+- Pas de test Playwright dans le dépôt : la CI n'a pas de navigateur et le brief exclut
+  toute nouvelle dépendance ; la redistribution à 320 px reste vérifiée à l'audit
+  (scripts hors dépôt), les règles statiques sont dans `webtest`.
+
+#### Écarts
+
+- Recommandations R-02, R-03, R-04, R-07, R-08, R-09, R-10 non traitées (hors grille,
+  listées au § 6 de la grille).
+
+#### ADR créés
+
+Aucun.

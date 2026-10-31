@@ -74,6 +74,10 @@ T11 en cours, partie 1 livrée : écrans d'administration d'instance (traitement
 `/admin/jobs`, version de la base chargée par chaque instance, import manuel d'une archive
 installée par le job `vulndb.import`, purge des archives non cibles ; ADR 0028). Partie 2 :
 revue de sécurité, audit RGAA, mesures, parc pilote, préversion.
+Audit RGAA fait : grille [`docs/accessibilite/grille-rgaa-lot1.md`](docs/accessibilite/grille-rgaa-lot1.md),
+conventions d'interface au § 14 de l'architecture (action irréversible = page de
+confirmation commune `confirm/action`, titre « écran — organisation », plan du site
+`/sitemap`).
 
 ## Règles de travail
 
