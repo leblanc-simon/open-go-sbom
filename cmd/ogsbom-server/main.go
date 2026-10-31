@@ -1,10 +1,11 @@
-// Commande ogsbom-server : interface web, API REST et, dans les lots suivants, workers et
-// planificateur. main ne fait que charger la configuration, construire les dépendances,
+// Commande ogsbom-server : interface web, API REST, workers et planificateur de la file de
+// traitements. main ne fait que charger la configuration, construire les dépendances,
 // lancer les serveurs et attendre le signal d'arrêt.
 package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -21,6 +22,7 @@ import (
 	"leblanc.io/open-go-sbom/internal/account"
 	"leblanc.io/open-go-sbom/internal/config"
 	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/open-go-sbom/internal/jobs"
 	"leblanc.io/open-go-sbom/internal/locale"
 	"leblanc.io/open-go-sbom/internal/org"
 	"leblanc.io/open-go-sbom/internal/render"
@@ -163,5 +165,47 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			return err
 		}
 	}
-	return web.NewServer(opts).Run(ctx)
+	jobMetrics, err := jobs.NewMetrics(registry, pool, logger)
+	if err != nil {
+		return err
+	}
+	services := []func(context.Context) error{web.NewServer(opts).Run}
+	if cfg.Workers.Enabled {
+		runner := jobs.NewRunner(pool, jobs.RunnerOptions{
+			Concurrency:     cfg.Workers.Concurrency,
+			PollInterval:    cfg.Workers.PollInterval,
+			Lease:           cfg.Workers.Lease,
+			Backoff:         jobs.Backoff{Base: cfg.Workers.RetryBase, Max: cfg.Workers.RetryMax, Jitter: jobs.DefaultRetryJitter},
+			Retention:       cfg.Workers.Retention,
+			ShutdownTimeout: cfg.Workers.ShutdownTimeout,
+			Logger:          logger,
+			Metrics:         jobMetrics,
+		})
+		scheduler := jobs.NewScheduler(pool, jobs.SchedulerOptions{
+			Interval: cfg.Workers.ScheduleInterval,
+			Logger:   logger,
+			Metrics:  jobMetrics,
+		})
+		services = append(services, runner.Run, scheduler.Run)
+	}
+	return runAll(ctx, services...)
+}
+
+// runAll lance les services ensemble et attend qu'ils aient tous rendu la main ; le
+// premier qui s'arrête, sur erreur ou non, arrête les autres.
+func runAll(ctx context.Context, services ...func(context.Context) error) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	errs := make(chan error, len(services))
+	for _, run := range services {
+		go func() {
+			errs <- run(ctx)
+			cancel()
+		}()
+	}
+	var all []error
+	for range services {
+		all = append(all, <-errs)
+	}
+	return errors.Join(all...)
 }

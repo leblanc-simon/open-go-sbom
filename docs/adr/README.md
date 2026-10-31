@@ -16,3 +16,4 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0008](0008-front-sans-chaine-de-construction.md) | Interface sans chaîne de construction front | Accepté |
 | [0009](0009-fonctions-de-gabarit-par-langue.md) | Fonctions de gabarit dépendantes de la requête : un jeu de gabarits par langue | Accepté |
 | [0010](0010-migrations-et-roles-postgresql.md) | Exécuteur de migrations, droits du rôle d'exécution et contrôle de la RLS | Accepté |
+| [0011](0011-conception-de-la-file.md) | Conception de la file de traitements : horloge, prise, plafond, arrêt | Accepté |

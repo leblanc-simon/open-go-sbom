@@ -166,7 +166,7 @@ func (d *DB) AdminExec(t testing.TB, stmts ...string) {
 
 func (d *DB) open(t testing.TB, dsn string, maxConns int) *sql.DB {
 	t.Helper()
-	pool, err := db.Open(dsn, db.PoolConfig{MaxOpenConns: maxConns, ApplicationName: "ogsbom-test"})
+	pool, err := db.Open(dsn, db.PoolConfig{MaxOpenConns: maxConns, MaxIdleConns: maxConns, ApplicationName: "ogsbom-test"})
 	if err != nil {
 		t.Fatalf("dbtest: %v", err)
 	}

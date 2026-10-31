@@ -40,6 +40,9 @@ func valid() Config {
 	c.Auth.SessionTTL, c.Auth.CookieSecure, c.Auth.BcryptCost = time.Hour, "auto", 12
 	c.MFA.ChallengeTTL, c.MFA.MaxAttempts = time.Minute, 5
 	c.Login.RateLimit = 10
+	c.Workers = Workers{Enabled: true, Concurrency: 4, PollInterval: time.Second, Lease: 30 * time.Second,
+		RetryBase: 10 * time.Second, RetryMax: 30 * time.Minute, Retention: time.Hour,
+		ScheduleInterval: 10 * time.Second, ShutdownTimeout: 30 * time.Second}
 	return c
 }
 
@@ -62,6 +65,9 @@ func TestLoadFromEnvironmentWithDefaults(t *testing.T) {
 	if cfg.Database.MaxIdleConns != 10 || cfg.HTTP.ShutdownTimeout != 30*time.Second || cfg.Migration.MaxConns != 2 || cfg.Management.Port != 8081 {
 		t.Errorf("défauts env-default non appliqués : %+v", cfg)
 	}
+	if !cfg.Workers.Enabled || cfg.Workers.Concurrency != 4 || cfg.Workers.Retention != 168*time.Hour {
+		t.Errorf("défauts des workers : %+v", cfg.Workers)
+	}
 	if cfg.Secrets.Keys["k1"] == "" {
 		t.Errorf("clés de secrets non lues : %v", cfg.Secrets.Keys)
 	}
@@ -83,6 +89,8 @@ secrets:
   keys:
     k1: ` + base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{2}, 32)) + `
   active_key: k1
+workers:
+  enabled: false
 `
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatal(err)
@@ -97,6 +105,10 @@ secrets:
 	}
 	if cfg.Database.MaxOpenConns != 5 || cfg.I18n.DefaultLanguage != "en" || cfg.HTTP.ShutdownTimeout != 5*time.Second {
 		t.Errorf("fichier mal lu : %+v", cfg)
+	}
+	// Un false écrit dans le fichier n'est pas écrasé par un défaut.
+	if cfg.Workers.Enabled {
+		t.Error("workers.enabled: false ignoré")
 	}
 	if cfg.Database.MaxIdleConns != 3 {
 		t.Errorf("la variable d'environnement ne l'emporte pas : %d", cfg.Database.MaxIdleConns)
@@ -174,6 +186,14 @@ func TestValidate(t *testing.T) {
 		{"secours e-mail invalide", "bootstrap.rescue_totp_email", func(c *Config) {
 			c.Bootstrap.RescueEmail, c.Bootstrap.RescueTicket = "x", "INC-2026-1031"
 		}},
+		{"workers", "workers.concurrency (OGSBOM_WORKERS_CONCURRENCY)", func(c *Config) { c.Workers.Concurrency = 0 }},
+		{"attente des workers", "workers.poll_interval", func(c *Config) { c.Workers.PollInterval = 0 }},
+		{"bail", "workers.lease", func(c *Config) { c.Workers.Lease = 500 * time.Millisecond }},
+		{"réessai", "workers.retry_base", func(c *Config) { c.Workers.RetryBase = 0 }},
+		{"réessai maximal", "workers.retry_max", func(c *Config) { c.Workers.RetryMax = time.Second }},
+		{"rétention", "workers.retention", func(c *Config) { c.Workers.Retention = 0 }},
+		{"planificateur", "workers.schedule_interval", func(c *Config) { c.Workers.ScheduleInterval = 0 }},
+		{"arrêt des workers", "workers.shutdown_timeout", func(c *Config) { c.Workers.ShutdownTimeout = 0 }},
 		{"clé trop courte", "secrets.keys", func(c *Config) {
 			c.Secrets = Secrets{Keys: map[string]string{"k1": "c2hvcnQ="}, ActiveKey: "k1"}
 		}},

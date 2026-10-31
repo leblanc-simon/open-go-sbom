@@ -7,6 +7,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"golang.org/x/text/language"
 
@@ -171,6 +172,18 @@ func (c Config) Validate() error {
 	}
 	v.nonNegative("login.rate_limit", int64(c.Login.RateLimit))
 	c.Bootstrap.validate(&v)
+	v.positive("workers.concurrency", int64(c.Workers.Concurrency))
+	v.positive("workers.poll_interval", int64(c.Workers.PollInterval))
+	if c.Workers.Lease < time.Second {
+		v.fail("workers.lease", "au moins 1s (reçu %s)", c.Workers.Lease)
+	}
+	v.positive("workers.retry_base", int64(c.Workers.RetryBase))
+	if c.Workers.RetryMax < c.Workers.RetryBase {
+		v.fail("workers.retry_max", "doit valoir au moins workers.retry_base (%s)", c.Workers.RetryBase)
+	}
+	v.positive("workers.retention", int64(c.Workers.Retention))
+	v.positive("workers.schedule_interval", int64(c.Workers.ScheduleInterval))
+	v.positive("workers.shutdown_timeout", int64(c.Workers.ShutdownTimeout))
 
 	return errors.Join(v.errs...)
 }

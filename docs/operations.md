@@ -140,14 +140,62 @@ pas exposer publiquement :
 | --- | --- |
 | `/healthz` | vivacité : le processus répond (200), indépendamment de la base |
 | `/readyz` | disponibilité : 200 si la base répond et si le schéma est à jour ; 503 sinon, avec la vérification en échec, et 503 dès le début d'un arrêt. La base Grype s'y ajoutera pour les instances à workers (T06). |
-| `/metrics` | métriques Prometheus : `ogsbom_http_requests_total` et `ogsbom_http_request_duration_seconds` (par groupe de routes, méthode, motif de route, statut), pool de connexions (`go_sql_*`), processus et moteur Go |
+| `/metrics` | métriques Prometheus : `ogsbom_http_requests_total` et `ogsbom_http_request_duration_seconds` (par groupe de routes, méthode, motif de route, statut), file de traitements (`ogsbom_jobs`, `ogsbom_job_*`, voir « Traitements »), pool de connexions (`go_sql_*`), processus et moteur Go |
+
+## Traitements
+
+Ingestions, analyses et échéances passent par une file en base (tables `jobs` et
+`schedules`), partagée par toutes les instances : n'importe quelle instance à workers
+prend n'importe quel job, et un job survit au redémarrage de toutes les instances.
+
+- `workers.enabled` (vrai par défaut) lance sur l'instance `workers.concurrency` workers
+  (4) et le planificateur. `false` donne une instance purement web, par exemple pour
+  qu'un envoi lourd ne ralentisse pas l'interface ; il faut alors au moins une autre
+  instance à workers.
+- **Au moins une fois** : un job pris pose un bail de `workers.lease` (30 s), renouvelé
+  tant qu'il tourne. Si l'instance disparaît (panne, `SIGKILL`), le job est repris par une
+  autre instance après expiration du bail. Les traitements sont conçus pour être rejoués
+  sans dommage.
+- **Réessais** : un job en échec est réessayé après `retry_base × 2^(n−1)` (10 s, 20 s,
+  40 s…), plafonné à `workers.retry_max` (30 min), plus une gigue de 0 à 20 %. Après son
+  nombre maximal de tentatives (10 par défaut), ou sur une erreur définitive, il passe au
+  statut `dead` avec sa dernière erreur ; il y reste jusqu'à ce qu'un administrateur le
+  relance ou le supprime (écran d'administration, T11).
+- **Priorités et plafonds** : un job prioritaire (une ingestion fraîche) passe avant le
+  travail de fond (réanalyse de toutes les références). Les types lourds sont plafonnés
+  par organisation, toutes instances confondues : une organisation très active ne prive
+  pas les autres.
+- **Échéances** : chaque échéance (vérification de la base de vulnérabilités, statistiques
+  quotidiennes…) est cherchée toutes les `workers.schedule_interval` (10 s) et n'est prise
+  que par une seule instance, même si toutes tournent. Les échéances suivent une grille en
+  UTC ; un point manqué pendant une panne générale est rattrapé une fois au redémarrage.
+- **Rétention** : les jobs terminés sont purgés après `workers.retention` (7 jours).
+- **Horloges** : baux et échéances se calculent avec l'horloge de chaque instance, qui
+  doit être synchronisée (NTP ou équivalent).
+
+Métriques (`/metrics`) :
+
+| Métrique | Contenu |
+| --- | --- |
+| `ogsbom_jobs{kind, status}` | jobs en attente (`pending`), en cours (`running`) et morts (`dead`), lus en base : même valeur sur toutes les instances |
+| `ogsbom_job_runs_total{kind, outcome}` | exécutions de l'instance : `done`, `retry` et `dead` (échecs), `lost` (bail perdu, résultat ignoré), `released` (interrompu par l'arrêt) |
+| `ogsbom_job_duration_seconds{kind}` | durée des exécutions de l'instance |
+| `ogsbom_job_schedule_fires_total{schedule}` | échéances prises par l'instance |
+
+À surveiller : `ogsbom_jobs{status="dead"}` qui croît, `ogsbom_jobs{status="pending"}`
+qui ne décroît pas (workers absents ou sous-dimensionnés), `outcome="lost"` fréquent
+(bail trop court ou base saturée).
 
 ## Arrêt
 
 Sur `SIGTERM` (ou `SIGINT`), le serveur passe `/readyz` à 503, cesse d'accepter des
 connexions et laisse aux requêtes en cours `http.shutdown_timeout` (30 s par défaut) pour
-finir ; au-delà, il ferme les connexions restantes. Code de sortie 0 après un arrêt propre.
-Côté systemd, `TimeoutStopSec` doit dépasser `http.shutdown_timeout`.
+finir ; au-delà, il ferme les connexions restantes. En même temps, les workers cessent de
+prendre des jobs et laissent aux jobs en cours `workers.shutdown_timeout` (30 s) ; à
+l'approche de ce délai, les jobs encore en cours sont interrompus et remis en attente,
+sans que la tentative compte, pour qu'une autre instance les reprenne aussitôt. Code de
+sortie 0 après un arrêt propre. Côté systemd, `TimeoutStopSec` doit dépasser le plus grand
+de `http.shutdown_timeout` et `workers.shutdown_timeout`.
 
 ## Clés de chiffrement des secrets
 

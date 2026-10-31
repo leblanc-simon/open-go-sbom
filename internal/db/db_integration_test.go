@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -21,7 +22,9 @@ import (
 	"leblanc.io/open-go-sbom/internal/tenant"
 )
 
-// withMigrations ajoute des migrations de test à celles du projet.
+// withMigrations ajoute des migrations de test à celles du projet. Un nom « +N_sujet.sql »
+// prend le N-ième numéro après la dernière migration du projet : les tests ne dépendent
+// pas du nombre de migrations publiées.
 func withMigrations(t *testing.T, extra map[string]string) fstest.MapFS {
 	t.Helper()
 	fsys := fstest.MapFS{}
@@ -33,19 +36,27 @@ func withMigrations(t *testing.T, extra map[string]string) fstest.MapFS {
 		fsys[m.Name] = &fstest.MapFile{Data: []byte(m.SQL)}
 	}
 	for name, body := range extra {
-		fsys[name] = &fstest.MapFile{Data: []byte(body)}
+		fsys[migrationName(t, name)] = &fstest.MapFile{Data: []byte(body)}
 	}
 	return fsys
 }
 
-// nextMigration nomme la offset-ième migration de test après celles du projet.
-func nextMigration(t *testing.T, offset int, subject string) string {
+// migrationName résout un nom « +N_sujet.sql » (voir withMigrations).
+func migrationName(t *testing.T, name string) string {
 	t.Helper()
+	offset, subject, ok := strings.Cut(strings.TrimPrefix(name, "+"), "_")
+	if !strings.HasPrefix(name, "+") || !ok {
+		return name
+	}
+	n, err := strconv.Atoi(offset)
+	if err != nil {
+		t.Fatalf("nom de migration de test %q", name)
+	}
 	all, err := db.LoadMigrations(migrations.FS)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return fmt.Sprintf("%03d_%s.sql", len(all)+offset, subject)
+	return fmt.Sprintf("%03d_%s", len(all)+n, subject)
 }
 
 func countMigrations(t *testing.T, q db.Querier) int {
@@ -147,13 +158,12 @@ func TestMigrateRefusesNewerDatabase(t *testing.T) {
 	ctx := context.Background()
 	tdb := dbtest.New(t, dbtest.WithoutMigrations())
 	owner := tdb.Owner(t)
-	future := nextMigration(t, 1, "future")
-	newer := withMigrations(t, map[string]string{future: "SELECT 1"})
+	newer := withMigrations(t, map[string]string{"+1_future.sql": "SELECT 1"})
 	if _, err := db.Migrate(ctx, owner, db.MigrateOptions{AppRole: tdb.AppRole, Migrations: newer}); err != nil {
 		t.Fatal(err)
 	}
 	_, err := db.Migrate(ctx, owner, db.MigrateOptions{AppRole: tdb.AppRole})
-	if !errors.Is(err, db.ErrUnknownMigration) || !strings.Contains(err.Error(), future) {
+	if !errors.Is(err, db.ErrUnknownMigration) || !strings.Contains(err.Error(), migrationName(t, "+1_future.sql")) {
 		t.Fatalf("err = %v, attendu ErrUnknownMigration", err)
 	}
 }
@@ -163,8 +173,8 @@ func TestMigrateIsAllOrNothing(t *testing.T) {
 	ctx := context.Background()
 	tdb := dbtest.New(t, dbtest.WithoutMigrations())
 	broken := withMigrations(t, map[string]string{
-		nextMigration(t, 1, "table"):  "CREATE TABLE t_ok (id int)",
-		nextMigration(t, 2, "broken"): "CREATE TABLE t_broken (id int, oops)",
+		"+1_table.sql":  "CREATE TABLE t_ok (id int)",
+		"+2_broken.sql": "CREATE TABLE t_broken (id int, oops)",
 	})
 	if _, err := db.Migrate(ctx, tdb.Owner(t), db.MigrateOptions{AppRole: tdb.AppRole, Migrations: broken}); err == nil {
 		t.Fatal("migration invalide acceptée")
@@ -250,13 +260,13 @@ func TestMigrateRefusesUnprotectedOrgTable(t *testing.T) {
 		"organizations protégée": {`CREATE SCHEMA other;
 			CREATE TABLE other.organizations (id uuid PRIMARY KEY);
 			CALL ogsbom_enforce_org_rls('other.organizations', 'id')`, false},
-		"table globale à org_id facultatif": {"CREATE TABLE jobs (org_id uuid, kind text)", false},
+		"table globale à org_id facultatif": {"CREATE TABLE global_probe (org_id uuid, kind text)", false},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			tdb := dbtest.New(t, dbtest.WithoutMigrations())
-			fsys := withMigrations(t, map[string]string{nextMigration(t, 1, "test"): c.sql})
+			fsys := withMigrations(t, map[string]string{"+1_test.sql": c.sql})
 			_, err := db.Migrate(context.Background(), tdb.Owner(t), db.MigrateOptions{AppRole: tdb.AppRole, Migrations: fsys})
 			if c.wantErr != errors.Is(err, db.ErrUnprotectedOrgTable) {
 				t.Fatalf("err = %v, attendu en erreur : %v", err, c.wantErr)
@@ -354,7 +364,7 @@ func quote(s string) string { return `"` + s + `"` }
 func rlsDB(t *testing.T) *dbtest.DB {
 	t.Helper()
 	tdb := dbtest.New(t, dbtest.WithoutMigrations())
-	fsys := withMigrations(t, map[string]string{nextMigration(t, 1, "probe"): `
+	fsys := withMigrations(t, map[string]string{"+1_probe.sql": `
 		CREATE TABLE probe (org_id uuid NOT NULL, v text NOT NULL);
 		CALL ogsbom_enforce_org_rls('probe');`})
 	if _, err := db.Migrate(context.Background(), tdb.Owner(t), db.MigrateOptions{AppRole: tdb.AppRole, Migrations: fsys}); err != nil {
