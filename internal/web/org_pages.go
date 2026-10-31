@@ -19,6 +19,8 @@ func orgNav(acc tenant.Access, current string) []render.NavItem {
 	base := orgBase(acc)
 	nav := []render.NavItem{
 		{LabelKey: "nav.org_overview", Href: base, Current: current == "overview"},
+		{LabelKey: "nav.projects", Href: base + "/projects", Current: current == "projects"},
+		{LabelKey: "nav.agents", Href: base + "/agents", Current: current == "agents"},
 		{LabelKey: "nav.members", Href: base + "/members", Current: current == "members"},
 	}
 	if acc.Role.AtLeast(tenant.RoleAdmin) {

@@ -27,11 +27,14 @@ import (
 	"leblanc.io/open-go-base/authx"
 
 	"leblanc.io/open-go-sbom/internal/account"
+	"leblanc.io/open-go-sbom/internal/agent"
+	apiv1 "leblanc.io/open-go-sbom/internal/api"
 	"leblanc.io/open-go-sbom/internal/audit"
 	"leblanc.io/open-go-sbom/internal/db"
 	"leblanc.io/open-go-sbom/internal/db/dbtest"
 	"leblanc.io/open-go-sbom/internal/locale"
 	"leblanc.io/open-go-sbom/internal/org"
+	"leblanc.io/open-go-sbom/internal/project"
 	"leblanc.io/open-go-sbom/internal/render"
 	"leblanc.io/open-go-sbom/internal/secret"
 	"leblanc.io/open-go-sbom/internal/tenant"
@@ -51,6 +54,9 @@ type app struct {
 	tdb      *dbtest.DB
 	accounts *account.Service
 	orgs     *org.Service
+	projects *project.Service
+	agents   *agent.Service
+	clock    *testClock
 	box      *secret.Box
 	handler  http.Handler
 	logs     *syncBuffer
@@ -107,19 +113,22 @@ func newApp(t *testing.T, opts ...appOption) *app {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a := &app{t: t, tdb: tdb, box: box, logs: logs, steps: map[int64]int{},
-		accounts: account.NewService(tdb.App, testCost), orgs: org.NewService(tdb.App)}
+	clock := &testClock{now: time.Now().UTC()}
+	a := &app{t: t, tdb: tdb, box: box, logs: logs, steps: map[int64]int{}, clock: clock,
+		accounts: account.NewService(tdb.App, testCost), orgs: org.NewService(tdb.App),
+		projects: project.NewService(tdb.App), agents: agent.NewService(tdb.App, agent.WithClock(clock.Now))}
 	o := RouterOptions{
 		Logger: logger, Catalog: cat, Renderer: rd, Assets: assets,
 		Metrics:    middleware.NewHTTPMetrics(prometheus.NewRegistry()),
 		RateLimit:  0,
 		CSRFSecure: "off",
 		Identity: &IdentityOptions{
-			Pool: tdb.App, Accounts: a.accounts, Orgs: a.orgs, Secrets: box,
+			Pool: tdb.App, Accounts: a.accounts, Orgs: a.orgs, Projects: a.projects, Agents: a.agents, Secrets: box,
 			Auth:           appconf.Auth{SessionTTL: time.Hour, CookieName: "ogsbom_session", CookieSecure: "off", BcryptCost: testCost},
 			MFA:            appconf.MFA{Issuer: "open-go-sbom", ChallengeTTL: time.Minute, MaxAttempts: 3},
 			LoginRateLimit: 0,
 		},
+		AgentAPI: &apiv1.AgentOptions{Agents: a.agents},
 	}
 	for _, opt := range opts {
 		opt(&o)
@@ -132,6 +141,24 @@ func newApp(t *testing.T, opts ...appOption) *app {
 	a.srv = httptest.NewServer(h)
 	t.Cleanup(a.srv.Close)
 	return a
+}
+
+// testClock est l'horloge des agents en test : elle n'avance que sur demande.
+type testClock struct {
+	mu  sync.Mutex
+	now time.Time
+}
+
+func (c *testClock) Now() time.Time {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.now
+}
+
+func (c *testClock) advance(d time.Duration) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.now = c.now.Add(d)
 }
 
 // browser est un client avec ses cookies, qui ne suit pas les redirections.

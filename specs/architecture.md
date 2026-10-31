@@ -58,7 +58,6 @@ internal/
   pagination/            # curseurs opaques et pages bornées (§ 15)
   jobs/                  # file de traitements PostgreSQL + planificateur
   secret/                # chiffrement des secrets stockés (AES-256-GCM, clés versionnées)
-  ratelimit/             # limiteur par jeton pour l'API agent (en complément d'open-go-base)
   audit/                 # journal d'audit
   tenant/                # type OrgID, contexte, garde d'organisation
   account/               # comptes (écriture dans users), méthode d'authentification, rendu
@@ -138,7 +137,7 @@ relevées en T00 (une montée de version ultérieure ne demande pas de nouvelle 
 
 | Besoin | Choix | Version (T00) | Statut |
 | --- | --- | --- | --- |
-| Configuration, journaux, i18n, CSRF, limitation de débit par IP, CORS, comptes, sessions, TOTP | `leblanc.io/open-go-base` | v1.0.1, puis commit de v1.1.0 en T03 (étiquette à pousser) | Décidé |
+| Configuration, journaux, i18n, CSRF, limitation de débit (par IP ou par clé), CORS, comptes, sessions, TOTP | `leblanc.io/open-go-base` | v1.0.1, puis commits de v1.1.0 (T03) et v1.2.0 (T04), étiquettes à pousser | Décidé |
 | Pilote PostgreSQL | `github.com/jackc/pgx/v5/stdlib` via `database/sql` (partagé avec les stores d'authx et mfax) | v5.12.0 | Validé (ADR 0002) |
 | Routeur HTTP | `github.com/go-chi/chi/v5` (comme open-go-canivet) | v5.5.0 | Validé (ADR 0003) |
 | SBOM, vulnérabilités, licences | `github.com/anchore/syft`, `grype`, `grant` | v1.55.0, v0.121.0, v0.6.8 | Décidé (ADR 0007) |
@@ -174,7 +173,8 @@ workers, scrutation, bail, réessais, rétention, planificateur, délai d'arrêt
 `VulnDB` (URL de la liste, répertoire local, fréquence, mode hors ligne), `Secrets` (clés
 de chiffrement versionnées, obligatoires depuis T03 : les secrets TOTP sont chiffrés),
 `Bootstrap` (premier administrateur et procédure de secours, T03), `Login` (débit des
-tentatives de connexion, T03), `Migration`
+tentatives de connexion, T03), `AgentAPI` (débit de l'API des agents par jeton et des
+jetons refusés par IP, T04), `Migration`
 (`migration_dsn` : connexion du rôle propriétaire, utilisée uniquement pour migrer).
 `Database.DSN` est la connexion du rôle d'exécution. `--help` liste toutes les variables
 d'environnement. Un `config.example.yaml` commenté accompagne chaque binaire. Un fragment
@@ -306,7 +306,9 @@ rétention supprime les ensembles orphelins.
   `SECURITY DEFINER` du rôle propriétaire, à `search_path` fixé, qui ne renvoient que le
   strict nécessaire. Elles vivent toutes dans `internal/db/crossorg`, sont listées dans un
   ADR (0012 : `ogsbom_org_access`, `ogsbom_user_orgs`, `ogsbom_list_organizations`,
-  `ogsbom_org_id_by_slug`), et tout ajout est relu comme un changement de sécurité.
+  `ogsbom_org_id_by_slug` ; 0014 : `ogsbom_agent_token_org`, `ogsbom_enrollment_token_org`,
+  qui donnent l'organisation d'un jeton présenté à l'API des agents), et tout ajout est
+  relu comme un changement de sécurité.
 - La RLS s'ajoute aux autres protections sans les remplacer : PostgreSQL ne l'applique pas
   aux contrôles de clés étrangères (d'où les clés composites), et `tenant.OrgID` garde des
   erreurs claires et des plans de requête prévisibles.
@@ -354,8 +356,13 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
 - Rôles d'organisation : `viewer`, `analyst` (trie les constats), `admin`. Les équipes (T16)
   restreignent ensuite la visibilité par projet.
 - Jetons : préfixés par leur nature (`ogsbom_agt_`, `ogsbom_enr_`, `ogsbom_pat_`), puis un
-  identifiant public et un secret de 256 bits. Seul le SHA-256 du secret est stocké ;
-  comparaison en temps constant ; révocation immédiate ; date de dernier usage.
+  identifiant public (128 bits) et un secret de 256 bits, en base32 minuscule séparés par
+  `_`. Seul le SHA-256 du secret est stocké ; comparaison en temps constant ; révocation
+  immédiate ; date de dernier usage (écrite une fois par minute au plus). L'organisation
+  d'un jeton est résolue par `crossorg`, le reste vérifié dans `InOrg` (ADR 0014).
+- Agents : un projet est confié à au plus un agent de même nature (clé étrangère
+  composite) ; un agent serveur couvre un seul hôte, dont le projet est créé ou rattaché à
+  l'inscription ; un agent dépôt reçoit ses dépôts depuis leur fiche.
 - Limitation de débit : par IP pour l'interface (open-go-base) ; **par jeton** pour l'API
   agent et l'API utilisateur, pour que des hôtes derrière une même sortie NAT ne se gênent
   pas.
@@ -622,6 +629,6 @@ dupliquer.
 | --- | --- | --- |
 | Erreurs d'authx, mfax et csrfx exposées comme clés plutôt qu'en texte français | Messages traduits (« Identifiants invalides », « Code invalide », « Accès interdit », réponse 403 de csrfx) | Fait en T03 (PR #1 d'open-go-base) |
 | Gestionnaire d'échec configurable dans csrfx | Page 403 traduite et au format du projet | Fait en T03 (PR #1 d'open-go-base) |
-| Clé de limitation configurable dans `ratelimit` (par jeton) | Évite le limiteur maison de `internal/ratelimit` | T04 |
+| Clé de limitation configurable dans `ratelimit` (par jeton) | Évite le limiteur maison de `internal/ratelimit` | Fait en T04 (`WithKeyFunc`, PR #2 d'open-go-base) |
 | Codes de secours dans mfax | Récupération sans administrateur d'instance | T11 |
 | Composant `oidcx` | SSO réutilisable par les projets open-go | T25 |

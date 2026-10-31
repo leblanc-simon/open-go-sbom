@@ -1,0 +1,121 @@
+{{define "content" -}}
+<div class="stack stack--lg">
+  <div class="page-head">
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{T "agents.heading"}}</h1>
+      {{- if .CanAdmin}}
+      <div class="page-head__actions">
+        <a class="btn" href="{{.Base}}/agents/new">{{T "agents.new_repo"}}</a>
+        <a class="btn btn--primary" href="{{.Base}}/enrollment-tokens/new">{{T "agents.new_enrollment"}}</a>
+      </div>
+      {{- end}}
+    </div>
+    <p class="page-head__lead">{{T "agents.lead"}}</p>
+  </div>
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  <section class="panel" aria-labelledby="agents-list">
+    <form class="panel__head" method="get" action="{{.Base}}/agents">
+      <h2 class="panel__title" id="agents-list">{{if .Disabled}}{{T "agents.list_disabled"}}{{else}}{{T "agents.list_title"}}{{end}}</h2>
+      <span class="cluster panel__action">
+        <label class="visually-hidden" for="a-kind">{{T "agents.filter_type"}}</label>
+        <select class="select select--sm" id="a-kind" name="kind">
+          {{- range .Kinds}}
+          <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+          {{- end}}
+        </select>
+        <label class="check"><input type="checkbox" name="disabled" value="1"{{if .Disabled}} checked{{end}}> <span>{{T "agents.filter_disabled"}}</span></label>
+        <button class="btn btn--sm" type="submit">{{T "common.filter"}}</button>
+      </span>
+    </form>
+    {{- if .Rows}}
+    <div class="table-wrap" role="region" aria-labelledby="agents-list" tabindex="0">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "agents.caption"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "agents.col_agent"}}</th>
+            <th scope="col">{{T "agents.col_type"}}</th>
+            <th scope="col">{{T "agents.col_state"}}</th>
+            <th scope="col">{{T "agents.col_last_contact"}}</th>
+            <th scope="col">{{T "agents.col_version"}}</th>
+            <th scope="col" class="num">{{T "agents.col_projects"}}</th>
+            <th scope="col" class="num">{{T "agents.col_tokens"}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{- $base := .Base}}
+          {{- range .Rows}}
+          <tr>
+            <th scope="row"><a href="{{$base}}/agents/{{.ID}}">{{.Name}}</a></th>
+            <td>{{T (print "agent_type." .Kind)}}</td>
+            <td>{{template "agent_status" .Status}}</td>
+            <td>{{template "stamp" .LastSeen}}</td>
+            <td>{{with .Version}}<span class="version">{{.}}</span>{{else}}<span class="muted">{{T "agents.version_unknown"}}</span>{{end}}</td>
+            <td class="num">{{.ProjectCount}}</td>
+            <td class="num">{{.ActiveTokens}}</td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{- with .NextHref}}
+    <nav class="pagination" aria-label="{{T "pagination.label"}}">
+      <a class="btn btn--sm" href="{{.}}">{{T "pagination.next"}}</a>
+    </nav>
+    {{- end}}
+    {{- else}}
+    <div class="panel__body"><p>{{T "agents.empty"}}</p></div>
+    {{- end}}
+  </section>
+  {{- if .CanAdmin}}
+  <section class="panel" aria-labelledby="enrollment-list">
+    <div class="panel__head">
+      <h2 class="panel__title" id="enrollment-list">{{T "enrollment.list_title"}}</h2>
+      <span class="panel__meta">{{T "enrollment.list_meta"}}</span>
+    </div>
+    {{- if .Enrollments}}
+    <div class="table-wrap" role="region" aria-labelledby="enrollment-list" tabindex="0">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "enrollment.list_title"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "enrollment.col_name"}}</th>
+            <th scope="col">{{T "agents.col_token_prefix"}}</th>
+            <th scope="col">{{T "enrollment.col_target"}}</th>
+            <th scope="col" class="num">{{T "enrollment.col_uses"}}</th>
+            <th scope="col">{{T "agents.col_expires"}}</th>
+            <th scope="col">{{T "agents.col_state"}}</th>
+            <th scope="col" class="cell-actions">{{T "table.actions"}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{- $base := .Base}}{{$csrf := .Page.CSRFToken}}
+          {{- range .Enrollments}}
+          <tr>
+            <th scope="row"><span class="cell-stack"><span>{{.Name}}</span>{{with .CreatedBy}}<span class="muted">{{T "agents.created_by" "Email" .}}</span>{{end}}</span></th>
+            <td class="mono">{{.Prefix}}</td>
+            <td class="wrap">{{if .ProjectSlug}}<a href="{{$base}}/projects/{{.ProjectSlug}}">{{.ProjectName}}</a>{{else}}<span class="cell-stack"><span>{{T "enrollment.target_new"}}</span>{{template "labels" .Labels}}</span>{{end}}</td>
+            <td class="num">{{T "enrollment.uses_value" "Uses" .Uses "Max" .MaxUses}}</td>
+            <td>{{template "stamp" .Expires}}</td>
+            <td>{{if .RevokedAt}}<span class="status status--revoked">{{T "token_state.revoked"}}</span>{{else if .Usable}}<span class="status status--active">{{T "token_state.active"}}</span>{{else}}<span class="status">{{T "token_state.spent"}}</span>{{end}}</td>
+            <td class="cell-actions">
+              {{- if not .RevokedAt}}
+              <form method="post" action="{{$base}}/enrollment-tokens/{{.ID}}/revoke">
+                {{csrfField $csrf}}
+                <button type="submit" class="btn btn--sm btn--danger">{{T "agents.revoke"}}<span class="visually-hidden"> {{.Name}}</span></button>
+              </form>
+              {{- end}}
+            </td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{- else}}
+    <div class="panel__body"><p>{{T "enrollment.empty"}}</p></div>
+    {{- end}}
+  </section>
+  {{- end}}
+</div>
+{{- end}}

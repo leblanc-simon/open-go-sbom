@@ -1,0 +1,8 @@
+# Serveur strict de l'API des agents (tag agent) et son adaptateur chi (make generate).
+package: gen
+generate:
+  chi-server: true
+  strict-server: true
+output-options:
+  include-tags: [agent]
+output: agent.gen.go

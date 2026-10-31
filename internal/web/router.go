@@ -13,6 +13,7 @@ import (
 	"leblanc.io/open-go-base/csrfx"
 	"leblanc.io/open-go-base/ratelimit"
 
+	apiv1 "leblanc.io/open-go-sbom/internal/api"
 	"leblanc.io/open-go-sbom/internal/api/problem"
 	"leblanc.io/open-go-sbom/internal/locale"
 	"leblanc.io/open-go-sbom/internal/render"
@@ -37,6 +38,9 @@ type RouterOptions struct {
 	// Identity branche comptes, sessions, TOTP et organisations ; nil, l'interface n'a que
 	// sa page d'accueil publique (tests du socle).
 	Identity *IdentityOptions
+	// AgentAPI monte l'API des agents (catalogue, journal, mandataires et IP du client
+	// sont repris du routeur) ; nil, elle n'a aucune opération.
+	AgentAPI *apiv1.AgentOptions
 
 	// extraUI ajoute des routes à l'interface (tests du paquet).
 	extraUI func(chi.Router)
@@ -121,18 +125,35 @@ func NewRouter(o RouterOptions) (http.Handler, error) {
 		r.Handle("/static/*", o.Assets.Handler())
 	})
 
-	// Les groupes d'API sont montés vides : leurs opérations arrivent avec T04. Ils n'ont
-	// ni session ni CSRF.
-	// Les middlewares d'un groupe d'API s'appliquent au montage (With) : chi ne passe pas
-	// par ceux d'un sous-routeur qui n'a encore aucune route.
-	r.With(api("agent")...).Route("/api/v1/agent", func(r chi.Router) {
-		r.NotFound(apiNotFound.ServeHTTP)
-		r.MethodNotAllowed(apiNotAllowed.ServeHTTP)
+	// Groupes d'API, sans session ni CSRF. Les opérations générées déclarent leurs chemins
+	// complets sous /api/v1 ; route inconnue et méthode refusée y répondent par un
+	// problème RFC 9457.
+	r.Route("/api/v1", func(r chi.Router) {
+		r.NotFound(api("api").Handler(apiNotFound).ServeHTTP)
+		r.MethodNotAllowed(api("api").Handler(apiNotAllowed).ServeHTTP)
+		if o.AgentAPI != nil {
+			ao := *o.AgentAPI
+			ao.Catalog, ao.Logger, ao.TrustedProxies, ao.ClientIP = o.Catalog, o.Logger, o.TrustedProxies, limiter.ClientIP
+			var mountErr error
+			r.Group(func(r chi.Router) {
+				r.Use(api("agent")...)
+				mountErr = apiv1.MountAgent(r, ao)
+			})
+			if mountErr != nil {
+				err = mountErr
+			}
+		}
+		// L'API utilisateur arrive avec ses premières opérations ; les middlewares d'un
+		// groupe s'appliquent au montage (With), car chi ne passe pas par ceux d'un
+		// sous-routeur qui n'a encore aucune route.
+		r.With(append(chi.Middlewares{corsx.Middleware(o.CORS)}, api("user")...)...).Route("/orgs/{org}", func(r chi.Router) {
+			r.NotFound(apiNotFound.ServeHTTP)
+			r.MethodNotAllowed(apiNotAllowed.ServeHTTP)
+		})
 	})
-	r.With(append(chi.Middlewares{corsx.Middleware(o.CORS)}, api("user")...)...).Route("/api/v1/orgs/{org}", func(r chi.Router) {
-		r.NotFound(apiNotFound.ServeHTTP)
-		r.MethodNotAllowed(apiNotAllowed.ServeHTTP)
-	})
+	if err != nil {
+		return nil, err
+	}
 	r.With(api("api")...).Handle("/api/*", apiNotFound)
 
 	r.Group(func(r chi.Router) {

@@ -99,6 +99,11 @@
     white-space: nowrap;
   }
 
+  .prewrap {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+
   .truncate {
     display: inline-block;
     max-width: 24rem;

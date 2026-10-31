@@ -20,11 +20,14 @@ import (
 	"leblanc.io/open-go-base/logx"
 
 	"leblanc.io/open-go-sbom/internal/account"
+	"leblanc.io/open-go-sbom/internal/agent"
+	"leblanc.io/open-go-sbom/internal/api"
 	"leblanc.io/open-go-sbom/internal/config"
 	"leblanc.io/open-go-sbom/internal/db"
 	"leblanc.io/open-go-sbom/internal/jobs"
 	"leblanc.io/open-go-sbom/internal/locale"
 	"leblanc.io/open-go-sbom/internal/org"
+	"leblanc.io/open-go-sbom/internal/project"
 	"leblanc.io/open-go-sbom/internal/render"
 	"leblanc.io/open-go-sbom/internal/secret"
 	"leblanc.io/open-go-sbom/internal/web"
@@ -117,6 +120,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 		collectors.NewDBStatsCollector(pool.DB(), "app"),
 	)
+	agents := agent.NewService(pool)
 	router, err := web.NewRouter(web.RouterOptions{
 		Logger:         logger,
 		Catalog:        catalog,
@@ -131,10 +135,17 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Pool:           pool,
 			Accounts:       accounts,
 			Orgs:           org.NewService(pool),
+			Projects:       project.NewService(pool),
+			Agents:         agents,
 			Secrets:        box,
 			Auth:           cfg.Auth,
 			MFA:            cfg.MFA,
 			LoginRateLimit: cfg.Login.RateLimit,
+		},
+		AgentAPI: &api.AgentOptions{
+			Agents:           agents,
+			RateLimit:        cfg.AgentAPI.RateLimit,
+			FailureRateLimit: cfg.AgentAPI.FailureRateLimit,
 		},
 	})
 	if err != nil {

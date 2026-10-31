@@ -1,0 +1,108 @@
+{{define "content" -}}
+{{- $p := .Project}}
+<div class="stack">
+  <div class="page-head">
+    <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
+      <ol>
+        <li><a href="{{.Base}}/projects">{{T "nav.projects"}}</a></li>
+        <li><span aria-current="page">{{$p.Name}}</span></li>
+      </ol>
+    </nav>
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{$p.Name}}</h1>
+      {{template "project_kind" $p.Kind}}
+      {{- with $p.Labels}}{{template "labels" .}}{{end}}
+    </div>
+    <p class="page-head__meta">
+      <span class="mono">{{$p.Slug}}</span>
+      {{- with $p.Agent}}<span>{{T "project.agent_value" "Name" .Name}}</span>{{end}}
+    </p>
+  </div>
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  {{- if $p.ArchivedAt}}
+  <div class="callout callout--warning" role="status">
+    <div class="callout__body">
+      <p class="callout__title">{{T "project.archived_title"}}</p>
+      <p class="callout__text">{{T "project.archived_text"}}</p>
+    </div>
+  </div>
+  {{- else if and $p.AgentStatus (eq (print $p.AgentStatus.State) "silent")}}
+  <div class="callout callout--warning" role="status">
+    <div class="callout__body">
+      <p class="callout__title">{{Tn "agent_state.silent_for" $p.AgentStatus.Days}}</p>
+      <p class="callout__text">{{T "project.silent_text"}}</p>
+    </div>
+  </div>
+  {{- end}}
+  {{template "project_tabs" .Tabs}}
+  <div class="layout layout--aside">
+    <div class="stack">
+      <section class="panel" aria-labelledby="project-about">
+        <div class="panel__head"><h2 class="panel__title" id="project-about">{{T "project.about_title"}}</h2></div>
+        <div class="panel__body stack stack--sm">
+          {{- if $p.Description}}<p class="prewrap">{{$p.Description}}</p>{{else}}<p class="muted">{{T "project.no_description"}}</p>{{end}}
+          <dl class="kv">
+            <dt>{{T "project.kind"}}</dt><dd>{{T (print "project_type." $p.Kind)}}</dd>
+            {{- if eq (print $p.Kind) "repo"}}
+            <dt>{{T "project_form.forge_url"}}</dt><dd>{{with $p.ForgeURL}}<a href="{{.}}" rel="noopener noreferrer">{{.}}</a>{{else}}<span class="muted">{{T "project.no_forge"}}</span>{{end}}</dd>
+            {{- end}}
+            <dt>{{T "project.created"}}</dt><dd>{{template "stamp" .Created}}</dd>
+          </dl>
+        </div>
+      </section>
+      <section class="panel" aria-labelledby="project-refs">
+        <div class="panel__head">
+          <h2 class="panel__title" id="project-refs">{{T "project.refs_title"}}</h2>
+          <span class="panel__meta">{{T "project.refs_meta"}}</span>
+        </div>
+        <div class="panel__body">
+          {{- if eq (print $p.Kind) "host"}}
+          <dl class="kv">
+            <dt>{{T "project_form.host_ref"}}</dt><dd class="mono">{{.HostRef}}</dd>
+          </dl>
+          {{- else}}
+          <dl class="kv">
+            <dt>{{T "project.branches"}}</dt>
+            <dd>{{if .Branches}}<span class="cluster">{{range .Branches}}<span class="chip mono">{{.}}</span>{{end}}</span>{{else}}<span class="muted">{{T "project.none"}}</span>{{end}}</dd>
+            <dt>{{T "project.tags"}}</dt>
+            <dd>{{if .Tags}}<span class="cluster">{{range .Tags}}<span class="chip mono">{{.}}</span>{{end}}</span>{{else}}<span class="muted">{{T "project.none"}}</span>{{end}}</dd>
+          </dl>
+          {{- end}}
+        </div>
+      </section>
+    </div>
+    <section class="panel" aria-labelledby="project-agent">
+      <div class="panel__head"><h2 class="panel__title" id="project-agent">{{T "project.agent_title"}}</h2></div>
+      <div class="panel__body stack stack--sm">
+        {{- with $p.Agent}}
+        <dl class="kv">
+          <dt>{{T "project.agent_name"}}</dt><dd><a href="{{$.Base}}/agents/{{.ID}}">{{.Name}}</a></dd>
+          <dt>{{T "agents.col_state"}}</dt><dd>{{template "agent_status" $p.AgentStatus}}</dd>
+          <dt>{{T "agents.col_version"}}</dt><dd>{{with .Version}}<span class="version">{{.}}</span>{{else}}<span class="muted">{{T "agents.version_unknown"}}</span>{{end}}</dd>
+          <dt>{{T "agents.col_last_contact"}}</dt><dd>{{template "stamp" $p.LastSeen}}</dd>
+        </dl>
+        {{- else}}
+        <p class="muted">{{T "project.no_agent_text"}}</p>
+        {{- end}}
+        {{- if .RepoAgents}}
+        <form class="stack stack--sm" method="post" action="{{.Base}}/projects/{{$p.Slug}}/agent">
+          {{csrfField .Page.CSRFToken}}
+          <div class="field">
+            <label class="field__label" for="project-agent-select">{{T "project.assign_agent"}}</label>
+            <select class="select" id="project-agent-select" name="agent"{{if eq .Error.Field "agent"}} aria-invalid="true"{{end}}>
+              {{- range .RepoAgents}}
+              <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{if .LabelKey}}{{T .LabelKey}}{{else}}{{.Label}}{{end}}</option>
+              {{- end}}
+            </select>
+          </div>
+          <button type="submit" class="btn">{{T "form.save"}}</button>
+        </form>
+        {{- else if and .CanAdmin (eq (print $p.Kind) "host") (not $p.Agent) (not $p.ArchivedAt)}}
+        <p><a class="btn" href="{{.Base}}/enrollment-tokens/new?project={{$p.Slug}}">{{T "project.enroll_this_host"}}</a></p>
+        {{- end}}
+      </div>
+    </section>
+  </div>
+</div>
+{{- end}}

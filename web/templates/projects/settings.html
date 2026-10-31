@@ -1,0 +1,53 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
+      <ol>
+        <li><a href="{{.Base}}/projects">{{T "nav.projects"}}</a></li>
+        <li><a href="{{.Base}}/projects/{{.Project.Slug}}">{{.Project.Name}}</a></li>
+        <li><span aria-current="page">{{T "project.tab_settings"}}</span></li>
+      </ol>
+    </nav>
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{.Project.Name}}</h1>
+      {{template "project_kind" .Project.Kind}}
+    </div>
+  </div>
+  {{template "project_tabs" .Tabs}}
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  {{- if .Project.ArchivedAt}}
+  <div class="callout callout--warning" role="status">
+    <div class="callout__body">
+      <p class="callout__title">{{T "project.archived_title"}}</p>
+      <p class="callout__text">{{T "project_settings.archived_text"}}</p>
+    </div>
+  </div>
+  {{- else}}
+  <section class="panel" aria-labelledby="project-settings-form">
+    <div class="panel__head"><h2 class="panel__title" id="project-settings-form">{{T "project_settings.form_title"}}</h2></div>
+    <div class="panel__body">
+      {{template "project_form" .}}
+    </div>
+  </section>
+  {{- end}}
+  <section class="panel" aria-labelledby="project-archive">
+    <div class="panel__head"><h2 class="panel__title" id="project-archive">{{T "project_settings.archive_title"}}</h2></div>
+    <div class="panel__body stack stack--sm">
+      {{- if .Project.ArchivedAt}}
+      <p>{{T "project_settings.unarchive_text"}}</p>
+      <form method="post" action="{{.Base}}/projects/{{.Project.Slug}}/unarchive">
+        {{csrfField .Page.CSRFToken}}
+        <button type="submit" class="btn">{{T "project_settings.unarchive"}}</button>
+      </form>
+      {{- else}}
+      <p>{{T "project_settings.archive_text"}}</p>
+      <form method="post" action="{{.Base}}/projects/{{.Project.Slug}}/archive">
+        {{csrfField .Page.CSRFToken}}
+        <button type="submit" class="btn btn--danger">{{T "project_settings.archive"}}</button>
+      </form>
+      {{- end}}
+    </div>
+  </section>
+</div>
+{{- end}}

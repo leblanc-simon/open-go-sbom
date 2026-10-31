@@ -17,9 +17,111 @@ info:
     identifier: WTFPL
 servers:
   - url: /api/v1
-paths: {}
+tags:
+  - name: agent
+    description: API des agents (jeton d'agent ou, pour l'inscription, jeton d'inscription).
+paths:
+  /agent/enroll:
+    post:
+      operationId: enroll
+      tags: [agent]
+      summary: Inscrit un agent serveur
+      description: |
+        Échange un jeton d'inscription contre un jeton d'agent. Le serveur crée l'agent et le
+        projet de son hôte (étiquettes du jeton), ou le rattache au projet de serveur que
+        désigne le jeton, ou au projet qui suit déjà cet hôte s'il n'a pas d'agent actif.
+        Le jeton d'agent n'est renvoyé qu'ici : l'agent le conserve dans son répertoire
+        d'état.
+      security:
+        - enrollmentToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrollRequest"
+      responses:
+        "201":
+          description: Agent inscrit.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrollmentResult"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+  /agent/heartbeat:
+    post:
+      operationId: heartbeat
+      tags: [agent]
+      summary: Signal de vie d'un agent
+      description: |
+        Enregistre le dernier contact et la version de l'agent. La réponse indique si un
+        scan est demandé depuis l'interface (`scan_requested`, T07).
+      security:
+        - agentToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HeartbeatRequest"
+      responses:
+        "200":
+          description: Signal enregistré.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HeartbeatStatus"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+  /agent/projects:
+    get:
+      operationId: listAgentProjects
+      tags: [agent]
+      summary: Projets confiés à l'agent
+      description: |
+        Les projets actifs confiés à l'agent et leurs références suivies, par ordre de
+        création. Un agent ne voit jamais d'autre projet.
+      security:
+        - agentToken: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - name: limit
+          in: query
+          description: Taille de page (100 par défaut, 200 au plus).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+      responses:
+        "200":
+          description: Une page de projets.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentProjectList"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
 components:
   securitySchemes:
+    enrollmentToken:
+      type: http
+      scheme: bearer
+      description: Jeton d'inscription (`ogsbom_enr_…`), créé dans l'interface.
     agentToken:
       type: http
       scheme: bearer
@@ -85,3 +187,107 @@ components:
         next_cursor:
           type: [string, "null"]
           description: Curseur de la page suivante ; null sur la dernière page.
+    EnrollRequest:
+      type: object
+      additionalProperties: false
+      required: [hostname, version]
+      properties:
+        hostname:
+          type: string
+          description: Nom de l'hôte, qui devient sa référence (mis en minuscules).
+          minLength: 1
+          maxLength: 100
+          examples: [srv-db-02]
+        version:
+          type: string
+          description: Version de l'agent.
+          maxLength: 64
+          examples: [1.4.0]
+    EnrollmentResult:
+      type: object
+      required: [agent_id, token, project]
+      properties:
+        agent_id:
+          type: string
+          format: uuid
+        token:
+          type: string
+          description: Jeton d'agent (`ogsbom_agt_…`), renvoyé une seule fois.
+        project:
+          $ref: "#/components/schemas/ProjectRef"
+    ProjectRef:
+      type: object
+      required: [id, slug]
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+    HeartbeatRequest:
+      type: object
+      additionalProperties: false
+      required: [version]
+      properties:
+        version:
+          type: string
+          description: Version de l'agent.
+          maxLength: 64
+    HeartbeatStatus:
+      type: object
+      required: [scan_requested, server_time]
+      properties:
+        scan_requested:
+          type: boolean
+          description: Un scan est demandé depuis l'interface (toujours faux avant T07).
+        server_time:
+          type: string
+          format: date-time
+          description: Heure du serveur, pour détecter une horloge d'agent décalée.
+    AgentProjectList:
+      type: object
+      required: [projects, page]
+      properties:
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentProject"
+        page:
+          $ref: "#/components/schemas/PageInfo"
+    AgentProject:
+      type: object
+      required: [id, slug, name, kind, labels, refs]
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [repo, host]
+        forge_url:
+          type: string
+          description: URL de la forge (dépôts seulement).
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        refs:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackedRef"
+    TrackedRef:
+      type: object
+      required: [id, kind, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum: [branch, tag, host]
+        name:
+          type: string

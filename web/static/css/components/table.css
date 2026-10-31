@@ -55,6 +55,14 @@
 
   .cell-actions {
     text-align: right;
+
+    form {
+      display: inline-block;
+    }
+  }
+
+  .num {
+    text-align: right;
   }
 
   .cell-stack {

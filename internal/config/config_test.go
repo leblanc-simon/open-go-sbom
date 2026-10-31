@@ -40,6 +40,7 @@ func valid() Config {
 	c.Auth.SessionTTL, c.Auth.CookieSecure, c.Auth.BcryptCost = time.Hour, "auto", 12
 	c.MFA.ChallengeTTL, c.MFA.MaxAttempts = time.Minute, 5
 	c.Login.RateLimit = 10
+	c.AgentAPI = AgentAPI{RateLimit: 120, FailureRateLimit: 30}
 	c.Workers = Workers{Enabled: true, Concurrency: 4, PollInterval: time.Second, Lease: 30 * time.Second,
 		RetryBase: 10 * time.Second, RetryMax: 30 * time.Minute, Retention: time.Hour,
 		ScheduleInterval: 10 * time.Second, ShutdownTimeout: 30 * time.Second}
@@ -172,6 +173,8 @@ func TestValidate(t *testing.T) {
 		{"durée du défi", "mfa.challenge_ttl", func(c *Config) { c.MFA.ChallengeTTL = 0 }},
 		{"tentatives TOTP", "mfa.max_attempts", func(c *Config) { c.MFA.MaxAttempts = 0 }},
 		{"limite de connexion", "login.rate_limit", func(c *Config) { c.Login.RateLimit = -1 }},
+		{"limite de l'API des agents", "agent_api.rate_limit", func(c *Config) { c.AgentAPI.RateLimit = -1 }},
+		{"limite des jetons refusés", "agent_api.failure_rate_limit", func(c *Config) { c.AgentAPI.FailureRateLimit = -1 }},
 		{"bootstrap sans mot de passe", "bootstrap.admin_password", func(c *Config) { c.Bootstrap.AdminEmail = "a@example.org" }},
 		{"bootstrap e-mail invalide", "bootstrap.admin_email", func(c *Config) {
 			c.Bootstrap.AdminEmail, c.Bootstrap.AdminPassword = "pas une adresse", "un mot de passe assez long"

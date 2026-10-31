@@ -1,0 +1,77 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{T "projects.heading"}}</h1>
+      {{- if .CanAdmin}}
+      <div class="page-head__actions">
+        <a class="btn" href="{{.Base}}/enrollment-tokens/new">{{T "projects.enroll_host"}}</a>
+        <a class="btn btn--primary" href="{{.Base}}/projects/new">{{T "projects.new"}}</a>
+      </div>
+      {{- end}}
+    </div>
+    <p class="page-head__lead">{{T "projects.lead"}}</p>
+  </div>
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  <form class="form-row" method="get" action="{{.Base}}/projects" role="search" aria-label="{{T "projects.filter_label"}}">
+    <div class="field">
+      <label class="field__label" for="p-q">{{T "projects.filter_name"}}</label>
+      <input class="input" id="p-q" name="q" type="search" value="{{.Query}}">
+    </div>
+    <div class="field field--narrow">
+      <label class="field__label" for="p-kind">{{T "projects.filter_type"}}</label>
+      <select class="select" id="p-kind" name="kind">
+        {{- range .Kinds}}
+        <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+        {{- end}}
+      </select>
+    </div>
+    <div class="field field--narrow">
+      <label class="field__label" for="p-label">{{T "projects.filter_label_field"}}</label>
+      <input class="input" id="p-label" name="label" type="text" value="{{.Label}}" aria-describedby="p-label-hint">
+      <p class="field__hint visually-hidden" id="p-label-hint">{{T "projects.filter_label_hint"}}</p>
+    </div>
+    <label class="check"><input type="checkbox" name="archived" value="1"{{if .Archived}} checked{{end}}> <span>{{T "projects.filter_archived"}}</span></label>
+    <button class="btn" type="submit">{{T "common.filter"}}</button>
+  </form>
+  <section class="panel" aria-labelledby="projects-list">
+    <div class="panel__head"><h2 class="panel__title" id="projects-list">{{if .Archived}}{{T "projects.list_archived"}}{{else}}{{T "projects.list_title"}}{{end}}</h2></div>
+    {{- if .Rows}}
+    <div class="table-wrap" role="region" aria-labelledby="projects-list" tabindex="0">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "projects.caption"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "projects.col_project"}}</th>
+            <th scope="col">{{T "projects.col_type"}}</th>
+            <th scope="col">{{T "projects.col_labels"}}</th>
+            <th scope="col">{{T "projects.col_agent"}}</th>
+            <th scope="col">{{T "projects.col_last_contact"}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{- $base := .Base}}
+          {{- range .Rows}}
+          <tr>
+            <th scope="row"><span class="cell-stack"><a href="{{$base}}/projects/{{.Slug}}">{{.Name}}</a><span class="mono muted">{{.Slug}}</span></span></th>
+            <td>{{template "project_kind" .Kind}}</td>
+            <td class="wrap">{{template "labels" .Labels}}</td>
+            <td>{{with .Agent}}<span class="cell-stack"><a href="{{$base}}/agents/{{.ID}}">{{.Name}}</a>{{with .Version}}<span class="version">{{.}}</span>{{end}}</span>{{else}}<span class="muted">{{T "projects.no_agent"}}</span>{{end}}</td>
+            <td>{{if .AgentStatus}}<span class="cell-stack">{{template "agent_status" .AgentStatus}}{{template "stamp" .LastSeen}}</span>{{else}}<span class="muted">{{T "projects.no_agent"}}</span>{{end}}</td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{- with .NextHref}}
+    <nav class="pagination" aria-label="{{T "pagination.label"}}">
+      <a class="btn btn--sm" href="{{.}}">{{T "pagination.next"}}</a>
+    </nav>
+    {{- end}}
+    {{- else}}
+    <div class="panel__body"><p>{{if .Archived}}{{T "projects.empty_archived"}}{{else}}{{T "projects.empty"}}{{end}}</p></div>
+    {{- end}}
+  </section>
+</div>
+{{- end}}

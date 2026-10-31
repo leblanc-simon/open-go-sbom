@@ -35,8 +35,11 @@ T02 terminé : file de traitements `internal/jobs` (`Enqueue` dans la transactio
 l'appelant, `Runner`, `Scheduler`, horloge injectable), voir son `doc.go` et l'ADR 0011.
 T03 terminé : comptes (`internal/account`), TOTP obligatoire, organisations
 (`internal/org`), garde `/o/{slug}`, journal d'audit (`internal/audit`), fonctions
-`crossorg` (ADR 0012, 0013), harnais d'isolement SQL et par route. Prochain lot :
-[T04 — Projets, agents et jetons](specs/lots/T04-projets-agents.md).
+`crossorg` (ADR 0012, 0013), harnais d'isolement SQL et par route.
+T04 terminé : projets (`internal/project`), agents et jetons (`internal/agent`, ADR 0014),
+API des agents générée (`internal/api`, `internal/api/gen`, `internal/agentclient/gen`),
+limitation par jeton (`ratelimit.WithKeyFunc` d'open-go-base). Prochain lot :
+[T05 — Ingestion](specs/lots/T05-ingestion.md).
 
 ## Règles de travail
 

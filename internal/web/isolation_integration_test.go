@@ -11,7 +11,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"leblanc.io/open-go-sbom/internal/agent"
 	"leblanc.io/open-go-sbom/internal/audit"
+	"leblanc.io/open-go-sbom/internal/project"
 	"leblanc.io/open-go-sbom/internal/tenant"
 )
 
@@ -89,7 +91,8 @@ func TestEveryOrgRouteAnswers404ToAnotherOrganization(t *testing.T) {
 		}
 		orgRoutes++
 		for _, slug := range []string{orgB.Slug, "inconnue", archived.Slug} {
-			path := fill(r.pattern, map[string]string{"slug": slug, "userID": itoa(bob.ID)})
+			path := fill(r.pattern, map[string]string{"slug": slug, "userID": itoa(bob.ID), "project": "projet",
+				"agentID": "0192d6a4-0000-7000-8000-000000000001", "tokenID": "0192d6a4-0000-7000-8000-000000000002"})
 			var p page
 			switch r.method {
 			case http.MethodGet:
@@ -104,7 +107,7 @@ func TestEveryOrgRouteAnswers404ToAnotherOrganization(t *testing.T) {
 			}
 		}
 	}
-	if orgRoutes < 8 {
+	if orgRoutes < 26 {
 		t.Fatalf("%d routes d'organisation parcourues : le parcours du routeur est cassé", orgRoutes)
 	}
 	// Rien n'a été modifié chez B.
@@ -218,5 +221,74 @@ func TestRolesInOrganization(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Errorf("journal de l'organisation sans « %s »", want)
 		}
+	}
+}
+
+// TestOrgResourcesOfAnotherOrganizationAnswer404 : dans sa propre organisation, un
+// administrateur de A qui désigne un projet, un agent ou un jeton de B reçoit 404 sur
+// chaque route qui en prend un, et rien ne change chez B.
+func TestOrgResourcesOfAnotherOrganizationAnswer404(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	a := newApp(t)
+	alice, bob := a.user("alice@example.org", false), a.user("bob@example.org", false)
+	a.org("org-a", alice)
+	orgB := a.org("org-b", bob)
+	if _, err := a.projects.Create(ctx, audit.System, orgB.ID, project.Input{Kind: project.KindRepo, Name: "projet-b", Branches: []string{"main"}}); err != nil {
+		t.Fatal(err)
+	}
+	agB, _, err := a.agents.CreateRepoAgent(ctx, audit.System, orgB.ID, "ci-b", "initial", 90)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.projects.AssignAgent(ctx, audit.System, orgB.ID, "projet-b", &agB.ID); err != nil {
+		t.Fatal(err)
+	}
+	agB, err = a.agents.Get(ctx, orgB.ID, agB.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	enrB, _, err := a.agents.CreateEnrollment(ctx, audit.System, orgB.ID, agent.EnrollmentInput{Name: "parc", LifetimeHours: 24, MaxUses: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := a.signIn(alice)
+
+	n := 0
+	for _, r := range a.routes() {
+		if !strings.HasPrefix(r.pattern, "/o/{slug}") ||
+			!strings.Contains(r.pattern, "{project}") && !strings.Contains(r.pattern, "{agentID}") && !strings.Contains(r.pattern, "{tokenID}") {
+			continue
+		}
+		n++
+		token := agB.Tokens[0].ID.String()
+		if strings.HasPrefix(r.pattern, "/o/{slug}/enrollment-tokens") {
+			token = enrB.ID.String()
+		}
+		path := fill(r.pattern, map[string]string{"slug": "org-a", "project": "projet-b", "agentID": agB.ID.String(), "tokenID": token})
+		var p page
+		if r.method == http.MethodGet {
+			p = b.get(path)
+		} else {
+			p = b.post(path, url.Values{"name": {"x"}, "branches": {"main"}, "agent": {agB.ID.String()}, "expires_in": {"30"}})
+		}
+		if p.status != http.StatusNotFound {
+			t.Errorf("%s %s : %d, attendu 404", r.method, path, p.status)
+		}
+	}
+	if n < 11 {
+		t.Fatalf("%d routes de ressources parcourues", n)
+	}
+	got, err := a.agents.Get(ctx, orgB.ID, agB.ID)
+	if err != nil || got.DisabledAt != nil || len(got.Tokens) != 1 || got.Tokens[0].RevokedAt != nil {
+		t.Fatalf("agent de B modifié : %+v %v", got, err)
+	}
+	pb, err := a.projects.Get(ctx, orgB.ID, "projet-b")
+	if err != nil || pb.ArchivedAt != nil || pb.Name != "projet-b" || pb.Agent == nil {
+		t.Fatalf("projet de B modifié : %+v %v", pb, err)
+	}
+	list, err := a.agents.Enrollments(ctx, orgB.ID)
+	if err != nil || len(list) != 1 || list[0].RevokedAt != nil {
+		t.Fatalf("jeton d'inscription de B modifié : %+v %v", list, err)
 	}
 }
