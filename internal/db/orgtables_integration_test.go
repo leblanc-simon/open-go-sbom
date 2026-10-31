@@ -99,6 +99,31 @@ var orgTables = []orgTable{
 			seedID(tx, "blob"), seedID(tx, "snapshot"))
 		return err
 	}},
+	{"findings", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		// Le catalogue est global : la fiche est partagée par les deux organisations.
+		if _, err := tx.ExecContext(ctx, `INSERT INTO vulnerabilities (id, source_rank, severity, vulndb_built, updated_at)
+			VALUES ('CVE-2021-44228', 0, 'critical', now(), now()) ON CONFLICT DO NOTHING`); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `INSERT INTO findings (org_id, id, project_id, ref_id, component_id, vuln_id, status,
+			severity, risk, fix_state, match_type, first_seen_at, last_seen_at, snapshot_id, vulndb_archive, vulndb_built, updated_at)
+			VALUES ($1, $2, $3, $4, $5, 'CVE-2021-44228', 'open', 'critical', 99, 'fixed', 'exact-direct', now(), now(), $6, $7, now(), now())`,
+			tx.OrgID(), seedID(tx, "finding"), seedID(tx, "project"), seedID(tx, "ref"), seedID(tx, "component"),
+			seedID(tx, "snapshot"), uuid.Must(uuid.NewV7()))
+		return err
+	}},
+	{"finding_events", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO finding_events (org_id, finding_id, at, kind, snapshot_id, vulndb_archive)
+			VALUES ($1, $2, now(), 'opened', $3, $4)`, tx.OrgID(), seedID(tx, "finding"), seedID(tx, "snapshot"), uuid.Must(uuid.NewV7()))
+		return err
+	}},
+	{"ref_analyses", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO ref_analyses (org_id, ref_id, project_id, set_id, snapshot_id, vulndb_archive,
+			vulndb_built, analyzed_at, match_count, unmatched_count)
+			VALUES ($1, $2, $3, $4, $5, $6, now(), now(), 1, 0)`,
+			tx.OrgID(), seedID(tx, "ref"), seedID(tx, "project"), seedID(tx, "set"), seedID(tx, "snapshot"), uuid.Must(uuid.NewV7()))
+		return err
+	}},
 	{"agent_tokens", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
 		_, err := tx.ExecContext(ctx, `INSERT INTO agent_tokens (org_id, id, agent_id, public_id, secret_hash, name)
 			VALUES ($1, $2, $3, $4, sha256('a'::bytea), 'initial')`,
