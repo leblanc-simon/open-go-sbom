@@ -11,7 +11,16 @@ plusieurs organisations.
 | `ogsbom-host-agent` | agent serveur : inventaire d'un hôte Linux et de ses conteneurs |
 | `ogsbom-repo-agent` | agent dépôt : clonage des dépôts des forges et analyse Syft |
 
-État : en développement, aucune version publiée.
+État : préversion **0.1.0** (lot 1 · MVP inventaire : agents serveur et dépôt, ingestion,
+analyse Grype quotidienne, recherche transverse, tableau de bord, organisations isolées,
+comptes locaux avec TOTP). Binaires et paquets : page des versions GitHub ; évolutions :
+[`CHANGELOG.md`](CHANGELOG.md).
+
+## Démarrer
+
+- [Guide de démarrage](docs/demarrage.md) · [Getting started (English)](docs/getting-started.md)
+- [Installation et exploitation](docs/operations.md)
+- [Guide d'utilisation : recherche](docs/utilisation.md)
 
 ## Développement
 
@@ -31,6 +40,8 @@ make help      # liste des cibles
 - [Architecture de référence](specs/architecture.md)
 - [Lots techniques](specs/README.md)
 - [Exploitation](docs/operations.md)
+- [Mesures de performance](docs/benchmarks.md)
+- [Journal des modifications](CHANGELOG.md)
 - [Décisions d'architecture](docs/adr/)
 - [Modèle de menace](docs/security/threat-model.md)
 
