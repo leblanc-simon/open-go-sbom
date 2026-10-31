@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/version"
+	"leblanc.io/lotor/internal/version"
 )
 
 // TestCompareByEcosystem : tables de comparaison par écosystème. Chaque ligne a < b selon

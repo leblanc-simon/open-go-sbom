@@ -80,7 +80,7 @@
 
   /* Étroit : libellé et valeur sur une ligne, la courbe en dessous sur toute la largeur
      (placement dense : la valeur remonte à côté du libellé). */
-  @container ogsbom (width < 30rem) {
+  @container lotor (width < 30rem) {
     grid-template-columns: minmax(0, 1fr) max-content;
     grid-auto-flow: row dense;
 

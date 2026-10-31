@@ -34,7 +34,7 @@ type RawComponent struct {
 	Licenses []string
 	// Hashes : algorithme tel qu'écrit par le document (SHA-256, sha256…) et valeur.
 	Hashes []RawHash
-	// Properties ogsbom: (origin, confidence, model) ; vides si absentes.
+	// Properties lotor: (origin, confidence, model) ; vides si absentes.
 	Origin     string
 	Confidence string
 	Model      string

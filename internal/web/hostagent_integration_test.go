@@ -23,14 +23,14 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/agentclient"
-	apiv1 "leblanc.io/open-go-sbom/internal/api"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/hostagent"
-	"leblanc.io/open-go-sbom/internal/ingest"
-	"leblanc.io/open-go-sbom/internal/jobs"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/web/webtest"
+	"leblanc.io/lotor/internal/agentclient"
+	apiv1 "leblanc.io/lotor/internal/api"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/hostagent"
+	"leblanc.io/lotor/internal/ingest"
+	"leblanc.io/lotor/internal/jobs"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/web/webtest"
 )
 
 // tlsAPI sert le routeur de l'application en HTTPS (comme le TLS natif du serveur) ;
@@ -71,7 +71,7 @@ func (a *app) decoder() {
 	})
 }
 
-// hostAgent construit un ogsbom-host-agent réel (Syft sur testdata/rootfs) vers srv.
+// hostAgent construit un lotor-host-agent réel (Syft sur testdata/rootfs) vers srv.
 func (a *app) hostAgent(srv *httptest.Server, caFile, enrollment string, tlsOpts agentclient.TLSOptions) *hostagent.Agent {
 	a.t.Helper()
 	dir := a.t.TempDir()
@@ -107,7 +107,7 @@ func (a *app) hostAgent(srv *httptest.Server, caFile, enrollment string, tlsOpts
 }
 
 // TestHostAgentEndToEnd : un administrateur crée un jeton d'inscription (assistant
-// d'installation), un vrai ogsbom-host-agent s'inscrit en HTTPS, inventorie
+// d'installation), un vrai lotor-host-agent s'inscrit en HTTPS, inventorie
 // testdata/rootfs et envoie son SBOM, rangé par le décodage ; un second scan sans
 // changement n'envoie rien (signal de vie qui confirme l'inventaire) ; « Scanner
 // maintenant » est remis au prochain signal de vie.
@@ -126,8 +126,8 @@ func TestHostAgentEndToEnd(t *testing.T) {
 		"labels": {"env=prod"}, "project": {""}})
 	enr := shownToken(t, created)
 	body := unescape(created.body)
-	for _, want := range []string{"Installer l'agent serveur", "systemctl enable --now ogsbom-host-agent.service",
-		"/etc/ogsbom-host-agent/enrollment-token", "printf '%s' '" + enr + "'"} {
+	for _, want := range []string{"Installer l'agent serveur", "systemctl enable --now lotor-host-agent.service",
+		"/etc/lotor-host-agent/enrollment-token", "printf '%s' '" + enr + "'"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("assistant d'installation : %q absent", want)
 		}

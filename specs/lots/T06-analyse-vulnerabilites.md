@@ -104,7 +104,7 @@ Réalisé le 31 octobre 2026, branche `lot/T06-analyse-vulnerabilites`.
   `TargetVersion`, `ListArchives`) ; `Manager` (copie locale, bascule sous verrou
   lecture/écriture, `Ensure`, `Ready`, `Run`) ; catalogue (`UpsertCatalog`,
   `GetVulnerability` par identifiant ou alias) ; `ParseCVSS3` ; métriques
-  `ogsbom_vulndb_*`. `internal/vuln/vulntest` : fausse base pour les tests.
+  `lotor_vulndb_*`. `internal/vuln/vulntest` : fausse base pour les tests.
 - `internal/vuln/grype` : `Engine` (installation par le curateur de Grype, hydratation,
   ouverture validée), correspondance du SBOM d'origine (décodeurs de Syft,
   `NormalizeByCVE`, matchers par défaut de la commande grype), rattachement par
@@ -178,13 +178,13 @@ Réalisé le 31 octobre 2026, branche `lot/T06-analyse-vulnerabilites`.
   sévérité du constat = celle de la source de la correspondance ; motifs de résolution
   `component_removed` et `not_matched` ; historique `finding_events` ; réanalyse par
   organisation **sans nouvelle fonction `crossorg`** (réutilise
-  `ogsbom_list_organizations`) ; sans base, une analyse se termine sans rien écrire.
+  `lotor_list_organizations`) ; sans base, une analyse se termine sans rien écrire.
 - **ADR 0019** **[à relire]** : jeu synthétique en SQL (`internal/benchdata`) ;
   autoanalyse par les commandes Syft et Grype lancées par `go run …@version` plutôt que par
   des actions GitHub tierces ; SBOM non publiés comme artefacts avant T26.
 - Valeurs par défaut **[à relire]** : vérification toutes les 6 h, synchronisation chaque
   minute, archive 2 Gio au plus, analyse 10 min, téléchargement 30 min, répertoire
-  `/var/lib/ogsbom/vulndb`.
+  `/var/lib/lotor/vulndb`.
 - Fiche vulnérabilité visible pour tout identifiant du catalogue (public), constats limités
   à l'organisation ; fil d'Ariane vers la vue d'ensemble (pas encore de listes
   « Vulnérabilités » ni « Composants » : T09, T10).
@@ -218,7 +218,7 @@ Réalisé le 31 octobre 2026, branche `lot/T06-analyse-vulnerabilites`.
 - Couverture (unitaires et intégration) : `vuln` 82,0 %, `vuln/grype` 89,3 %, `finding`
   84,9 %, `inventory` 86,3 %, `download` 91,3 %, `benchdata` 87,0 %, `web` 81,6 %, `config`
   97,6 %.
-- Autoanalyse des binaires (base du 30 octobre 2026) : aucune KEV ; `ogsbom-server` :
+- Autoanalyse des binaires (base du 30 octobre 2026) : aucune KEV ; `lotor-server` :
   go-jose v4.1.5 (corrigée par la montée en v4.1.6) et GO-2026-5932 sur `x/crypto`
   v0.58.0 (sans correctif publié, non atteinte selon govulncheck).
 
@@ -231,7 +231,7 @@ Réalisé le 31 octobre 2026, branche `lot/T06-analyse-vulnerabilites`.
   composant trie les versions lexicalement : la brancher sur `internal/version`.
 - **T10 (tableau de bord)** : décomptes par sévérité et KEV prêts (`finding.RefCounts`,
   `finding.Sum`) ; `findings.first_seen_at`, `resolved_at` et `finding_events` donnent les
-  évolutions ; `ogsbom_vulndb_*` pour l'âge de la base.
+  évolutions ; `lotor_vulndb_*` pour l'âge de la base.
 - **T11 (recette)** : écran d'import (`vuln.Checker.Import`, dans une requête bornée par
   `vulndb.max_archive_mib`, l'installation prend plusieurs minutes : à faire en job) et
   purge des archives non cibles ; vérifier sur la machine de référence les mesures de

@@ -1,6 +1,6 @@
 // Package dbtest fournit à chaque test d'intégration une base PostgreSQL jetable.
 //
-// À partir de OGSBOM_TEST_DATABASE_DSN (connexion d'administration, au format URL), New
+// À partir de LOTOR_TEST_DATABASE_DSN (connexion d'administration, au format URL), New
 // crée une base, un rôle propriétaire et un rôle d'exécution, tous nommés avec un suffixe
 // aléatoire, applique les migrations avec le propriétaire et renvoie le pool du rôle
 // d'exécution. Tout est supprimé à la fin du test. Des tests de lots différents peuvent
@@ -32,11 +32,11 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/lotor/internal/db"
 )
 
 // EnvDSN est la variable d'environnement de la connexion d'administration.
-const EnvDSN = "OGSBOM_TEST_DATABASE_DSN"
+const EnvDSN = "LOTOR_TEST_DATABASE_DSN"
 
 // setupTimeout borne la création et la suppression d'une base de test.
 const setupTimeout = 30 * time.Second
@@ -92,9 +92,9 @@ func New(t testing.TB, opts ...Option) *DB {
 
 	suffix := randomHex(t, 6)
 	d := &DB{
-		Name:      "ogsbom_t_" + suffix,
-		OwnerRole: "ogsbom_t_" + suffix + "_owner",
-		AppRole:   "ogsbom_t_" + suffix + "_app",
+		Name:      "lotor_t_" + suffix,
+		OwnerRole: "lotor_t_" + suffix + "_owner",
+		AppRole:   "lotor_t_" + suffix + "_app",
 		admin:     admin,
 	}
 	ownerPwd, appPwd := randomHex(t, 16), randomHex(t, 16)
@@ -166,7 +166,7 @@ func (d *DB) AdminExec(t testing.TB, stmts ...string) {
 
 func (d *DB) open(t testing.TB, dsn string, maxConns int) *sql.DB {
 	t.Helper()
-	pool, err := db.Open(dsn, db.PoolConfig{MaxOpenConns: maxConns, MaxIdleConns: maxConns, ApplicationName: "ogsbom-test"})
+	pool, err := db.Open(dsn, db.PoolConfig{MaxOpenConns: maxConns, MaxIdleConns: maxConns, ApplicationName: "lotor-test"})
 	if err != nil {
 		t.Fatalf("dbtest: %v", err)
 	}

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // Querier est ce dont une requête a besoin : Tx et OrgTx l'implémentent, ce qui permet à
@@ -89,14 +89,14 @@ func (p *Pool) InTx(ctx context.Context, fn func(*Tx) error, opts ...TxOption) e
 }
 
 // InOrg exécute fn dans une transaction où l'organisation org est déclarée par
-// set_config('ogsbom.org_id', …, true). La déclaration ne vaut que pour la transaction,
+// set_config('lotor.org_id', …, true). La déclaration ne vaut que pour la transaction,
 // ce qui la rend sûre avec un pool et avec pgbouncer en mode session.
 func (p *Pool) InOrg(ctx context.Context, org tenant.OrgID, fn func(*OrgTx) error, opts ...TxOption) error {
 	if org.IsZero() {
 		return tenant.ErrZeroOrgID
 	}
 	return p.run(ctx, opts, func(tx *sql.Tx) error {
-		if _, err := tx.ExecContext(ctx, "SELECT set_config('ogsbom.org_id', $1, true)", org.String()); err != nil {
+		if _, err := tx.ExecContext(ctx, "SELECT set_config('lotor.org_id', $1, true)", org.String()); err != nil {
 			return fmt.Errorf("db: déclaration de l'organisation : %w", err)
 		}
 		return fn(&OrgTx{Tx: Tx{tx: tx}, org: org})

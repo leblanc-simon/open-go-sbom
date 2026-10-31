@@ -17,10 +17,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/jobs"
-	"leblanc.io/open-go-sbom/internal/vuln"
-	"leblanc.io/open-go-sbom/internal/vuln/vulntest"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/jobs"
+	"leblanc.io/lotor/internal/vuln"
+	"leblanc.io/lotor/internal/vuln/vulntest"
 )
 
 var admin = audit.Actor{UserID: 0, Email: "admin@example.org"}

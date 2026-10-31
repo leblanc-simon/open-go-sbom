@@ -8,11 +8,11 @@ import (
 	"slices"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/api/gen"
-	"leblanc.io/open-go-sbom/internal/locale"
-	"leblanc.io/open-go-sbom/internal/pagination"
-	"leblanc.io/open-go-sbom/internal/web/middleware"
-	"leblanc.io/open-go-sbom/locales"
+	"leblanc.io/lotor/internal/api/gen"
+	"leblanc.io/lotor/internal/locale"
+	"leblanc.io/lotor/internal/pagination"
+	"leblanc.io/lotor/internal/web/middleware"
+	"leblanc.io/lotor/locales"
 )
 
 func catalog(t *testing.T) *locale.Catalog {

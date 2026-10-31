@@ -220,7 +220,7 @@ type EnrollmentResult struct {
 	AgentId openapi_types.UUID `json:"agent_id"`
 	Project ProjectRef         `json:"project"`
 
-	// Token Jeton d'agent (`ogsbom_agt_…`), renvoyé une seule fois.
+	// Token Jeton d'agent (`lotor_agt_…`), renvoyé une seule fois.
 	Token string `json:"token"`
 }
 

@@ -12,8 +12,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 
-	"leblanc.io/open-go-sbom/internal/locale"
-	"leblanc.io/open-go-sbom/locales"
+	"leblanc.io/lotor/internal/locale"
+	"leblanc.io/lotor/locales"
 )
 
 func ok() http.Handler {

@@ -1,5 +1,5 @@
 app:
-  name: open-go-sbom
+  name: lotor
   tagline: Gestion des SBOM par projet
 
 layout:
@@ -157,9 +157,9 @@ validation:
 
 home:
   title: Accueil
-  heading: Bienvenue sur open-go-sbom
+  heading: Bienvenue sur lotor
   lead: >-
-    open-go-sbom inventorie les composants logiciels de vos dépôts et de vos serveurs, et
+    lotor inventorie les composants logiciels de vos dépôts et de vos serveurs, et
     les analyse chaque jour pour y repérer les vulnérabilités connues.
   status_title: État de l'instance
   status_text: Le serveur est démarré et son schéma de base de données est à jour.
@@ -569,7 +569,7 @@ error:
       text: Le compte propriétaire de ce jeton doit changer son mot de passe temporaire ou enrôler un second facteur ; ses jetons sont refusés jusque-là.
     invalid:
       title: Jeton refusé
-      text: "Le jeton présenté est absent, mal formé ou inconnu. Vérifiez qu'il est complet (ogsbom_agt_…, ogsbom_enr_… ou ogsbom_pat_…) et qu'il convient à cette opération."
+      text: "Le jeton présenté est absent, mal formé ou inconnu. Vérifiez qu'il est complet (lotor_agt_…, lotor_enr_… ou lotor_pat_…) et qu'il convient à cette opération."
     revoked:
       title: Jeton révoqué
       text: Ce jeton a été révoqué. Demandez-en un nouveau à un administrateur de l'organisation.
@@ -808,7 +808,7 @@ agent:
 agent_new:
   title: Nouvel agent dépôt
   heading: Nouvel agent dépôt
-  lead: "Un agent dépôt (ogsbom-repo-agent) analyse les dépôts qui lui sont confiés. Il reçoit ici son premier jeton."
+  lead: "Un agent dépôt (lotor-repo-agent) analyse les dépôts qui lui sont confiés. Il reçoit ici son premier jeton."
   form_title: Agent dépôt
   name: Nom de l'agent
   name_hint: Par exemple l'instance qui l'héberge.
@@ -933,7 +933,7 @@ snapshot:
   download_original: SBOM reçu, dans son format d'origine
   download_cyclonedx: Réencodé en CycloneDX 1.6
   download_spdx: Réencodé en SPDX 2.3
-  download_hint: Les formats réencodés reprennent l'inventaire décodé par Syft ; les propriétés ogsbom et les preuves de l'IA ne figurent que dans le SBOM reçu.
+  download_hint: Les formats réencodés reprennent l'inventaire décodé par Syft ; les propriétés lotor et les preuves de l'IA ne figurent que dans le SBOM reçu.
   components_title: Composants
   components_caption: Composants de l'instantané, avec leur origine, leur type, leur purl et leurs licences
   filter_label: Filtrer les composants
@@ -966,14 +966,14 @@ host_agent:
 host_install:
   title: Installer l'agent serveur
   meta: Linux amd64 ou arm64, paquet deb ou rpm
-  package: Installez le paquet d'ogsbom-host-agent, qui crée l'utilisateur ogsbom-agent et les unités systemd.
+  package: Installez le paquet de lotor-host-agent, qui crée l'utilisateur lotor-agent et les unités systemd.
   package_hint: Choisissez la commande de votre distribution ; remplacez amd64 ou x86_64 par arm64 ou aarch64 selon l'architecture.
   server: Indiquez l'adresse de ce serveur dans la configuration de l'agent.
   server_hint: Avec une autorité de certification privée ou le mTLS, renseignez aussi la section tls du même fichier.
   token: Déposez le jeton d'inscription, lisible par le seul utilisateur de l'agent.
   token_hint: Ou bien chiffrez-le avec systemd-creds (voir la documentation d'exploitation) ; il ne va jamais dans le fichier de configuration.
   start: "Démarrez l'agent : il s'inscrit, inventorie l'hôte et envoie son premier SBOM."
-  start_hint: Pour un scan par jour sans démon, activez plutôt ogsbom-host-agent-oneshot.timer.
+  start_hint: Pour un scan par jour sans démon, activez plutôt lotor-host-agent-oneshot.timer.
   cleanup: Une fois l'hôte apparu dans les projets, supprimez le jeton d'inscription ; l'agent garde son propre jeton.
 
 severity:
@@ -1336,7 +1336,7 @@ search:
 tokens:
   title: Jetons d'accès
   heading: Jetons d'accès personnels
-  lead: "Un jeton personnel (ogsbom_pat_…) donne accès en lecture seule à l'API de recherche des organisations dont vous êtes membre, jamais plus que votre compte. Il expire toujours."
+  lead: "Un jeton personnel (lotor_pat_…) donne accès en lecture seule à l'API de recherche des organisations dont vous êtes membre, jamais plus que votre compte. Il expire toujours."
   created_text: "Le jeton « {{.Name}} » est créé. Copiez-le maintenant : il ne sera plus jamais affiché."
   usage: "À envoyer dans l'en-tête Authorization: Bearer, par exemple GET /api/v1/orgs/<organisation>/search?q=CVE-2021-44228."
   list_title: Vos jetons

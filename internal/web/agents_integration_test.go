@@ -13,13 +13,13 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/agent"
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/web/webtest"
+	"leblanc.io/lotor/internal/agent"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/web/webtest"
 )
 
-var tokenPattern = regexp.MustCompile(`<code class="token-once">(ogsbom_(?:agt|enr)_[a-z2-7]{26}_[a-z2-7]{52})</code>`)
+var tokenPattern = regexp.MustCompile(`<code class="token-once">(lotor_(?:agt|enr)_[a-z2-7]{26}_[a-z2-7]{52})</code>`)
 
 // shownToken extrait le jeton affiché une fois sur la page.
 func shownToken(t *testing.T, p page) string {
@@ -135,7 +135,7 @@ func TestHostEnrollmentEndToEnd(t *testing.T) {
 	}
 
 	r, e := a.enroll(enr, "SRV-WEB-01")
-	if r.status != http.StatusCreated || !strings.HasPrefix(e.Token, "ogsbom_agt_") || e.Project.Slug != "srv-web-01" {
+	if r.status != http.StatusCreated || !strings.HasPrefix(e.Token, "lotor_agt_") || e.Project.Slug != "srv-web-01" {
 		t.Fatalf("inscription : %d %s", r.status, r.body)
 	}
 	if r.header.Get("Content-Security-Policy") == "" || r.header.Get("Cache-Control") != "no-store" {
@@ -209,7 +209,7 @@ func TestHostEnrollmentEndToEnd(t *testing.T) {
 	}
 }
 
-func agentPrefix(token string) string { return token[:len("ogsbom_enr_")+6] }
+func agentPrefix(token string) string { return token[:len("lotor_enr_")+6] }
 
 // TestExpiredEnrollmentTokenRefused : passé sa validité, le jeton est refusé avec une clé
 // traduisible.

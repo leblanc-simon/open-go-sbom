@@ -1,22 +1,22 @@
-# Configuration d'ogsbom-host-agent, installée en /etc/ogsbom-host-agent/config.yaml par
+# Configuration de lotor-host-agent, installée en /etc/lotor-host-agent/config.yaml par
 # les paquets (lue par défaut, ou -c chemin). Chaque clé a sa variable d'environnement
-# OGSBOM_HOST_AGENT_*, qui l'emporte sur le fichier : ogsbom-host-agent --help les liste.
+# LOTOR_HOST_AGENT_*, qui l'emporte sur le fichier : lotor-host-agent --help les liste.
 #
 # Aucun secret ici. Le jeton d'inscription se dépose dans
-# /etc/ogsbom-host-agent/enrollment-token (0600, propriétaire ogsbom-agent) ou en
+# /etc/lotor-host-agent/enrollment-token (0600, propriétaire lotor-agent) ou en
 # credential systemd chiffré « enrollment-token » ; la clé du certificat client de même
 # (« client-key »). Le jeton d'agent obtenu à l'inscription est gardé dans state_dir.
 
 # daemon : un scan par scan.interval et un signal de vie par scan.poll_interval (le bouton
 # « Scanner maintenant » de l'interface agit au signal suivant) ; oneshot : un seul cycle,
-# pour ogsbom-host-agent-oneshot.timer. Les unités fournies posent OGSBOM_HOST_AGENT_MODE.
+# pour lotor-host-agent-oneshot.timer. Les unités fournies posent LOTOR_HOST_AGENT_MODE.
 mode: daemon
 
 # Nom d'hôte annoncé (référence du projet de l'hôte) ; vide : celui du système.
 hostname: ""
 
-state_dir: /var/lib/ogsbom-host-agent
-# Vide : credential systemd « enrollment-token », sinon /etc/ogsbom-host-agent/enrollment-token.
+state_dir: /var/lib/lotor-host-agent
+# Vide : credential systemd « enrollment-token », sinon /etc/lotor-host-agent/enrollment-token.
 enrollment_token_file: ""
 
 # Étiquettes du projet créé à l'inscription, en plus de celles du jeton (qui l'emportent).

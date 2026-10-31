@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // Rule est une vulnérabilité de la fausse base, attachée à un purl canonique.

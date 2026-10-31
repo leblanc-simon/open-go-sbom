@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/lotor/internal/db"
 )
 
 // TestComponentUsage : un composant et l'usage courant de sa famille ; références

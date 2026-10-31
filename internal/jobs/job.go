@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // Priorités usuelles : la plus haute passe d'abord. Toute valeur de [MinPriority,

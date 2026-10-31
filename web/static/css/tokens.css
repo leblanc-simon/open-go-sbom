@@ -1,11 +1,11 @@
 /* ==========================================================================
    Tokens du système de design (planche « Fondations — tokens »).
-   Portés par la racine .ogsbom (élément html). Chaque couleur est donnée en
+   Portés par la racine .lotor (élément html). Chaque couleur est donnée en
    light-dark(clair, sombre) : sans choix explicite, le thème suit le système
    (prefers-color-scheme) ; data-theme="light" ou "dark" l'impose.
    ========================================================================== */
 
-.ogsbom {
+.lotor {
   /* — Typographie — */
   --font-sans: "Atkinson Hyperlegible Next", system-ui, "Segoe UI", Roboto, sans-serif;
   --font-mono: "Atkinson Hyperlegible Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;

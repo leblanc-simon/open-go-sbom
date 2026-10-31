@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/forge"
+	"leblanc.io/lotor/internal/forge"
 )
 
 const defaultTestTimeout = 2 * time.Minute

@@ -6,7 +6,7 @@
 -- recherche approchée par nom ou par empreinte lirait tous les composants de
 -- l'organisation. Ces deux recherches passent donc par des fonctions SECURITY DEFINER du
 -- propriétaire (BYPASSRLS), qui appliquent elles-mêmes la condition de la politique
--- standard (org_id = current_setting('ogsbom.org_id')::uuid) : même périmètre que la RLS,
+-- standard (org_id = current_setting('lotor.org_id')::uuid) : même périmètre que la RLS,
 -- même échec franc hors InOrg, et les index GIN utilisables. Elles ne renvoient que des
 -- identifiants de composants de l'organisation déclarée. Le reste de la recherche
 -- s'exécute sous la RLS, sur des index B-tree dont les opérateurs (égalité de texte,
@@ -30,13 +30,13 @@ CREATE INDEX components_hashes_idx ON components USING gin (org_id, hashes);
 -- casse. Colonne approx : le résultat vient de la ressemblance. Ordre : nom exact
 -- d'abord, puis par ressemblance décroissante ; p_limit borné à 1 001 (l'appelant demande
 -- une ligne de plus que sa borne pour savoir s'il tronque).
-CREATE FUNCTION ogsbom_search_component_names(p_query text, p_limit integer)
+CREATE FUNCTION lotor_search_component_names(p_query text, p_limit integer)
 RETURNS TABLE (component_id uuid, approx boolean)
 LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET search_path = pg_catalog, public, pg_temp
 AS $$
 DECLARE
-    org uuid := current_setting('ogsbom.org_id')::uuid;
+    org uuid := current_setting('lotor.org_id')::uuid;
     lim integer := greatest(1, least(coalesce(p_limit, 1000), 1001));
     pattern text;
 BEGIN
@@ -66,18 +66,18 @@ END
 $$;
 
 -- Composants qui portent l'empreinte p_hash (« algorithme:valeur » en minuscules).
-CREATE FUNCTION ogsbom_search_component_hashes(p_hash text, p_limit integer)
+CREATE FUNCTION lotor_search_component_hashes(p_hash text, p_limit integer)
 RETURNS TABLE (component_id uuid)
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = pg_catalog, public, pg_temp
 AS $$
     SELECT c.id FROM components c
-     WHERE c.org_id = current_setting('ogsbom.org_id')::uuid AND c.hashes @> ARRAY[p_hash]
+     WHERE c.org_id = current_setting('lotor.org_id')::uuid AND c.hashes @> ARRAY[p_hash]
      ORDER BY c.id
      LIMIT greatest(1, least(coalesce(p_limit, 1000), 1001))
 $$;
 
--- Jetons d'accès personnels (ogsbom_pat_…) : une donnée du compte, comme ses sessions, et
+-- Jetons d'accès personnels (lotor_pat_…) : une donnée du compte, comme ses sessions, et
 -- non d'une organisation. Un jeton ouvre en lecture l'API utilisateur des organisations
 -- dont son propriétaire est membre au moment de chaque requête (ADR 0025). Seul le
 -- SHA-256 du secret est stocké ; public_id est unique sur l'instance.

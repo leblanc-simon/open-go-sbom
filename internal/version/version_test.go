@@ -5,8 +5,8 @@ import (
 	"slices"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/version"
-	"leblanc.io/open-go-sbom/internal/version/grypeversion"
+	"leblanc.io/lotor/internal/version"
+	"leblanc.io/lotor/internal/version/grypeversion"
 )
 
 var cmp = grypeversion.New()

@@ -7,14 +7,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/db/crossorg"
-	"leblanc.io/open-go-sbom/internal/org"
-	"leblanc.io/open-go-sbom/internal/pagination"
-	"leblanc.io/open-go-sbom/internal/render"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db/crossorg"
+	"leblanc.io/lotor/internal/org"
+	"leblanc.io/lotor/internal/pagination"
+	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 func adminNav(current string) []render.NavItem {

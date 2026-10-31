@@ -16,8 +16,8 @@ import (
 	// être enregistré dans tout binaire qui catalogue.
 	_ "modernc.org/sqlite"
 
-	"leblanc.io/open-go-sbom/internal/sbom"
-	sbomsyft "leblanc.io/open-go-sbom/internal/sbom/syft"
+	"leblanc.io/lotor/internal/sbom"
+	sbomsyft "leblanc.io/lotor/internal/sbom/syft"
 )
 
 // Inventory est le résultat d'un scan : le SBOM (Syft JSON) et son empreinte
@@ -68,7 +68,7 @@ func (s SyftScanner) Scan(ctx context.Context) (Inventory, error) {
 	}
 	defer src.Close()
 	cfg := syft.DefaultCreateSBOMConfig().
-		WithTool("ogsbom-host-agent", s.Version).
+		WithTool("lotor-host-agent", s.Version).
 		WithParallelism(max(s.Parallelism, 1)).
 		WithoutFiles().
 		WithCatalogerSelection(cataloging.NewSelectionRequest().WithDefaults(pkgcataloging.ImageTag))

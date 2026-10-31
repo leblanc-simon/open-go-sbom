@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/pagination"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/pagination"
 )
 
 // Action est la nature d'un événement d'audit, « domaine.verbe ». Chacune a sa phrase

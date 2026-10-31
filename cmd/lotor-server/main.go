@@ -1,4 +1,4 @@
-// Commande ogsbom-server : interface web, API REST, workers et planificateur de la file de
+// Commande lotor-server : interface web, API REST, workers et planificateur de la file de
 // traitements. main ne fait que charger la configuration, construire les dépendances,
 // lancer les serveurs et attendre le signal d'arrêt.
 package main
@@ -19,35 +19,35 @@ import (
 
 	"leblanc.io/open-go-base/logx"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/agent"
-	"leblanc.io/open-go-sbom/internal/api"
-	"leblanc.io/open-go-sbom/internal/config"
-	"leblanc.io/open-go-sbom/internal/dashboard"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/download"
-	"leblanc.io/open-go-sbom/internal/finding"
-	"leblanc.io/open-go-sbom/internal/ingest"
-	"leblanc.io/open-go-sbom/internal/inventory"
-	"leblanc.io/open-go-sbom/internal/jobs"
-	"leblanc.io/open-go-sbom/internal/locale"
-	"leblanc.io/open-go-sbom/internal/org"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/render"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/sbom/schema"
-	"leblanc.io/open-go-sbom/internal/search"
-	"leblanc.io/open-go-sbom/internal/secret"
-	"leblanc.io/open-go-sbom/internal/version/grypeversion"
-	"leblanc.io/open-go-sbom/internal/vuln"
-	"leblanc.io/open-go-sbom/internal/vuln/grype"
-	"leblanc.io/open-go-sbom/internal/web"
-	"leblanc.io/open-go-sbom/internal/web/middleware"
-	"leblanc.io/open-go-sbom/locales"
-	webfs "leblanc.io/open-go-sbom/web"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/agent"
+	"leblanc.io/lotor/internal/api"
+	"leblanc.io/lotor/internal/config"
+	"leblanc.io/lotor/internal/dashboard"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/download"
+	"leblanc.io/lotor/internal/finding"
+	"leblanc.io/lotor/internal/ingest"
+	"leblanc.io/lotor/internal/inventory"
+	"leblanc.io/lotor/internal/jobs"
+	"leblanc.io/lotor/internal/locale"
+	"leblanc.io/lotor/internal/org"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/sbom/schema"
+	"leblanc.io/lotor/internal/search"
+	"leblanc.io/lotor/internal/secret"
+	"leblanc.io/lotor/internal/version/grypeversion"
+	"leblanc.io/lotor/internal/vuln"
+	"leblanc.io/lotor/internal/vuln/grype"
+	"leblanc.io/lotor/internal/web"
+	"leblanc.io/lotor/internal/web/middleware"
+	"leblanc.io/lotor/locales"
+	webfs "leblanc.io/lotor/web"
 )
 
-const name = "ogsbom-server"
+const name = "lotor-server"
 
 // version est injectée à la construction : -ldflags "-X 'main.version=…'".
 var version = "develop"
@@ -74,7 +74,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 
 	catalog, err := locale.New(locales.FS, ".", cfg.I18n.DefaultLanguage)
 	if err != nil {
-		return fmt.Errorf("i18n.default_language (OGSBOM_I18N_DEFAULT_LANGUAGE) : %w", err)
+		return fmt.Errorf("i18n.default_language (LOTOR_I18N_DEFAULT_LANGUAGE) : %w", err)
 	}
 
 	pool, err := db.Start(ctx, db.StartOptions{

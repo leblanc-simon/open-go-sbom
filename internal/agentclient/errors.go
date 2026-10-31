@@ -7,7 +7,7 @@ import (
 	"mime"
 	"net/http"
 
-	"leblanc.io/open-go-sbom/internal/agentclient/gen"
+	"leblanc.io/lotor/internal/agentclient/gen"
 )
 
 // Error est une réponse du serveur hors 2xx. Key est la clé stable du problème RFC 9457

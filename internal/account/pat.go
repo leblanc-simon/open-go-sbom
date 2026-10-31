@@ -12,12 +12,12 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/token"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/token"
 )
 
-// Jetons d'accès personnels (ogsbom_pat_…, ADR 0025) : une donnée du compte. Un jeton
+// Jetons d'accès personnels (lotor_pat_…, ADR 0025) : une donnée du compte. Un jeton
 // ouvre en lecture seule l'API utilisateur des organisations dont son propriétaire est
 // membre au moment de la requête ; il ne donne jamais plus que le compte.
 
@@ -69,7 +69,7 @@ type PersonalToken struct {
 	RevokedAt  *time.Time
 }
 
-// Prefix est le début reconnaissable du jeton (« ogsbom_pat_k7q2xa »).
+// Prefix est le début reconnaissable du jeton (« lotor_pat_k7q2xa »).
 func (t PersonalToken) Prefix() string { return token.DisplayPrefix(token.Personal, t.PublicID) }
 
 // Active indique si le jeton est utilisable à l'instant now.

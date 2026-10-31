@@ -116,7 +116,7 @@ Réalisé le 31 octobre 2026, branche `lot/T10-tableau-de-bord`.
   statistiques **réécrites toutes les heures** sous la date du jour plutôt qu'un passage
   quotidien unique ; table `project_daily_stats` en plus de `org_daily_stats` (série de
   la fiche projet) ; purge des lignes par projet au-delà de 400 jours ; pas de nouvelle
-  fonction `crossorg` (`ogsbom_list_organizations`, comme la réanalyse).
+  fonction `crossorg` (`lotor_list_organizations`, comme la réanalyse).
 - **Seuil « muet » de 7 jours pour toute l'interface** (liste des agents, fiche projet,
   tableau de bord) plutôt qu'un seuil propre au tableau de bord **[à relire]**.
 - Périodes 30/90/365 jours (sélecteur de la maquette), un point par semaine sur 12 mois ;

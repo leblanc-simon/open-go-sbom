@@ -12,7 +12,7 @@ import (
 	v6 "github.com/anchore/grype/grype/db/v6"
 	v6dist "github.com/anchore/grype/grype/db/v6/distribution"
 
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // maxListing borne la liste de distribution (quelques centaines d'octets en pratique).

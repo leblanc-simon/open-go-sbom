@@ -33,7 +33,7 @@ func TestCheck(t *testing.T) {
 		{"render importe les gabarits", "internal/render", []string{mod + "/web"}, false},
 		{"locale reste sans HTTP", "internal/locale", []string{"net/http"}, true},
 		{"agent importe locale", "internal/hostagent", []string{mod + "/internal/locale"}, true},
-		{"cmd importe web", "cmd/ogsbom-server", []string{mod + "/internal/web", mod + "/internal/api/gen"}, false},
+		{"cmd importe web", "cmd/lotor-server", []string{mod + "/internal/web", mod + "/internal/api/gen"}, false},
 		{"web importe le métier", "internal/web", []string{mod + "/internal/project"}, false},
 		{"agent importe db", "internal/hostagent", []string{mod + "/internal/db"}, true},
 		{"client agent importe inventory", "internal/agentclient", []string{mod + "/internal/inventory"}, true},

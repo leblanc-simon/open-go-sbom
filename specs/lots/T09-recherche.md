@@ -25,7 +25,7 @@ versions ? » et « qui est touché par cette CVE ? », à l'écran comme par l'
   GIN composite via `btree_gin` si la mesure l'exige.
 - Écran de recherche : barre unique, rappel du type détecté, filtres en formulaire `GET`,
   résultats groupés par projet, boutons d'export.
-- Jetons d'accès personnels (`ogsbom_pat_`) : création et révocation depuis le profil, lecture
+- Jetons d'accès personnels (`lotor_pat_`) : création et révocation depuis le profil, lecture
   seule, limités aux organisations du compte ; route `GET /api/v1/orgs/{org}/search`.
 - Banc d'essai `make bench-search` sur le jeu de données synthétique de T06.
 
@@ -92,7 +92,7 @@ Réalisé le 31 octobre 2026, branche `lot/T09-recherche`.
   qui garde son API par alias.
 - **Migration 013** : extensions `pg_trgm` et `btree_gin` ; index GIN
   `(org_id, name gin_trgm_ops)`, `(org_id, hashes)`, B-tree `(org_id, lower(name))` ;
-  fonctions `ogsbom_search_component_names` et `ogsbom_search_component_hashes` ; table
+  fonctions `lotor_search_component_names` et `lotor_search_component_hashes` ; table
   globale `personal_access_tokens`. `internal/db/crossorg` : `ComponentsByName`,
   `ComponentsByHash`.
 - **`internal/search`** : détection du type de requête (nom, purl et plage, CVE/GHSA,
@@ -149,17 +149,17 @@ Réalisé le 31 octobre 2026, branche `lot/T09-recherche`.
 ### Décisions
 
 - **ADR 0024** **[à relire]** : deux fonctions `SECURITY DEFINER` « équivalentes à la RLS »
-  pour la recherche par nom et par empreinte (organisation lue dans `ogsbom.org_id`,
+  pour la recherche par nom et par empreinte (organisation lue dans `lotor.org_id`,
   jamais en paramètre), car aucun opérateur trigramme ou de tableau n'est `LEAKPROOF` ;
   nom = sous-chaîne sans casse, puis ressemblance par trigrammes si rien ne contient la
   requête, nom exact sous trois caractères ; bornes 1 000 composants par nom ou empreinte,
   5 000 par paquet, 20 projets par page (100 au plus), 100 occurrences par projet ; export
   en flux dans une transaction en lecture, borné en nombre simultané et en durée.
 - **Nouvelles fonctions `crossorg`** (changement de sécurité, à relire) :
-  `ogsbom_search_component_names(query, limit)` et
-  `ogsbom_search_component_hashes(hash, limit)`. Elles contournent la RLS (propriétaire
+  `lotor_search_component_names(query, limit)` et
+  `lotor_search_component_hashes(hash, limit)`. Elles contournent la RLS (propriétaire
   `BYPASSRLS`) uniquement pour que les index GIN servent ; elles appliquent la même
-  condition que la politique standard, lisent l'organisation dans `ogsbom.org_id` (donc
+  condition que la politique standard, lisent l'organisation dans `lotor.org_id` (donc
   seulement dans `InOrg`, échec franc sinon), ne renvoient que des identifiants de
   composants de cette organisation, bornés à 1 001 ; aucun texte de requête n'est
   interprété (jokers `ILIKE` échappés). Test : `TestSearchFunctionsStayInTheDeclaredOrganization`.

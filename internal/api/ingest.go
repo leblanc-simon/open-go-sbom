@@ -9,13 +9,13 @@ import (
 	"mime/multipart"
 	"net/http"
 
-	"leblanc.io/open-go-sbom/internal/agent"
-	"leblanc.io/open-go-sbom/internal/api/gen"
-	"leblanc.io/open-go-sbom/internal/ingest"
-	"leblanc.io/open-go-sbom/internal/locale"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/web/middleware"
+	"leblanc.io/lotor/internal/agent"
+	"leblanc.io/lotor/internal/api/gen"
+	"leblanc.io/lotor/internal/ingest"
+	"leblanc.io/lotor/internal/locale"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/web/middleware"
 )
 
 // maxContextPart borne la partie context d'un envoi.

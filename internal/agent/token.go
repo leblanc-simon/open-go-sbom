@@ -1,6 +1,6 @@
 package agent
 
-import "leblanc.io/open-go-sbom/internal/token"
+import "leblanc.io/lotor/internal/token"
 
 // TokenKind est la nature d'un jeton de l'API des agents (format : internal/token).
 type TokenKind = token.Kind

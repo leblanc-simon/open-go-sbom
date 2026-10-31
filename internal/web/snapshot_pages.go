@@ -14,14 +14,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/ingest"
-	"leblanc.io/open-go-sbom/internal/inventory"
-	"leblanc.io/open-go-sbom/internal/pagination"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/render"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/sbom/syft"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/ingest"
+	"leblanc.io/lotor/internal/inventory"
+	"leblanc.io/lotor/internal/pagination"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/sbom/syft"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // Tailles des listes des écrans d'instantanés.

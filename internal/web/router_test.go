@@ -15,14 +15,14 @@ import (
 
 	"leblanc.io/open-go-base/appconf"
 
-	"leblanc.io/open-go-sbom/internal/api/gen"
-	"leblanc.io/open-go-sbom/internal/api/problem"
-	"leblanc.io/open-go-sbom/internal/locale"
-	"leblanc.io/open-go-sbom/internal/render"
-	"leblanc.io/open-go-sbom/internal/web/middleware"
-	"leblanc.io/open-go-sbom/internal/web/webtest"
-	"leblanc.io/open-go-sbom/locales"
-	"leblanc.io/open-go-sbom/web"
+	"leblanc.io/lotor/internal/api/gen"
+	"leblanc.io/lotor/internal/api/problem"
+	"leblanc.io/lotor/internal/locale"
+	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/web/middleware"
+	"leblanc.io/lotor/internal/web/webtest"
+	"leblanc.io/lotor/locales"
+	"leblanc.io/lotor/web"
 )
 
 type fixture struct {
@@ -117,10 +117,10 @@ func TestHomeInFrenchAndEnglish(t *testing.T) {
 	cases := map[string]struct {
 		path, accept, lang, heading string
 	}{
-		"défaut français":         {"/", "", "fr", "Bienvenue sur open-go-sbom"},
-		"?lang=en":                {"/?lang=en", "fr-FR", "en", "Welcome to open-go-sbom"},
-		"Accept-Language anglais": {"/", "en-GB,en;q=0.9", "en", "Welcome to open-go-sbom"},
-		"langue indisponible":     {"/", "de-DE", "fr", "Bienvenue sur open-go-sbom"},
+		"défaut français":         {"/", "", "fr", "Bienvenue sur lotor"},
+		"?lang=en":                {"/?lang=en", "fr-FR", "en", "Welcome to lotor"},
+		"Accept-Language anglais": {"/", "en-GB,en;q=0.9", "en", "Welcome to lotor"},
+		"langue indisponible":     {"/", "de-DE", "fr", "Bienvenue sur lotor"},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -435,7 +435,7 @@ func TestAccessLogAndMetrics(t *testing.T) {
 	}
 	found := map[string]bool{}
 	for _, fam := range families {
-		if fam.GetName() != "ogsbom_http_requests_total" {
+		if fam.GetName() != "lotor_http_requests_total" {
 			continue
 		}
 		for _, m := range fam.GetMetric() {

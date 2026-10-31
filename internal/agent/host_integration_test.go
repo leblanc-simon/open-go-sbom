@@ -10,14 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/agent"
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/ingest"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/sbom/schema"
-	"leblanc.io/open-go-sbom/internal/sbom/syft"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/agent"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/ingest"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/sbom/schema"
+	"leblanc.io/lotor/internal/sbom/syft"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // hostAgent inscrit un agent serveur et renvoie son principal et son inscription.

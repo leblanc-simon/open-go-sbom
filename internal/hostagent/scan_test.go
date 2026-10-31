@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/sbom"
-	sbomsyft "leblanc.io/open-go-sbom/internal/sbom/syft"
+	"leblanc.io/lotor/internal/sbom"
+	sbomsyft "leblanc.io/lotor/internal/sbom/syft"
 )
 
 func testRoot(t *testing.T) string {

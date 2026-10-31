@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // TestReads : lectures des écrans (constats d'un projet, décomptes, fiche vulnérabilité,

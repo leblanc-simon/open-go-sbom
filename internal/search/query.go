@@ -9,8 +9,8 @@ import (
 
 	"github.com/package-url/packageurl-go"
 
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/version"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/version"
 )
 
 // Kind est la nature d'une requête, déduite de sa forme (§ 13 de l'architecture).

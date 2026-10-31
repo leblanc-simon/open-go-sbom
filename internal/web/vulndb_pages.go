@@ -6,7 +6,7 @@ import (
 	"path"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // VulnDBOptions règle l'écran de la base de vulnérabilités.

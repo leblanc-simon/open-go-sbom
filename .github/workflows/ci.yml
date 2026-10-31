@@ -32,7 +32,7 @@ jobs:
           --health-timeout 3s
           --health-retries 30
     env:
-      OGSBOM_TEST_DATABASE_DSN: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
+      LOTOR_TEST_DATABASE_DSN: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

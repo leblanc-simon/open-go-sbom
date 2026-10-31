@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/jobs"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/jobs"
 )
 
 // PurgeKind est le type du job qui supprime sessions et défis TOTP expirés ; le

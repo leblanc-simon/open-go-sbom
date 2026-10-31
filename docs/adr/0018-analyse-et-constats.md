@@ -48,7 +48,7 @@ distributions), si bien qu'un même problème change d'identifiant selon l'écos
   de l'inventaire (composant écarté à l'ingestion, composant décrit par le document) est
   comptée (`unmatched_count`) et ignorée.
 - **Réanalyse du parc** : `analysis.rescan_all` liste les organisations actives par la
-  fonction `crossorg` existante `ogsbom_list_organizations` et met en file un
+  fonction `crossorg` existante `lotor_list_organizations` et met en file un
   `analysis.rescan_org` par organisation ; celui-ci, dans `InOrg`, met en file un
   `analysis.ref` par référence active (non retirée, projet non archivé, avec inventaire),
   en priorité basse, par pages de 500. **Aucune nouvelle fonction `crossorg`.** La clé

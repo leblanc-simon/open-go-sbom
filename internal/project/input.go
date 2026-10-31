@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/text/unicode/norm"
 
-	"leblanc.io/open-go-sbom/internal/account"
+	"leblanc.io/lotor/internal/account"
 )
 
 // Clés de validation.

@@ -11,19 +11,19 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/benchdata"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/benchdata"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // TestReferenceDatasetDashboard mesure le tableau de bord et la fiche projet, pages HTML
 // complètes (garde, lectures sous la RLS, rendu), sur le jeu de référence de T06 complété
 // d'un an de statistiques quotidiennes (organisation et 1 000 projets) et de 1 000 agents,
 // selon docs/benchmarks.md (cible : 1 s au 95e centile). Long : seulement avec
-// OGSBOM_BENCH=1 (make bench).
+// LOTOR_BENCH=1 (make bench).
 func TestReferenceDatasetDashboard(t *testing.T) {
-	if os.Getenv("OGSBOM_BENCH") != "1" {
-		t.Skip("OGSBOM_BENCH=1 pour générer le jeu de référence")
+	if os.Getenv("LOTOR_BENCH") != "1" {
+		t.Skip("LOTOR_BENCH=1 pour générer le jeu de référence")
 	}
 	ctx := context.Background()
 	a := newApp(t)

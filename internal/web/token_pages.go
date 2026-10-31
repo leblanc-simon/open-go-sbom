@@ -12,8 +12,8 @@ import (
 
 	"leblanc.io/open-go-base/mfax"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/render"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/render"
 )
 
 type personalTokenRow struct {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/secret"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/secret"
 )
 
 // StartupOptions reprend le fragment bootstrap de la configuration.

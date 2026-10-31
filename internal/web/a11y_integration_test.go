@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/agent"
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/web/webtest"
+	"leblanc.io/lotor/internal/agent"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/web/webtest"
 )
 
 var titlePattern = regexp.MustCompile(`<title>([^<]*)</title>`)
@@ -233,10 +233,10 @@ func TestPageTitlesAreDistinct(t *testing.T) {
 		}
 		seen[title] = path
 	}
-	if got := pageTitle(t, b.get("/o/nord/search?q=log4j-core").body); got != "Recherche « log4j-core » — Org nord · open-go-sbom" {
+	if got := pageTitle(t, b.get("/o/nord/search?q=log4j-core").body); got != "Recherche « log4j-core » — Org nord · lotor" {
 		t.Errorf("titre de recherche : %q", got)
 	}
-	if got := pageTitle(t, b.get("/o/nord?lang=en").body); got != "Dashboard — Org nord · open-go-sbom" {
+	if got := pageTitle(t, b.get("/o/nord?lang=en").body); got != "Dashboard — Org nord · lotor" {
 		t.Errorf("titre du tableau de bord : %q", got)
 	}
 	// Formulaire refusé : le titre le dit, en français et en anglais.

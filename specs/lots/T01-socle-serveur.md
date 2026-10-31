@@ -6,7 +6,7 @@
 
 ## Objectif
 
-Un `ogsbom-server` qui démarre, se configure, migre sa base, sert une page d'accueil traduite
+Un `lotor-server` qui démarre, se configure, migre sa base, sert une page d'accueil traduite
 en thème clair et sombre, expose ses sondes et ses métriques, et s'arrête proprement.
 Tout ce que les lots suivants réutilisent : configuration, base, rendu, assets, i18n, API.
 
@@ -24,7 +24,7 @@ Tout ce que les lots suivants réutilisent : configuration, base, rendu, assets,
     tables), refus de démarrer sinon ;
   - `InTx` pour les tables globales et `InOrg` (§ 9 de l'architecture) pour les tables
     d'organisation, même si aucune n'existe encore ;
-  - exécuteur de migrations du projet (table `ogsbom_schema_migrations` avec somme SHA-256,
+  - exécuteur de migrations du projet (table `lotor_schema_migrations` avec somme SHA-256,
     refus de démarrer si une migration publiée a changé), verrou de migration par
     `LOCK TABLE` sur une connexion dédiée ;
   - migration `001_init.sql` : privilèges par défaut du rôle d'exécution sur les tables et
@@ -59,7 +59,7 @@ Tout ce que les lots suivants réutilisent : configuration, base, rendu, assets,
 
 ## Conception
 
-- `cmd/ogsbom-server/main.go` ne fait que : charger la config, construire les dépendances,
+- `cmd/lotor-server/main.go` ne fait que : charger la config, construire les dépendances,
   lancer les serveurs, attendre le signal.
 - `secret.Box` : `Seal(plaintext) (ciphertext, keyID)` et `Open` ; la clé active chiffre, les
   anciennes déchiffrent. Le format du chiffré est versionné.
@@ -75,13 +75,13 @@ Tout ce que les lots suivants réutilisent : configuration, base, rendu, assets,
 
 ## Livrables
 
-`ogsbom-server` démarrable, `config.example.yaml`, migration initiale, page d'accueil,
+`lotor-server` démarrable, `config.example.yaml`, migration initiale, page d'accueil,
 `api/openapi.yaml` initial, ADR des gabarits, `docs/operations.md` (installation de
 développement, configuration, TLS ou mandataire inverse, sondes).
 
 ## Critères d'acceptation
 
-- [x] `ogsbom-server --help` liste toutes les variables `OGSBOM_*` avec leur description.
+- [x] `lotor-server --help` liste toutes les variables `LOTOR_*` avec leur description.
 - [x] Une configuration invalide arrête le démarrage avec un message qui nomme le champ.
 - [x] Sur une base vide, les migrations s'appliquent ; deux instances lancées en même temps
       ne migrent qu'une fois ; une migration publiée modifiée empêche le démarrage.
@@ -125,10 +125,10 @@ Réalisé le 31 octobre 2026, branche `lot/T01-socle-serveur`.
   rien), `VerifySchema`, `CheckRuntimeRole`, `CheckOrgIsolation`, `Start` (séquence de
   démarrage), `Array` (lecture des tableaux PostgreSQL), `RoleFromDSN`.
 - `internal/db/migrations/001_init.sql` : privilèges par défaut du rôle d'exécution,
-  procédure `ogsbom_enforce_org_rls`.
+  procédure `lotor_enforce_org_rls`.
 - `internal/db/dbtest` : base et rôles jetables par test (suffixe aléatoire), migrations
   appliquées par le propriétaire, pool du rôle d'exécution, nettoyage ; `NewRole` et
-  `AdminExec` pour les tests de rôles. Message explicite sans `OGSBOM_TEST_DATABASE_DSN`.
+  `AdminExec` pour les tests de rôles. Message explicite sans `LOTOR_TEST_DATABASE_DSN`.
 - `internal/secret` : `Box` AES-256-GCM, clés nommées, chiffré versionné, rotation.
 - `internal/config` : `Config`, `Defaults`, `Load`, `Validate` (une erreur par champ,
   avec chemin YAML et variable), `Fields` ; `config.example.yaml` complet et testé.
@@ -146,17 +146,17 @@ Réalisé le 31 octobre 2026, branche `lot/T01-socle-serveur`.
   (`/healthz`, `/readyz`, `/metrics`), `Server` (TLS natif facultatif, mTLS, arrêt
   propre) ; `internal/web/middleware` ; `internal/web/webtest` (accessibilité, absence de
   code en ligne).
-- `cmd/ogsbom-server` câblé ; test de bout en bout du binaire (deux instances
+- `cmd/lotor-server` câblé ; test de bout en bout du binaire (deux instances
   simultanées, page en deux langues, métriques, SIGTERM, refus de démarrer).
 - `docs/operations.md`, ADR 0009 et 0010, `architecture.md` à jour.
 
 ### Décisions
 
 - Exécuteur de migrations (ADR 0010) **[à relire]** : rôle d'exécution lu dans
-  `database.dsn` et déclaré aux migrations par `ogsbom.app_role` ; migrations du projet
+  `database.dsn` et déclaré aux migrations par `lotor.app_role` ; migrations du projet
   dans la transaction du verrou (tout ou rien, pas de `CONCURRENTLY`) ;
-  `ogsbom_enforce_org_rls` ; refus de démarrer si une table à `org_id NOT NULL` n'a pas
-  la RLS standard ou a une politique permissive étrangère à `ogsbom.org_id` ; sans
+  `lotor_enforce_org_rls` ; refus de démarrer si une table à `org_id NOT NULL` n'a pas
+  la RLS standard ou a une politique permissive étrangère à `lotor.org_id` ; sans
   `migration.dsn`, pas de migration et refus d'un schéma en retard.
 - `001_init.sql` ne contient que les privilèges par défaut et la procédure : aucune table
   métier, pour que la première migration publiée reste minimale. `GRANT USAGE ON SCHEMA
@@ -183,7 +183,7 @@ Réalisé le 31 octobre 2026, branche `lot/T01-socle-serveur`.
   HTTPS (TLS natif ou `X-Forwarded-Proto` d'un mandataire de `web.trusted_proxies`).
 - Thème **[à relire]** : couleurs en `light-dark()` (le thème suit le système sans JS) ;
   la bascule (système → clair → sombre) écrit `localStorage` **et** un cookie
-  `ogsbom_theme` lu par le serveur pour rendre `data-theme` dès la première peinture,
+  `lotor_theme` lu par le serveur pour rendre `data-theme` dès la première peinture,
   sans script en ligne ni flash. La préférence de thème du compte (`account_settings`,
   T03) pourra remplacer le cookie.
 - Polices **[à relire]** : Atkinson Hyperlegible Next v7 et Mono v8, fichiers WOFF2
@@ -240,7 +240,7 @@ Réalisé le 31 octobre 2026, branche `lot/T01-socle-serveur`.
   ajouter `Auth` et `MFA` à `Config`, insérer session, changement de mot de passe et garde
   d'organisation dans la chaîne `ui` de `internal/web/router.go` (aux places marquées),
   fournir `middleware.LanguageSources.Account`, recalculer la langue dans la garde.
-  Tables d'organisation : `CALL ogsbom_enforce_org_rls('organizations', 'id')`.
+  Tables d'organisation : `CALL lotor_enforce_org_rls('organizations', 'id')`.
 - Écrans : modèle de vue qui embarque `render.Page`, `rd.Render(w, r, status, "écran/page",
   &vue)`, tests avec `webtest.AssertAccessible` et `webtest.AssertNoInlineCode`.
 - Lecture d'un tableau PostgreSQL : `row.Scan(db.Array(&slice))`.

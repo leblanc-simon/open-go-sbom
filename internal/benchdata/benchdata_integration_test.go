@@ -11,10 +11,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
-	"leblanc.io/open-go-sbom/internal/finding"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/dbtest"
+	"leblanc.io/lotor/internal/finding"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 func TestGenerateSmall(t *testing.T) {
@@ -50,10 +50,10 @@ func TestGenerateSmall(t *testing.T) {
 
 // TestReferenceDataset génère le jeu de référence (1 000 projets, 1 million de liens) et
 // mesure les lectures de T06 selon docs/benchmarks.md. Long : seulement avec
-// OGSBOM_BENCH=1.
+// LOTOR_BENCH=1.
 func TestReferenceDataset(t *testing.T) {
-	if os.Getenv("OGSBOM_BENCH") != "1" {
-		t.Skip("OGSBOM_BENCH=1 pour générer le jeu de référence")
+	if os.Getenv("LOTOR_BENCH") != "1" {
+		t.Skip("LOTOR_BENCH=1 pour générer le jeu de référence")
 	}
 	ctx := context.Background()
 	d := dbtest.New(t)

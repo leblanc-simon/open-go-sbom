@@ -17,8 +17,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/agentclient"
-	"leblanc.io/open-go-sbom/internal/agentclient/gen"
+	"leblanc.io/lotor/internal/agentclient"
+	"leblanc.io/lotor/internal/agentclient/gen"
 )
 
 // fakeServer imite l'API des agents : inscription, projets, envois, signaux de vie.
@@ -51,13 +51,13 @@ func (f *fakeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	switch {
 	case r.URL.Path == "/api/v1/agent/enroll":
-		if r.Header.Get("Authorization") != "Bearer ogsbom_enr_jeton" {
+		if r.Header.Get("Authorization") != "Bearer lotor_enr_jeton" {
 			write(http.StatusUnauthorized, gen.Problem{Type: "error.token.invalid", Status: 401})
 			return
 		}
 		f.enrollments++
-		write(http.StatusCreated, gen.EnrollmentResult{AgentId: uuid.New(), Token: "ogsbom_agt_jeton", Project: gen.ProjectRef{Id: f.projectID, Slug: "srv-test"}})
-	case r.Header.Get("Authorization") != "Bearer ogsbom_agt_jeton":
+		write(http.StatusCreated, gen.EnrollmentResult{AgentId: uuid.New(), Token: "lotor_agt_jeton", Project: gen.ProjectRef{Id: f.projectID, Slug: "srv-test"}})
+	case r.Header.Get("Authorization") != "Bearer lotor_agt_jeton":
 		write(http.StatusUnauthorized, gen.Problem{Type: "error.token.invalid", Status: 401})
 	case r.URL.Path == "/api/v1/agent/projects":
 		list := gen.AgentProjectList{Projects: []gen.AgentProject{}}
@@ -154,7 +154,7 @@ func newHarness(t *testing.T, mutate ...func(*Config)) *harness {
 	t.Cleanup(srv.Close)
 	dir := t.TempDir()
 	tokenPath := filepath.Join(dir, "enrollment-token")
-	if err := os.WriteFile(tokenPath, []byte("ogsbom_enr_jeton\n"), 0o600); err != nil {
+	if err := os.WriteFile(tokenPath, []byte("lotor_enr_jeton\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	cfg := validConfig()
@@ -260,7 +260,7 @@ func TestCycleErrors(t *testing.T) {
 		t.Errorf("scan en échec : %v", err)
 	}
 	// Jeton d'agent refusé par le serveur.
-	if err := h.agent.o.Store.SaveToken("ogsbom_agt_revoque"); err != nil {
+	if err := h.agent.o.Store.SaveToken("lotor_agt_revoque"); err != nil {
 		t.Fatal(err)
 	}
 	h.agent.client = nil

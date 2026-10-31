@@ -9,8 +9,8 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/vulnerability"
 
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // nvdNamespace est l'espace de noms des fiches NVD dans la base v6.

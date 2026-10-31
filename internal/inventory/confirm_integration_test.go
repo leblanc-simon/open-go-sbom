@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/sbom"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/sbom"
 )
 
 func (f fixture) confirm(t *testing.T, fp [32]byte, ref uuid.UUID, at time.Time) bool {

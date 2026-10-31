@@ -8,10 +8,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/jobs"
-	"leblanc.io/open-go-sbom/internal/org"
-	"leblanc.io/open-go-sbom/internal/render"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/jobs"
+	"leblanc.io/lotor/internal/org"
+	"leblanc.io/lotor/internal/render"
 )
 
 // Confirmation des actions irréversibles (RGAA 11.12, WCAG 3.3.4) : révoquer un jeton,

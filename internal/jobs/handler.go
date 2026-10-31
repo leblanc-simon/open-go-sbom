@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // Execution est un job pris par un worker, tel que le handler le reçoit.

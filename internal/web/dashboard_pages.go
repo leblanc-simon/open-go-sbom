@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/agent"
-	"leblanc.io/open-go-sbom/internal/dashboard"
-	"leblanc.io/open-go-sbom/internal/finding"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/render"
-	"leblanc.io/open-go-sbom/internal/search"
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/agent"
+	"leblanc.io/lotor/internal/dashboard"
+	"leblanc.io/lotor/internal/finding"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/search"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // dashSeverities sont les sévérités des tuiles, de la tendance et des délais (comme les

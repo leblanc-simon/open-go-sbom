@@ -13,16 +13,16 @@ import (
 
 	"leblanc.io/open-go-base/ratelimit"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/agent"
-	"leblanc.io/open-go-sbom/internal/api/gen"
-	"leblanc.io/open-go-sbom/internal/api/problem"
-	"leblanc.io/open-go-sbom/internal/ingest"
-	"leblanc.io/open-go-sbom/internal/locale"
-	"leblanc.io/open-go-sbom/internal/pagination"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/web/middleware"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/agent"
+	"leblanc.io/lotor/internal/api/gen"
+	"leblanc.io/lotor/internal/api/problem"
+	"leblanc.io/lotor/internal/ingest"
+	"leblanc.io/lotor/internal/locale"
+	"leblanc.io/lotor/internal/pagination"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/web/middleware"
 )
 
 // maxAgentJSON borne le corps de toute requête d'agent qui n'est pas un envoi de SBOM
@@ -183,7 +183,7 @@ func (h *agentAPI) writeRefusal(w http.ResponseWriter, r *http.Request) {
 	if key == "" {
 		key = agent.KeyTokenInvalid
 	}
-	w.Header().Set("WWW-Authenticate", `Bearer realm="ogsbom"`)
+	w.Header().Set("WWW-Authenticate", `Bearer realm="lotor"`)
 	problem.Write(w, r, h.Catalog, http.StatusUnauthorized, key, nil)
 }
 

@@ -14,7 +14,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const testDSN = "postgres://ogsbom_app:pwd@localhost:5432/ogsbom"
+const testDSN = "postgres://lotor_app:pwd@localhost:5432/lotor"
 
 // load appelle Load avec des arguments de ligne de commande maîtrisés (appconf lit
 // os.Args, qui porte sinon les options de go test).
@@ -22,8 +22,8 @@ func load(t *testing.T, args ...string) (Config, error) {
 	t.Helper()
 	saved := os.Args
 	t.Cleanup(func() { os.Args = saved })
-	os.Args = append([]string{"ogsbom-server", "-c", filepath.Join(t.TempDir(), "absent.yaml")}, args...)
-	return Load("ogsbom-server", "test")
+	os.Args = append([]string{"lotor-server", "-c", filepath.Join(t.TempDir(), "absent.yaml")}, args...)
+	return Load("lotor-server", "test")
 }
 
 func valid() Config {
@@ -52,16 +52,16 @@ func valid() Config {
 	return c
 }
 
-var defaultVulnDB = VulnDB{ListingURL: "https://grype.anchore.io/databases/v6/latest.json", Dir: "/var/lib/ogsbom/vulndb",
+var defaultVulnDB = VulnDB{ListingURL: "https://grype.anchore.io/databases/v6/latest.json", Dir: "/var/lib/lotor/vulndb",
 	CheckInterval: 6 * time.Hour, SyncInterval: time.Minute, MaxAge: 120 * time.Hour, DownloadTimeout: 30 * time.Minute,
 	MaxArchiveMiB: 2048, AnalysisTimeout: 10 * time.Minute}
 
 func TestLoadFromEnvironmentWithDefaults(t *testing.T) {
-	t.Setenv("OGSBOM_DB_DSN", testDSN)
-	t.Setenv("OGSBOM_PORT", "9000")
-	t.Setenv("OGSBOM_DB_MAX_OPEN_CONNS", "7")
-	t.Setenv("OGSBOM_SECRETS_KEYS", "k1:"+base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{1}, 32)))
-	t.Setenv("OGSBOM_SECRETS_ACTIVE_KEY", "k1")
+	t.Setenv("LOTOR_DB_DSN", testDSN)
+	t.Setenv("LOTOR_PORT", "9000")
+	t.Setenv("LOTOR_DB_MAX_OPEN_CONNS", "7")
+	t.Setenv("LOTOR_SECRETS_KEYS", "k1:"+base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{1}, 32)))
+	t.Setenv("LOTOR_SECRETS_ACTIVE_KEY", "k1")
 	cfg, err := load(t)
 	if err != nil {
 		t.Fatal(err)
@@ -119,11 +119,11 @@ workers:
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("OGSBOM_DB_MAX_IDLE_CONNS", "3")
+	t.Setenv("LOTOR_DB_MAX_IDLE_CONNS", "3")
 	saved := os.Args
 	t.Cleanup(func() { os.Args = saved })
-	os.Args = []string{"ogsbom-server", "-c", path}
-	cfg, err := Load("ogsbom-server", "test")
+	os.Args = []string{"lotor-server", "-c", path}
+	cfg, err := Load("lotor-server", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,10 +140,10 @@ workers:
 }
 
 func TestLoadReportsInvalidConfiguration(t *testing.T) {
-	t.Setenv("OGSBOM_DB_DSN", testDSN)
-	t.Setenv("OGSBOM_DB_DRIVER", "sqlite")
+	t.Setenv("LOTOR_DB_DSN", testDSN)
+	t.Setenv("LOTOR_DB_DRIVER", "sqlite")
 	_, err := load(t)
-	if err == nil || !strings.Contains(err.Error(), "database.driver (OGSBOM_DB_DRIVER)") {
+	if err == nil || !strings.Contains(err.Error(), "database.driver (LOTOR_DB_DRIVER)") {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -162,13 +162,13 @@ func TestValidate(t *testing.T) {
 		field string
 		edit  func(*Config)
 	}{
-		{"pilote", "database.driver (OGSBOM_DB_DRIVER)", func(c *Config) { c.Database.Driver = "sqlite" }},
-		{"DSN absent", "database.dsn (OGSBOM_DB_DSN)", func(c *Config) { c.Database.DSN = "" }},
+		{"pilote", "database.driver (LOTOR_DB_DRIVER)", func(c *Config) { c.Database.Driver = "sqlite" }},
+		{"DSN absent", "database.dsn (LOTOR_DB_DSN)", func(c *Config) { c.Database.DSN = "" }},
 		{"DSN illisible", "database.dsn", func(c *Config) { c.Database.DSN = "postgres://h:port/x" }},
 		{"pool vide", "database.max_open_conns", func(c *Config) { c.Database.MaxOpenConns = 0 }},
 		{"inactives négatives", "database.max_idle_conns", func(c *Config) { c.Database.MaxIdleConns = -1 }},
 		{"attente nulle", "database.startup_timeout", func(c *Config) { c.Database.StartupTimeout = 0 }},
-		{"pool de migration", "migration.max_conns (OGSBOM_MIGRATION_MAX_CONNS)", func(c *Config) { c.Migration.MaxConns = 1 }},
+		{"pool de migration", "migration.max_conns (LOTOR_MIGRATION_MAX_CONNS)", func(c *Config) { c.Migration.MaxConns = 1 }},
 		{"même rôle pour migrer", "migration.dsn", func(c *Config) { c.Migration.DSN = testDSN }},
 		{"port web", "web.port", func(c *Config) { c.Web.Port = 70000 }},
 		{"proxy", "web.trusted_proxies", func(c *Config) { c.Web.TrustedProxies = []string{"10.0.0.0/33"} }},
@@ -228,7 +228,7 @@ func TestValidate(t *testing.T) {
 		{"secours mot de passe court", "bootstrap.rescue_password", func(c *Config) {
 			c.Bootstrap.RescueEmail, c.Bootstrap.RescueTicket, c.Bootstrap.RescuePassword = "a@example.org", "INC-2026-1031", "court"
 		}},
-		{"workers", "workers.concurrency (OGSBOM_WORKERS_CONCURRENCY)", func(c *Config) { c.Workers.Concurrency = 0 }},
+		{"workers", "workers.concurrency (LOTOR_WORKERS_CONCURRENCY)", func(c *Config) { c.Workers.Concurrency = 0 }},
 		{"attente des workers", "workers.poll_interval", func(c *Config) { c.Workers.PollInterval = 0 }},
 		{"bail", "workers.lease", func(c *Config) { c.Workers.Lease = 500 * time.Millisecond }},
 		{"réessai", "workers.retry_base", func(c *Config) { c.Workers.RetryBase = 0 }},
@@ -295,7 +295,7 @@ func TestFieldsHaveEnvAndDescription(t *testing.T) {
 		}
 		seen[f.Env] = true
 	}
-	if !seen["OGSBOM_DB_DSN"] || !seen["OGSBOM_MIGRATION_DSN"] || !seen["OGSBOM_TLS_CERT_FILE"] {
+	if !seen["LOTOR_DB_DSN"] || !seen["LOTOR_MIGRATION_DSN"] || !seen["LOTOR_TLS_CERT_FILE"] {
 		t.Errorf("variables attendues manquantes : %v", seen)
 	}
 }
@@ -303,13 +303,13 @@ func TestFieldsHaveEnvAndDescription(t *testing.T) {
 // TestHelpListsEveryVariable lance --help dans un sous-processus (appconf termine le
 // programme) et vérifie que chaque variable y figure avec sa description.
 func TestHelpListsEveryVariable(t *testing.T) {
-	if os.Getenv("OGSBOM_CONFIG_HELP_CHILD") == "1" {
-		os.Args = []string{"ogsbom-server", "--help"}
-		_, _ = Load("ogsbom-server", "test")
+	if os.Getenv("LOTOR_CONFIG_HELP_CHILD") == "1" {
+		os.Args = []string{"lotor-server", "--help"}
+		_, _ = Load("lotor-server", "test")
 		os.Exit(3) // --help aurait dû terminer en code 0
 	}
 	cmd := exec.Command(os.Args[0], "-test.run=^TestHelpListsEveryVariable$")
-	cmd.Env = append(os.Environ(), "OGSBOM_CONFIG_HELP_CHILD=1")
+	cmd.Env = append(os.Environ(), "LOTOR_CONFIG_HELP_CHILD=1")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("--help : %v\n%s", err, out)

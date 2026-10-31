@@ -46,7 +46,7 @@ CREATE INDEX findings_ref_idx ON findings (org_id, ref_id, status, risk DESC, id
 -- Fiche vulnérabilité (projets touchés) et fiche composant.
 CREATE INDEX findings_vuln_idx ON findings (org_id, vuln_id, status);
 CREATE INDEX findings_component_idx ON findings (org_id, component_id, status);
-CALL ogsbom_enforce_org_rls('findings');
+CALL lotor_enforce_org_rls('findings');
 
 CREATE TABLE finding_events (
     org_id         uuid NOT NULL,
@@ -62,7 +62,7 @@ CREATE TABLE finding_events (
     FOREIGN KEY (org_id, snapshot_id) REFERENCES snapshots (org_id, id),
     CHECK ((kind = 'resolved') = (resolution IS NOT NULL))
 );
-CALL ogsbom_enforce_org_rls('finding_events');
+CALL lotor_enforce_org_rls('finding_events');
 
 -- Dernière analyse de chaque référence : ensemble et base analysés. Une analyse qui
 -- trouve le même couple (ensemble, base) n'a rien à faire (réanalyse idempotente).
@@ -84,4 +84,4 @@ CREATE TABLE ref_analyses (
     FOREIGN KEY (org_id, set_id) REFERENCES component_sets (org_id, id),
     FOREIGN KEY (org_id, snapshot_id) REFERENCES snapshots (org_id, id)
 );
-CALL ogsbom_enforce_org_rls('ref_analyses');
+CALL lotor_enforce_org_rls('ref_analyses');

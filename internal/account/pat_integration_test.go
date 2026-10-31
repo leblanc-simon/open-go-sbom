@@ -10,10 +10,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
-	"leblanc.io/open-go-sbom/internal/token"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db/dbtest"
+	"leblanc.io/lotor/internal/token"
 )
 
 // ready rend un compte utilisable par ses jetons : mot de passe définitif, TOTP actif.
@@ -57,7 +57,7 @@ func TestPersonalTokenLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if tok.Name != "CI nocturne" || !strings.HasPrefix(issued.Plaintext, "ogsbom_pat_") || !strings.HasPrefix(tok.Prefix(), "ogsbom_pat_") {
+	if tok.Name != "CI nocturne" || !strings.HasPrefix(issued.Plaintext, "lotor_pat_") || !strings.HasPrefix(tok.Prefix(), "lotor_pat_") {
 		t.Fatalf("jeton : %+v %q", tok, issued.Plaintext)
 	}
 	// Seule l'empreinte est stockée : le secret n'apparaît nulle part en base.

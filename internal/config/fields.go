@@ -9,7 +9,7 @@ import (
 // d'environnement.
 type Field struct {
 	Path        string // database.driver
-	Env         string // OGSBOM_DB_DRIVER
+	Env         string // LOTOR_DB_DRIVER
 	Description string
 }
 

@@ -6,7 +6,7 @@
 
 ## Objectif
 
-`ogsbom-repo-agent` : un service externe aux CI qui détient seul les accès aux forges, réagit
+`lotor-repo-agent` : un service externe aux CI qui détient seul les accès aux forges, réagit
 aux push, clone le commit visé, l'analyse avec Syft et envoie le SBOM. L'enrichissement IA
 viendra se greffer en T12 sans changer ce pipeline.
 
@@ -21,7 +21,7 @@ viendra se greffer en T12 sans changer ce pipeline.
 - `internal/repoagent` : liste des dépôts et du dernier commit analysé par référence depuis
   `GET /api/v1/agent/projects`, récepteur de webhooks, planificateur de rattrapage, file en
   mémoire bornée et dédoublonnée, clonage, scan Syft du répertoire, encodage CycloneDX avec
-  `ogsbom:origin=syft`, envoi, nettoyage.
+  `lotor:origin=syft`, envoi, nettoyage.
 - Configuration : serveur, forges, répertoire de travail, parallélisme, délais, taille
   maximale. Secrets (jeton d'agent, clé privée de la GitHub App, jetons des comptes de
   service, secrets de webhook) fournis par credentials systemd chiffrés ou fichiers `0600`,
@@ -113,13 +113,13 @@ Réalisé le 31 octobre 2026, branche `lot/T08-agent-depot`, en parallèle de T0
     parcours par `os.Root` contre tout lien symbolique, répertoire d'analyse supprimé
     quoi qu'il arrive et nettoyé au démarrage ;
   - scan Syft (source `dir` bornée, catalogueurs hors ligne et sans exécution, pilote
-    SQLite importé), encodage CycloneDX 1.6 déterministe avec `ogsbom:origin=syft` ;
+    SQLite importé), encodage CycloneDX 1.6 déterministe avec `lotor:origin=syft` ;
   - envoi multipart (`context` puis `sbom` gzip), interface locale `Server` ;
-  - configuration (`OGSBOM_REPO_*`, forges en YAML), secrets par `credential:<nom>` ou
+  - configuration (`LOTOR_REPO_*`, forges en YAML), secrets par `credential:<nom>` ou
     fichier `0600`/`0400` (`ReadSecret`), validation complète.
-- `cmd/ogsbom-repo-agent` : câblage, TLS natif facultatif du récepteur, arrêt propre sur
+- `cmd/lotor-repo-agent` : câblage, TLS natif facultatif du récepteur, arrêt propre sur
   SIGTERM (récepteur, puis clonages tués et répertoires supprimés).
-- `deploy/ogsbom-repo-agent/` : `config.example.yaml` commenté (chargé et validé par un
+- `deploy/lotor-repo-agent/` : `config.example.yaml` commenté (chargé et validé par un
   test) et unité systemd durcie (`DynamicUser`, `LoadCredentialEncrypted=`,
   `ProtectSystem=strict`, aucune capacité, `ProtectProc=invisible`…).
 - Tests : unitaires (webhooks valides, mal signés, rejoués, illisibles, ignorés ; JWT et
@@ -164,7 +164,7 @@ Réalisé le 31 octobre 2026, branche `lot/T08-agent-depot`, en parallèle de T0
   Basic`) passé par `GIT_CONFIG_KEY_n`/`GIT_CONFIG_VALUE_n`.
 - Le récepteur répond 503 si la file est pleine (la forge le signale, le rattrapage
   refera le travail) et 204 à un événement authentique sans intérêt (ping).
-- Configuration et unité systemd sous `deploy/ogsbom-repo-agent/` (pas à la racine, où
+- Configuration et unité systemd sous `deploy/lotor-repo-agent/` (pas à la racine, où
   `config.example.yaml` est celui du serveur).
 - Pas de suivi de l'état des ingestions (`getIngestion`) dans ce lot : le serveur range
   par date de scan, l'ordre d'envoi suffit ; T15 l'ajoutera pour publier le verdict.
@@ -199,8 +199,8 @@ Réalisé le 31 octobre 2026, branche `lot/T08-agent-depot`, en parallèle de T0
 - Scan Syft d'un petit dépôt (go.mod, requirements.txt) : environ 4 s, surtout
   l'initialisation des catalogueurs ; création du dépôt de test et trois extractions de commit
   (dont deux en échec attendu) : 0,19 s au total.
-- Binaire `ogsbom-repo-agent` (linux/amd64, `-trimpath -s -w`) : 83,5 Mo (79,7 Mio), dont
-  Syft et ses fournisseurs de sources ; pour comparaison, `ogsbom-server` 65,9 Mo.
+- Binaire `lotor-repo-agent` (linux/amd64, `-trimpath -s -w`) : 83,5 Mo (79,7 Mio), dont
+  Syft et ses fournisseurs de sources ; pour comparaison, `lotor-server` 65,9 Mo.
 
 ### Pour les lots suivants
 
@@ -211,7 +211,7 @@ Réalisé le 31 octobre 2026, branche `lot/T08-agent-depot`, en parallèle de T0
 
 - **T12 (IA)** : le pipeline produit le SBOM Syft dans `scanner.scan` ; l'enrichissement
   se greffe entre le scan et l'envoi, sur l'arborescence extraite (avant sa suppression),
-  et ajoute ses composants avec `ogsbom:origin=ia`. `forge.Comparison.Files` donne les
+  et ajoute ses composants avec `lotor:origin=ia`. `forge.Comparison.Files` donne les
   fichiers modifiés.
 - **T15 (statut de commit)** : ajouter au `Provider` la publication de statut ; droit
   GitHub *Commit statuses: write* (le jeton reste restreint par `permissions`), portée

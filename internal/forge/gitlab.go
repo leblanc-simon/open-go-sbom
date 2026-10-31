@@ -172,7 +172,7 @@ func (g *GitLab) get(ctx context.Context, path string, out any) error {
 	header := http.Header{
 		"Private-Token": {g.cfg.Token},
 		"Accept":        {"application/json"},
-		"User-Agent":    {"ogsbom-repo-agent"},
+		"User-Agent":    {"lotor-repo-agent"},
 	}
 	return call(ctx, g.client, http.MethodGet, g.web.String()+"/api/v4"+path, header, nil, out)
 }

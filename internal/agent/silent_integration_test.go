@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/agent"
-	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/lotor/internal/agent"
+	"leblanc.io/lotor/internal/db"
 )
 
 // TestSilentCountsEveryPage : le décompte des agents muets parcourt toutes les pages (plus

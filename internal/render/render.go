@@ -18,12 +18,12 @@ import (
 	"leblanc.io/open-go-base/csrfx"
 	"leblanc.io/open-go-base/i18n"
 
-	"leblanc.io/open-go-sbom/internal/locale"
-	"leblanc.io/open-go-sbom/internal/web/middleware"
+	"leblanc.io/lotor/internal/locale"
+	"leblanc.io/lotor/internal/web/middleware"
 )
 
 // ThemeCookie porte le thème choisi par la bascule (web/static/js/theme.js).
-const ThemeCookie = "ogsbom_theme"
+const ThemeCookie = "lotor_theme"
 
 // ErrorPage est la page d'erreur.
 const ErrorPage = "errors/error"

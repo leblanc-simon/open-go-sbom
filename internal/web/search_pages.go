@@ -8,12 +8,12 @@ import (
 	"slices"
 	"strconv"
 
-	apiv1 "leblanc.io/open-go-sbom/internal/api"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/render"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/search"
-	"leblanc.io/open-go-sbom/internal/vuln"
+	apiv1 "leblanc.io/lotor/internal/api"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/search"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // facetOption est une case d'un filtre de l'écran de recherche.

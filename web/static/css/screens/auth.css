@@ -50,7 +50,7 @@
     padding-inline-start: var(--space-5);
   }
 
-  @container ogsbom (width < 48rem) {
+  @container lotor (width < 48rem) {
     padding-block: var(--space-4);
 
     .auth__card {

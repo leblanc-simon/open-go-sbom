@@ -14,7 +14,7 @@ Aucun code métier.
 
 **Inclus**
 
-- `go.mod` : module `leblanc.io/open-go-sbom`, `go 1.26`, directives `tool`
+- `go.mod` : module `leblanc.io/lotor`, `go 1.26`, directives `tool`
   pour `staticcheck`, `govulncheck`, `oapi-codegen` (et `sqlc` si retenu).
 - Arborescence de [`architecture.md` § 3](../architecture.md) avec un `doc.go` par paquet
   prévu au lot 1, et les trois `cmd/*/main.go` réduits à `--version`.
@@ -55,7 +55,7 @@ Explorations à mener, chacune dans un programme jetable hors `main`, résultat 
   depuis un répertoire, correspondance d'un SBOM décodé par Syft, lecture d'EPSS, KEV et du
   score de risque, rattachement de chaque résultat à son purl.
 - Le client Docker est-il déjà dans le graphe de dépendances de stereoscope ?
-- Taille d'un binaire `ogsbom-host-agent` qui importe Syft, en `CGO_ENABLED=0`, amd64 et arm64.
+- Taille d'un binaire `lotor-host-agent` qui importe Syft, en `CGO_ENABLED=0`, amd64 et arm64.
 - sqlc en mode `database/sql` avec le pilote pgx : comment sont passés les tableaux
   d'`unnest` (sqlc génère `pq.Array`, donc une dépendance à lib/pq) ?
 - oapi-codegen à la version retenue gère-t-il OpenAPI 3.1 ? Sinon, l'API est écrite en 3.0.
@@ -69,7 +69,7 @@ dépendances validées (avec version) dans le Journal.
 
 - [x] `make ci` passe sur le squelette, en local et en CI.
 - [x] Un import interdit volontaire (par exemple Grype dans `web`) fait échouer `archtest`.
-- [x] `ogsbom-server --version`, `ogsbom-host-agent --version`, `ogsbom-repo-agent --version`
+- [x] `lotor-server --version`, `lotor-host-agent --version`, `lotor-repo-agent --version`
       affichent la version injectée.
 - [x] Les dépendances du § 5 « À valider en T00 » sont validées ou remplacées par
       l'utilisateur, et le tableau de l'architecture est mis à jour.
@@ -84,7 +84,7 @@ Tests de `archtest` (cas conforme et cas fautif construits dans `testdata`).
 
 Prises le 31 octobre 2026 :
 
-- Chemin du module : `leblanc.io/open-go-sbom`. Le domaine doit servir la balise
+- Chemin du module : `leblanc.io/lotor`. Le domaine doit servir la balise
   `go-import` pour que d'autres puissent faire `go get` ; sans effet sur le développement.
 - Versions minimales : Go 1.26, PostgreSQL 16.
 - Dépendances du § 5 de l'architecture validées.
@@ -98,7 +98,7 @@ Réalisé le 31 octobre 2026, branche `lot/T00-fondations`.
 
 ### Livré
 
-- Module `leblanc.io/open-go-sbom`, `go 1.26`, `toolchain go1.26.10` (dernière corrective
+- Module `leblanc.io/lotor`, `go 1.26`, `toolchain go1.26.10` (dernière corrective
   de la 1.26 : govulncheck juge la bibliothèque standard de la chaîne utilisée).
 - 30 paquets du lot 1 avec leur `doc.go` ; paquets des lots 2 et 3 non créés.
 - `Makefile` (cibles de la fiche + `help`), `deploy/compose.yaml` et `deploy/initdb/`,
@@ -124,7 +124,7 @@ Réalisé le 31 octobre 2026, branche `lot/T00-fondations`.
 - `archtest` applique les règles aux imports de test aussi ; il ne vérifie pas
   « `cmd` sans logique » ni « pas de variable globale mutable » (relecture), ce que le
   § 4 dit désormais.
-- Les tests d'intégration utilisent `OGSBOM_TEST_DATABASE_DSN`, connexion
+- Les tests d'intégration utilisent `LOTOR_TEST_DATABASE_DSN`, connexion
   d'administration où chaque test créera sa base et ses rôles jetables (helper en T01).
 - `generate-check` ne regarde que les répertoires générés (`internal/api/gen`,
   `internal/agentclient/gen`), pour ne pas échouer sur un arbre de travail modifié.

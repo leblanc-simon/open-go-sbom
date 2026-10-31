@@ -88,7 +88,7 @@ SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T1
 | Menace | Parade | Lot |
 | --- | --- | --- |
 | Jeton personnel volé, ou créé depuis une session volée | lecture seule, expiration obligatoire (365 jours au plus), révocation manuelle immédiate, appartenance aux organisations vérifiée à chaque requête (404 sinon), compte désactivé ou en attente (mot de passe temporaire, TOTP absent) refusé, date de dernier usage, création et révocation au journal ; **révocation d'office** à la réinitialisation du mot de passe ou du TOTP et au changement de mot de passe (case cochée par défaut) ; **création soumise à un code TOTP** (SEC-02, ADR 0029) | T09, T11 |
-| Recherche qui sort de l'organisation | exécution sous la RLS ; les deux fonctions qui la contournent pour les index (nom, empreinte) lisent l'organisation dans `ogsbom.org_id`, jamais en paramètre, et échouent hors `InOrg` (test d'isolement) | T09 |
+| Recherche qui sort de l'organisation | exécution sous la RLS ; les deux fonctions qui la contournent pour les index (nom, empreinte) lisent l'organisation dans `lotor.org_id`, jamais en paramètre, et échouent hors `InOrg` (test d'isolement) | T09 |
 | Saturation par des recherches ou des exports | requête bornée (1 024 octets), composants bornés (1 000 par nom ou empreinte, 5 000 par paquet), pages bornées, exports simultanés et durée bornés (`user_api.max_exports`, `export_timeout`) avec un export à la fois par compte (SEC-07), limitation par jeton | T09, T11 |
 | Saturation mémoire par le réencodage de SBOM téléchargés | réencodages simultanés bornés (`ingest.max_reencodes`), un par compte, 429 au-delà ; client parti avant le calcul ignoré (SEC-06) | T11 |
 | Injection de formules dans un export CSV | cellule commençant par `=`, `+`, `-`, `@` préfixée d'une apostrophe (noms et versions viennent de SBOM non fiables) | T09 |
@@ -105,7 +105,7 @@ SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T1
 | Lecture de la base : jetons de session | jetons en clair dans `sessions` (choix d'authx) : une lecture de la base permet de reprendre une session jusqu'à son expiration ; à faire évoluer dans open-go-base (jeton haché) | ouvert |
 | Journal d'audit modifié ou effacé par l'application (injection SQL, exécution de code, identifiant du rôle d'exécution volé) | `UPDATE`, `DELETE` et `TRUNCATE` retirés au rôle d'exécution sur les deux journaux, vérifiés au démarrage (`CheckRuntimeRole`) (SEC-04, ADR 0030) | T11 |
 | Rôle d'exécution qui crée des objets hors RLS | `CREATE` retiré sur `public` à `PUBLIC`, refus de démarrer si le rôle a `CREATE` sur la base ou sur `public` (SEC-12) | T11 |
-| Fonction inter-organisations trop bavarde | fonctions listées (ADR 0012, 0024), métadonnées seulement, toute nouvelle relue comme un changement de sécurité ; `ogsbom_list_organizations` et `ogsbom_org_id_by_slug` n'ont aucune garde SQL (l'appelant vérifie en Go) : une injection SQL future les exposerait, risque accepté (SEC-12) | T03 |
+| Fonction inter-organisations trop bavarde | fonctions listées (ADR 0012, 0024), métadonnées seulement, toute nouvelle relue comme un changement de sécurité ; `lotor_list_organizations` et `lotor_org_id_by_slug` n'ont aucune garde SQL (l'appelant vérifie en Go) : une injection SQL future les exposerait, risque accepté (SEC-12) | T03 |
 | Fuite par les journaux | jamais de mot de passe, jeton, secret ni contenu de SBOM dans les journaux | tous |
 
 ### Base de vulnérabilités

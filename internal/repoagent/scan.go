@@ -16,11 +16,11 @@ import (
 	// qu'un binaire qui catalogue l'oublie.
 	_ "modernc.org/sqlite"
 
-	sbomsyft "leblanc.io/open-go-sbom/internal/sbom/syft"
+	sbomsyft "leblanc.io/lotor/internal/sbom/syft"
 )
 
-// originSyft est la valeur de ogsbom:origin des composants trouvés par Syft (l'IA de T12
-// ajoutera les siens avec ogsbom:origin=ia).
+// originSyft est la valeur de lotor:origin des composants trouvés par Syft (l'IA de T12
+// ajoutera les siens avec lotor:origin=ia).
 const originSyft = "syft"
 
 // scanner catalogue une arborescence extraite avec Syft et l'encode en CycloneDX 1.6.
@@ -44,7 +44,7 @@ func (s scanner) scan(ctx context.Context, dir, name, commit string) ([]byte, er
 	defer src.Close()
 
 	cfg := syft.DefaultCreateSBOMConfig().
-		WithTool("ogsbom-repo-agent", s.agentVersion).
+		WithTool("lotor-repo-agent", s.agentVersion).
 		WithoutFiles().
 		WithPackagesConfig(offlineCatalogers())
 	doc, err := syft.CreateSBOM(ctx, src, cfg)
@@ -89,7 +89,7 @@ func offlineCatalogers() pkgcataloging.Config {
 	return c
 }
 
-// markOrigin ajoute ogsbom:origin=syft à chaque composant, sous-composants compris.
+// markOrigin ajoute lotor:origin=syft à chaque composant, sous-composants compris.
 func markOrigin(cs []cyclonedx.Component) {
 	for i := range cs {
 		props := []cyclonedx.Property{}

@@ -48,13 +48,13 @@ aucune empreinte.
 ## Commandes
 
 ```bash
-make bench                         # jeu de référence et lectures des écrans (OGSBOM_BENCH=1)
-OGSBOM_TEST_GRYPEDB_DIR=/chemin/db make bench-ingest   # 5 000 composants, vraie base Grype (T11)
+make bench                         # jeu de référence et lectures des écrans (LOTOR_BENCH=1)
+LOTOR_TEST_GRYPEDB_DIR=/chemin/db make bench-ingest   # 5 000 composants, vraie base Grype (T11)
 make bench-search                  # recherche transverse sur le jeu de référence (T09)
-OGSBOM_TEST_GRYPEDB_DIR=/chemin/db make test-grypedb   # vraie base Grype : acceptation et 5 000 composants
+LOTOR_TEST_GRYPEDB_DIR=/chemin/db make test-grypedb   # vraie base Grype : acceptation et 5 000 composants
 ```
 
-`OGSBOM_TEST_GRYPEDB_DIR` désigne le répertoire racine d'une base Grype v6 installée (il
+`LOTOR_TEST_GRYPEDB_DIR` désigne le répertoire racine d'une base Grype v6 installée (il
 contient `6/vulnerability.db`), par exemple celui de la commande `grype db update`.
 
 ## Résultats

@@ -30,7 +30,7 @@ CREATE TABLE sbom_blobs (
 );
 -- Déjà compressé : PostgreSQL ne tente pas de le recompresser.
 ALTER TABLE sbom_blobs ALTER COLUMN content SET STORAGE EXTERNAL;
-CALL ogsbom_enforce_org_rls('sbom_blobs');
+CALL lotor_enforce_org_rls('sbom_blobs');
 
 -- Composant de l'organisation, identifié par son purl canonique. CPE et empreintes de
 -- fichier s'accumulent au fil des SBOM (union) ; le reste est immuable.
@@ -49,7 +49,7 @@ CREATE TABLE components (
     UNIQUE (org_id, purl)
 );
 CREATE INDEX components_purl_base_idx ON components (org_id, purl_base);
-CALL ogsbom_enforce_org_rls('components');
+CALL lotor_enforce_org_rls('components');
 
 -- Ensemble d'inventaire adressé par son empreinte (sbom.Fingerprint) : deux instantanés au
 -- même inventaire le partagent. Ses éléments sont écrits avec lui, dans la même
@@ -67,7 +67,7 @@ CREATE TABLE component_sets (
     UNIQUE (org_id, fingerprint),
     CHECK (component_count = syft_count + ia_count AND weak_count <= component_count)
 );
-CALL ogsbom_enforce_org_rls('component_sets');
+CALL lotor_enforce_org_rls('component_sets');
 
 CREATE TABLE component_set_items (
     org_id       uuid NOT NULL,
@@ -86,7 +86,7 @@ CREATE TABLE component_set_items (
 );
 -- Ensembles qui contiennent un composant (recherche, T09).
 CREATE INDEX component_set_items_component_idx ON component_set_items (org_id, component_id);
-CALL ogsbom_enforce_org_rls('component_set_items');
+CALL lotor_enforce_org_rls('component_set_items');
 
 -- Instantané d'une référence. Dépôt : un par (référence, commit), même à inventaire
 -- inchangé. Hôte : sans commit ; un envoi identique à l'inventaire courant ne fait
@@ -120,7 +120,7 @@ CREATE TABLE snapshots (
 CREATE INDEX snapshots_ref_idx ON snapshots (org_id, ref_id, scanned_at DESC, id DESC);
 CREATE INDEX snapshots_project_idx ON snapshots (org_id, project_id, scanned_at DESC, id DESC);
 CREATE INDEX snapshots_set_idx ON snapshots (org_id, set_id);
-CALL ogsbom_enforce_org_rls('snapshots');
+CALL lotor_enforce_org_rls('snapshots');
 
 -- Instantané et ensemble courants de chaque référence : le plus récent par date de scan.
 CREATE TABLE ref_current (
@@ -136,7 +136,7 @@ CREATE TABLE ref_current (
 );
 CREATE INDEX ref_current_set_idx ON ref_current (org_id, set_id);
 CREATE INDEX ref_current_project_idx ON ref_current (org_id, project_id);
-CALL ogsbom_enforce_org_rls('ref_current');
+CALL lotor_enforce_org_rls('ref_current');
 
 -- Réception d'un SBOM et suivi de son décodage. Une ingestion refusée avant stockage
 -- (document illisible ou trop gros à la réception) n'a pas de blob.
@@ -176,4 +176,4 @@ CREATE INDEX ingestions_project_idx ON ingestions (org_id, project_id, received_
 -- Envoi en double d'un dépôt (même référence, même commit, même SBOM).
 CREATE INDEX ingestions_duplicate_idx ON ingestions (org_id, ref_id, commit_sha, blob_id) WHERE status <> 'failed';
 CREATE INDEX ingestions_snapshot_idx ON ingestions (org_id, snapshot_id) WHERE snapshot_id IS NOT NULL;
-CALL ogsbom_enforce_org_rls('ingestions');
+CALL lotor_enforce_org_rls('ingestions');

@@ -12,9 +12,9 @@ import (
 
 	"github.com/pquerna/otp/totp"
 
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/web/webtest"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/web/webtest"
 )
 
 func (a *app) instanceActions() []audit.Action {

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/sbom/schema"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/sbom/schema"
 )
 
 func TestSyntheticCycloneDX(t *testing.T) {

@@ -27,29 +27,29 @@ import (
 	"leblanc.io/open-go-base/authx"
 	"leblanc.io/open-go-base/csrfx"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/agent"
-	apiv1 "leblanc.io/open-go-sbom/internal/api"
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/dashboard"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
-	"leblanc.io/open-go-sbom/internal/finding"
-	"leblanc.io/open-go-sbom/internal/ingest"
-	"leblanc.io/open-go-sbom/internal/inventory"
-	"leblanc.io/open-go-sbom/internal/locale"
-	"leblanc.io/open-go-sbom/internal/org"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/render"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/sbom/schema"
-	"leblanc.io/open-go-sbom/internal/search"
-	"leblanc.io/open-go-sbom/internal/secret"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/version/grypeversion"
-	"leblanc.io/open-go-sbom/internal/web/middleware"
-	"leblanc.io/open-go-sbom/locales"
-	"leblanc.io/open-go-sbom/web"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/agent"
+	apiv1 "leblanc.io/lotor/internal/api"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/dashboard"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/dbtest"
+	"leblanc.io/lotor/internal/finding"
+	"leblanc.io/lotor/internal/ingest"
+	"leblanc.io/lotor/internal/inventory"
+	"leblanc.io/lotor/internal/locale"
+	"leblanc.io/lotor/internal/org"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/sbom/schema"
+	"leblanc.io/lotor/internal/search"
+	"leblanc.io/lotor/internal/secret"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/version/grypeversion"
+	"leblanc.io/lotor/internal/web/middleware"
+	"leblanc.io/lotor/locales"
+	"leblanc.io/lotor/web"
 )
 
 var (
@@ -167,8 +167,8 @@ func newApp(t *testing.T, opts ...appOption) *app {
 			Dashboard: dashboard.NewService(tdb.App, dashboard.WithClock(clock.Now)),
 			VulnDB: VulnDBOptions{MaxAge: 120 * time.Hour, ListingURL: "https://grype.anchore.io/databases/v6/latest.json",
 				SyncInterval: time.Minute, MaxArchive: 1 << 20, UploadTimeout: time.Minute},
-			Auth:           appconf.Auth{SessionTTL: time.Hour, CookieName: "ogsbom_session", CookieSecure: "off", BcryptCost: testCost},
-			MFA:            appconf.MFA{Issuer: "open-go-sbom", ChallengeTTL: time.Minute, MaxAttempts: 3},
+			Auth:           appconf.Auth{SessionTTL: time.Hour, CookieName: "lotor_session", CookieSecure: "off", BcryptCost: testCost},
+			MFA:            appconf.MFA{Issuer: "lotor", ChallengeTTL: time.Minute, MaxAttempts: 3},
 			LoginRateLimit: 0,
 		},
 		AgentAPI: &apiv1.AgentOptions{Agents: a.agents, Ingest: a.ingest},
@@ -271,11 +271,11 @@ func (b *browser) csrf() string {
 	}
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(&http.Cookie{Name: "csrf_token", Value: b.cookie("csrf_token")})
-	if s := b.cookie("ogsbom_session"); s != "" {
-		req.AddCookie(&http.Cookie{Name: "ogsbom_session", Value: s})
+	if s := b.cookie("lotor_session"); s != "" {
+		req.AddCookie(&http.Cookie{Name: "lotor_session", Value: s})
 	}
 	session := func(r *http.Request) string {
-		if c, err := r.Cookie("ogsbom_session"); err == nil {
+		if c, err := r.Cookie("lotor_session"); err == nil {
 			return c.Value
 		}
 		return ""

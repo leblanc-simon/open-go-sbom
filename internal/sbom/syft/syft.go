@@ -17,20 +17,20 @@ import (
 	"github.com/anchore/syft/syft/pkg"
 	syftsbom "github.com/anchore/syft/syft/sbom"
 
-	"leblanc.io/open-go-sbom/internal/sbom"
+	"leblanc.io/lotor/internal/sbom"
 )
 
 // Propriétés CycloneDX propres au projet (§ 11 de l'architecture).
 const (
-	PropOrigin     = "ogsbom:origin"
-	PropConfidence = "ogsbom:confidence"
-	PropModel      = "ogsbom:model"
+	PropOrigin     = "lotor:origin"
+	PropConfidence = "lotor:confidence"
+	PropModel      = "lotor:model"
 )
 
 // Decode décode un SBOM dont sbom.Precheck a reconnu le format, puis le normalise
 // (sbom.Normalize). Les paquets viennent du décodeur de Syft, celui-là même que Grype
 // emploie : leurs purl sont ceux que l'analyse retrouvera. CycloneDX est relu pour ce que
-// Syft ne garde pas : empreintes, portée, propriétés ogsbom: et champ evidence ; SPDX pour
+// Syft ne garde pas : empreintes, portée, propriétés lotor: et champ evidence ; SPDX pour
 // les sommes de contrôle des paquets. Le composant décrit par le document lui-même
 // (metadata.component, racine SPDX) n'est pas un composant de l'inventaire.
 func Decode(format sbom.Format, data []byte) (sbom.Document, error) {
@@ -237,7 +237,7 @@ func ParseTarget(s string) (Target, bool) {
 
 // Encode réencode le SBOM d'origine data (format format) en CycloneDX 1.6 ou SPDX 2.3, à
 // partir de son décodage par Syft et par ses modèles d'encodage : distribution, CPE,
-// licences et relations sont repris. Les propriétés ogsbom: et le champ evidence, que
+// licences et relations sont repris. Les propriétés lotor: et le champ evidence, que
 // Syft ne lit pas, ne sont pas reportés ; le SBOM d'origine reste téléchargeable tel quel.
 //
 // cdxLicenses (schema.Validator.CycloneDXLicenseIDs("1.6")) liste les identifiants SPDX

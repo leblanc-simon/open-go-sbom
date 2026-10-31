@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/sbom"
+	"leblanc.io/lotor/internal/sbom"
 )
 
 var (

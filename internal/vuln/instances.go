@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/lotor/internal/db"
 )
 
 // InstanceRetention est la durée au-delà de laquelle la ligne d'une instance restée sans

@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // UsageMax borne la liste des usages d'un composant.

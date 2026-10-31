@@ -11,10 +11,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/sbom/syft"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/sbom/syft"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // Get renvoie l'ingestion id si elle a été envoyée par agentID ; ErrNotFound sinon.

@@ -7,7 +7,7 @@ import (
 
 	grype "github.com/anchore/grype/grype/version"
 
-	"leblanc.io/open-go-sbom/internal/version"
+	"leblanc.io/lotor/internal/version"
 )
 
 // formats associe chaque règle du projet au format de Grype qui l'implémente.

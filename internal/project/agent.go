@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/pagination"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/pagination"
 )
 
 // Ce qui suit sert l'API des agents : un agent ne voit et n'écrit que les projets actifs

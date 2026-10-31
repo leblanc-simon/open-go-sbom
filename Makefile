@@ -1,9 +1,9 @@
-# Cibles de développement d'open-go-sbom. `make ci` exécute exactement ce que fait la CI.
+# Cibles de développement de lotor. `make ci` exécute exactement ce que fait la CI.
 
 GO        ?= go
 VERSION   ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo develop)
 LDFLAGS   := -s -w -X 'main.version=$(VERSION)'
-BINARIES  := ogsbom-server ogsbom-host-agent ogsbom-repo-agent
+BINARIES  := lotor-server lotor-host-agent lotor-repo-agent
 GOOS      ?= $(shell $(GO) env GOOS)
 GOARCH    ?= $(shell $(GO) env GOARCH)
 
@@ -12,8 +12,8 @@ GENERATED := internal/api/gen internal/agentclient/gen
 
 # Connexion d'administration des tests d'intégration (deploy/compose.yaml) : chaque test
 # y crée sa base et ses rôles jetables.
-OGSBOM_TEST_DATABASE_DSN ?= postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
-export OGSBOM_TEST_DATABASE_DSN
+LOTOR_TEST_DATABASE_DSN ?= postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
+export LOTOR_TEST_DATABASE_DSN
 
 .DEFAULT_GOAL := help
 
@@ -38,14 +38,14 @@ PKG_VERSION  := $(shell echo '$(VERSION)' | sed -E 's/^v//; /^[0-9]+[.][0-9]/!s/
 packages: ## Binaires de l'agent serveur (amd64, arm64) et paquets deb et rpm dans dist/
 	@mkdir -p dist
 	@for a in $(AGENT_ARCHES); do \
-		echo "build ogsbom-host-agent (linux/$$a, $(VERSION))"; \
-		CGO_ENABLED=0 GOOS=linux GOARCH=$$a $(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/linux-$$a/ogsbom-host-agent ./cmd/ogsbom-host-agent || exit 1; \
-		mkdir -p bin/package && cp bin/linux-$$a/ogsbom-host-agent bin/package/ogsbom-host-agent || exit 1; \
+		echo "build lotor-host-agent (linux/$$a, $(VERSION))"; \
+		CGO_ENABLED=0 GOOS=linux GOARCH=$$a $(GO) build -trimpath -ldflags "$(LDFLAGS)" -o bin/linux-$$a/lotor-host-agent ./cmd/lotor-host-agent || exit 1; \
+		mkdir -p bin/package && cp bin/linux-$$a/lotor-host-agent bin/package/lotor-host-agent || exit 1; \
 		for p in deb rpm; do \
 			PKG_ARCH=$$a PKG_VERSION=$(PKG_VERSION) $(GO) tool nfpm package --config deploy/nfpm/host-agent.yaml --packager $$p --target dist/ || exit 1; \
 		done; \
 	done
-	@ls -l bin/linux-*/ogsbom-host-agent dist/
+	@ls -l bin/linux-*/lotor-host-agent dist/
 
 # Fichiers d'une version (archives des trois binaires linux amd64 et arm64, paquets deb et
 # rpm, SHA256SUMS) : make release VERSION=v0.1.0 RELEASE_DIR=/chemin/vide.
@@ -57,7 +57,7 @@ release: ## Fichiers d'une version dans RELEASE_DIR (VERSION=vX.Y.Z), comme le w
 
 .PHONY: run
 run: build ## Lance le serveur avec config.yaml
-	./bin/ogsbom-server -c config.yaml
+	./bin/lotor-server -c config.yaml
 
 .PHONY: fmt
 fmt: ## Formate le code
@@ -107,22 +107,22 @@ test-integration: ## Tests d'intégration (PostgreSQL : docker compose -f deploy
 	$(GO) test -race -count=1 -tags integration ./...
 
 .PHONY: test-grypedb
-test-grypedb: ## Tests avec la vraie base Grype (OGSBOM_TEST_GRYPEDB_DIR : base v6 installée)
-	@test -n "$(OGSBOM_TEST_GRYPEDB_DIR)" || { echo "OGSBOM_TEST_GRYPEDB_DIR : répertoire d'une base Grype v6 installée"; exit 1; }
+test-grypedb: ## Tests avec la vraie base Grype (LOTOR_TEST_GRYPEDB_DIR : base v6 installée)
+	@test -n "$(LOTOR_TEST_GRYPEDB_DIR)" || { echo "LOTOR_TEST_GRYPEDB_DIR : répertoire d'une base Grype v6 installée"; exit 1; }
 	$(GO) test -count=1 -timeout 30m -tags 'integration grypedb' ./internal/vuln/grype/ ./internal/benchdata/
 
 .PHONY: bench-ingest
-bench-ingest: ## Mesure ingestion et analyse de 5 000 composants, vraie base Grype (OGSBOM_TEST_GRYPEDB_DIR)
-	@test -n "$(OGSBOM_TEST_GRYPEDB_DIR)" || { echo "OGSBOM_TEST_GRYPEDB_DIR : répertoire d'une base Grype v6 installée"; exit 1; }
+bench-ingest: ## Mesure ingestion et analyse de 5 000 composants, vraie base Grype (LOTOR_TEST_GRYPEDB_DIR)
+	@test -n "$(LOTOR_TEST_GRYPEDB_DIR)" || { echo "LOTOR_TEST_GRYPEDB_DIR : répertoire d'une base Grype v6 installée"; exit 1; }
 	$(GO) test -count=1 -timeout 30m -tags 'integration grypedb' -v -run TestIngestAndAnalyze5000 ./internal/benchdata/
 
 .PHONY: bench
 bench: ## Mesures sur le jeu de référence (docs/benchmarks.md)
-	OGSBOM_BENCH=1 $(GO) test -count=1 -timeout 30m -tags integration -run TestReferenceDataset -v ./internal/benchdata/ ./internal/web/
+	LOTOR_BENCH=1 $(GO) test -count=1 -timeout 30m -tags integration -run TestReferenceDataset -v ./internal/benchdata/ ./internal/web/
 
 .PHONY: bench-search
 bench-search: ## Mesures de la recherche sur le jeu de référence, RLS active (docs/benchmarks.md)
-	OGSBOM_BENCH=1 $(GO) test -count=1 -timeout 30m -tags integration -run TestSearchBenchmark -v ./internal/search/
+	LOTOR_BENCH=1 $(GO) test -count=1 -timeout 30m -tags integration -run TestSearchBenchmark -v ./internal/search/
 
 # Autoanalyse : SBOM des binaires par Syft, analyse par Grype, mêmes versions que les
 # bibliothèques du projet (go.mod). Grype télécharge sa base, sauf GRYPE_DB_CACHE_DIR et

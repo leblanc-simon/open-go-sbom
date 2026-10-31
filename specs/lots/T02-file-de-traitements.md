@@ -104,14 +104,14 @@ Réalisé le 31 octobre 2026, branche `lot/T02-file-de-traitements`.
     même transaction ; clé d'unicité par défaut `schedule:<nom>`.
   - Administration sans écran : `ListDead` (paginée), `Retry`, `Discard`, dans la
     transaction de l'appelant.
-  - Métriques : `ogsbom_jobs{kind,status}` (lu en base à la collecte),
-    `ogsbom_job_runs_total{kind,outcome}`, `ogsbom_job_duration_seconds{kind}`,
-    `ogsbom_job_schedule_fires_total{schedule}`.
+  - Métriques : `lotor_jobs{kind,status}` (lu en base à la collecte),
+    `lotor_job_runs_total{kind,outcome}`, `lotor_job_duration_seconds{kind}`,
+    `lotor_job_schedule_fires_total{schedule}`.
   - `Clock`, `ClockFunc`, `SystemClock()` : horloge injectable.
 - Configuration : fragment `Workers` (`enabled`, `concurrency`, `poll_interval`, `lease`,
   `retry_base`, `retry_max`, `retention`, `schedule_interval`, `shutdown_timeout`),
   validé, documenté dans `config.example.yaml`.
-- `cmd/ogsbom-server` : métriques de la file, runner et planificateur si
+- `cmd/lotor-server` : métriques de la file, runner et planificateur si
   `workers.enabled`, lancés avec le serveur web et arrêtés ensemble sur SIGTERM
   (`runAll`).
 - Documentation : `doc.go` du paquet, section « Traitements » et « Arrêt » de
@@ -182,7 +182,7 @@ Réalisé le 31 octobre 2026, branche `lot/T02-file-de-traitements`.
 - Un handler est idempotent, relit en base ce que la charge référence, travaille dans
   `pool.InOrg(ctx, e.OrgID, …)` et respecte l'annulation de `ctx`. Son test l'exécute
   deux fois.
-- Enregistrer les types dans `cmd/ogsbom-server/main.go` avant `runner.Run` (bloc
+- Enregistrer les types dans `cmd/lotor-server/main.go` avant `runner.Run` (bloc
   `if cfg.Workers.Enabled`), avec `jobs.WithOrgLimit` pour `ingest.decode` et
   `analysis.ref` (T05, T06 : ajouter le réglage `workers.org_limit` à ce moment-là).
 - Échéances (`vulndb.check` en T06, statistiques quotidiennes en T10) : `scheduler.Register`

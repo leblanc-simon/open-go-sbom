@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // Règle : délai = min(base × 2^(n−1), max) × (1 + gigue × u).

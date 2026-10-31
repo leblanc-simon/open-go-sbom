@@ -21,7 +21,7 @@ déterministe, et avec un taux de faux positifs mesuré.
   résultats bornés), et `submit_candidates` (sortie au schéma imposé). Tous les accès aux
   fichiers passent par un `os.Root` ouvert sur le répertoire de travail de l'analyse.
 - Vérificateur déterministe des candidats, fusion avec Syft, encodage CycloneDX avec
-  `evidence`, `ogsbom:origin=ia`, `ogsbom:confidence`, `ogsbom:model`.
+  `evidence`, `lotor:origin=ia`, `lotor:confidence`, `lotor:model`.
 - Analyse incrémentale : fichiers modifiés depuis le dernier commit analysé, obtenus par
   l'API de comparaison de la forge (le clone superficiel n'a pas d'historique), plus les
   fichiers des composants IA de l'instantané précédent, lus par une nouvelle route

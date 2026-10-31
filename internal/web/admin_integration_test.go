@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/render"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/web/webtest"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/web/webtest"
 )
 
 var tempPassword = regexp.MustCompile(`<code class="secret-once">([^<]+)</code>`)

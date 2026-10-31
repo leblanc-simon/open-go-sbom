@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/agentclient/gen"
+	"leblanc.io/lotor/internal/agentclient/gen"
 )
 
 // pki est une autorité de test et ce qu'elle signe.

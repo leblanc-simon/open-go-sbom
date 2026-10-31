@@ -23,8 +23,8 @@ tests qui en dépendent sont étiquetés `grypedb`.
   l'ouverture de la base Grype ou un `ANALYZE` neuf) et chaud, RLS active (rôle
   d'exécution), base jetable de `dbtest` ; résultats consignés dans
   `docs/benchmarks.md` avec la machine qui les a produits.
-- **Cibles mesurables sans la base Grype** (`make bench`, `OGSBOM_BENCH=1`) et **avec**
-  (`make test-grypedb`, `OGSBOM_TEST_GRYPEDB_DIR`).
+- **Cibles mesurables sans la base Grype** (`make bench`, `LOTOR_BENCH=1`) et **avec**
+  (`make test-grypedb`, `LOTOR_TEST_GRYPEDB_DIR`).
 - **Autoanalyse** : `make sbom` produit `bin/<binaire>.cdx.json` par la commande `syft`,
   `make selfscan` les analyse par la commande `grype --by-cve` et échoue si une
   correspondance porte `knownExploited` ; les deux commandes sont lancées par

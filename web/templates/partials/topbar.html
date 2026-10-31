@@ -1,7 +1,7 @@
 {{define "topbar" -}}
 <header class="topbar">
   <a class="topbar__brand" href="/">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3 3 7.5l9 4.5 9-4.5L12 3z"></path><path d="m3 12 9 4.5 9-4.5"></path><path d="m3 16.5 9 4.5 9-4.5"></path></svg>
+    <img class="topbar__logo" src="{{asset "img/favicon.svg"}}" alt="" width="28" height="28">
     <span>{{T "app.name"}}</span>
   </a>
   {{- with .Page.Chrome}}{{if .Orgs}}

@@ -42,7 +42,7 @@ organization to another.
 1. **Agents › Enroll servers** (organization administrator): choose the validity, the
    number of servers to enroll and, if needed, labels (`env=prod`). The **enrollment
    token** and the installation commands are shown only once.
-2. On each server, the operator installs the `ogsbom-host-agent` package, sets the server
+2. On each server, the operator installs the `lotor-host-agent` package, sets the server
    address, drops the token and starts the agent
    ([`operations.md`](operations.md#agent-serveur)).
 3. On its first run, the server appears under **Projects** with its system, kernel and
@@ -97,7 +97,7 @@ it shares the same result. **Export as CSV / JSON** gives every occurrence.
 required, shown only once). It grants read access to what your account sees:
 
 ```bash
-curl -H "Authorization: Bearer $OGSBOM_TOKEN" \
+curl -H "Authorization: Bearer $LOTOR_TOKEN" \
   "https://sbom.example.org/api/v1/orgs/infra/search?q=CVE-2023-48795"
 ```
 

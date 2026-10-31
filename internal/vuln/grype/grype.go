@@ -21,7 +21,7 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // Engine installe et ouvre les bases Grype (schéma v6).
@@ -31,7 +31,7 @@ type Engine struct {
 
 // NewEngine renvoie un Engine.
 func NewEngine() *Engine {
-	return &Engine{id: clio.Identification{Name: "ogsbom-server"}}
+	return &Engine{id: clio.Identification{Name: "lotor-server"}}
 }
 
 var _ vuln.Engine = (*Engine)(nil)

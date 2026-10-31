@@ -6,10 +6,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/crossorg"
-	"leblanc.io/open-go-sbom/internal/inventory"
-	"leblanc.io/open-go-sbom/internal/jobs"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/crossorg"
+	"leblanc.io/lotor/internal/inventory"
+	"leblanc.io/lotor/internal/jobs"
 )
 
 // RescanOrgKind réanalyse les références actives d'une organisation : analysis.rescan_all

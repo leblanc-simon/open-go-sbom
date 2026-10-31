@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // ErrNoAccess : organisation inconnue, archivée, ou dont le compte n'est pas membre. Les
@@ -22,12 +22,12 @@ var ErrNotFound = errors.New("crossorg: organisation inconnue")
 const MaxPage = 200
 
 // Access résout le slug d'une organisation active dont userID est membre, pour la garde
-// d'organisation (fonction ogsbom_org_access).
+// d'organisation (fonction lotor_org_access).
 func Access(ctx context.Context, q db.Querier, slug string, userID int64) (tenant.Access, error) {
 	var a tenant.Access
 	var role string
 	err := q.QueryRowContext(ctx,
-		`SELECT org_id, slug, name, default_language, role FROM ogsbom_org_access($1, $2)`, slug, userID,
+		`SELECT org_id, slug, name, default_language, role FROM lotor_org_access($1, $2)`, slug, userID,
 	).Scan(&a.Org, &a.Slug, &a.Name, &a.Language, &role)
 	if errors.Is(err, sql.ErrNoRows) {
 		return tenant.Access{}, ErrNoAccess
@@ -50,9 +50,9 @@ type OrgRef struct {
 }
 
 // UserOrgs renvoie les organisations actives de userID, par nom (200 au plus ; fonction
-// ogsbom_user_orgs).
+// lotor_user_orgs).
 func UserOrgs(ctx context.Context, q db.Querier, userID int64) ([]OrgRef, error) {
-	rows, err := q.QueryContext(ctx, `SELECT org_id, slug, name, role FROM ogsbom_user_orgs($1)`, userID)
+	rows, err := q.QueryContext(ctx, `SELECT org_id, slug, name, role FROM lotor_user_orgs($1)`, userID)
 	if err != nil {
 		return nil, fmt.Errorf("crossorg: organisations du compte : %w", err)
 	}
@@ -87,7 +87,7 @@ type OrgSummary struct {
 }
 
 // ListOrganizations renvoie au plus limit organisations (archivées comprises) de slug
-// supérieur à after, par slug (fonction ogsbom_list_organizations). Réservé à
+// supérieur à after, par slug (fonction lotor_list_organizations). Réservé à
 // l'administration de l'instance : l'appelant vérifie le rôle du compte.
 func ListOrganizations(ctx context.Context, q db.Querier, after string, limit int) ([]OrgSummary, error) {
 	if limit < 1 || limit > MaxPage {
@@ -95,7 +95,7 @@ func ListOrganizations(ctx context.Context, q db.Querier, after string, limit in
 	}
 	rows, err := q.QueryContext(ctx,
 		`SELECT org_id, slug, name, default_language, archived_at, created_at, member_count
-		   FROM ogsbom_list_organizations($1, $2)`, after, limit)
+		   FROM lotor_list_organizations($1, $2)`, after, limit)
 	if err != nil {
 		return nil, fmt.Errorf("crossorg: liste des organisations : %w", err)
 	}
@@ -120,10 +120,10 @@ func ListOrganizations(ctx context.Context, q db.Querier, after string, limit in
 }
 
 // OrgIDBySlug résout un slug, organisations archivées comprises, pour l'administration de
-// l'instance (fonction ogsbom_org_id_by_slug).
+// l'instance (fonction lotor_org_id_by_slug).
 func OrgIDBySlug(ctx context.Context, q db.Querier, slug string) (tenant.OrgID, error) {
 	var id sql.Null[tenant.OrgID]
-	if err := q.QueryRowContext(ctx, `SELECT ogsbom_org_id_by_slug($1)`, slug).Scan(&id); err != nil {
+	if err := q.QueryRowContext(ctx, `SELECT lotor_org_id_by_slug($1)`, slug).Scan(&id); err != nil {
 		return tenant.OrgID{}, fmt.Errorf("crossorg: slug %q : %w", slug, err)
 	}
 	if !id.Valid {
@@ -137,16 +137,16 @@ func OrgIDBySlug(ctx context.Context, q db.Querier, slug string) (tenant.OrgID, 
 var ErrUnknownToken = errors.New("crossorg: jeton inconnu")
 
 // AgentTokenOrg renvoie l'organisation (active) d'un jeton d'agent désigné par son
-// identifiant public (fonction ogsbom_agent_token_org). Le secret, la révocation et
+// identifiant public (fonction lotor_agent_token_org). Le secret, la révocation et
 // l'expiration se vérifient ensuite dans InOrg.
 func AgentTokenOrg(ctx context.Context, q db.Querier, publicID string) (tenant.OrgID, error) {
-	return tokenOrg(ctx, q, `SELECT ogsbom_agent_token_org($1)`, publicID)
+	return tokenOrg(ctx, q, `SELECT lotor_agent_token_org($1)`, publicID)
 }
 
 // EnrollmentTokenOrg fait de même pour un jeton d'inscription (fonction
-// ogsbom_enrollment_token_org).
+// lotor_enrollment_token_org).
 func EnrollmentTokenOrg(ctx context.Context, q db.Querier, publicID string) (tenant.OrgID, error) {
-	return tokenOrg(ctx, q, `SELECT ogsbom_enrollment_token_org($1)`, publicID)
+	return tokenOrg(ctx, q, `SELECT lotor_enrollment_token_org($1)`, publicID)
 }
 
 func tokenOrg(ctx context.Context, q db.Querier, query, publicID string) (tenant.OrgID, error) {

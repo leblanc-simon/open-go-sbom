@@ -28,7 +28,7 @@ La revue de sécurité du lot 1 (T11) a relevé :
   (`http.CrossOriginProtection`) avant csrfx, sur l'interface seulement : une requête
   mutante dont `Sec-Fetch-Site` n'est ni `same-origin` ni `none`, ou dont `Origin` ne
   correspond pas à l'hôte, est refusée (403). Elle couvre aussi la connexion, sans session.
-- **Cookies `__Host-`** quand `auth.cookie_secure` vaut `on` : `__Host-ogsbom_session`
+- **Cookies `__Host-`** quand `auth.cookie_secure` vaut `on` : `__Host-lotor_session`
   (nom configuré préfixé), `__Host-csrf_token`, `__Host-mfa_challenge`
   (`mfax.WithChallengeCookieName`). Le préfixe exige `Secure` : en `auto` ou `off`, les
   noms restent sans préfixe et un avertissement est journalisé au démarrage.

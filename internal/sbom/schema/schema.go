@@ -22,7 +22,7 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
-	"leblanc.io/open-go-sbom/internal/sbom"
+	"leblanc.io/lotor/internal/sbom"
 )
 
 //go:embed schemas

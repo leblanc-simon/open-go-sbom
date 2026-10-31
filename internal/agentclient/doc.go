@@ -1,5 +1,5 @@
 // Package agentclient est le client de l'API des agents (/api/v1/agent/*), partagé par
-// ogsbom-host-agent et ogsbom-repo-agent. Il enveloppe le client généré depuis
+// lotor-host-agent et lotor-repo-agent. Il enveloppe le client généré depuis
 // api/openapi.yaml (sous-paquet gen) et n'a rien de propre à une nature d'agent.
 //
 // Ce qu'il ajoute au client généré :

@@ -16,7 +16,7 @@ const (
 	formatV1  byte = 1
 	keySize        = 32
 	nonceSize      = 12
-	aadPrefix      = "ogsbom-secret-v1"
+	aadPrefix      = "lotor-secret-v1"
 )
 
 var (

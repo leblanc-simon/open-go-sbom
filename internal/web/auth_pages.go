@@ -9,9 +9,9 @@ import (
 	"leblanc.io/open-go-base/authx"
 	"leblanc.io/open-go-base/mfax"
 
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/render"
-	"leblanc.io/open-go-sbom/internal/web/middleware"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/web/middleware"
 )
 
 // authRenderer rend les pages dont authx et mfax ont besoin. Leurs erreurs arrivent sous

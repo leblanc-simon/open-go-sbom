@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/agentclient"
-	"leblanc.io/open-go-sbom/internal/agentclient/gen"
+	"leblanc.io/lotor/internal/agentclient"
+	"leblanc.io/lotor/internal/agentclient/gen"
 )
 
 // Outcome est l'issue d'un cycle.

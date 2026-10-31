@@ -51,8 +51,8 @@ au vol), ce qui ne laisse pas d'archive à stocker.
 - **Disponibilité** : `/readyz` d'une instance worker échoue tant qu'aucune base n'est
   chargée ; une instance purement web n'en dépend pas.
 - **Âge** : au-delà de `vulndb.max_age` (5 jours, décision du lot), callout sur chaque
-  page d'administration de l'instance, métrique `ogsbom_vulndb_stale` et
-  `ogsbom_vulndb_target_age_seconds` ; Grype ne refuse jamais une base pour son âge.
+  page d'administration de l'instance, métrique `lotor_vulndb_stale` et
+  `lotor_vulndb_target_age_seconds` ; Grype ne refuse jamais une base pour son âge.
 - **Hors ligne** : `vulndb.offline` désactive l'échéance ; `vuln.Checker.Import` range une
   archive fournie par l'exploitant avec les mêmes contrôles (sans somme annoncée) ; son
   écran arrive en T11.

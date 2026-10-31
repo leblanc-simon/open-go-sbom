@@ -17,9 +17,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/dbtest"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // Critère : un job mis en file dans une transaction annulée n'est jamais exécuté.
@@ -87,7 +87,7 @@ func TestThreeRunnersRunEachJobExactlyOnce(t *testing.T) {
 	}
 }
 
-const killChildEnv = "OGSBOM_JOBS_KILL_CHILD_DSN"
+const killChildEnv = "LOTOR_JOBS_KILL_CHILD_DSN"
 
 // Critère : un worker tué en plein job voit son job repris après expiration du bail. Le
 // worker tourne dans un sous-processus tué par SIGKILL : ni arrêt propre ni libération.

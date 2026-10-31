@@ -20,11 +20,11 @@ type HTTPMetrics struct {
 func NewHTTPMetrics(reg prometheus.Registerer) *HTTPMetrics {
 	m := &HTTPMetrics{
 		requests: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Namespace: "ogsbom", Subsystem: "http", Name: "requests_total",
+			Namespace: "lotor", Subsystem: "http", Name: "requests_total",
 			Help: "HTTP requests served, by route group, method, route pattern and status code.",
 		}, []string{"group", "method", "route", "code"}),
 		duration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Namespace: "ogsbom", Subsystem: "http", Name: "request_duration_seconds",
+			Namespace: "lotor", Subsystem: "http", Name: "request_duration_seconds",
 			Help:    "HTTP request duration, by route group, method and route pattern.",
 			Buckets: prometheus.DefBuckets,
 		}, []string{"group", "method", "route"}),

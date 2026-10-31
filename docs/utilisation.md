@@ -1,6 +1,6 @@
 # Guide d'utilisation
 
-Ce guide décrit l'usage d'open-go-sbom par les membres d'une organisation. L'installation
+Ce guide décrit l'usage de lotor par les membres d'une organisation. L'installation
 et l'exploitation du serveur sont dans [`operations.md`](operations.md) ; les premiers pas
 (connexion, organisation, inscription des serveurs et des dépôts) dans le
 [guide de démarrage](demarrage.md). Les sections s'ajoutent au fil des lots.
@@ -74,10 +74,10 @@ d'une apostrophe, pour qu'un tableur ne l'interprète pas comme une formule.
 La même recherche existe dans l'API, avec les mêmes paramètres et les mêmes résultats :
 
 ```bash
-curl -H "Authorization: Bearer $OGSBOM_TOKEN" \
-  "https://ogsbom.example/api/v1/orgs/<organisation>/search?q=CVE-2021-44228&kev=1"
-curl -H "Authorization: Bearer $OGSBOM_TOKEN" -o lodash.csv \
-  "https://ogsbom.example/api/v1/orgs/<organisation>/search/export?format=csv&q=pkg:npm/lodash+vers:npm/%3C4.17.21"
+curl -H "Authorization: Bearer $LOTOR_TOKEN" \
+  "https://lotor.example/api/v1/orgs/<organisation>/search?q=CVE-2021-44228&kev=1"
+curl -H "Authorization: Bearer $LOTOR_TOKEN" -o lodash.csv \
+  "https://lotor.example/api/v1/orgs/<organisation>/search/export?format=csv&q=pkg:npm/lodash+vers:npm/%3C4.17.21"
 ```
 
 Le jeton est un **jeton d'accès personnel**, créé depuis « Mon compte » → « Jetons

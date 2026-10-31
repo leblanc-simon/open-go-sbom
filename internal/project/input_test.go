@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/account"
+	"leblanc.io/lotor/internal/account"
 )
 
 func keyOf(err error) string {

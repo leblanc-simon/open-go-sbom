@@ -86,11 +86,11 @@ Réalisé le 31 octobre 2026, branche `lot/T04-projets-agents`.
   fusionnée (squash, commit `3534c14`) ; pas de CI sur ce dépôt : `gofmt`, `go vet ./...`
   et `go test -race ./...` verts en local. Étiquette annotée `v1.2.0` créée dans le clone,
   **pas poussée** (mandataire git, voir `specs/avancement.md`, « Actions pour
-  l'utilisateur ») : open-go-sbom utilise la pseudo-version
+  l'utilisateur ») : lotor utilise la pseudo-version
   `v1.0.2-0.20261031043924-3534c1429b63`.
 - Migrations **006** (`agents`, `projects`, `tracked_refs`, `agent_tokens`,
   `enrollment_tokens`, RLS standard, clés étrangères composites portant la nature) et
-  **007** (`ogsbom_agent_token_org`, `ogsbom_enrollment_token_org`).
+  **007** (`lotor_agent_token_org`, `lotor_enrollment_token_org`).
 - `internal/db/crossorg` : `AgentTokenOrg`, `EnrollmentTokenOrg` (justifiées ci-dessous,
   ADR 0014, tableau de l'ADR 0012 complété).
 - `internal/project` : projets (création, modification, archivage, liste filtrée par nom,
@@ -132,14 +132,14 @@ Réalisé le 31 octobre 2026, branche `lot/T04-projets-agents`.
 
 ### Décisions
 
-- **ADR 0014** **[à relire]** : format `ogsbom_<nature>_<id public base32>_<secret
+- **ADR 0014** **[à relire]** : format `lotor_<nature>_<id public base32>_<secret
   base32>` ; organisation du jeton résolue par deux fonctions `crossorg` qui ne renvoient
   que l'identifiant d'une organisation active ; refus uniforme `error.token.invalid`
   avant vérification du secret, cause précise ensuite ; dernier usage écrit une fois par
   minute au plus ; `projects.agent_id` (un agent par projet, même nature, un seul hôte par
   agent serveur) plutôt qu'une table d'affectation.
 - **Nouvelles fonctions `crossorg`** (changement de sécurité, à relire) :
-  `ogsbom_agent_token_org(public_id)` et `ogsbom_enrollment_token_org(public_id)`. Seul
+  `lotor_agent_token_org(public_id)` et `lotor_enrollment_token_org(public_id)`. Seul
   moyen de connaître l'organisation d'un jeton avant `InOrg` ; elles ne renvoient que
   l'identifiant, et rien pour une organisation archivée ; l'identifiant public (128 bits
   aléatoires) ne se devine pas. Alternatives écartées dans l'ADR 0014.
@@ -165,7 +165,7 @@ Réalisé le 31 octobre 2026, branche `lot/T04-projets-agents`.
   (10 000 au plus) ; 120 requêtes par minute et par jeton, 30 refus par minute et par IP.
 - Le secret s'affiche dans la réponse au `POST` (pas de redirection), comme le mot de
   passe temporaire de T03 ; la page n'est pas mise en cache (`no-store`).
-- Jetons personnels (`ogsbom_pat_`) : hors périmètre de la fiche (API utilisateur),
+- Jetons personnels (`lotor_pat_`) : hors périmètre de la fiche (API utilisateur),
   préfixe réservé.
 
 ### Écarts

@@ -7,7 +7,7 @@
 ## Contexte
 
 T09 ouvre la première route de l'API utilisateur, `GET /api/v1/orgs/{org}/search`, avec des
-jetons d'accès personnels (`ogsbom_pat_`, préfixe réservé par l'ADR 0014) : « création et
+jetons d'accès personnels (`lotor_pat_`, préfixe réservé par l'ADR 0014) : « création et
 révocation depuis le profil, lecture seule, limités aux organisations du compte ». Le § 8
 de l'architecture rangeait `personal_access_tokens` parmi les tables d'organisation, à
 côté des jetons d'agent.
@@ -53,7 +53,7 @@ côté des jetons d'agent.
 - **Jeton par organisation** (table d'organisation sous RLS, comme le § 8) : moindre
   privilège, mais la liste du profil exigerait une transaction par organisation, un jeton
   par organisation pour un même script, et l'organisation résolue par le slug avant le
-  jeton (`ogsbom_org_id_by_slug`, réservée à l'administration). La portée « organisations du
+  jeton (`lotor_org_id_by_slug`, réservée à l'administration). La portée « organisations du
   compte » de la fiche décrit un jeton du compte.
 - **Restriction facultative à une organisation** : une colonne d'organisation dans une
   table globale, pour un besoin non exprimé ; à reconsidérer avec les équipes (T16).

@@ -7,7 +7,7 @@ import (
 
 	"leblanc.io/open-go-base/i18n"
 
-	"leblanc.io/open-go-sbom/internal/locale"
+	"leblanc.io/lotor/internal/locale"
 )
 
 // LanguageSources fournit les préférences qui ne viennent pas de la requête elle-même :

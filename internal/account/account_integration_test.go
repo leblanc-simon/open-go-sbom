@@ -17,13 +17,13 @@ import (
 	authsql "leblanc.io/open-go-base/authx/sqlstore"
 	mfasql "leblanc.io/open-go-base/mfax/sqlstore"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
-	"leblanc.io/open-go-sbom/internal/jobs"
-	"leblanc.io/open-go-sbom/internal/org"
-	"leblanc.io/open-go-sbom/internal/secret"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db/dbtest"
+	"leblanc.io/lotor/internal/jobs"
+	"leblanc.io/lotor/internal/org"
+	"leblanc.io/lotor/internal/secret"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 const cost = 4

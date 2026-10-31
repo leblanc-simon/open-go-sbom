@@ -15,8 +15,8 @@ import (
 
 	"leblanc.io/open-go-base/csrfx"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/audit"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/audit"
 )
 
 // Tests de non-régression de la revue de sécurité du lot 1 (T11) : les trois premiers
@@ -174,7 +174,7 @@ func TestSecReviewCSRFBoundToSession(t *testing.T) {
 	form := url.Values{"email": {"intrus@example.org"}, "csrf_token": {"pose-par-l-attaquant"}}
 	req, _ := http.NewRequest(http.MethodPost, a.srv.URL+"/admin/users", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.AddCookie(&http.Cookie{Name: "ogsbom_session", Value: b.cookie("ogsbom_session")})
+	req.AddCookie(&http.Cookie{Name: "lotor_session", Value: b.cookie("lotor_session")})
 	req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "pose-par-l-attaquant"})
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -192,7 +192,7 @@ func TestSecReviewCSRFBoundToSession(t *testing.T) {
 	form = url.Values{"email": {"intrus@example.org"}, "csrf_token": {other.csrf()}}
 	req, _ = http.NewRequest(http.MethodPost, a.srv.URL+"/admin/users", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.AddCookie(&http.Cookie{Name: "ogsbom_session", Value: b.cookie("ogsbom_session")})
+	req.AddCookie(&http.Cookie{Name: "lotor_session", Value: b.cookie("lotor_session")})
 	req.AddCookie(&http.Cookie{Name: "csrf_token", Value: other.cookie("csrf_token")})
 	if resp, err = http.DefaultClient.Do(req); err != nil {
 		t.Fatal(err)
@@ -257,7 +257,7 @@ func TestSecReviewHostPrefixedCookies(t *testing.T) {
 	}
 	hostCookieOf(t, rec, "__Host-mfa_challenge")
 	for _, c := range rec.Result().Cookies() {
-		if c.Name == "mfa_challenge" || c.Name == "csrf_token" || c.Name == "ogsbom_session" {
+		if c.Name == "mfa_challenge" || c.Name == "csrf_token" || c.Name == "lotor_session" {
 			t.Errorf("cookie sans préfixe : %s", c.Name)
 		}
 	}

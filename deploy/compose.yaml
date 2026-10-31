@@ -1,10 +1,10 @@
 # PostgreSQL de développement et de test : docker compose -f deploy/compose.yaml up -d
 #
-# - base « ogsbom » : rôle propriétaire ogsbom_owner (migrations) et rôle d'exécution
-#   ogsbom_app (sans BYPASSRLS), créés par initdb/01-roles.sql ;
+# - base « lotor » : rôle propriétaire lotor_owner (migrations) et rôle d'exécution
+#   lotor_app (sans BYPASSRLS), créés par initdb/01-roles.sql ;
 # - tests d'intégration : connexion d'administration « postgres », chaque test crée sa
 #   base et ses rôles jetables (données sur tmpfs, perdues à l'arrêt).
-name: ogsbom
+name: lotor
 
 services:
   postgres:

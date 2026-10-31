@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 func TestOpenHidesDSN(t *testing.T) {
@@ -22,9 +22,9 @@ func TestOpenHidesDSN(t *testing.T) {
 
 func TestRoleFromDSN(t *testing.T) {
 	cases := map[string]string{
-		"postgres://ogsbom_app:pwd@localhost:5432/ogsbom": "ogsbom_app",
-		"host=localhost user=ogsbom_app dbname=ogsbom":    "ogsbom_app",
-		"postgres://%22weird%20name%22@localhost/ogsbom":  `"weird name"`,
+		"postgres://lotor_app:pwd@localhost:5432/lotor": "lotor_app",
+		"host=localhost user=lotor_app dbname=lotor":    "lotor_app",
+		"postgres://%22weird%20name%22@localhost/lotor": `"weird name"`,
 	}
 	for dsn, want := range cases {
 		got, err := RoleFromDSN(dsn)

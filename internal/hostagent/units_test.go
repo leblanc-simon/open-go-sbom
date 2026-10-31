@@ -67,7 +67,7 @@ func TestParseOSRelease(t *testing.T) {
 
 func validConfig() Config {
 	c := Defaults()
-	c.Mode, c.StateDir, c.Server.URL = ModeDaemon, "/var/lib/ogsbom-host-agent", "https://sbom.example.org"
+	c.Mode, c.StateDir, c.Server.URL = ModeDaemon, "/var/lib/lotor-host-agent", "https://sbom.example.org"
 	c.Server.Timeout, c.Server.Retries, c.Server.Language = time.Minute, 5, "en"
 	c.Scan = Scan{Root: "/", Interval: 24 * time.Hour, PollInterval: 5 * time.Minute, MaxDuration: time.Hour}
 	c.Resources = Resources{MaxProcs: 1, MemoryLimitMiB: 512}
@@ -116,18 +116,18 @@ func TestLoadReadsFileAndEnvironment(t *testing.T) {
 	if err := os.WriteFile(path, []byte(yaml), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("OGSBOM_HOST_AGENT_SCAN_INTERVAL", "12h")
-	t.Setenv("OGSBOM_HOST_AGENT_LOG_LEVEL", "debug")
+	t.Setenv("LOTOR_HOST_AGENT_SCAN_INTERVAL", "12h")
+	t.Setenv("LOTOR_HOST_AGENT_LOG_LEVEL", "debug")
 	old := os.Args
-	os.Args = []string{"ogsbom-host-agent", "-c", path}
+	os.Args = []string{"lotor-host-agent", "-c", path}
 	defer func() { os.Args = old }()
-	cfg, err := Load("ogsbom-host-agent", "test", "/inexistant.yaml")
+	cfg, err := Load("lotor-host-agent", "test", "/inexistant.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if cfg.Mode != ModeOneshot || cfg.Scan.Interval != 12*time.Hour || cfg.Scan.PollInterval != 5*time.Minute ||
 		cfg.Labels["env"] != "prod" || cfg.Scan.Exclude[0] != "/srv/cache" || cfg.Logging.Level != "debug" ||
-		cfg.StateDir != "/var/lib/ogsbom-host-agent" || cfg.Resources.MaxProcs != 1 || cfg.Resources.MemoryLimitMiB != 512 {
+		cfg.StateDir != "/var/lib/lotor-host-agent" || cfg.Resources.MaxProcs != 1 || cfg.Resources.MemoryLimitMiB != 512 {
 		t.Errorf("configuration %+v", cfg)
 	}
 }
@@ -144,10 +144,10 @@ func TestStoreKeepsTokenAndState(t *testing.T) {
 	if tok, err := s.Token(); err != nil || tok != "" {
 		t.Fatalf("jeton avant inscription : %q %v", tok, err)
 	}
-	if err := s.SaveToken("ogsbom_agt_a_b"); err != nil {
+	if err := s.SaveToken("lotor_agt_a_b"); err != nil {
 		t.Fatal(err)
 	}
-	if tok, err := s.Token(); err != nil || tok != "ogsbom_agt_a_b" {
+	if tok, err := s.Token(); err != nil || tok != "lotor_agt_a_b" {
 		t.Fatalf("jeton relu : %q %v", tok, err)
 	}
 	fi, _ := os.Stat(filepath.Join(dir, tokenFile))
@@ -185,7 +185,7 @@ func TestStoreKeepsTokenAndState(t *testing.T) {
 func TestSecretsMustBePrivate(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "jeton")
-	if err := os.WriteFile(path, []byte("  ogsbom_enr_a_b\n"), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte("  lotor_enr_a_b\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := readSecret(path); !errors.Is(err, ErrInsecureSecret) {
@@ -193,7 +193,7 @@ func TestSecretsMustBePrivate(t *testing.T) {
 	}
 	// Dans le répertoire des credentials systemd, les droits sont ceux de systemd.
 	t.Setenv(credentialsDirEnv, dir)
-	if tok, err := readSecret(path); err != nil || tok != "ogsbom_enr_a_b" {
+	if tok, err := readSecret(path); err != nil || tok != "lotor_enr_a_b" {
 		t.Errorf("credential : %q %v", tok, err)
 	}
 	if p := resolveSecret("", "jeton", "/defaut"); p != path {

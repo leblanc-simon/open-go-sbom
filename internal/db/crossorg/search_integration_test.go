@@ -10,10 +10,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/crossorg"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/crossorg"
+	"leblanc.io/lotor/internal/db/dbtest"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // TestSearchFunctionsStayInTheDeclaredOrganization : les fonctions de recherche
@@ -112,8 +112,8 @@ func TestSearchFunctionsStayInTheDeclaredOrganization(t *testing.T) {
 	}
 
 	// Hors InOrg (connexion neuve, puis connexion réutilisée après un InOrg) : échec franc.
-	for _, q := range []string{`SELECT count(*) FROM ogsbom_search_component_names('lodash', 10)`,
-		`SELECT count(*) FROM ogsbom_search_component_hashes('` + h + `', 10)`} {
+	for _, q := range []string{`SELECT count(*) FROM lotor_search_component_names('lodash', 10)`,
+		`SELECT count(*) FROM lotor_search_component_hashes('` + h + `', 10)`} {
 		var n int
 		if err := tdb.App.DB().QueryRowContext(ctx, q).Scan(&n); err == nil {
 			t.Fatalf("%s hors InOrg : %d lignes", q, n)

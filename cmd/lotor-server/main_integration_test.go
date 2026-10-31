@@ -17,21 +17,21 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
-	"leblanc.io/open-go-sbom/internal/db/migrations"
-	"leblanc.io/open-go-sbom/internal/vuln"
-	"leblanc.io/open-go-sbom/internal/vuln/grype"
-	"leblanc.io/open-go-sbom/internal/vuln/grype/grypetest"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/dbtest"
+	"leblanc.io/lotor/internal/db/migrations"
+	"leblanc.io/lotor/internal/vuln"
+	"leblanc.io/lotor/internal/vuln/grype"
+	"leblanc.io/lotor/internal/vuln/grype/grypetest"
 )
 
-// binary construit ogsbom-server une fois pour les tests de ce fichier.
+// binary construit lotor-server une fois pour les tests de ce fichier.
 var binary = sync.OnceValues(func() (string, error) {
-	dir, err := os.MkdirTemp("", "ogsbom-server-test-")
+	dir, err := os.MkdirTemp("", "lotor-server-test-")
 	if err != nil {
 		return "", err
 	}
-	path := filepath.Join(dir, "ogsbom-server")
+	path := filepath.Join(dir, "lotor-server")
 	out, err := exec.Command("go", "build", "-o", path, ".").CombinedOutput()
 	if err != nil {
 		return "", &buildError{out: string(out), err: err}
@@ -92,21 +92,21 @@ func start(t *testing.T, tdb *dbtest.DB, env ...string) *instance {
 	cmd := exec.Command(bin, "-c", filepath.Join(t.TempDir(), "absent.yaml"))
 	cmd.Env = append([]string{
 		"PATH=" + os.Getenv("PATH"),
-		"OGSBOM_PORT=" + strconv.Itoa(pub),
-		"OGSBOM_MANAGEMENT_PORT=" + strconv.Itoa(mgmt),
-		"OGSBOM_DB_DSN=" + tdb.AppDSN,
-		"OGSBOM_MIGRATION_DSN=" + tdb.OwnerDSN,
-		"OGSBOM_HTTP_SHUTDOWN_TIMEOUT=5s",
-		"OGSBOM_LOG_FORMAT=json",
+		"LOTOR_PORT=" + strconv.Itoa(pub),
+		"LOTOR_MANAGEMENT_PORT=" + strconv.Itoa(mgmt),
+		"LOTOR_DB_DSN=" + tdb.AppDSN,
+		"LOTOR_MIGRATION_DSN=" + tdb.OwnerDSN,
+		"LOTOR_HTTP_SHUTDOWN_TIMEOUT=5s",
+		"LOTOR_LOG_FORMAT=json",
 		// Clé de test (32 octets à 0x07) : les secrets TOTP sont chiffrés.
-		"OGSBOM_SECRETS_KEYS=test:BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=",
-		"OGSBOM_SECRETS_ACTIVE_KEY=test",
-		"OGSBOM_BOOTSTRAP_ADMIN_EMAIL=admin@example.org",
-		"OGSBOM_BOOTSTRAP_ADMIN_PASSWORD=mot de passe temporaire",
+		"LOTOR_SECRETS_KEYS=test:BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=",
+		"LOTOR_SECRETS_ACTIVE_KEY=test",
+		"LOTOR_BOOTSTRAP_ADMIN_EMAIL=admin@example.org",
+		"LOTOR_BOOTSTRAP_ADMIN_PASSWORD=mot de passe temporaire",
 		// Jamais de réseau en test : la base de vulnérabilités est importée.
-		"OGSBOM_VULNDB_OFFLINE=true",
-		"OGSBOM_VULNDB_DIR=" + t.TempDir(),
-		"OGSBOM_VULNDB_SYNC_INTERVAL=1s",
+		"LOTOR_VULNDB_OFFLINE=true",
+		"LOTOR_VULNDB_DIR=" + t.TempDir(),
+		"LOTOR_VULNDB_SYNC_INTERVAL=1s",
 	}, env...)
 	out := &output{}
 	cmd.Stdout, cmd.Stderr = out, out
@@ -247,8 +247,8 @@ func TestServerEndToEnd(t *testing.T) {
 	var metrics bytes.Buffer
 	_, _ = metrics.ReadFrom(resp.Body)
 	resp.Body.Close()
-	if !strings.Contains(metrics.String(), "ogsbom_http_requests_total") || !strings.Contains(metrics.String(), "go_sql_open_connections") ||
-		!strings.Contains(metrics.String(), "ogsbom_vulndb_loaded 1") {
+	if !strings.Contains(metrics.String(), "lotor_http_requests_total") || !strings.Contains(metrics.String(), "go_sql_open_connections") ||
+		!strings.Contains(metrics.String(), "lotor_vulndb_loaded 1") {
 		t.Fatal("métriques attendues absentes")
 	}
 
@@ -279,9 +279,9 @@ func TestServerRefusesToStart(t *testing.T) {
 		code int
 		want string
 	}{
-		"configuration invalide": {[]string{"OGSBOM_DB_DRIVER=sqlite"}, 2, "database.driver (OGSBOM_DB_DRIVER)"},
-		"rôle superutilisateur":  {[]string{"OGSBOM_DB_DSN=" + superDSN}, 1, "superutilisateur"},
-		"rôle propriétaire":      {[]string{"OGSBOM_DB_DSN=" + tdb.OwnerDSN, "OGSBOM_MIGRATION_DSN="}, 1, "propriétaire"},
+		"configuration invalide": {[]string{"LOTOR_DB_DRIVER=sqlite"}, 2, "database.driver (LOTOR_DB_DRIVER)"},
+		"rôle superutilisateur":  {[]string{"LOTOR_DB_DSN=" + superDSN}, 1, "superutilisateur"},
+		"rôle propriétaire":      {[]string{"LOTOR_DB_DSN=" + tdb.OwnerDSN, "LOTOR_MIGRATION_DSN="}, 1, "propriétaire"},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -302,7 +302,7 @@ func TestServerRefusesAlteredMigration(t *testing.T) {
 		"UPDATE "+db.MigrationsTable+" SET checksum = repeat('0', 64) WHERE version = 1"); err != nil {
 		t.Fatal(err)
 	}
-	for name, env := range map[string][]string{"avec migration": nil, "sans migration": {"OGSBOM_MIGRATION_DSN="}} {
+	for name, env := range map[string][]string{"avec migration": nil, "sans migration": {"LOTOR_MIGRATION_DSN="}} {
 		t.Run(name, func(t *testing.T) {
 			i := start(t, tdb, env...)
 			if code := i.exit(t); code != 1 || !strings.Contains(i.out.String(), "migration publiée modifiée") {
@@ -318,11 +318,11 @@ func TestVersionFlag(t *testing.T) {
 		t.Fatal(err)
 	}
 	out, err := exec.Command(bin, "--version").CombinedOutput()
-	if err != nil || !strings.HasPrefix(string(out), "ogsbom-server ") {
+	if err != nil || !strings.HasPrefix(string(out), "lotor-server ") {
 		t.Fatalf("--version : %q, %v", out, err)
 	}
 	out, err = exec.Command(bin, "--help").CombinedOutput()
-	if err != nil || !strings.Contains(string(out), "OGSBOM_MIGRATION_DSN") {
+	if err != nil || !strings.Contains(string(out), "LOTOR_MIGRATION_DSN") {
 		t.Fatalf("--help : %v\n%s", err, out)
 	}
 }

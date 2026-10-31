@@ -1,4 +1,6 @@
-# open-go-sbom
+<img src="docs/logo/lotor-avatar.svg" alt="" width="96" height="96" align="right">
+
+# lotor
 
 Plateforme open source de gestion de SBOM (Software Bill of Materials) par projet, dépôt git
 ou serveur. Deux agents produisent les SBOM ; un serveur central les historise, les analyse
@@ -7,9 +9,9 @@ plusieurs organisations.
 
 | Binaire | Rôle |
 | --- | --- |
-| `ogsbom-server` | interface web, API REST, traitements de fond |
-| `ogsbom-host-agent` | agent serveur : inventaire d'un hôte Linux et de ses conteneurs |
-| `ogsbom-repo-agent` | agent dépôt : clonage des dépôts des forges et analyse Syft |
+| `lotor-server` | interface web, API REST, traitements de fond |
+| `lotor-host-agent` | agent serveur : inventaire d'un hôte Linux et de ses conteneurs |
+| `lotor-repo-agent` | agent dépôt : clonage des dépôts des forges et analyse Syft |
 
 État : préversion **0.1.0** (lot 1 · MVP inventaire : agents serveur et dépôt, ingestion,
 analyse Grype quotidienne, recherche transverse, tableau de bord, organisations isolées,
@@ -29,7 +31,7 @@ Prérequis : Go 1.26, `make`, PostgreSQL 16 pour les tests d'intégration
 
 ```bash
 make ci        # toutes les vérifications, identiques à la CI
-make build     # bin/ogsbom-server, bin/ogsbom-host-agent, bin/ogsbom-repo-agent
+make build     # bin/lotor-server, bin/lotor-host-agent, bin/lotor-repo-agent
 make run       # serveur local (cp config.example.yaml config.yaml)
 make help      # liste des cibles
 ```

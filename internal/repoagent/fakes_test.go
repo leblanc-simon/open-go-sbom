@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/forge"
+	"leblanc.io/lotor/internal/forge"
 )
 
 // fakeForge est une forge en mémoire : têtes de références, comparaisons et URL de
@@ -101,7 +101,7 @@ func (f *fakeForge) setHead(ref forge.Ref, commit string) {
 	f.heads[ref] = commit
 }
 
-// fakeServer est un serveur open-go-sbom en mémoire.
+// fakeServer est un serveur lotor en mémoire.
 type fakeServer struct {
 	mu         sync.Mutex
 	projects   []Project

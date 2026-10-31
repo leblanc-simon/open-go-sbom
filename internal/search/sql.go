@@ -8,11 +8,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/finding"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/version"
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/finding"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/version"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // args numérote les paramètres d'une requête construite morceau par morceau.

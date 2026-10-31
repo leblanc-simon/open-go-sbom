@@ -10,7 +10,7 @@ Le § 7 de l'architecture fixe deux rôles PostgreSQL (propriétaire qui migre, 
 d'exécution sans privilège de DDL), un verrou de migration par `LOCK TABLE` sur une
 connexion dédiée, et l'immuabilité des migrations publiées. Restaient à trancher :
 comment les migrations, figées, accordent leurs droits à un rôle d'exécution dont le nom
-varie (`ogsbom_app` par défaut, rôles jetables dans les tests) ; la granularité des
+varie (`lotor_app` par défaut, rôles jetables dans les tests) ; la granularité des
 transactions ; et comment garantir, au-delà de la relecture, que chaque table
 d'organisation porte la RLS standard.
 
@@ -18,16 +18,16 @@ d'organisation porte la RLS standard.
 
 - **Rôle d'exécution** : son nom est lu dans `database.dsn` (utilisateur de la
   connexion), sans réglage supplémentaire. L'exécuteur le déclare dans le paramètre
-  `ogsbom.app_role`, propre à la transaction ; les migrations le lisent par
+  `lotor.app_role`, propre à la transaction ; les migrations le lisent par
   `current_setting` et le citent par `format('%I')`. Aucune substitution de texte dans
   les fichiers, dont la somme reste celle du fichier publié.
 - **001_init.sql** pose les privilèges par défaut du propriétaire : `SELECT`, `INSERT`,
   `UPDATE`, `DELETE` sur les tables, `USAGE`, `SELECT` sur les séquences, `EXECUTE` sur
   les fonctions, retiré à `PUBLIC`. Ces privilèges sont globaux (sans `IN SCHEMA`), seul
   moyen de retirer `EXECUTE` à `PUBLIC`. Elle crée la procédure
-  `ogsbom_enforce_org_rls(table, colonne)` qui active et force la RLS et crée la politique
+  `lotor_enforce_org_rls(table, colonne)` qui active et force la RLS et crée la politique
   standard `org_isolation`, réservée aux migrations.
-- **Table de suivi** `ogsbom_schema_migrations` (version, nom, somme SHA-256, date) :
+- **Table de suivi** `lotor_schema_migrations` (version, nom, somme SHA-256, date) :
   créée par l'exécuteur sous un verrou consultatif de transaction (deux `CREATE TABLE IF
   NOT EXISTS` concurrents peuvent échouer sur le catalogue), avec `SELECT` accordé au
   rôle d'exécution pour qu'il vérifie le schéma (`/readyz`, démarrage sans migration).
@@ -39,7 +39,7 @@ d'organisation porte la RLS standard.
   besoin, s'il apparaît, fera l'objet d'un nouvel ADR.
 - **Validation** : avant de valider, `CheckOrgIsolation` lit le catalogue et refuse toute
   table qui a une colonne `org_id NOT NULL` (ou la table `organizations`) sans RLS
-  activée et forcée, sans politique `org_isolation` fondée sur `ogsbom.org_id`, ou avec
+  activée et forcée, sans politique `org_isolation` fondée sur `lotor.org_id`, ou avec
   une politique permissive qui ne l'est pas. Une table globale à `org_id` facultatif
   (`jobs`) n'est pas concernée.
 - **Démarrage** (`db.Start`) : attente bornée de la base, migration si
@@ -60,7 +60,7 @@ d'organisation porte la RLS standard.
 
 ## Alternatives écartées
 
-- Nom du rôle en dur (`ogsbom_app`) dans les migrations : incompatible avec les rôles
+- Nom du rôle en dur (`lotor_app`) dans les migrations : incompatible avec les rôles
   jetables des tests parallèles et avec un nommage propre à l'exploitant.
 - Gabarits textuels dans les fichiers de migration : la somme vérifiée ne serait plus
   celle du SQL exécuté, et l'échappement des identifiants reposerait sur le code Go.

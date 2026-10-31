@@ -14,7 +14,7 @@ func TestTokenFormat(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		prefix := "ogsbom_" + string(kind) + "_"
+		prefix := "lotor_" + string(kind) + "_"
 		if !strings.HasPrefix(tok.Plaintext, prefix) || len(tok.Plaintext) != len(prefix)+26+1+52 {
 			t.Fatalf("jeton %q : préfixe ou longueur inattendus", tok.Plaintext)
 		}
@@ -75,16 +75,16 @@ func TestParseTokenRejectsMalformed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	body := strings.TrimPrefix(tok.Plaintext, "ogsbom_agt_")
+	body := strings.TrimPrefix(tok.Plaintext, "lotor_agt_")
 	cases := map[string]string{
 		"vide":                "",
-		"autre nature":        "ogsbom_enr_" + body,
+		"autre nature":        "lotor_enr_" + body,
 		"préfixe étranger":    "ghp_" + body,
 		"tronqué":             tok.Plaintext[:len(tok.Plaintext)-1],
 		"allongé":             tok.Plaintext + "a",
-		"séparateur déplacé":  "ogsbom_agt_" + body[:25] + "_" + body[25:26] + body[27:],
+		"séparateur déplacé":  "lotor_agt_" + body[:25] + "_" + body[25:26] + body[27:],
 		"majuscules":          strings.ToUpper(tok.Plaintext),
-		"caractère hors base": "ogsbom_agt_" + body[:30] + "1" + body[31:],
+		"caractère hors base": "lotor_agt_" + body[:30] + "1" + body[31:],
 		"espaces":             " " + tok.Plaintext,
 	}
 	for name, s := range cases {
@@ -97,11 +97,11 @@ func TestParseTokenRejectsMalformed(t *testing.T) {
 	const alphabet = "abcdefghijklmnopqrstuvwxyz234567"
 	last := strings.IndexByte(alphabet, body[len(body)-1])
 	alt := alphabet[last&^0xF|(last+1)&0xF]
-	nonCanonical := "ogsbom_agt_" + body[:len(body)-1] + string(alt)
+	nonCanonical := "lotor_agt_" + body[:len(body)-1] + string(alt)
 	if _, _, err := Parse(Agent, nonCanonical); !errors.Is(err, ErrMalformed) {
 		t.Errorf("forme non canonique acceptée : %v", err)
 	}
-	if _, ok := KindOf("ogsbom_pat_x", Agent, Enrollment); ok {
+	if _, ok := KindOf("lotor_pat_x", Agent, Enrollment); ok {
 		t.Error("nature inconnue reconnue")
 	}
 }
@@ -124,10 +124,10 @@ func TestDisplayPrefixHidesTheSecret(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p := DisplayPrefix(Enrollment, tok.PublicID); p != "ogsbom_enr_"+tok.PublicID[:6] {
+	if p := DisplayPrefix(Enrollment, tok.PublicID); p != "lotor_enr_"+tok.PublicID[:6] {
 		t.Fatalf("préfixe affiché %q", p)
 	}
-	if DisplayPrefix(Agent, "abc") != "ogsbom_agt_abc" {
+	if DisplayPrefix(Agent, "abc") != "lotor_agt_abc" {
 		t.Fatal("identifiant court")
 	}
 }

@@ -13,11 +13,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/finding"
-	"leblanc.io/open-go-sbom/internal/inventory"
-	"leblanc.io/open-go-sbom/internal/render"
-	"leblanc.io/open-go-sbom/internal/version"
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/finding"
+	"leblanc.io/lotor/internal/inventory"
+	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/version"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // findingPageSize : constats par page de l'onglet « Constats ».

@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/pagination"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/pagination"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // Administration des jobs morts, pour l'écran d'administration de l'instance (T11).
