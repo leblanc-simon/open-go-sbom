@@ -1,0 +1,13 @@
+<svg class="chart chart--critical" viewBox="0 0 600 52" preserveAspectRatio="none" role="img" aria-labelledby="trend-critical-title trend-critical-desc" focusable="false">
+<title id="trend-critical-title">Critique</title>
+<desc id="trend-critical-desc">2026-10-31 : 6</desc>
+<line class="chart__grid" x1="0" y1="50" x2="600" y2="50"></line>
+<path class="chart__area" d="M0,50 L0,6 200,18.6 400,24.9 546.7,24.9 600,12.3 L600,50 Z"></path>
+<polyline class="chart__line" points="0,6 200,18.6 400,24.9 546.7,24.9 600,12.3"></polyline>
+<path class="chart__dot" d="M600,12.3h0"></path>
+<rect class="chart__hit" x="0" y="0" width="100" height="52"><title>2026-08-02 : 7</title></rect>
+<rect class="chart__hit" x="100" y="0" width="200" height="52"><title>2026-09-01 : 5</title></rect>
+<rect class="chart__hit" x="300" y="0" width="173.3" height="52"><title>2026-10-01 : 4</title></rect>
+<rect class="chart__hit" x="473.3" y="0" width="100" height="52"><title>2026-10-23 : 4</title></rect>
+<rect class="chart__hit" x="573.3" y="0" width="26.7" height="52"><title>2026-10-31 : 6</title></rect>
+</svg>

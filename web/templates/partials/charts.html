@@ -1,0 +1,37 @@
+{{/* Graphiques SVG (internal/render/chart.go). Géométrie calculée en Go, couleurs par
+classes CSS, valeurs exactes au survol (title) et dans un tableau équivalent. */}}
+{{define "chart_line" -}}
+<svg class="chart {{.Class}}" viewBox="0 0 {{.Width}} {{.Height}}" preserveAspectRatio="none" role="img" aria-labelledby="{{.ID}}-title {{.ID}}-desc" focusable="false">
+<title id="{{.ID}}-title">{{T .TitleKey .TitleArgs}}</title>
+<desc id="{{.ID}}-desc">{{T .DescKey .DescArgs}}</desc>
+<line class="chart__grid" x1="0" y1="{{.Baseline}}" x2="{{.Width}}" y2="{{.Baseline}}"></line>
+{{- with .Area}}
+<path class="chart__area" d="{{.}}"></path>
+{{- end}}
+{{- with .Line}}
+<polyline class="chart__line" points="{{.}}"></polyline>
+{{- end}}
+{{- if .DotX}}
+<path class="chart__dot" d="M{{.DotX}},{{.DotY}}h0"></path>
+{{- end}}
+{{- range .Hits}}
+<rect class="chart__hit" x="{{.X}}" y="0" width="{{.W}}" height="{{$.Height}}"><title>{{T "chart.point" "Date" .Date "Value" (decimal .Value 0)}}</title></rect>
+{{- end}}
+</svg>
+{{- end}}
+
+{{define "chart_bars" -}}
+<table class="bar-chart" aria-describedby="{{.ID}}-desc">
+  <caption class="visually-hidden">{{T .TitleKey}}</caption>
+  <tbody>
+    {{- range .Rows}}
+    <tr>
+      <th scope="row"><span class="{{.Class}}">{{T .LabelKey}}</span></th>
+      <td class="bar-chart__bar"><svg class="bar-chart__track" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="bar__track" width="100" height="10"></rect><rect class="bar__fill" width="{{.Width}}" height="10"></rect></svg></td>
+      <td class="bar-chart__value">{{if .Missing}}<span class="muted">{{T "chart.no_data"}}</span>{{else}}{{T .ValueKey "Value" (decimal .Value 1)}}{{end}}</td>
+    </tr>
+    {{- end}}
+  </tbody>
+</table>
+<p class="bar-chart__desc" id="{{.ID}}-desc">{{T .DescKey .DescArgs}}</p>
+{{- end}}

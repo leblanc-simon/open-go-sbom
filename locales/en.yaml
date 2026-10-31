@@ -15,7 +15,7 @@ nav:
   password: Password
   logout: Sign out
   admin: Administration
-  org_overview: Overview
+  org_overview: Dashboard
   members: Members
   org_settings: Settings
   audit: Audit log
@@ -52,6 +52,7 @@ status:
 
 format:
   utc: "{{.Time}} UTC"
+  days: "{{.Value}} d"
   sbom_cyclonedx: CycloneDX
   sbom_spdx: SPDX
   sbom_syft: Syft JSON
@@ -231,11 +232,69 @@ org:
   slug: URL identifier
   slug_hint: "Lowercase letters, digits and hyphens; it appears in addresses (/o/identifier)."
 
-org_overview:
-  title: "{{.Name}}"
-  your_role: "Your role: {{.Role}}."
-  next_title: Getting started
-  next_text: The organization's projects, agents and dashboard arrive with the next versions.
+dashboard:
+  title: "Dashboard — {{.Name}}"
+  heading: Dashboard
+  period: Period
+  apply: Apply
+  period_30: 30 days
+  period_90: 90 days
+  period_365: 12 months
+  projects:
+    one: "{{.Count}} active project"
+    other: "{{.Count}} active projects"
+  kind_repo:
+    one: "{{.Count}} repository"
+    other: "{{.Count}} repositories"
+  kind_host:
+    one: "{{.Count}} server"
+    other: "{{.Count}} servers"
+  last_analysis: "Last vulnerability analysis:"
+  no_analysis: No vulnerability analysis yet
+  open_findings: Open findings
+  kev_open: Open KEV vulnerabilities
+  kev_findings:
+    one: "{{.Count}} finding"
+    other: "{{.Count}} findings"
+  kev_projects:
+    one: "in {{.Count}} project"
+    other: "in {{.Count}} projects"
+  change_up: "+{{.N}} in {{.Days}} days"
+  change_down: "−{{.N}} in {{.Days}} days"
+  change_none: "steady over {{.Days}} days"
+  change_unknown: "no {{.Days}}-day history yet"
+  trend_title: "{{.Days}}-day trend"
+  trend_meta: Open findings by severity, each line on its own scale, starting at zero
+  trend_chart_desc: "Open findings: {{.First}} on {{.From}}, {{.Last}} on {{.To}}, at most {{.Max}}."
+  trend_chart_single: "Open findings: {{.Last}} on {{.Date}}, first day of the history."
+  trend_first_day: The history starts today; the line grows by one point each day.
+  trend_table_caption: Open findings by day and severity
+  date: Date
+  fix_title: Median time to fix
+  fix_meta: "Findings fixed over {{.Days}} days"
+  fix_desc: "Median time between first detection and resolution of the findings fixed over {{.Days}} days, in days."
+  silent_title: Silent agents
+  silent_meta: "{{.Count}} without inventory or contact for more than {{.Days}} days"
+  silent_none: No silent agent.
+  see_agents: Agents
+  col_agent: Agent
+  col_since: Silent since
+  col_silence: Silence
+  exposed_title: Most exposed projects
+  exposed_none: No project has an open finding.
+  see_projects: All projects
+  col_project: Project
+  col_open: Open findings
+  col_risk: Max. risk
+  widespread_title: Most widespread vulnerable components
+  widespread_none: No vulnerable component.
+  col_component: Component
+  col_projects: Projects
+  col_versions: Vulnerable versions
+  col_worst: Worst severity
+  more_versions:
+    one: "+{{.Count}} other"
+    other: "+{{.Count}} others"
 
 members:
   title: Members
@@ -500,6 +559,11 @@ common:
   never: Never
   breadcrumb: Breadcrumb
 
+chart:
+  point: "{{.Date}}: {{.Value}}"
+  no_data: No data
+  show_data: Show the data
+
 project_type:
   repo: Repository
   host: Server
@@ -615,7 +679,7 @@ project_form:
 agents:
   title: Agents
   heading: Agents
-  lead: "The agents that send SBOMs: one server agent per host, and repository agents to which repositories are entrusted. An agent is silent after 3 days without contact."
+  lead: "The agents that send SBOMs: one server agent per host, and repository agents to which repositories are entrusted. An agent is silent after 7 days without an inventory (server agent) or without contact (repository agent)."
   new_repo: New repository agent
   new_enrollment: Enroll servers
   list_title: Active agents

@@ -269,7 +269,7 @@ Données **par organisation** (toutes portent `org_id`) :
 | `ref_current` | instantané et ensemble courants de chaque référence (lecture rapide) |
 | `findings`, `finding_events` | constat (référence × composant × vulnérabilité) : première et dernière détection, résolution et motif, risque, base ; historique (ouvert, résolu, rouvert) |
 | `ref_analyses` | dernière analyse de chaque référence : ensemble et base analysés |
-| `audit_events`, `org_daily_stats` | journal d'audit ; agrégats quotidiens |
+| `audit_events`, `org_daily_stats`, `project_daily_stats` | journal d'audit ; statistiques quotidiennes de l'organisation et de chaque projet actif (une ligne par jour UTC, réécrite à chaque passage horaire, ADR 0027) |
 | `triage_decisions`, `policies`, `notification_channels`, `teams`… | lots 2 et 3 |
 
 Les **ensembles d'inventaire** sont adressés par contenu : deux instantanés au même
@@ -513,7 +513,10 @@ qu'aucune mesure ne la justifie (ADR 0015).
   lit pour rendre `data-theme` dès la première peinture, sans script en ligne.
 - JavaScript : modules ES natifs, un par écran, amélioration progressive ; chaque page
   fonctionne sans JS. Les libellés arrivent traduits via des attributs `data-`.
-- Graphiques en SVG produits côté serveur, avec titre, description et tableau de données.
+- Graphiques en SVG produits côté serveur, avec titre, description et tableau de données :
+  géométrie dans `internal/render/chart.go`, dessin dans `partials/charts.html`, couleurs
+  par classes ; l'assistant de `webtest` exige qu'un `<svg>` soit décoratif
+  (`aria-hidden`) ou une image nommée (`role="img"`), ADR 0027.
 - Accessibilité RGAA / WCAG 2.1 AA : HTML sémantique, lien d'évitement, focus visible,
   sévérité jamais portée par la seule couleur. Des tests Go analysent le HTML rendu ; un
   audit manuel clôt chaque lot fonctionnel.
@@ -588,7 +591,7 @@ qu'aucune mesure ne la justifie (ADR 0015).
   le serveur avance la date de dernière analyse ou réclame le SBOM ; changée, le SBOM part
   en Syft JSON. Le signal de vie remet une fois la demande « Scanner maintenant ». État
   muet d'un agent serveur fondé sur son dernier inventaire, d'un agent dépôt sur son
-  dernier contact. Unités systemd durcies (`CAP_DAC_READ_SEARCH` seule), paquets deb et
+  dernier contact, au-delà de 7 jours (T10, ADR 0027). Unités systemd durcies (`CAP_DAC_READ_SEARCH` seule), paquets deb et
   rpm (nfpm, `make packages`). Avec `tls.client_ca_file`, l'API des agents exige un
   certificat client vérifié. Suite : T13 (conteneurs), T22 (Windows), T23 (hors ligne).
 - `ogsbom-repo-agent` : service externe qui détient seul les secrets des forges. Il reçoit les

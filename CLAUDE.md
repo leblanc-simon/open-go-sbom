@@ -60,6 +60,10 @@ client commun des agents `internal/agentclient` (réessais, mTLS, envoi gzip, su
 ingestion : voir son `doc.go`, à adopter par l'agent dépôt), compte rendu d'inventaire et
 demande de scan par le signal de vie, mTLS exigé sur l'API des agents avec
 `tls.client_ca_file`, unités systemd et paquets deb et rpm (`make packages`).
+T10 terminé : tableau de bord d'organisation et en-tête de la fiche projet
+(`internal/dashboard`, statistiques quotidiennes réécrites toutes les heures, ADR 0027),
+graphiques SVG serveur (`internal/render/chart.go`, `partials/charts.html`), agent muet
+au-delà de 7 jours (`agent.Silent`), contrôle des SVG par `webtest`.
 
 ## Règles de travail
 

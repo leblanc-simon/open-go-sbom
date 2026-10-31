@@ -47,10 +47,11 @@ const (
 	StateDisabled State = "disabled" // désactivé : jetons révoqués, projets retirés
 )
 
-// SilentAfter est la durée au-delà de laquelle un agent est muet : sans inventaire pour un
-// agent serveur (le dernier scan confirmé ou envoyé de son hôte), sans contact pour un
-// agent dépôt, qui n'envoie rien tant que ses dépôts ne bougent pas.
-const SilentAfter = 72 * time.Hour
+// SilentAfter est la durée au-delà de laquelle un agent est muet : 7 jours (décision de
+// T10) sans inventaire pour un agent serveur (le dernier scan confirmé ou envoyé de son
+// hôte), sans contact pour un agent dépôt, qui n'envoie rien tant que ses dépôts ne
+// bougent pas.
+const SilentAfter = 7 * 24 * time.Hour
 
 // Clés de validation.
 const (

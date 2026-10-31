@@ -98,7 +98,7 @@ test-grypedb: ## Tests avec la vraie base Grype (OGSBOM_TEST_GRYPEDB_DIR : base 
 
 .PHONY: bench
 bench: ## Mesures sur le jeu de référence (docs/benchmarks.md)
-	OGSBOM_BENCH=1 $(GO) test -count=1 -timeout 30m -tags integration -run TestReferenceDataset -v ./internal/benchdata/
+	OGSBOM_BENCH=1 $(GO) test -count=1 -timeout 30m -tags integration -run TestReferenceDataset -v ./internal/benchdata/ ./internal/web/
 
 # Autoanalyse : SBOM des binaires par Syft, analyse par Grype, mêmes versions que les
 # bibliothèques du projet (go.mod). Grype télécharge sa base, sauf GRYPE_DB_CACHE_DIR et

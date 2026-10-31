@@ -1,0 +1,125 @@
+{{define "content" -}}
+<div class="stack stack--lg">
+  <div class="page-head">
+    <p class="page-head__eyebrow">{{.Name}}</p>
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{T "dashboard.heading"}}</h1>
+      {{template "dash_period" .Period}}
+    </div>
+    <p class="page-head__meta">
+      <span>{{Tn "dashboard.projects" .ProjectCount}}{{range .Kinds}} · {{Tn (print "dashboard.kind_" .Kind) .Count}}{{end}}</span>
+      <span>{{if .LastAnalysis}}{{T "dashboard.last_analysis"}} {{template "stamp" .LastAnalysis}}{{else}}{{T "dashboard.no_analysis"}}{{end}}</span>
+    </p>
+  </div>
+
+  {{template "dash_tiles" .Summary}}
+
+  <div class="layout">
+    {{template "dash_trend" .Summary}}
+    <div class="stack">
+      {{template "dash_fix" .Summary}}
+      <section class="panel" aria-labelledby="silent-title">
+        <div class="panel__head">
+          <h2 class="panel__title" id="silent-title">{{T "dashboard.silent_title"}}</h2>
+          <span class="panel__meta">{{T "dashboard.silent_meta" "Days" .SilentDays "Count" .SilentCount}}</span>
+          <a class="panel__action" href="{{.Base}}/agents">{{T "dashboard.see_agents"}}</a>
+        </div>
+        {{- if .Silent}}
+        <div class="panel__body panel__body--flush">
+          <div class="table-wrap">
+            <table class="data-table">
+              <caption class="visually-hidden">{{T "dashboard.silent_title"}}</caption>
+              <thead><tr><th scope="col">{{T "dashboard.col_agent"}}</th><th scope="col">{{T "dashboard.col_since"}}</th><th scope="col" class="num">{{T "dashboard.col_silence"}}</th></tr></thead>
+              <tbody>
+                {{- range .Silent}}
+                <tr>
+                  <th scope="row"><span class="cell-stack"><a href="{{.Href}}">{{.Name}}</a><span class="muted">{{T (print "agent_type." .Kind)}}</span></span></th>
+                  <td>{{template "stamp" .Since}}</td>
+                  <td class="num"><strong>{{T "format.days" "Value" .Days}}</strong></td>
+                </tr>
+                {{- end}}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {{- else}}
+        <div class="panel__body"><p class="muted">{{T "dashboard.silent_none"}}</p></div>
+        {{- end}}
+      </section>
+    </div>
+  </div>
+
+  <div class="layout layout--halves">
+    <section class="panel" aria-labelledby="exposed-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="exposed-title">{{T "dashboard.exposed_title"}}</h2>
+        <a class="panel__action" href="{{.Base}}/projects">{{T "dashboard.see_projects"}}</a>
+      </div>
+      {{- if .Exposed}}
+      <div class="panel__body panel__body--flush">
+        <div class="table-wrap">
+          <table class="data-table">
+            <caption class="visually-hidden">{{T "dashboard.exposed_title"}}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{{T "dashboard.col_project"}}</th>
+                <th scope="col">{{T "dashboard.col_open"}}</th>
+                <th scope="col" class="num">{{T "badge.kev"}}</th>
+                <th scope="col" class="num" aria-sort="descending">{{T "dashboard.col_risk"}}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{- range .Exposed}}
+              <tr>
+                <th scope="row"><span class="cell-stack"><a href="{{.Href}}">{{.Name}}</a>{{template "project_kind" .Kind}}</span></th>
+                <td>{{template "sevcounts" .Sev}}</td>
+                <td class="num">{{.KEV}}</td>
+                <td class="num">{{template "risk" .Risk}}</td>
+              </tr>
+              {{- end}}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {{- else}}
+      <div class="panel__body"><p class="muted">{{T "dashboard.exposed_none"}}</p></div>
+      {{- end}}
+    </section>
+
+    <section class="panel" aria-labelledby="widespread-title">
+      <div class="panel__head">
+        <h2 class="panel__title" id="widespread-title">{{T "dashboard.widespread_title"}}</h2>
+      </div>
+      {{- if .Widespread}}
+      <div class="panel__body panel__body--flush">
+        <div class="table-wrap">
+          <table class="data-table">
+            <caption class="visually-hidden">{{T "dashboard.widespread_title"}}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{{T "dashboard.col_component"}}</th>
+                <th scope="col" class="num" aria-sort="descending">{{T "dashboard.col_projects"}}</th>
+                <th scope="col">{{T "dashboard.col_versions"}}</th>
+                <th scope="col">{{T "dashboard.col_worst"}}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{- range .Widespread}}
+              <tr>
+                <th scope="row"><span class="cell-stack"><a href="{{.Href}}">{{.Name}}</a><span class="mono muted purl">{{.PURLBase}}</span></span></th>
+                <td class="num">{{.Projects}}</td>
+                <td><span class="cluster">{{range .Versions}}<span class="version">{{.}}</span>{{end}}{{if .More}}<span class="muted">{{Tn "dashboard.more_versions" .More}}</span>{{end}}</span></td>
+                <td><span class="cluster">{{template "sev" .Worst}}{{if .KEV}}{{template "kev" .}}{{end}}</span></td>
+              </tr>
+              {{- end}}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {{- else}}
+      <div class="panel__body"><p class="muted">{{T "dashboard.widespread_none"}}</p></div>
+      {{- end}}
+    </section>
+  </div>
+</div>
+{{- end}}
