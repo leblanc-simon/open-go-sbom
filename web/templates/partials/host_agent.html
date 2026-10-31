@@ -1,0 +1,28 @@
+{{define "host_context" -}}
+{{- with .Context}}
+<dl class="kv">
+  {{- with .OSName}}<dt>{{T "host_agent.os"}}</dt><dd>{{.}}</dd>{{end}}
+  {{- with .Kernel}}<dt>{{T "host_agent.kernel"}}</dt><dd class="mono">{{.}}</dd>{{end}}
+  {{- with .Arch}}<dt>{{T "host_agent.arch"}}</dt><dd class="mono">{{.}}</dd>{{end}}
+  {{- with .Hostname}}<dt>{{T "host_agent.hostname"}}</dt><dd class="mono">{{.}}</dd>{{end}}
+  {{- with $.ScanDuration}}<dt>{{T "host_agent.scan_duration"}}</dt><dd>{{.}}</dd>{{end}}
+  <dt>{{T "host_agent.context_at"}}</dt><dd>{{template "stamp" $.ContextAt}}</dd>
+</dl>
+{{- else}}
+<p class="muted">{{T "host_agent.no_context"}}</p>
+{{- end}}
+{{- end}}
+
+{{define "install_steps" -}}
+<ol class="install-steps">
+  {{- range .}}
+  <li class="install-steps__step">
+    <p>{{T .TitleKey}}</p>
+    {{- range .Commands}}
+    <pre class="install-steps__code"><code>{{.}}</code></pre>
+    {{- end}}
+    {{- with .HintKey}}<p class="field__hint">{{T .}}</p>{{end}}
+  </li>
+  {{- end}}
+</ol>
+{{- end}}

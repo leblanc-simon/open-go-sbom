@@ -25,6 +25,7 @@ func limitBody(next http.Handler) http.Handler {
 // valeurs sont affichées, jamais un texte reçu.
 var flashes = map[string]string{
 	"settings_saved":   "flash.settings_saved",
+	"scan_requested":   "flash.scan_requested",
 	"password_changed": "flash.password_changed",
 	"member_added":     "flash.member_added",
 	"member_updated":   "flash.member_updated",

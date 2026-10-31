@@ -36,6 +36,24 @@ func (e AgentProjectKind) Valid() bool {
 	}
 }
 
+// Defines values for HeartbeatStatusInventory.
+const (
+	Current  HeartbeatStatusInventory = "current"
+	Outdated HeartbeatStatusInventory = "outdated"
+)
+
+// Valid indicates whether the value is a known member of the HeartbeatStatusInventory enum.
+func (e HeartbeatStatusInventory) Valid() bool {
+	switch e {
+	case Current:
+		return true
+	case Outdated:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for IngestionFormat.
 const (
 	Cyclonedx IngestionFormat = "cyclonedx"
@@ -123,6 +141,21 @@ func (e IngestionContextRefKind) Valid() bool {
 	}
 }
 
+// Defines values for InventoryReportRefKind.
+const (
+	InventoryReportRefKindHost InventoryReportRefKind = "host"
+)
+
+// Valid indicates whether the value is a known member of the InventoryReportRefKind enum.
+func (e InventoryReportRefKind) Valid() bool {
+	switch e {
+	case InventoryReportRefKindHost:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TrackedRefKind.
 const (
 	TrackedRefKindBranch TrackedRefKind = "branch"
@@ -173,6 +206,9 @@ type EnrollRequest struct {
 	// Examples: srv-db-02
 	Hostname string `json:"hostname"`
 
+	// Labels Étiquettes de la configuration de l'agent (32 au plus).
+	Labels *map[string]string `json:"labels,omitempty"`
+
 	// Version Version de l'agent.
 	//
 	// Examples: 1.4.0
@@ -190,17 +226,53 @@ type EnrollmentResult struct {
 
 // HeartbeatRequest defines model for HeartbeatRequest.
 type HeartbeatRequest struct {
+	// Host Contexte de l'hôte au moment du scan.
+	Host *HostContext `json:"host,omitempty"`
+
+	// Inventory Scan d'un hôte sans changement d'inventaire depuis le dernier envoi.
+	Inventory *InventoryReport `json:"inventory,omitempty"`
+
 	// Version Version de l'agent.
 	Version string `json:"version"`
 }
 
 // HeartbeatStatus defines model for HeartbeatStatus.
 type HeartbeatStatus struct {
-	// ScanRequested Un scan est demandé depuis l'interface (toujours faux avant T07).
+	// Inventory Réponse à `inventory` : `current`, l'inventaire du serveur est à jour et sa
+	// date de dernière analyse a avancé ; `outdated`, l'agent doit envoyer son SBOM.
+	Inventory *HeartbeatStatusInventory `json:"inventory,omitempty"`
+
+	// ScanRequested Un scan est demandé depuis l'interface ; remis une seule fois.
 	ScanRequested bool `json:"scan_requested"`
 
 	// ServerTime Heure du serveur, pour détecter une horloge d'agent décalée.
 	ServerTime time.Time `json:"server_time"`
+}
+
+// HeartbeatStatusInventory Réponse à `inventory` : `current`, l'inventaire du serveur est à jour et sa
+// date de dernière analyse a avancé ; `outdated`, l'agent doit envoyer son SBOM.
+type HeartbeatStatusInventory string
+
+// HostContext Contexte de l'hôte au moment du scan.
+type HostContext struct {
+	// Arch Architecture (uname -m).
+	Arch     *string `json:"arch,omitempty"`
+	Hostname *string `json:"hostname,omitempty"`
+
+	// Kernel Version du noyau (uname -r).
+	Kernel *string `json:"kernel,omitempty"`
+
+	// OsId ID de /etc/os-release (debian, rhel, alpine…).
+	OsId *string `json:"os_id,omitempty"`
+
+	// OsName PRETTY_NAME de /etc/os-release.
+	OsName *string `json:"os_name,omitempty"`
+
+	// OsVersion VERSION_ID de /etc/os-release.
+	OsVersion *string `json:"os_version,omitempty"`
+
+	// ScanDurationMs Durée du scan, en millisecondes.
+	ScanDurationMs *int `json:"scan_duration_ms,omitempty"`
 }
 
 // Ingestion defines model for Ingestion.
@@ -249,6 +321,9 @@ type IngestionContext struct {
 	// Commit Commit analysé (SHA-1 ou SHA-256 en hexadécimal) ; exigé pour une branche ou une étiquette, interdit pour un hôte.
 	Commit *string `json:"commit,omitempty"`
 
+	// Host Contexte de l'hôte au moment du scan.
+	Host *HostContext `json:"host,omitempty"`
+
 	// ProjectId Projet confié à l'agent (`listAgentProjects`).
 	ProjectId openapi_types.UUID `json:"project_id"`
 	Ref       struct {
@@ -277,6 +352,23 @@ type IngestionError struct {
 	// Title Résumé traduit selon `Accept-Language`.
 	Title string `json:"title"`
 }
+
+// InventoryReport Scan d'un hôte sans changement d'inventaire depuis le dernier envoi.
+type InventoryReport struct {
+	// Fingerprint Empreinte d'inventaire (SHA-256 en hexadécimal minuscule).
+	Fingerprint string             `json:"fingerprint"`
+	ProjectId   openapi_types.UUID `json:"project_id"`
+	Ref         struct {
+		Kind InventoryReportRefKind `json:"kind"`
+		Name string                 `json:"name"`
+	} `json:"ref"`
+
+	// ScannedAt Date du scan (au plus une heure d'avance sur l'horloge du serveur).
+	ScannedAt time.Time `json:"scanned_at"`
+}
+
+// InventoryReportRefKind defines model for InventoryReport.Ref.Kind.
+type InventoryReportRefKind string
 
 // PageInfo Pagination d'une liste.
 type PageInfo struct {
@@ -445,7 +537,8 @@ type ClientInterface interface {
 	// projet de son hôte (étiquettes du jeton), ou le rattache au projet de serveur que
 	// désigne le jeton, ou au projet qui suit déjà cet hôte s'il n'a pas d'agent actif.
 	// Le jeton d'agent n'est renvoyé qu'ici : l'agent le conserve dans son répertoire
-	// d'état.
+	// d'état. Les étiquettes de l'agent (`labels`) complètent celles du jeton sur un
+	// projet créé par l'inscription ; en cas de conflit, celles du jeton l'emportent.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -458,7 +551,8 @@ type ClientInterface interface {
 	// projet de son hôte (étiquettes du jeton), ou le rattache au projet de serveur que
 	// désigne le jeton, ou au projet qui suit déjà cet hôte s'il n'a pas d'agent actif.
 	// Le jeton d'agent n'est renvoyé qu'ici : l'agent le conserve dans son répertoire
-	// d'état.
+	// d'état. Les étiquettes de l'agent (`labels`) complètent celles du jeton sur un
+	// projet créé par l'inscription ; en cas de conflit, celles du jeton l'emportent.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -468,7 +562,14 @@ type ClientInterface interface {
 	// HeartbeatWithBody Signal de vie d'un agent
 	//
 	// Enregistre le dernier contact et la version de l'agent. La réponse indique si un
-	// scan est demandé depuis l'interface (`scan_requested`, T07).
+	// scan est demandé depuis l'interface (`scan_requested`) ; la demande est remise une
+	// seule fois.
+	//
+	// Après un scan dont l'empreinte d'inventaire n'a pas changé, l'agent serveur joint
+	// `inventory` (empreinte calculée comme le serveur, `sbom.Fingerprint`) au lieu
+	// d'envoyer son SBOM : si elle est celle de l'ensemble courant de la référence d'hôte,
+	// seule la date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+	// envoyer son SBOM (`inventory: outdated`). `host` met à jour le contexte de l'hôte.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -478,7 +579,14 @@ type ClientInterface interface {
 	// Heartbeat Signal de vie d'un agent
 	//
 	// Enregistre le dernier contact et la version de l'agent. La réponse indique si un
-	// scan est demandé depuis l'interface (`scan_requested`, T07).
+	// scan est demandé depuis l'interface (`scan_requested`) ; la demande est remise une
+	// seule fois.
+	//
+	// Après un scan dont l'empreinte d'inventaire n'a pas changé, l'agent serveur joint
+	// `inventory` (empreinte calculée comme le serveur, `sbom.Fingerprint`) au lieu
+	// d'envoyer son SBOM : si elle est celle de l'ensemble courant de la référence d'hôte,
+	// seule la date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+	// envoyer son SBOM (`inventory: outdated`). `host` met à jour le contexte de l'hôte.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -528,7 +636,8 @@ type ClientInterface interface {
 // projet de son hôte (étiquettes du jeton), ou le rattache au projet de serveur que
 // désigne le jeton, ou au projet qui suit déjà cet hôte s'il n'a pas d'agent actif.
 // Le jeton d'agent n'est renvoyé qu'ici : l'agent le conserve dans son répertoire
-// d'état.
+// d'état. Les étiquettes de l'agent (`labels`) complètent celles du jeton sur un
+// projet créé par l'inscription ; en cas de conflit, celles du jeton l'emportent.
 //
 // Takes any type of body and a specified content type.
 //
@@ -551,7 +660,8 @@ func (c *Client) EnrollWithBody(ctx context.Context, contentType string, body io
 // projet de son hôte (étiquettes du jeton), ou le rattache au projet de serveur que
 // désigne le jeton, ou au projet qui suit déjà cet hôte s'il n'a pas d'agent actif.
 // Le jeton d'agent n'est renvoyé qu'ici : l'agent le conserve dans son répertoire
-// d'état.
+// d'état. Les étiquettes de l'agent (`labels`) complètent celles du jeton sur un
+// projet créé par l'inscription ; en cas de conflit, celles du jeton l'emportent.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -571,7 +681,14 @@ func (c *Client) Enroll(ctx context.Context, body EnrollJSONRequestBody, reqEdit
 // HeartbeatWithBody Signal de vie d'un agent
 //
 // Enregistre le dernier contact et la version de l'agent. La réponse indique si un
-// scan est demandé depuis l'interface (`scan_requested`, T07).
+// scan est demandé depuis l'interface (`scan_requested`) ; la demande est remise une
+// seule fois.
+//
+// Après un scan dont l'empreinte d'inventaire n'a pas changé, l'agent serveur joint
+// `inventory` (empreinte calculée comme le serveur, `sbom.Fingerprint`) au lieu
+// d'envoyer son SBOM : si elle est celle de l'ensemble courant de la référence d'hôte,
+// seule la date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+// envoyer son SBOM (`inventory: outdated`). `host` met à jour le contexte de l'hôte.
 //
 // Takes any type of body and a specified content type.
 //
@@ -591,7 +708,14 @@ func (c *Client) HeartbeatWithBody(ctx context.Context, contentType string, body
 // Heartbeat Signal de vie d'un agent
 //
 // Enregistre le dernier contact et la version de l'agent. La réponse indique si un
-// scan est demandé depuis l'interface (`scan_requested`, T07).
+// scan est demandé depuis l'interface (`scan_requested`) ; la demande est remise une
+// seule fois.
+//
+// Après un scan dont l'empreinte d'inventaire n'a pas changé, l'agent serveur joint
+// `inventory` (empreinte calculée comme le serveur, `sbom.Fingerprint`) au lieu
+// d'envoyer son SBOM : si elle est celle de l'ensemble courant de la référence d'hôte,
+// seule la date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+// envoyer son SBOM (`inventory: outdated`). `host` met à jour le contexte de l'hôte.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -933,7 +1057,8 @@ type ClientWithResponsesInterface interface {
 	// projet de son hôte (étiquettes du jeton), ou le rattache au projet de serveur que
 	// désigne le jeton, ou au projet qui suit déjà cet hôte s'il n'a pas d'agent actif.
 	// Le jeton d'agent n'est renvoyé qu'ici : l'agent le conserve dans son répertoire
-	// d'état.
+	// d'état. Les étiquettes de l'agent (`labels`) complètent celles du jeton sur un
+	// projet créé par l'inscription ; en cas de conflit, celles du jeton l'emportent.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -946,7 +1071,8 @@ type ClientWithResponsesInterface interface {
 	// projet de son hôte (étiquettes du jeton), ou le rattache au projet de serveur que
 	// désigne le jeton, ou au projet qui suit déjà cet hôte s'il n'a pas d'agent actif.
 	// Le jeton d'agent n'est renvoyé qu'ici : l'agent le conserve dans son répertoire
-	// d'état.
+	// d'état. Les étiquettes de l'agent (`labels`) complètent celles du jeton sur un
+	// projet créé par l'inscription ; en cas de conflit, celles du jeton l'emportent.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -956,7 +1082,14 @@ type ClientWithResponsesInterface interface {
 	// HeartbeatWithBodyWithResponse Signal de vie d'un agent
 	//
 	// Enregistre le dernier contact et la version de l'agent. La réponse indique si un
-	// scan est demandé depuis l'interface (`scan_requested`, T07).
+	// scan est demandé depuis l'interface (`scan_requested`) ; la demande est remise une
+	// seule fois.
+	//
+	// Après un scan dont l'empreinte d'inventaire n'a pas changé, l'agent serveur joint
+	// `inventory` (empreinte calculée comme le serveur, `sbom.Fingerprint`) au lieu
+	// d'envoyer son SBOM : si elle est celle de l'ensemble courant de la référence d'hôte,
+	// seule la date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+	// envoyer son SBOM (`inventory: outdated`). `host` met à jour le contexte de l'hôte.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -966,7 +1099,14 @@ type ClientWithResponsesInterface interface {
 	// HeartbeatWithResponse Signal de vie d'un agent
 	//
 	// Enregistre le dernier contact et la version de l'agent. La réponse indique si un
-	// scan est demandé depuis l'interface (`scan_requested`, T07).
+	// scan est demandé depuis l'interface (`scan_requested`) ; la demande est remise une
+	// seule fois.
+	//
+	// Après un scan dont l'empreinte d'inventaire n'a pas changé, l'agent serveur joint
+	// `inventory` (empreinte calculée comme le serveur, `sbom.Fingerprint`) au lieu
+	// d'envoyer son SBOM : si elle est celle de l'ensemble courant de la référence d'hôte,
+	// seule la date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+	// envoyer son SBOM (`inventory: outdated`). `host` met à jour le contexte de l'hôte.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -1365,7 +1505,8 @@ func (r ListAgentProjectsResponse) ContentType() string {
 // projet de son hôte (étiquettes du jeton), ou le rattache au projet de serveur que
 // désigne le jeton, ou au projet qui suit déjà cet hôte s'il n'a pas d'agent actif.
 // Le jeton d'agent n'est renvoyé qu'ici : l'agent le conserve dans son répertoire
-// d'état.
+// d'état. Les étiquettes de l'agent (`labels`) complètent celles du jeton sur un
+// projet créé par l'inscription ; en cas de conflit, celles du jeton l'emportent.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -1384,7 +1525,8 @@ func (c *ClientWithResponses) EnrollWithBodyWithResponse(ctx context.Context, co
 // projet de son hôte (étiquettes du jeton), ou le rattache au projet de serveur que
 // désigne le jeton, ou au projet qui suit déjà cet hôte s'il n'a pas d'agent actif.
 // Le jeton d'agent n'est renvoyé qu'ici : l'agent le conserve dans son répertoire
-// d'état.
+// d'état. Les étiquettes de l'agent (`labels`) complètent celles du jeton sur un
+// projet créé par l'inscription ; en cas de conflit, celles du jeton l'emportent.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -1400,7 +1542,14 @@ func (c *ClientWithResponses) EnrollWithResponse(ctx context.Context, body Enrol
 // HeartbeatWithBodyWithResponse Signal de vie d'un agent
 //
 // Enregistre le dernier contact et la version de l'agent. La réponse indique si un
-// scan est demandé depuis l'interface (`scan_requested`, T07).
+// scan est demandé depuis l'interface (`scan_requested`) ; la demande est remise une
+// seule fois.
+//
+// Après un scan dont l'empreinte d'inventaire n'a pas changé, l'agent serveur joint
+// `inventory` (empreinte calculée comme le serveur, `sbom.Fingerprint`) au lieu
+// d'envoyer son SBOM : si elle est celle de l'ensemble courant de la référence d'hôte,
+// seule la date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+// envoyer son SBOM (`inventory: outdated`). `host` met à jour le contexte de l'hôte.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -1416,7 +1565,14 @@ func (c *ClientWithResponses) HeartbeatWithBodyWithResponse(ctx context.Context,
 // HeartbeatWithResponse Signal de vie d'un agent
 //
 // Enregistre le dernier contact et la version de l'agent. La réponse indique si un
-// scan est demandé depuis l'interface (`scan_requested`, T07).
+// scan est demandé depuis l'interface (`scan_requested`) ; la demande est remise une
+// seule fois.
+//
+// Après un scan dont l'empreinte d'inventaire n'a pas changé, l'agent serveur joint
+// `inventory` (empreinte calculée comme le serveur, `sbom.Fingerprint`) au lieu
+// d'envoyer son SBOM : si elle est celle de l'ensemble courant de la référence d'hôte,
+// seule la date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+// envoyer son SBOM (`inventory: outdated`). `host` met à jour le contexte de l'hôte.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //

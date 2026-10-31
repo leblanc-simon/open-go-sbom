@@ -53,6 +53,7 @@ const (
 	AgentCreated           Action = "agent.created"
 	AgentEnrolled          Action = "agent.enrolled"
 	AgentDisabled          Action = "agent.disabled"
+	AgentScanRequested     Action = "agent.scan_requested"
 	AgentTokenCreated      Action = "agent_token.created"
 	AgentTokenRevoked      Action = "agent_token.revoked"
 	EnrollmentTokenCreated Action = "enrollment_token.created"
@@ -69,7 +70,7 @@ func Actions() []Action {
 		OrgCreated, OrgRenamed, OrgLanguageChanged, OrgArchived, OrgUnarchived,
 		MemberAdded, MemberRoleChanged, MemberRemoved,
 		ProjectCreated, ProjectUpdated, ProjectArchived, ProjectUnarchived, ProjectAgentChanged,
-		AgentCreated, AgentEnrolled, AgentDisabled, AgentTokenCreated, AgentTokenRevoked,
+		AgentCreated, AgentEnrolled, AgentDisabled, AgentScanRequested, AgentTokenCreated, AgentTokenRevoked,
 		EnrollmentTokenCreated, EnrollmentTokenRevoked,
 	}
 }

@@ -58,6 +58,7 @@ form:
   save: Enregistrer
 
 flash:
+  scan_requested: "Scan demandé : l'agent le lancera à son prochain signal de vie."
   title: C'est fait
   settings_saved: Vos préférences sont enregistrées.
   password_changed: Votre mot de passe est changé ; vos autres sessions sont fermées.
@@ -87,6 +88,9 @@ pagination:
   next: Page suivante
 
 validation:
+  host_context_invalid: Le contexte de l'hôte est invalide (champ trop long ou caractère interdit).
+  inventory_report_invalid: Le compte rendu d'inventaire est invalide (référence d'hôte, empreinte ou date de scan).
+  scan_not_host: Seul un projet de serveur actif, suivi par un agent serveur, peut être scanné à la demande.
   email_invalid: Saisissez une adresse e-mail valide, sans nom ni espace.
   email_taken: Un compte utilise déjà cette adresse.
   password_too_short: Le mot de passe doit compter au moins 12 caractères.
@@ -264,6 +268,7 @@ audit:
   system: Système (démarrage)
   empty: Aucun événement pour l'instant.
   action:
+    agent_scan_requested: "Scan demandé à l'agent {{.Target}} (projet {{.D_project}})"
     auth_login: "Connexion de {{.Target}}"
     auth_login_failed: "Échec de connexion pour « {{.Target}} »"
     auth_totp_failed: "Code TOTP refusé pour {{.Target}}"
@@ -374,6 +379,9 @@ admin_org:
   unarchive: Réactiver
 
 error:
+  client_cert_required:
+    title: Certificat client exigé
+    text: Ce serveur exige un certificat client valide (mTLS) pour l'API des agents. Configurez le certificat et la clé de l'agent.
   back_home: Retour à l'accueil
   code: "Erreur {{.Code}}"
   reference: "Référence de la requête : {{.RequestID}}"
@@ -785,3 +793,28 @@ snapshot:
   no_license: Aucune
   no_match: Aucun composant ne correspond à ces filtres.
   empty: Cet instantané ne contient aucun composant.
+host_agent:
+  context_title: Hôte
+  last_inventory: Dernier inventaire
+  scan_pending: Scan demandé le
+  scan_now: Scanner maintenant
+  scan_now_hint: L'agent lance le scan à son prochain signal de vie (quelques minutes en mode démon).
+  os: Système
+  kernel: Noyau
+  arch: Architecture
+  hostname: Nom d'hôte
+  scan_duration: Durée du dernier scan
+  context_at: Contexte reçu le
+  no_context: L'agent n'a pas encore décrit son hôte.
+host_install:
+  title: Installer l'agent serveur
+  meta: Linux amd64 ou arm64, paquet deb ou rpm
+  package: Installez le paquet d'ogsbom-host-agent, qui crée l'utilisateur ogsbom-agent et les unités systemd.
+  package_hint: Choisissez la commande de votre distribution ; remplacez amd64 ou x86_64 par arm64 ou aarch64 selon l'architecture.
+  server: Indiquez l'adresse de ce serveur dans la configuration de l'agent.
+  server_hint: Avec une autorité de certification privée ou le mTLS, renseignez aussi la section tls du même fichier.
+  token: Déposez le jeton d'inscription, lisible par le seul utilisateur de l'agent.
+  token_hint: Ou bien chiffrez-le avec systemd-creds (voir la documentation d'exploitation) ; il ne va jamais dans le fichier de configuration.
+  start: "Démarrez l'agent : il s'inscrit, inventorie l'hôte et envoie son premier SBOM."
+  start_hint: Pour un scan par jour sans démon, activez plutôt ogsbom-host-agent-oneshot.timer.
+  cleanup: Une fois l'hôte apparu dans les projets, supprimez le jeton d'inscription ; l'agent garde son propre jeton.

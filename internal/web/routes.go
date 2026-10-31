@@ -66,6 +66,7 @@ func registerUI(r chi.Router, h *handlers, loginLimit func(http.Handler) http.Ha
 			r.Get("/projects/{project}/snapshots/{snapshotID}/sbom", id.downloadSBOM)
 			r.Get("/agents", id.agents)
 			r.Get("/agents/{agentID}", id.agentPage)
+			r.With(id.requireOrgRole(tenant.RoleAnalyst)).Post("/projects/{project}/scan", id.requestScan)
 			r.Group(func(r chi.Router) {
 				r.Use(id.requireOrgRole(tenant.RoleAdmin))
 				r.Get("/projects/new", id.newProject)

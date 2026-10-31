@@ -219,6 +219,9 @@ func (s *Service) checkEnrollment(ctx context.Context, tx *db.OrgTx, p *Principa
 type EnrollRequest struct {
 	Hostname string
 	Version  string
+	// Labels sont les étiquettes de la configuration de l'agent, ajoutées à celles du
+	// jeton sur un projet créé par l'inscription.
+	Labels map[string]string
 }
 
 // Enrollment est le résultat d'une inscription : l'agent, le projet de son hôte, et son
@@ -254,6 +257,9 @@ func (s *Service) Enroll(ctx context.Context, p Principal, req EnrollRequest, ip
 	if err := ValidVersion(req.Version); err != nil {
 		return Enrollment{}, err
 	}
+	if _, err := mergeLabels(nil, req.Labels); err != nil {
+		return Enrollment{}, err
+	}
 	actor := audit.Actor{Email: DisplayPrefix(KindEnrollment, p.PublicID), IP: ip, RequestID: requestID}
 	var out Enrollment
 	err = s.pool.InOrg(ctx, p.Org, func(tx *db.OrgTx) error {
@@ -262,6 +268,9 @@ func (s *Service) Enroll(ctx context.Context, p Principal, req EnrollRequest, ip
 			return err
 		}
 		if err := r.check(p.hash, s.Now()); err != nil {
+			return err
+		}
+		if r.labels, err = mergeLabels(r.labels, req.Labels); err != nil {
 			return err
 		}
 		now := s.Now()
@@ -334,21 +343,6 @@ func hostProject(ctx context.Context, tx *db.OrgTx, r enrollmentRow, host string
 		return project.Project{}, false, err
 	}
 	return project.Project{ID: pid, Kind: project.KindHost, Slug: slug}, false, nil
-}
-
-// Heartbeat enregistre le signal de vie d'un agent et la version qu'il annonce.
-func (s *Service) Heartbeat(ctx context.Context, p Principal, version string) error {
-	if p.Kind != KindAgent {
-		return errInvalid
-	}
-	if err := ValidVersion(version); err != nil {
-		return err
-	}
-	err := s.pool.InOrg(ctx, p.Org, func(tx *db.OrgTx) error {
-		_, err := tx.ExecContext(ctx, `UPDATE agents SET version = $2, last_seen_at = $3 WHERE id = $1`, p.AgentID, version, s.Now())
-		return err
-	})
-	return wrap("signal de vie", err)
 }
 
 // CurrentSnapshots renvoie l'instantané courant de celles des références refIDs qui en
