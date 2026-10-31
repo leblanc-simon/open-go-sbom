@@ -227,6 +227,39 @@ func TestOrgTablesAreAllCovered(t *testing.T) {
 	}
 }
 
+// appendOnly sont les tables d'organisation en ajout seul pour le rôle d'exécution
+// (journal d'audit, migration 015) : ni UPDATE ni DELETE.
+var appendOnly = map[string]bool{"audit_events": true}
+
+// assertAppendOnly : la table refuse UPDATE et DELETE au rôle d'exécution, et la RLS
+// refuse d'y ajouter une ligne de B depuis A ; les lignes de B restent intactes.
+func assertAppendOnly(t *testing.T, tdb *dbtest.DB, a, b tenant.OrgID, tbl orgTable) {
+	t.Helper()
+	ctx := context.Background()
+	for _, q := range []string{`UPDATE ` + tbl.name + ` SET ` + tbl.col + ` = ` + tbl.col, `DELETE FROM ` + tbl.name} {
+		err := tdb.App.InOrg(ctx, a, func(tx *db.OrgTx) error {
+			_, err := tx.ExecContext(ctx, q)
+			return err
+		})
+		if err == nil || !strings.Contains(err.Error(), "permission denied") {
+			t.Errorf("%s : err = %v, attendu un refus de droit", q, err)
+		}
+	}
+	err := tdb.App.InOrg(ctx, a, func(tx *db.OrgTx) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO audit_events (org_id, id, action) VALUES ($1, gen_random_uuid(), 'member.added')`, b)
+		return err
+	})
+	if err == nil || !strings.Contains(err.Error(), "row-level security") {
+		t.Errorf("ajout d'une ligne de B depuis A : err = %v", err)
+	}
+	var n int
+	if err := tdb.App.InOrg(ctx, b, func(tx *db.OrgTx) error {
+		return tx.QueryRowContext(ctx, `SELECT count(*) FROM `+tbl.name).Scan(&n)
+	}); err != nil || n != 1 {
+		t.Errorf("B : %d lignes, %v", n, err)
+	}
+}
+
 // TestRLSOnEveryOrgTable : dans InOrg(A), des requêtes sans filtre ne lisent ni n'écrivent
 // rien de B ; hors InOrg, elles échouent.
 func TestRLSOnEveryOrgTable(t *testing.T) {
@@ -253,6 +286,11 @@ func TestRLSOnEveryOrgTable(t *testing.T) {
 			}, db.ReadOnly())
 			if err != nil {
 				t.Fatal(err)
+			}
+
+			if appendOnly[tbl.name] {
+				assertAppendOnly(t, tdb, a, b, tbl)
+				return
 			}
 
 			// Écriture sans filtre : seules les lignes de A sont touchées (transaction

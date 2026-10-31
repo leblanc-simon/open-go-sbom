@@ -25,6 +25,7 @@ import (
 
 	"leblanc.io/open-go-base/appconf"
 	"leblanc.io/open-go-base/authx"
+	"leblanc.io/open-go-base/csrfx"
 
 	"leblanc.io/open-go-sbom/internal/account"
 	"leblanc.io/open-go-sbom/internal/agent"
@@ -83,6 +84,8 @@ type app struct {
 	ingest   *ingest.Service
 	inv      *inventory.Service
 	search   *search.Service
+	exports  *search.ExportLimiter
+	reencode *search.ExportLimiter
 	dash     *dashboard.Service
 	clock    *testClock
 	box      *secret.Box
@@ -146,6 +149,7 @@ func newApp(t *testing.T, opts ...appOption) *app {
 		accounts: account.NewService(tdb.App, testCost), orgs: org.NewService(tdb.App),
 		projects: project.NewService(tdb.App), agents: agent.NewService(tdb.App, agent.WithClock(clock.Now)),
 		inv: inventory.NewService(tdb.App), search: search.NewService(tdb.App, grypeversion.New()),
+		exports: search.NewExportLimiter(2, time.Minute), reencode: search.NewExportLimiter(2, time.Minute),
 		dash: dashboard.NewService(tdb.App, dashboard.WithClock(clock.Now))}
 	if a.ingest, err = ingest.NewService(ingest.Options{Pool: tdb.App, Validator: testValidator(t), Logger: logger,
 		Limits: ingest.Limits{MaxUpload: 8 << 20, SBOM: sbom.Limits{MaxBytes: 32 << 20, MaxDepth: 64, MaxComponents: 20_000}}}); err != nil {
@@ -159,7 +163,7 @@ func newApp(t *testing.T, opts ...appOption) *app {
 		Identity: &IdentityOptions{
 			Pool: tdb.App, Accounts: a.accounts, Orgs: a.orgs, Projects: a.projects, Agents: a.agents, Secrets: box,
 			Inventory: a.inv, Ingest: a.ingest, Findings: finding.NewService(tdb.App),
-			Search: a.search, Exports: search.NewExportLimiter(2, time.Minute),
+			Search: a.search, Exports: a.exports, Reencodes: a.reencode,
 			Dashboard: dashboard.NewService(tdb.App, dashboard.WithClock(clock.Now)),
 			VulnDB: VulnDBOptions{MaxAge: 120 * time.Hour, ListingURL: "https://grype.anchore.io/databases/v6/latest.json",
 				SyncInterval: time.Minute, MaxArchive: 1 << 20, UploadTimeout: time.Minute},
@@ -257,16 +261,39 @@ func (b *browser) cookie(name string) string {
 	return ""
 }
 
-// post envoie un formulaire avec le jeton CSRF (obtenu au besoin par une page publique).
-func (b *browser) post(path string, form url.Values) page {
+// csrf renvoie le jeton CSRF que le serveur attend de ce navigateur : lié à la session
+// (csrfx.WithSessionBinding), il se calcule par csrfx lui-même à partir des cookies
+// CSRF et de session. Le cookie CSRF s'obtient au besoin par une page publique.
+func (b *browser) csrf() string {
 	b.t.Helper()
 	if b.cookie("csrf_token") == "" {
 		b.get("/login")
 	}
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.AddCookie(&http.Cookie{Name: "csrf_token", Value: b.cookie("csrf_token")})
+	if s := b.cookie("ogsbom_session"); s != "" {
+		req.AddCookie(&http.Cookie{Name: "ogsbom_session", Value: s})
+	}
+	session := func(r *http.Request) string {
+		if c, err := r.Cookie("ogsbom_session"); err == nil {
+			return c.Value
+		}
+		return ""
+	}
+	var token string
+	csrfx.New(csrfx.WithSessionBinding(session)).Middleware(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		token = csrfx.Token(r)
+	})).ServeHTTP(httptest.NewRecorder(), req)
+	return token
+}
+
+// post envoie un formulaire avec le jeton CSRF.
+func (b *browser) post(path string, form url.Values) page {
+	b.t.Helper()
 	if form == nil {
 		form = url.Values{}
 	}
-	form.Set("csrf_token", b.cookie("csrf_token"))
+	form.Set("csrf_token", b.csrf())
 	req, err := http.NewRequest(http.MethodPost, b.app.srv.URL+path, strings.NewReader(form.Encode()))
 	if err != nil {
 		b.t.Fatal(err)
@@ -337,6 +364,14 @@ func (a *app) code(userID int64, secretKey string) string {
 	a.mu.Unlock()
 	if n > 2 {
 		a.t.Fatalf("plus de trois connexions TOTP pour le compte %d dans le même test", userID)
+	}
+	// Le code du pas précédent n'est plus accepté si un changement de pas survient entre
+	// sa génération et sa vérification (instabilité vue en CI chargée) : près de la fin
+	// d'un pas, attendre le suivant.
+	if n == 0 {
+		if left := 30*time.Second - time.Duration(time.Now().UnixNano()%int64(30*time.Second)); left < 5*time.Second {
+			time.Sleep(left + 100*time.Millisecond)
+		}
 	}
 	c, err := totp.GenerateCode(secretKey, time.Now().Add(time.Duration(n-1)*30*time.Second))
 	if err != nil {

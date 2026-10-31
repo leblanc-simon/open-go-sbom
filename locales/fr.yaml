@@ -80,7 +80,6 @@ flash:
   org_archived: L'organisation est archivée ; ses membres n'y ont plus accès.
   org_unarchived: L'organisation est de nouveau active.
   account_updated: Le compte est modifié.
-  totp_reset: Le TOTP du compte est réinitialisé ; il en enrôlera un nouveau à sa prochaine connexion.
   project_created: Le projet est créé.
   project_saved: Le projet est enregistré.
   project_archived: Le projet est archivé ; il n'est plus proposé à son agent.
@@ -182,6 +181,7 @@ login:
     title: Connexion refusée
     invalid_credentials: Adresse e-mail ou mot de passe incorrect.
     attempts_exhausted: Trop de codes incorrects. Reprenez la connexion depuis le début.
+    locked: "Trop de codes incorrects pour ce compte : il est verrouillé pour un temps. Réessayez plus tard ou adressez-vous à un administrateur de l'instance."
 
 verify:
   title: Code de vérification
@@ -234,6 +234,7 @@ password:
   new: Nouveau mot de passe
   rule: "{{.Min}} caractères au moins, sans autre règle : une phrase de passe convient très bien."
   confirm: Confirmation du nouveau mot de passe
+  revoke_tokens: Révoquer aussi mes jetons d'accès personnels
   submit: Changer de mot de passe
 
 org:
@@ -358,6 +359,7 @@ audit:
     account_settings_changed: "Préférences de {{.Target}} modifiées"
     account_bootstrapped: "Premier administrateur {{.Target}} créé au démarrage"
     account_rescue_totp_reset: "Procédure de secours : TOTP de {{.Target}} réinitialisé (ticket {{.D_ticket}})"
+    account_locked: "Compte {{.Target}} verrouillé après trop de codes TOTP incorrects (jusqu'à {{.D_until}})"
     org_created: "Organisation {{.Target}} créée"
     org_renamed: "Organisation renommée de « {{.D_from}} » en « {{.D_to}} »"
     org_language_changed: "Langue par défaut de l'organisation : {{.D_from}} → {{.D_to}}"
@@ -441,6 +443,7 @@ admin_password:
   title: Mot de passe temporaire
   created_heading: Compte créé
   reset_heading: Mot de passe réinitialisé
+  totp_reset_heading: TOTP et mot de passe réinitialisés
   lead: "Mot de passe temporaire de {{.Email}}."
   once_title: Affiché une seule fois
   once_text: Notez-le maintenant et transmettez-le au titulaire par un canal sûr ; il ne sera plus jamais affiché.
@@ -561,6 +564,9 @@ error:
     account_inactive:
       title: Compte désactivé
       text: Le compte propriétaire de ce jeton est désactivé ; ses jetons sont refusés.
+    account_pending:
+      title: Identifiants à renouveler
+      text: Le compte propriétaire de ce jeton doit changer son mot de passe temporaire ou enrôler un second facteur ; ses jetons sont refusés jusque-là.
     invalid:
       title: Jeton refusé
       text: "Le jeton présenté est absent, mal formé ou inconnu. Vérifiez qu'il est complet (ogsbom_agt_…, ogsbom_enr_… ou ogsbom_pat_…) et qu'il convient à cette opération."
@@ -606,6 +612,9 @@ error:
     decode_failed:
       title: Décodage impossible
       text: Le document est conforme à son schéma mais n'a pas pu être décodé.
+    quota:
+      title: Quota d'envois atteint
+      text: "Cette référence a reçu trop d'envois en 24 heures, ou l'organisation a atteint son volume de SBOM stockés. Réessayez plus tard ; l'exploitant règle ces bornes (ingest.max_per_ref_per_day, ingest.max_org_storage_mib)."
     ref_unknown:
       title: Référence inconnue
       text: Ce projet n'est pas confié à cet agent, n'est plus actif, ou ne suit pas cette référence.
@@ -1342,6 +1351,11 @@ tokens:
   expiry_90: 90 jours
   expiry_180: 180 jours
   expiry_365: 1 an
+  code: Code TOTP
+  code_hint: "Confirmez la création par le code de votre application d'authentification : un jeton dure jusqu'à un an."
+  error:
+    invalid_code: Ce code est incorrect, expiré ou déjà utilisé.
+    locked: "Trop de codes incorrects : le compte est verrouillé pour un temps, réessayez plus tard."
 
 severity_short:
   critical: "Crit."
@@ -1376,8 +1390,8 @@ confirm:
   personal_token_text: "Le jeton {{.Prefix}}… cessera aussitôt de fonctionner : les scripts et intégrations qui l'utilisent recevront une erreur d'authentification."
   personal_token_submit: "Révoquer le jeton « {{.Name}} »"
   reset_password_heading: "Réinitialiser le mot de passe de {{.Email}} ?"
-  reset_password_text: "Le mot de passe actuel cessera de fonctionner et les sessions du compte seront fermées. Un mot de passe temporaire, affiché une seule fois, sera à transmettre à son titulaire, qui le changera à sa prochaine connexion."
+  reset_password_text: "Le mot de passe actuel cessera de fonctionner, les sessions du compte seront fermées et ses jetons d'accès personnels révoqués. Un mot de passe temporaire, affiché une seule fois, sera à transmettre à son titulaire, qui le changera à sa prochaine connexion."
   reset_totp_heading: "Réinitialiser le TOTP de {{.Email}} ?"
-  reset_totp_text: "Les codes de son application d'authentification ne seront plus acceptés et les sessions du compte seront fermées. Son titulaire devra configurer un nouveau TOTP à sa prochaine connexion."
+  reset_totp_text: "Les codes de son application d'authentification ne seront plus acceptés, son mot de passe sera remplacé par un mot de passe temporaire (affiché une seule fois, à transmettre à son titulaire), les sessions du compte seront fermées et ses jetons d'accès personnels révoqués. Son titulaire configurera un nouveau TOTP puis changera de mot de passe à sa prochaine connexion."
   job_heading: "Abandonner le traitement {{.Kind}} ?"
   job_text: "Le traitement et sa dernière erreur seront supprimés (tentatives : {{.Attempts}}) ; il ne sera plus relancé. Pour qu'il s'exécute de nouveau, il faudra reproduire la donnée qui l'a mis en file."

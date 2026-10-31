@@ -172,7 +172,19 @@ func (c Config) Validate() error {
 	if c.MFA.MaxAttempts < 1 || c.MFA.MaxAttempts > 20 {
 		v.fail("mfa.max_attempts", "doit être compris entre 1 et 20 (reçu %d)", c.MFA.MaxAttempts)
 	}
+	if c.MFA.LockoutThreshold < 1 || c.MFA.LockoutThreshold > 100 {
+		v.fail("mfa.lockout_threshold", "doit être compris entre 1 et 100 (reçu %d)", c.MFA.LockoutThreshold)
+	}
+	v.positive("mfa.lockout_window", int64(c.MFA.LockoutWindow))
+	v.positive("mfa.lockout_duration", int64(c.MFA.LockoutDuration))
+	if c.MFA.LockoutMaxDuration < c.MFA.LockoutDuration {
+		v.fail("mfa.lockout_max_duration", "doit être au moins égal à mfa.lockout_duration")
+	}
 	v.nonNegative("login.rate_limit", int64(c.Login.RateLimit))
+	v.nonNegative("login.session_max_age", int64(c.Login.SessionMaxAge))
+	if c.Login.SessionMaxAge > 0 && c.Login.SessionMaxAge < c.Auth.SessionTTL {
+		v.fail("login.session_max_age", "doit être au moins égal à auth.session_ttl, ou 0 (sans durée absolue)")
+	}
 	v.nonNegative("agent_api.rate_limit", int64(c.AgentAPI.RateLimit))
 	v.nonNegative("agent_api.failure_rate_limit", int64(c.AgentAPI.FailureRateLimit))
 	v.nonNegative("user_api.rate_limit", int64(c.UserAPI.RateLimit))
@@ -251,6 +263,11 @@ func (i Ingest) validate(v *validator) {
 	}
 	v.positive("ingest.max_components", int64(i.MaxComponents))
 	v.positive("ingest.decode_timeout", int64(i.DecodeTimeout))
+	v.nonNegative("ingest.max_per_ref_per_day", int64(i.MaxPerRefPerDay))
+	v.nonNegative("ingest.max_org_storage_mib", int64(i.MaxOrgStorageMiB))
+	if i.MaxReencodes < 1 || i.MaxReencodes > 64 {
+		v.fail("ingest.max_reencodes", "doit être compris entre 1 et 64 (reçu %d)", i.MaxReencodes)
+	}
 }
 
 func (b Bootstrap) validate(v *validator) {
@@ -263,11 +280,13 @@ func (b Bootstrap) validate(v *validator) {
 			v.fail("bootstrap.admin_password", "refusé par la politique de mot de passe (%d caractères au moins, différent de l'e-mail)", account.MinPasswordLength)
 		}
 	}
-	if (b.RescueEmail == "") != (b.RescueTicket == "") {
-		v.fail("bootstrap.rescue_ticket", "bootstrap.rescue_totp_email et bootstrap.rescue_ticket vont ensemble")
+	if (b.RescueEmail == "") != (b.RescueTicket == "") || (b.RescueEmail == "") != (b.RescuePassword == "") {
+		v.fail("bootstrap.rescue_ticket", "bootstrap.rescue_totp_email, bootstrap.rescue_ticket et bootstrap.rescue_password vont ensemble")
 	} else if b.RescueEmail != "" {
 		if _, err := account.NormalizeEmail(b.RescueEmail); err != nil {
 			v.fail("bootstrap.rescue_totp_email", "adresse invalide")
+		} else if err := account.ValidatePassword(b.RescuePassword, b.RescueEmail); err != nil {
+			v.fail("bootstrap.rescue_password", "refusé par la politique de mot de passe (%d caractères au moins, différent de l'e-mail)", account.MinPasswordLength)
 		}
 		if len([]rune(strings.TrimSpace(b.RescueTicket))) < account.MinRescueTicket {
 			v.fail("bootstrap.rescue_ticket", "%d caractères au moins", account.MinRescueTicket)

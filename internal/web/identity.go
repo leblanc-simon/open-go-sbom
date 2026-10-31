@@ -5,7 +5,9 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -63,6 +65,8 @@ type IdentityOptions struct {
 	// les versions de la fiche composant (T09).
 	Search  *search.Service
 	Exports *search.ExportLimiter
+	// Reencodes borne les réencodages simultanés de SBOM téléchargés (CycloneDX, SPDX).
+	Reencodes *search.ExportLimiter
 	// Dashboard sert le tableau de bord et l'en-tête de la fiche projet (T10).
 	Dashboard *dashboard.Service
 	// VulnDB règle l'écran de la base de vulnérabilités et son alerte d'âge.
@@ -73,6 +77,9 @@ type IdentityOptions struct {
 	MFA     appconf.MFA
 	// LoginRateLimit borne les POST de /login et /login/2fa par minute et par IP (0 : sans).
 	LoginRateLimit int
+	// SessionMaxAge est la durée absolue d'une session authentifiée, comptée depuis la
+	// connexion, quelle que soit son activité (0 : sans).
+	SessionMaxAge time.Duration
 }
 
 // identity porte authx, mfax et ce que l'interface en tire : visiteur, gardes, rendu des
@@ -91,8 +98,11 @@ type identity struct {
 
 func newIdentity(o IdentityOptions, rd *render.Renderer, cat *locale.Catalog, logger *slog.Logger, clientIP func(*http.Request) string) (*identity, error) {
 	if o.Pool == nil || o.Accounts == nil || o.Orgs == nil || o.Projects == nil || o.Agents == nil || o.Inventory == nil ||
-		o.Ingest == nil || o.Findings == nil || o.Search == nil || o.Exports == nil || o.Dashboard == nil || o.Secrets == nil || o.VulnDB.MaxAge <= 0 {
+		o.Ingest == nil || o.Findings == nil || o.Search == nil || o.Exports == nil || o.Reencodes == nil || o.Dashboard == nil || o.Secrets == nil || o.VulnDB.MaxAge <= 0 {
 		return nil, errors.New("web: dépendances de l'identité incomplètes")
+	}
+	if hostCookies(o.Auth.CookieSecure) {
+		o.Auth.CookieName = hostCookie(o.Auth.CookieName)
 	}
 	id := &identity{IdentityOptions: o, rd: rd, cat: cat, logger: logger, clientIP: clientIP}
 	d := appconf.DialectPostgres
@@ -103,13 +113,42 @@ func newIdentity(o IdentityOptions, rd *render.Renderer, cat *locale.Catalog, lo
 	id.challenges = mfasql.NewChallengeStore(sqlDB, d)
 	totp := account.NewSealedTOTPStore(mfasql.NewTOTPStore(sqlDB, d), o.Secrets, o.Pool)
 	// Enrôlement obligatoire : jamais mfax.WithOptionalEnrollment().
-	id.mfa = mfax.New(o.MFA, id.mgr, totp, id.challenges,
+	// Verrouillage par compte : le plafond par défi ne borne pas une force brute du TOTP,
+	// un nouveau défi s'obtenant en rejouant le mot de passe (ADR 0029).
+	mfaOpts := []mfax.Option{
 		mfax.WithRenderer(authRenderer{id}),
 		mfax.WithPaths(pathVerify, pathTOTPSetup, pathHome),
-		mfax.WithErrorHandler(id.mfaError))
+		mfax.WithErrorHandler(id.mfaError),
+		mfax.WithLockout(mfasql.NewLockoutStore(sqlDB, d)),
+		mfax.WithLockoutHook(id.accountLocked),
+	}
+	if hostCookies(o.Auth.CookieSecure) {
+		mfaOpts = append(mfaOpts, mfax.WithChallengeCookieName(hostCookie(mfax.ChallengeCookieName)))
+	}
+	id.mfa = mfax.New(o.MFA, id.mgr, totp, id.challenges, mfaOpts...)
 	id.login = authx.NewHandlers(id.mgr, authRenderer{id},
 		authx.WithSecondFactor(id.mfa), authx.WithHomePath(pathHome), authx.WithErrorHandler(id.authError))
 	return id, nil
+}
+
+// hostCookies indique si les cookies prennent le préfixe __Host- : il exige Secure, donc
+// cookie_secure à on.
+func hostCookies(cookieSecure string) bool { return cookieSecure == "on" }
+
+// hostCookie préfixe name de __Host- : le navigateur refuse alors qu'un sous-domaine ou
+// une réponse en clair l'écrase (Secure, Path=/, sans Domain).
+func hostCookie(name string) string {
+	if strings.HasPrefix(name, "__Host-") {
+		return name
+	}
+	return "__Host-" + name
+}
+
+// accountLocked journalise le verrouillage d'un compte par mfax.
+func (id *identity) accountLocked(r *http.Request, u *authx.User, until time.Time) {
+	a := authRenderer{id}
+	a.record(r, audit.Event{Action: audit.AccountLocked, TargetType: "account", TargetID: strconv.FormatInt(u.ID, 10),
+		TargetLabel: u.Email, Details: map[string]string{"until": until.UTC().Format(time.RFC3339)}})
 }
 
 func (id *identity) authError(w http.ResponseWriter, r *http.Request, status int, code authx.ErrorCode, err error) {
@@ -176,8 +215,10 @@ func trustClientIP(proxies middleware.TrustedProxies, clientIP func(*http.Reques
 }
 
 // loadViewer suit authx.LoadSession : il refuse une session authentifiée sans méthode
-// enregistrée ou dont le compte n'a plus de TOTP actif (réinitialisé entre-temps), et place
-// le visiteur et l'en-tête dans le contexte.
+// enregistrée, dont le compte n'a plus de TOTP actif (réinitialisé entre-temps) ou ouverte
+// depuis plus de SessionMaxAge (la session d'authx glisse à chaque requête : sans cette
+// borne, un cookie volé et utilisé régulièrement ne mourrait jamais), et place le visiteur
+// et l'en-tête dans le contexte.
 func (id *identity) loadViewer(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, sess := authx.UserFrom(r), authx.SessionFrom(r)
@@ -194,6 +235,11 @@ func (id *identity) loadViewer(next http.Handler) http.Handler {
 		if v.authenticated() && (!st.HasMethod || !st.TOTPEnabled) {
 			id.mgr.Logout(w, r)
 			http.Redirect(w, r, pathLogin, http.StatusSeeOther)
+			return
+		}
+		if v.authenticated() && id.SessionMaxAge > 0 && time.Since(st.AuthenticatedAt) > id.SessionMaxAge {
+			id.mgr.Logout(w, r)
+			authx.RedirectToLogin(w, r)
 			return
 		}
 		chrome := &render.Chrome{UserEmail: user.Email, Theme: st.Settings.Theme}

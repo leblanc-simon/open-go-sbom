@@ -108,14 +108,14 @@ func TestIrreversibleActionsAreConfirmed(t *testing.T) {
 				list, err := a.accounts.PersonalTokens(ctx, admin.ID)
 				return err == nil && len(list) == 1 && list[0].RevokedAt != nil
 			}},
-		{"réinitialisation du TOTP", "/admin/users/" + itoa(member.ID), "/admin/users/" + itoa(member.ID) + "/reset-totp", "/admin/users/" + itoa(member.ID),
-			[]string{"Réinitialiser le TOTP de membre@example.org ?", "configurer un nouveau TOTP"}, nil, "totp_reset", func() bool {
-				return a.countRows(`SELECT count(*) FROM mfa_totp WHERE user_id = $1 AND enabled = 1`, member.ID) == 0
-			}},
 		{"réinitialisation du mot de passe", "/admin/users/" + itoa(member.ID), "/admin/users/" + itoa(member.ID) + "/reset-password", "/admin/users/" + itoa(member.ID),
 			[]string{"Réinitialiser le mot de passe de membre@example.org ?", "affiché une seule fois"}, nil, "", func() bool {
 				got, err := a.accounts.Get(ctx, member.ID)
 				return err == nil && got.MustChangePwd
+			}},
+		{"réinitialisation du TOTP", "/admin/users/" + itoa(member.ID), "/admin/users/" + itoa(member.ID) + "/reset-totp", "/admin/users/" + itoa(member.ID),
+			[]string{"Réinitialiser le TOTP de membre@example.org ?", "configurera un nouveau TOTP", "mot de passe temporaire"}, nil, "", func() bool {
+				return a.countRows(`SELECT count(*) FROM mfa_totp WHERE user_id = $1 AND enabled = 1`, member.ID) == 0
 			}},
 		{"abandon d'un traitement", "/admin/jobs", "/admin/jobs/" + job.String() + "/discard", "/admin/jobs",
 			[]string{"Abandonner le traitement ingest.decode ?", "tentatives : 10"}, nil, "job_discarded", func() bool {

@@ -100,10 +100,15 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	if err != nil {
 		return fmt.Errorf("secrets.keys : %w", err)
 	}
+	if cfg.Auth.CookieSecure != "on" {
+		logger.Warn("auth.cookie_secure n'est pas « on » : cookies sans préfixe __Host-, et sans Secure hors HTTPS détecté ; réservé au développement",
+			"cookie_secure", cfg.Auth.CookieSecure)
+	}
 	accounts := account.NewService(pool, cfg.Auth.BcryptCost)
 	b := cfg.Bootstrap
 	if err := accounts.Startup(ctx, account.StartupOptions{
 		AdminEmail: b.AdminEmail, AdminPassword: b.AdminPassword, RescueEmail: b.RescueEmail, RescueTicket: b.RescueTicket,
+		RescuePassword: b.RescuePassword,
 	}, pool, box, logger); err != nil {
 		return err
 	}
@@ -140,7 +145,9 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	ingester, err := ingest.NewService(ingest.Options{
 		Pool: pool, Validator: validator, Logger: logger,
 		Limits: ingest.Limits{
-			MaxUpload: config.MiB(cfg.Ingest.MaxUploadMiB),
+			MaxUpload:       config.MiB(cfg.Ingest.MaxUploadMiB),
+			MaxPerRefPerDay: cfg.Ingest.MaxPerRefPerDay,
+			MaxOrgStorage:   config.MiB(cfg.Ingest.MaxOrgStorageMiB),
 			SBOM: sbom.Limits{
 				MaxBytes: config.MiB(cfg.Ingest.MaxDecompressedMiB), MaxDepth: cfg.Ingest.MaxDepth,
 				MaxComponents: cfg.Ingest.MaxComponents,
@@ -152,6 +159,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	}
 	searcher := search.NewService(pool, grypeversion.New())
 	exports := search.NewExportLimiter(cfg.UserAPI.MaxExports, cfg.UserAPI.ExportTimeout)
+	reencodes := search.NewExportLimiter(cfg.Ingest.MaxReencodes, cfg.UserAPI.ExportTimeout)
 	vulndbScreen := web.VulnDBOptions{MaxAge: cfg.VulnDB.MaxAge, Offline: cfg.VulnDB.Offline, ListingURL: cfg.VulnDB.ListingURL,
 		SyncInterval: cfg.VulnDB.SyncInterval, MaxArchive: config.MiB(cfg.VulnDB.MaxArchiveMiB),
 		UploadTimeout: cfg.VulnDB.DownloadTimeout}
@@ -176,12 +184,14 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Findings:       finding.NewService(pool),
 			Search:         searcher,
 			Exports:        exports,
+			Reencodes:      reencodes,
 			Dashboard:      dash,
 			VulnDB:         vulndbScreen,
 			Secrets:        box,
 			Auth:           cfg.Auth,
 			MFA:            cfg.MFA,
 			LoginRateLimit: cfg.Login.RateLimit,
+			SessionMaxAge:  cfg.Login.SessionMaxAge,
 		},
 		AgentAPI: &api.AgentOptions{
 			Agents:           agents,

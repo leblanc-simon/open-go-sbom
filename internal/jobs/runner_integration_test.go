@@ -338,6 +338,11 @@ func TestOrgLimitDoesNotStarveOtherOrgs(t *testing.T) {
 	}
 	close(release)
 	waitFor(t, 20*time.Second, "jobs de A", func() bool { return count(t, tdb.App, "status = 'done'") == 11 })
+	for _, id := range aIDs {
+		if s := status(t, tdb.App, id); s != "done" {
+			t.Errorf("job %s de A : %s", id, s)
+		}
+	}
 	mu.Lock()
 	defer mu.Unlock()
 	if maxRunning[orgA] != 2 {

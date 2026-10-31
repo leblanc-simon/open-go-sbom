@@ -80,7 +80,6 @@ flash:
   org_archived: The organization is archived; its members no longer have access.
   org_unarchived: The organization is active again.
   account_updated: The account is updated.
-  totp_reset: The account's TOTP is reset; a new one will be enrolled at the next sign-in.
   project_created: The project is created.
   project_saved: The project is saved.
   project_archived: The project is archived; it is no longer offered to its agent.
@@ -182,6 +181,7 @@ login:
     title: Sign-in refused
     invalid_credentials: Incorrect e-mail address or password.
     attempts_exhausted: Too many incorrect codes. Start the sign-in again.
+    locked: Too many incorrect codes for this account, which is locked for a while. Try again later or contact an instance administrator.
 
 verify:
   title: Verification code
@@ -234,6 +234,7 @@ password:
   new: New password
   rule: "At least {{.Min}} characters, no other rule: a passphrase works very well."
   confirm: Confirm the new password
+  revoke_tokens: Also revoke my personal access tokens
   submit: Change password
 
 org:
@@ -358,6 +359,7 @@ audit:
     account_settings_changed: "Preferences of {{.Target}} changed"
     account_bootstrapped: "First administrator {{.Target}} created at startup"
     account_rescue_totp_reset: "Rescue procedure: TOTP of {{.Target}} reset (ticket {{.D_ticket}})"
+    account_locked: "Account {{.Target}} locked after too many incorrect TOTP codes (until {{.D_until}})"
     org_created: "Organization {{.Target}} created"
     org_renamed: "Organization renamed from “{{.D_from}}” to “{{.D_to}}”"
     org_language_changed: "Organization default language: {{.D_from}} → {{.D_to}}"
@@ -441,6 +443,7 @@ admin_password:
   title: Temporary password
   created_heading: Account created
   reset_heading: Password reset
+  totp_reset_heading: TOTP and password reset
   lead: "Temporary password of {{.Email}}."
   once_title: Shown only once
   once_text: Write it down now and give it to its holder through a safe channel; it will never be shown again.
@@ -558,6 +561,9 @@ error:
     title: Authentication required
     text: This address requires a valid token.
   token:
+    account_pending:
+      title: Credentials to renew
+      text: The account owning this token must change its temporary password or enroll a second factor; its tokens are refused until then.
     account_inactive:
       title: Account deactivated
       text: The account that owns this token is deactivated; its tokens are refused.
@@ -606,6 +612,9 @@ error:
     decode_failed:
       title: Decoding failed
       text: The document conforms to its schema but could not be decoded.
+    quota:
+      title: Upload quota reached
+      text: "This reference received too many uploads within 24 hours, or the organization reached its stored SBOM volume. Try again later; the operator sets these limits (ingest.max_per_ref_per_day, ingest.max_org_storage_mib)."
     ref_unknown:
       title: Unknown reference
       text: This project is not assigned to this agent, is no longer active, or does not track this reference.
@@ -1342,6 +1351,11 @@ tokens:
   expiry_90: 90 days
   expiry_180: 180 days
   expiry_365: 1 year
+  code: TOTP code
+  code_hint: "Confirm the creation with the code of your authenticator app: a token lasts up to one year."
+  error:
+    invalid_code: This code is incorrect, expired or already used.
+    locked: "Too many incorrect codes: the account is locked for a while, try again later."
 
 severity_short:
   critical: "Crit"
@@ -1376,8 +1390,8 @@ confirm:
   personal_token_text: "The token {{.Prefix}}… stops working at once: scripts and integrations using it get an authentication error."
   personal_token_submit: "Revoke the token “{{.Name}}”"
   reset_password_heading: "Reset the password of {{.Email}}?"
-  reset_password_text: "The current password stops working and the sessions of the account are closed. A temporary password, shown only once, must be passed on to its holder, who changes it at the next sign-in."
+  reset_password_text: "The current password stops working, the sessions of the account are closed and its personal access tokens revoked. A temporary password, shown only once, must be passed on to its holder, who changes it at the next sign-in."
   reset_totp_heading: "Reset the TOTP of {{.Email}}?"
-  reset_totp_text: "Codes from the current authenticator app are no longer accepted and the sessions of the account are closed. Its holder must set up a new TOTP at the next sign-in."
+  reset_totp_text: "Codes from the current authenticator app are no longer accepted, the password is replaced by a temporary one (shown only once, to pass on to its holder), the sessions of the account are closed and its personal access tokens revoked. Its holder sets up a new TOTP, then changes the password at the next sign-in."
   job_heading: "Discard the job {{.Kind}}?"
   job_text: "The job and its last error are deleted (attempts: {{.Attempts}}); it will not run again. For it to run again, the data that queued it must be produced again."

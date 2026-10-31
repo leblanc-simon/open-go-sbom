@@ -37,6 +37,7 @@ const (
 	AccountSettingsChanged Action = "account.settings_changed"
 	AccountBootstrapped    Action = "account.bootstrapped"
 	AccountRescueTOTPReset Action = "account.rescue_totp_reset"
+	AccountLocked          Action = "account.locked"
 	OrgCreated             Action = "org.created"
 	OrgRenamed             Action = "org.renamed"
 	OrgLanguageChanged     Action = "org.language_changed"
@@ -74,7 +75,7 @@ func Actions() []Action {
 		LoginSucceeded, LoginFailed, TOTPFailed, TOTPEnrolled, Logout,
 		AccountCreated, AccountDeactivated, AccountActivated, AccountPasswordReset,
 		AccountPasswordChanged, AccountTOTPReset, AccountRoleChanged, AccountSettingsChanged,
-		AccountBootstrapped, AccountRescueTOTPReset,
+		AccountBootstrapped, AccountRescueTOTPReset, AccountLocked,
 		OrgCreated, OrgRenamed, OrgLanguageChanged, OrgArchived, OrgUnarchived,
 		MemberAdded, MemberRoleChanged, MemberRemoved,
 		ProjectCreated, ProjectUpdated, ProjectArchived, ProjectUnarchived, ProjectAgentChanged,

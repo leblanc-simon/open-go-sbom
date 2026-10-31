@@ -12,8 +12,22 @@ import (
 
 	"leblanc.io/open-go-sbom/internal/account"
 	"leblanc.io/open-go-sbom/internal/audit"
+	"leblanc.io/open-go-sbom/internal/db/dbtest"
 	"leblanc.io/open-go-sbom/internal/token"
 )
+
+// ready rend un compte utilisable par ses jetons : mot de passe définitif, TOTP actif.
+func ready(t *testing.T, tdb *dbtest.DB, userID int64) {
+	t.Helper()
+	ctx := context.Background()
+	if _, err := tdb.App.DB().ExecContext(ctx, `UPDATE users SET must_change_pwd = 0 WHERE id = $1`, userID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tdb.App.DB().ExecContext(ctx, `INSERT INTO mfa_totp (user_id, secret, enabled) VALUES ($1, 'scellé', 1)
+		ON CONFLICT (user_id) DO UPDATE SET enabled = 1`, userID); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func tokenKey(err error) string {
 	var te *account.TokenError
@@ -37,6 +51,7 @@ func TestPersonalTokenLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	ready(t, tdb, u.ID)
 	actor := audit.Actor{UserID: u.ID, Email: u.Email}
 	tok, issued, err := s.CreatePersonalToken(ctx, actor, u.ID, " CI nocturne ", 30)
 	if err != nil {
@@ -133,6 +148,97 @@ func TestPersonalTokenLifecycle(t *testing.T) {
 	}
 	if created != 3 || revoked != 1 {
 		t.Fatalf("journal : %d créations, %d révocations", created, revoked)
+	}
+}
+
+// TestPersonalTokensRevokedOnCredentialReset : réinitialiser le mot de passe ou le TOTP
+// révoque d'office les jetons personnels, comme le changement de mot de passe quand le
+// titulaire le demande ; un compte en attente (mot de passe temporaire, TOTP absent) voit
+// ses jetons refusés (SEC-02, test de la revue inversé).
+func TestPersonalTokensRevokedOnCredentialReset(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	tdb, s := setup(t)
+	u, _, err := s.Create(ctx, audit.System, "bob@example.org", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	admin := audit.Actor{UserID: 1, Email: "admin@example.org"}
+	issue := func(name string) string {
+		t.Helper()
+		ready(t, tdb, u.ID)
+		_, issued, err := s.CreatePersonalToken(ctx, audit.Actor{UserID: u.ID, Email: u.Email}, u.ID, name, 365)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.AuthenticateToken(ctx, issued.Plaintext); err != nil {
+			t.Fatalf("%s avant : %v", name, err)
+		}
+		return issued.Plaintext
+	}
+
+	byReset := issue("réinitialisation du mot de passe")
+	if _, err := s.ResetPassword(ctx, admin, u.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AuthenticateToken(ctx, byReset); tokenKey(err) != account.KeyTokenRevoked {
+		t.Fatalf("après réinitialisation du mot de passe : %v", err)
+	}
+
+	byTOTP := issue("réinitialisation du TOTP")
+	temp, err := s.ResetTOTP(ctx, admin, u.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AuthenticateToken(ctx, byTOTP); tokenKey(err) != account.KeyTokenRevoked {
+		t.Fatalf("après réinitialisation du TOTP : %v", err)
+	}
+
+	// Changement de mot de passe : révocation au choix du titulaire.
+	kept := issue("conservé")
+	const next = "nouvelle phrase de passe"
+	if err := s.ChangePassword(ctx, audit.Actor{UserID: u.ID}, u.ID, temp, next, next, "", false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AuthenticateToken(ctx, kept); err != nil {
+		t.Fatalf("jeton révoqué sans demande : %v", err)
+	}
+	if err := s.ChangePassword(ctx, audit.Actor{UserID: u.ID}, u.ID, next, "encore une autre phrase", "encore une autre phrase", "", true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AuthenticateToken(ctx, kept); tokenKey(err) != account.KeyTokenRevoked {
+		t.Fatalf("après changement avec révocation : %v", err)
+	}
+
+	// Compte en attente : refusé même si un jeton échappait à la révocation.
+	pending := issue("en attente")
+	if _, err := tdb.App.DB().ExecContext(ctx, `UPDATE users SET must_change_pwd = 1 WHERE id = $1`, u.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AuthenticateToken(ctx, pending); tokenKey(err) != account.KeyAccountPending {
+		t.Fatalf("mot de passe temporaire : %v", err)
+	}
+	ready(t, tdb, u.ID)
+	if _, err := tdb.App.DB().ExecContext(ctx, `DELETE FROM mfa_totp WHERE user_id = $1`, u.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AuthenticateToken(ctx, pending); tokenKey(err) != account.KeyAccountPending {
+		t.Fatalf("sans TOTP : %v", err)
+	}
+
+	// Chaque révocation d'office est journalisée avec sa cause.
+	page, err := audit.ListInstance(ctx, tdb.App.DB(), "", 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reasons := map[string]int{}
+	for _, e := range page.Items {
+		if e.Action == audit.PersonalTokenRevoked {
+			reasons[e.Details["reason"]]++
+		}
+	}
+	if reasons["password_reset"] != 1 || reasons["totp_reset"] != 1 || reasons["password_changed"] != 1 || len(reasons) != 3 {
+		t.Fatalf("révocations journalisées : %v", reasons)
 	}
 }
 

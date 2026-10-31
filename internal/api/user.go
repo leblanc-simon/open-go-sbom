@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -170,8 +171,9 @@ func (h *userAPI) SearchOrganization(w http.ResponseWriter, r *http.Request, _ u
 // ExportSearch écrit l'export d'une recherche.
 func (h *userAPI) ExportSearch(w http.ResponseWriter, r *http.Request, _ userapi.Org, params userapi.ExportSearchParams) {
 	acc, _ := tenant.AccessFrom(r.Context())
+	p, _ := r.Context().Value(userKey{}).(account.TokenPrincipal)
 	ServeExport(w, r, ExportOptions{Search: h.Search, Exports: h.Exports, Catalog: h.Catalog, Logger: h.Logger,
-		Org: acc.Org, Slug: acc.Slug, Format: string(params.Format)})
+		Org: acc.Org, Slug: acc.Slug, Format: string(params.Format), UserID: p.UserID})
 }
 
 // ExportOptions décrit un export de recherche servi par ServeExport.
@@ -183,6 +185,8 @@ type ExportOptions struct {
 	Org     tenant.OrgID
 	Slug    string
 	Format  string
+	// UserID est le compte de l'export : ses exports simultanés sont bornés.
+	UserID int64
 }
 
 // ServeExport sert l'export d'une recherche (écran et API) : requête vérifiée avant toute
@@ -204,7 +208,7 @@ func ServeExport(w http.ResponseWriter, r *http.Request, o ExportOptions) {
 		}
 		return
 	}
-	release, ok := o.Exports.Acquire()
+	release, ok := o.Exports.Acquire("user:" + strconv.FormatInt(o.UserID, 10))
 	if !ok {
 		w.Header().Set("Retry-After", "30")
 		problem.Write(w, r, o.Catalog, http.StatusTooManyRequests, problem.KeyTooManyRequests, nil)

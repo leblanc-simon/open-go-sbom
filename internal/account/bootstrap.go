@@ -73,10 +73,13 @@ func (s *Service) Bootstrap(ctx context.Context, email, password string) (create
 }
 
 // RescueTOTP est la procédure de secours d'un administrateur d'instance qui a perdu son
-// TOTP : elle retire son second facteur et ferme ses sessions, une seule fois par couple
-// (compte, ticket). Le ticket (numéro d'incident, date…) est choisi par l'exploitant ;
-// s'il reste en configuration, les démarrages suivants n'ont aucun effet (applied faux).
-func (s *Service) RescueTOTP(ctx context.Context, email, ticket string) (applied bool, err error) {
+// TOTP : elle retire son second facteur, lui impose le mot de passe temporaire password
+// (choisi par l'exploitant, changé à la connexion suivante), ferme ses sessions et
+// révoque ses jetons personnels, une seule fois par couple (compte, ticket). Sans nouveau
+// mot de passe, quiconque connaît l'ancien enrôlerait son propre TOTP (ADR 0029). Le
+// ticket (numéro d'incident, date…) est choisi par l'exploitant ; s'il reste en
+// configuration, les démarrages suivants n'ont aucun effet (applied faux).
+func (s *Service) RescueTOTP(ctx context.Context, email, ticket, password string) (applied bool, err error) {
 	e, err := NormalizeEmail(email)
 	if err != nil {
 		return false, err
@@ -84,6 +87,13 @@ func (s *Service) RescueTOTP(ctx context.Context, email, ticket string) (applied
 	ticket = strings.TrimSpace(ticket)
 	if utf8.RuneCountInString(ticket) < MinRescueTicket || len(ticket) > 128 {
 		return false, &ValidationError{Field: "ticket", Key: KeyRescueTicketTooShort}
+	}
+	if err := ValidatePassword(password, e); err != nil {
+		return false, err
+	}
+	hash, err := authx.HashPassword(password, s.bcryptCost)
+	if err != nil {
+		return false, fmt.Errorf("account: hachage : %w", err)
 	}
 	err = s.pool.InTx(ctx, func(tx *db.Tx) error {
 		if _, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock($1)`, startupLockKey); err != nil {
@@ -112,7 +122,10 @@ func (s *Service) RescueTOTP(ctx context.Context, email, ticket string) (applied
 		if done {
 			return nil
 		}
-		if err := resetTOTP(ctx, tx, id); err != nil {
+		if err := setTemporaryPassword(ctx, tx, id, hash); err != nil {
+			return err
+		}
+		if err := resetTOTP(ctx, tx, audit.System, id); err != nil {
 			return err
 		}
 		applied = true

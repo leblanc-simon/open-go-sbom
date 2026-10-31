@@ -47,13 +47,18 @@ func TestInstanceAdministration(t *testing.T) {
 		t.Errorf("doublon : %d", p.status)
 	}
 	base := "/admin/users/" + itoa(carole.ID)
-	for _, action := range []string{"promote", "demote", "deactivate", "activate", "reset-totp"} {
+	for _, action := range []string{"promote", "demote", "deactivate", "activate"} {
 		if p := b.post(base+"/"+action, nil); p.status != http.StatusSeeOther {
 			t.Errorf("%s : %d\n%s", action, p.status, p.body)
 		}
 	}
 	if p := b.post(base+"/reset-password", nil); p.status != http.StatusOK || tempPassword.FindStringSubmatch(p.body) == nil {
 		t.Errorf("réinitialisation du mot de passe : %d", p.status)
+	}
+	// La réinitialisation du TOTP impose aussi un mot de passe temporaire (SEC-03).
+	if p := b.post(base+"/reset-totp", nil); p.status != http.StatusOK || tempPassword.FindStringSubmatch(p.body) == nil ||
+		!strings.Contains(p.body, "TOTP et mot de passe réinitialisés") {
+		t.Errorf("réinitialisation du TOTP : %d", p.status)
 	}
 	if p := b.post(base+"/inconnue", nil); p.status != http.StatusNotFound {
 		t.Errorf("action inconnue : %d", p.status)
@@ -119,7 +124,9 @@ func TestInstanceAdministration(t *testing.T) {
 }
 
 // TestRescueProcedure : la procédure de secours retire le TOTP de l'administrateur une
-// fois par ticket, ferme ses sessions et le journalise ; il enrôle un nouveau TOTP.
+// fois par ticket, lui impose le mot de passe temporaire de l'exploitant, ferme ses
+// sessions et le journalise ; il enrôle un nouveau TOTP. L'ancien mot de passe ne suffit
+// plus (SEC-03).
 func TestRescueProcedure(t *testing.T) {
 	t.Parallel()
 	a := newApp(t)
@@ -128,25 +135,32 @@ func TestRescueProcedure(t *testing.T) {
 	plain := a.user("plain@example.org", false)
 	b := a.signIn(admin)
 
-	if _, err := a.accounts.RescueTOTP(ctx, plain.Email, "INC-2026-0042"); err == nil {
+	const rescue = "mot de passe de secours"
+	if _, err := a.accounts.RescueTOTP(ctx, plain.Email, "INC-2026-0042", rescue); err == nil {
 		t.Fatal("secours accepté pour un compte ordinaire")
 	}
-	if _, err := a.accounts.RescueTOTP(ctx, admin.Email, "court"); err == nil {
+	if _, err := a.accounts.RescueTOTP(ctx, admin.Email, "court", rescue); err == nil {
 		t.Fatal("ticket trop court accepté")
 	}
-	applied, err := a.accounts.RescueTOTP(ctx, admin.Email, "INC-2026-0042")
+	if _, err := a.accounts.RescueTOTP(ctx, admin.Email, "INC-2026-0042", "court"); err == nil {
+		t.Fatal("mot de passe de secours trop court accepté")
+	}
+	applied, err := a.accounts.RescueTOTP(ctx, admin.Email, "INC-2026-0042", rescue)
 	if err != nil || !applied {
 		t.Fatalf("secours : %v, %v", applied, err)
 	}
 	if p := b.get("/account"); p.status != http.StatusSeeOther {
 		t.Fatalf("session après secours : %d", p.status)
 	}
-	again, err := a.accounts.RescueTOTP(ctx, admin.Email, "INC-2026-0042")
+	again, err := a.accounts.RescueTOTP(ctx, admin.Email, "INC-2026-0042", "un autre mot de passe")
 	if err != nil || again {
 		t.Fatalf("second démarrage avec le même ticket : %v, %v", again, err)
 	}
 	c := a.browser()
-	if p := c.post("/login", url.Values{"email": {admin.Email}, "password": {admin.Password}}); p.location != pathTOTPSetup {
+	if p := c.post("/login", url.Values{"email": {admin.Email}, "password": {admin.Password}}); p.status != http.StatusUnauthorized {
+		t.Fatalf("ancien mot de passe après secours : %d %q", p.status, p.location)
+	}
+	if p := c.post("/login", url.Values{"email": {admin.Email}, "password": {rescue}}); p.location != pathTOTPSetup {
 		t.Fatalf("connexion après secours : %q", p.location)
 	}
 	if !hasAction(a.instanceActions(), audit.AccountRescueTOTPReset) {

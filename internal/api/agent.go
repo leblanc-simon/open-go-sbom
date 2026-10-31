@@ -234,6 +234,9 @@ func (h *agentAPI) responseError(w http.ResponseWriter, r *http.Request, err err
 		problem.Write(w, r, h.Catalog, http.StatusNotFound, problem.KeyNotFound, nil)
 	case errors.Is(err, ingest.ErrUploadTooLarge):
 		problem.Write(w, r, h.Catalog, http.StatusRequestEntityTooLarge, sbom.KeyTooLarge, nil)
+	case errors.Is(err, ingest.ErrQuota):
+		w.Header().Set("Retry-After", "3600")
+		problem.Write(w, r, h.Catalog, http.StatusTooManyRequests, ingest.KeyQuota, nil)
 	case errors.Is(err, errMissingPart):
 		problem.Write(w, r, h.Catalog, http.StatusBadRequest, ingest.KeyMissingPart, nil)
 	case errors.As(err, new(*requestError)):

@@ -143,7 +143,7 @@ relevées en T00 (une montée de version ultérieure ne demande pas de nouvelle 
 
 | Besoin | Choix | Version (T00) | Statut |
 | --- | --- | --- | --- |
-| Configuration, journaux, i18n, CSRF, limitation de débit (par IP ou par clé), CORS, comptes, sessions, TOTP | `leblanc.io/open-go-base` | v1.0.1, puis commits de v1.1.0 (T03) et v1.2.0 (T04), étiquettes à pousser | Décidé |
+| Configuration, journaux, i18n, CSRF, limitation de débit (par IP ou par clé), CORS, comptes, sessions, TOTP | `leblanc.io/open-go-base` | v1.0.1, puis commits de v1.1.0 (T03), v1.2.0 (T04) et v1.3.0 (T11), étiquettes à pousser | Décidé |
 | Pilote PostgreSQL | `github.com/jackc/pgx/v5/stdlib` via `database/sql` (partagé avec les stores d'authx et mfax) | v5.12.0 | Validé (ADR 0002) |
 | Routeur HTTP | `github.com/go-chi/chi/v5` (comme open-go-canivet) | v5.5.0 | Validé (ADR 0003) |
 | SBOM, vulnérabilités, licences | `github.com/anchore/syft`, `grype`, `grant` | v1.55.0, v0.121.0, v0.6.8 | Décidé (ADR 0007) |
@@ -355,7 +355,10 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
   `authx.HashPassword` et utilise sa colonne `must_change_pwd`. Ni authx ni mfax n'appliquent
   ce drapeau : un middleware du projet redirige vers le changement de mot de passe.
 - Second facteur via `mfax` avec enrôlement **obligatoire** (ne jamais passer
-  `WithOptionalEnrollment()`).
+  `WithOptionalEnrollment()`) et **verrouillage par compte** (`mfax.WithLockout`, table
+  `mfa_lockouts`) : les codes faux sont comptés tous défis confondus (`mfa.lockout_*`),
+  verrouillage journalisé (`account.locked`), levé par la réinitialisation du TOTP
+  (ADR 0029).
 - `session_auth` enregistre, pour chaque session (clé : SHA-256 du jeton de session), la
   méthode d'authentification : `local_totp`, ou `sso` avec l'organisation dont le
   fournisseur a authentifié. La garde d'organisation s'en sert pour imposer le SSO d'une
@@ -363,11 +366,18 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
 - Premier administrateur créé au premier démarrage depuis `bootstrap.*` (ignoré dès qu'un
   compte existe) ; changement de mot de passe et enrôlement TOTP à la première connexion.
 - Administrateur d'instance : rôle privilégié assumé (il peut réinitialiser le mot de passe
-  et le TOTP d'un compte, chaque fois audité) ; deux administrateurs au moins sont
+  et le TOTP d'un compte, chaque fois audité ; toute réinitialisation ferme les sessions
+  et révoque les jetons personnels, celle du TOTP impose aussi un mot de passe temporaire,
+  ADR 0029) ; deux administrateurs au moins sont
   recommandés et l'interface avertit s'il n'y en a qu'un. Procédure de secours documentée
-  pour un administrateur unique qui perd son TOTP : `bootstrap.rescue_totp_email` et
-  `bootstrap.rescue_ticket`, lus au démarrage, appliqués une fois par ticket, audités, à
-  retirer ensuite (ADR 0013).
+  pour un administrateur unique qui perd son TOTP : `bootstrap.rescue_totp_email`,
+  `bootstrap.rescue_ticket` et `bootstrap.rescue_password` (mot de passe temporaire
+  imposé), lus au démarrage, appliqués une fois par ticket, audités, à retirer ensuite
+  (ADR 0013, ADR 0029).
+- Sessions : glissantes (`auth.session_ttl`) dans une durée absolue depuis la connexion
+  (`login.session_max_age`, lue dans `session_auth.created_at`) ; jeton CSRF lié à la
+  session (`csrfx.WithSessionBinding`), protection inter-origines, cookies `__Host-` quand
+  `auth.cookie_secure` vaut `on` (ADR 0031).
 - Secrets TOTP chiffrés en base par `internal/secret` (enveloppe du store de mfax),
   rechiffrés par la clé active au démarrage (ADR 0013).
 - Pas d'envoi de courriel avant T15 : les comptes sont créés avec un mot de passe temporaire.
@@ -380,13 +390,15 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
   d'un jeton d'agent est résolue par `crossorg`, le reste vérifié dans `InOrg` (ADR 0014).
   Un jeton personnel appartient au compte (table globale) : lecture seule, valable dans
   les organisations dont son propriétaire est membre au moment de chaque requête
-  (`crossorg.Access`), 7 jours à 1 an, 20 actifs au plus (ADR 0025).
+  (`crossorg.Access`), 7 jours à 1 an, 20 actifs au plus (ADR 0025) ; création soumise à
+  un code TOTP (`mfax.Service.Confirm`), révocation d'office à la réinitialisation ou au
+  changement des identifiants, refus pour un compte en attente (ADR 0029).
 - Agents : un projet est confié à au plus un agent de même nature (clé étrangère
   composite) ; un agent serveur couvre un seul hôte, dont le projet est créé ou rattaché à
   l'inscription ; un agent dépôt reçoit ses dépôts depuis leur fiche.
-- Limitation de débit : par IP pour l'interface (open-go-base) ; **par jeton** pour l'API
-  agent et l'API utilisateur, pour que des hôtes derrière une même sortie NAT ne se gênent
-  pas.
+- Limitation de débit : par IP pour l'interface (open-go-base ; une IPv6 compte pour son
+  /64) ; **par jeton** pour l'API agent et l'API utilisateur, pour que des hôtes derrière
+  une même sortie NAT ne se gênent pas.
 
 ## 11. Pipeline d'ingestion
 
@@ -399,7 +411,9 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
    `ingest.decode` mis en file dans la même transaction ; réponse `202`. Un envoi
    impossible à stocker (gzip corrompu, trop gros décompressé) donne une ingestion
    `failed` ; le même SBOM renvoyé pour la même référence et le même commit d'un dépôt
-   renvoie l'ingestion existante (`200`), sans rien créer.
+   renvoie l'ingestion existante (`200`), sans rien créer. Au-delà des quotas
+   (`ingest.max_per_ref_per_day`, `ingest.max_org_storage_mib`), l'envoi est refusé (`429`)
+   et rien n'est stocké (ADR 0030).
 2. `ingest.decode` :
    - bornes préalables par lecture en flux, avant tout décodage complet : taille
      décompressée, profondeur JSON, nombre de composants (`sbom.Precheck`) ;
@@ -511,7 +525,8 @@ qu'aucune mesure ne la justifie (ADR 0015).
 - Routeur chi avec **trois groupes de routes** :
   - interface : identifiant de requête → limitation par IP → journalisation → récupération
     de panique → en-têtes de sécurité → session (authx) → changement de mot de passe imposé
-    → CSRF (csrfx) → langue → organisation courante → handler ;
+    → protection inter-origines → CSRF (csrfx, jeton lié à la session) → langue →
+    organisation courante → handler ;
   - API agent (`/api/v1/agent/`) : jeton d'agent, limitation par jeton, pas de session ni
     de CSRF ;
   - API utilisateur (`/api/v1/orgs/{org}/`) : jeton personnel sans CSRF, garde
@@ -684,7 +699,11 @@ qu'aucune mesure ne la justifie (ADR 0015).
 - L'accès à la socket d'un moteur de conteneurs équivaut à root : désactivé par défaut,
   documenté comme tel.
 - Journal d'audit : connexions et échecs, comptes et rôles, jetons, organisations, équipes,
-  décisions de triage, politiques, canaux, paramètres d'organisation.
+  décisions de triage, politiques, canaux, paramètres d'organisation. **En ajout seul**
+  pour le rôle d'exécution (ni `UPDATE`, ni `DELETE`, ni `TRUNCATE`, vérifié au
+  démarrage), qui n'a pas non plus de droit `CREATE` (ADR 0030).
+- Ressources bornées par compte autant que par instance : un export de recherche et un
+  réencodage de SBOM à la fois par compte (ADR 0030).
 - Gravité des faiblesses évaluée selon l'OWASP Risk Rating ; chaque revue de recette est
   menée par un relecteur distinct de l'auteur du code.
 
@@ -740,4 +759,5 @@ dupliquer.
 | Gestionnaire d'échec configurable dans csrfx | Page 403 traduite et au format du projet | Fait en T03 (PR #1 d'open-go-base) |
 | Clé de limitation configurable dans `ratelimit` (par jeton) | Évite le limiteur maison de `internal/ratelimit` | Fait en T04 (`WithKeyFunc`, PR #2 d'open-go-base) |
 | Codes de secours dans mfax | Récupération sans administrateur d'instance | Absent d'open-go-base au 31 octobre 2026 (constaté en T11) ; non nécessaire au lot 1 (réinitialisation par un administrateur, procédure de secours) : reporté à T18 **[à relire]** |
+| Verrouillage par compte et réauthentification dans mfax ; jeton CSRF lié à la session ; nom du cookie de défi | Revue de sécurité du lot 1 (SEC-01, SEC-02, SEC-08) | Fait en T11 (PR #3 d'open-go-base, commit `9a7b91f`, étiquette `v1.3.0` à pousser) |
 | Composant `oidcx` | SSO réutilisable par les projets open-go | T25 |

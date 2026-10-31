@@ -54,13 +54,18 @@ catchup:
   max_commits: 20        # au plus, les plus récents ; les plus anciens sont sautés
 
 # Forges. Le nom (minuscules, chiffres, tirets) termine l'URL du webhook ; l'URL web est
-# comparée à l'« URL de forge » de chaque projet confié.
+# comparée à l'« URL de forge » de chaque projet confié. allowed_namespaces (obligatoire)
+# borne les dépôts analysés : propriétaires GitHub ou groupes GitLab (sous-groupes
+# compris), ou « * » pour tout ce que les identifiants peuvent lire. Les dépôts viennent
+# du serveur, donc des administrateurs d'organisation : cette liste est la décision de
+# l'exploitant de l'agent.
 forges:
   - name: github
     kind: github
     url: https://github.com              # GitHub Enterprise Server : https://hôte
     api_url: https://api.github.com      # GitHub Enterprise Server : https://hôte/api/v3
     app_id: "123456"                     # identifiant (ou client ID) de la GitHub App
+    allowed_namespaces: [acme]           # propriétaires dont les dépôts peuvent être analysés
     # installation_id: 0                 # facultatif : sinon cherchée pour chaque dépôt
     private_key_file: credential:github-app-key
     webhook_secret_file: credential:github-webhook-secret
@@ -70,5 +75,6 @@ forges:
     kind: gitlab
     url: https://gitlab.example.org      # instance (éventuellement sous un sous-chemin)
     token_file: credential:gitlab-token  # jeton du compte de service : read_api, read_repository
+    allowed_namespaces: [plateforme]     # groupes (et sous-groupes) autorisés
     webhook_secret_file: credential:gitlab-webhook-secret
     timeout: 30s

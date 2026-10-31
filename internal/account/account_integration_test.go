@@ -139,14 +139,14 @@ func TestPasswordChangeAndReset(t *testing.T) {
 		{temp, "court", "court", account.KeyPasswordTooShort},
 		{temp, temp, temp, account.KeyPasswordUnchanged},
 	} {
-		if err := s.ChangePassword(ctx, actor, u.ID, c.current, c.next, c.confirm, "keep"); !isKey(err, c.key) {
+		if err := s.ChangePassword(ctx, actor, u.ID, c.current, c.next, c.confirm, "keep", false); !isKey(err, c.key) {
 			t.Errorf("%s : %v", c.key, err)
 		}
 	}
-	if err := s.ChangePassword(ctx, actor, 9999, temp, next, next, ""); !errors.Is(err, account.ErrNotFound) {
+	if err := s.ChangePassword(ctx, actor, 9999, temp, next, next, "", false); !errors.Is(err, account.ErrNotFound) {
 		t.Fatalf("compte inconnu : %v", err)
 	}
-	if err := s.ChangePassword(ctx, actor, u.ID, temp, next, next, "keep"); err != nil {
+	if err := s.ChangePassword(ctx, actor, u.ID, temp, next, next, "keep", false); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := s.Get(ctx, u.ID); got.MustChangePwd {
@@ -213,7 +213,7 @@ func TestStartup(t *testing.T) {
 		t.Fatalf("sans compte : %v\n%s", err, logs)
 	}
 	o := account.StartupOptions{AdminEmail: "admin@example.org", AdminPassword: "mot de passe temporaire",
-		RescueEmail: "admin@example.org", RescueTicket: "INC-0001-2026"}
+		RescueEmail: "admin@example.org", RescueTicket: "INC-0001-2026", RescuePassword: "mot de passe de secours"}
 	for range 2 {
 		if err := s.Startup(ctx, o, tdb.App, box, logger); err != nil {
 			t.Fatal(err)
@@ -222,7 +222,8 @@ func TestStartup(t *testing.T) {
 	if !strings.Contains(logs.String(), "premier administrateur créé") || !strings.Contains(logs.String(), "déjà appliquée") {
 		t.Fatalf("journaux :\n%s", logs)
 	}
-	if err := s.Startup(ctx, account.StartupOptions{RescueEmail: "absent@example.org", RescueTicket: "INC-0002-2026"}, tdb.App, box, logger); !errors.Is(err, account.ErrRescueNotAdmin) {
+	if err := s.Startup(ctx, account.StartupOptions{RescueEmail: "absent@example.org", RescueTicket: "INC-0002-2026",
+		RescuePassword: "mot de passe de secours"}, tdb.App, box, logger); !errors.Is(err, account.ErrRescueNotAdmin) {
 		t.Fatalf("secours d'un compte absent : %v", err)
 	}
 	if err := s.Startup(ctx, account.StartupOptions{AdminEmail: "x", AdminPassword: "y"}, tdb.App, box, slog.New(slog.NewTextHandler(io.Discard, nil))); err == nil {
@@ -279,11 +280,12 @@ func TestTOTPSecretsAreSealedAndRotated(t *testing.T) {
 	if got, err := account.NewSealedTOTPStore(inner, only, tdb.App).Get(u.ID); err != nil || got.Secret != "JBSWY3DPEHPK3PXP" {
 		t.Fatalf("après retrait de l'ancienne clé : %+v, %v", got, err)
 	}
-	if err := s.ResetTOTP(ctx, audit.System, u.ID); err != nil {
+	pw, err := s.ResetTOTP(ctx, audit.System, u.ID)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if got, _ := s.Get(ctx, u.ID); got.TOTPEnabled {
-		t.Fatal("TOTP conservé après réinitialisation")
+	if got, _ := s.Get(ctx, u.ID); got.TOTPEnabled || !got.MustChangePwd || pw == "" {
+		t.Fatalf("après réinitialisation du TOTP : %+v (mot de passe temporaire %v)", got, pw != "")
 	}
 }
 

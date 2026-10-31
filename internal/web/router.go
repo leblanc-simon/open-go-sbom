@@ -4,11 +4,13 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/netip"
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 
 	"leblanc.io/open-go-base/appconf"
+	"leblanc.io/open-go-base/authx"
 	"leblanc.io/open-go-base/corsx"
 	"leblanc.io/open-go-base/csrfx"
 	"leblanc.io/open-go-base/ratelimit"
@@ -49,6 +51,42 @@ type RouterOptions struct {
 	extraUI func(chi.Router)
 }
 
+// csrfCookieName est le nom par défaut du cookie de csrfx.
+const csrfCookieName = "csrf_token"
+
+// sessionSecret est le secret auquel csrfx lie son jeton : le jeton de la session d'authx
+// (vide sans session).
+func sessionSecret(r *http.Request) string {
+	if s := authx.SessionFrom(r); s != nil {
+		return s.Token
+	}
+	return ""
+}
+
+// clientNetwork est la clé des limiteurs de l'interface : une IPv6 compte pour son /64,
+// qu'un seul client reçoit couramment en entier ; une IPv4 garde sa clé par IP (clé vide).
+func clientNetwork(clientIP func(*http.Request) string) func(*http.Request) string {
+	return func(r *http.Request) string {
+		ip, err := netip.ParseAddr(clientIP(r))
+		if err != nil || !ip.Is6() || ip.Is4In6() {
+			return ""
+		}
+		p, err := ip.WithZone("").Prefix(64)
+		if err != nil {
+			return ""
+		}
+		return "net6:" + p.String()
+	}
+}
+
+// crossOrigin refuse les requêtes mutantes d'une autre origine selon les en-têtes des
+// navigateurs (http.CrossOriginProtection) ; denied rend la page 403.
+func crossOrigin(denied http.Handler) func(http.Handler) http.Handler {
+	p := http.NewCrossOriginProtection()
+	p.SetDenyHandler(denied)
+	return p.Handler
+}
+
 // NewRouter construit le routeur public et ses trois groupes de routes.
 func NewRouter(o RouterOptions) (http.Handler, error) {
 	if o.Logger == nil || o.Catalog == nil || o.Renderer == nil || o.Assets == nil || o.Metrics == nil {
@@ -65,7 +103,14 @@ func NewRouter(o RouterOptions) (http.Handler, error) {
 	tooMany := uiHeaders(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		o.Renderer.Error(w, r, http.StatusTooManyRequests)
 	}))
-	limiter, err := ratelimit.New(o.RateLimit, o.TrustedProxies, ratelimit.WithLimitHandler(tooMany))
+	// La résolution de l'IP du client précède les limiteurs : leur clé regroupe une IPv6
+	// par /64 (clientNetwork).
+	resolver, err := ratelimit.New(0, o.TrustedProxies)
+	if err != nil {
+		return nil, err
+	}
+	byNetwork := ratelimit.WithKeyFunc(clientNetwork(resolver.ClientIP))
+	limiter, err := ratelimit.New(o.RateLimit, o.TrustedProxies, ratelimit.WithLimitHandler(tooMany), byNetwork)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +122,17 @@ func NewRouter(o RouterOptions) (http.Handler, error) {
 	csrfFailure := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		o.Renderer.ErrorWithKey(w, r, http.StatusForbidden, "error.csrf")
 	})
-	csrf := csrfx.New(csrfx.WithSecure(o.CSRFSecure), csrfx.WithFailureHandler(csrfFailure)).Middleware
+	// Jeton lié à la session (s'il y a des sessions) : écrire le cookie (sous-domaine,
+	// réponse en clair) ne suffit plus à forger un couple valable ; préfixe __Host- quand
+	// les cookies sont Secure.
+	csrfOpts := []csrfx.Option{csrfx.WithSecure(o.CSRFSecure), csrfx.WithFailureHandler(csrfFailure)}
+	if o.Identity != nil {
+		csrfOpts = append(csrfOpts, csrfx.WithSessionBinding(sessionSecret))
+	}
+	if hostCookies(o.CSRFSecure) {
+		csrfOpts = append(csrfOpts, csrfx.WithCookieName(hostCookie(csrfCookieName)))
+	}
+	csrf := csrfx.New(csrfOpts...).Middleware
 
 	var id *identity
 	loginLimit := func(next http.Handler) http.Handler { return next }
@@ -94,7 +149,7 @@ func NewRouter(o RouterOptions) (http.Handler, error) {
 		if id, err = newIdentity(*o.Identity, o.Renderer, o.Catalog, o.Logger, limiter.ClientIP); err != nil {
 			return nil, err
 		}
-		login, err := ratelimit.New(o.Identity.LoginRateLimit, o.TrustedProxies, ratelimit.WithLimitHandler(tooMany))
+		login, err := ratelimit.New(o.Identity.LoginRateLimit, o.TrustedProxies, ratelimit.WithLimitHandler(tooMany), byNetwork)
 		if err != nil {
 			return nil, err
 		}
@@ -104,8 +159,11 @@ func NewRouter(o RouterOptions) (http.Handler, error) {
 		ui = append(ui, limitBody(isUpload), trustClientIP(proxies, limiter.ClientIP), id.mgr.LoadSession, id.loadViewer,
 			mustChangePassword, id.uploadGate)
 	}
-	// La langue précède la garde d'organisation, qui la recalcule (§ 18).
-	ui = append(ui, csrf, middleware.Language(o.Catalog, middleware.LanguageSources{Account: accountLanguage}))
+	// La langue précède la garde d'organisation, qui la recalcule (§ 18). La protection
+	// inter-origines (Sec-Fetch-Site, Origin) double csrfx : elle refuse aussi une requête
+	// mutante venue d'un sous-domaine du même site, connexion comprise.
+	ui = append(ui, crossOrigin(pageError(http.StatusForbidden)), csrf,
+		middleware.Language(o.Catalog, middleware.LanguageSources{Account: accountLanguage}))
 	api := func(group string) chi.Middlewares {
 		return chi.Chain(
 			o.Metrics.Middleware(group),

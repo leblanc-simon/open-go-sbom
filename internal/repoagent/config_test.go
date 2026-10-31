@@ -77,8 +77,10 @@ func validConfig() Config {
 	c.Work = WorkConfig{Dir: "/var/lib/x", Parallelism: 2, QueueSize: 10, CloneTimeout: time.Minute, ScanTimeout: time.Minute, MaxCloneMiB: 10, Git: "git"}
 	c.Catchup = CatchupConfig{Interval: 15 * time.Minute, MaxCommits: 20}
 	c.Forges = []Forge{
-		{Name: "github", Kind: forge.KindGitHub, AppID: "1", PrivateKeyFile: "credential:gh-key", WebhookSecretFile: "credential:gh-hook"},
-		{Name: "gitlab", Kind: forge.KindGitLab, URL: "https://gitlab.example.org", TokenFile: "credential:gl-token", WebhookSecretFile: "credential:gl-hook"},
+		{Name: "github", Kind: forge.KindGitHub, AppID: "1", PrivateKeyFile: "credential:gh-key", WebhookSecretFile: "credential:gh-hook",
+			AllowedNamespaces: []string{"*"}},
+		{Name: "gitlab", Kind: forge.KindGitLab, URL: "https://gitlab.example.org", TokenFile: "credential:gl-token", WebhookSecretFile: "credential:gl-hook",
+			AllowedNamespaces: []string{"g", "Plateforme/Equipe"}},
 	}
 	return c
 }
@@ -114,6 +116,10 @@ func TestValidate(t *testing.T) {
 		"jeton gitlab":   func(c *Config) { c.Forges[1].TokenFile = "" },
 		"app gitlab":     func(c *Config) { c.Forges[1].AppID = "1" },
 		"délai forge":    func(c *Config) { c.Forges[1].Timeout = -time.Second },
+		"sans périmètre": func(c *Config) { c.Forges[0].AllowedNamespaces = nil },
+		"périmètre vide": func(c *Config) { c.Forges[0].AllowedNamespaces = []string{""} },
+		"motif partiel":  func(c *Config) { c.Forges[0].AllowedNamespaces = []string{"acme*"} },
+		"chemin absolu":  func(c *Config) { c.Forges[0].AllowedNamespaces = []string{"/acme"} },
 	}
 	for name, mutate := range cases {
 		c := validConfig()
@@ -153,6 +159,22 @@ func TestProviders(t *testing.T) {
 	if _, ok := ps[1].Repo("https://gitlab.example.org/g/p"); !ok {
 		t.Fatal("URL GitLab")
 	}
+	// Périmètre de l'agent (SEC-10) : groupes autorisés et leurs sous-groupes, sans
+	// tenir compte de la casse ; un préfixe de nom ne suffit pas.
+	for url, want := range map[string]bool{
+		"https://gitlab.example.org/plateforme/equipe/app": true,
+		"https://gitlab.example.org/g/sous/p":              true,
+		"https://gitlab.example.org/gg/p":                  false,
+		"https://gitlab.example.org/plateforme/autre":      false,
+		"https://gitlab.example.org/autre/p":               false,
+	} {
+		if _, ok := ps[1].Repo(url); ok != want {
+			t.Errorf("%s : reconnu %v, attendu %v", url, ok, want)
+		}
+	}
+	if _, ok := ps[0].Repo("https://github.com/quiconque/app"); !ok {
+		t.Error("« * » n'autorise pas tout")
+	}
 
 	c := validConfig()
 	c.Forges[0].PrivateKeyFile = "credential:gh-hook" // pas une clé
@@ -179,6 +201,7 @@ forges:
     app_id: "123"
     private_key_file: credential:github-key
     webhook_secret_file: credential:github-webhook
+    allowed_namespaces: [acme]
 `
 	if err := os.WriteFile(path, []byte(yaml), 0o600); err != nil {
 		t.Fatal(err)

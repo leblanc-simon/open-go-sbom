@@ -57,15 +57,20 @@ type Ingest struct {
 	MaxDepth           int           `yaml:"max_depth"            env:"INGEST_MAX_DEPTH"            env-default:"64"     env-description:"Maximum JSON nesting depth of an SBOM"`
 	MaxComponents      int           `yaml:"max_components"       env:"INGEST_MAX_COMPONENTS"       env-default:"50000"  env-description:"Maximum number of components (CycloneDX components, SPDX packages, Syft artifacts)"`
 	DecodeTimeout      time.Duration `yaml:"decode_timeout"       env:"INGEST_DECODE_TIMEOUT"       env-default:"5m"     env-description:"Maximum duration of one SBOM decoding job"`
+	MaxPerRefPerDay    int           `yaml:"max_per_ref_per_day"  env:"INGEST_MAX_PER_REF_PER_DAY"  env-default:"200"    env-description:"Stored SBOM uploads per reference over 24 hours, beyond which 429 is returned (0: unlimited)"`
+	MaxOrgStorageMiB   int           `yaml:"max_org_storage_mib"  env:"INGEST_MAX_ORG_STORAGE_MIB"  env-default:"10240"  env-description:"Compressed SBOM storage per organization, in MiB, beyond which uploads get 429 (0: unlimited)"`
+	MaxReencodes       int           `yaml:"max_reencodes"        env:"INGEST_MAX_REENCODES"        env-default:"2"      env-description:"SBOM downloads re-encoded (CycloneDX, SPDX) at once on this instance, one per account, beyond which 429 is returned"`
 }
 
 // MiB convertit une taille de la configuration, en Mio, en octets.
 func MiB(n int) int64 { return int64(n) << 20 }
 
-// Login borne les tentatives de connexion : requêtes POST sur /login et /login/2fa par
-// minute et par IP, en plus de la limite générale de l'interface.
+// Login borne les tentatives de connexion (requêtes POST sur /login et /login/2fa par
+// minute et par IP, une IPv6 comptant pour son /64, en plus de la limite générale de
+// l'interface) et la durée absolue d'une session, quelle que soit son activité.
 type Login struct {
-	RateLimit int `yaml:"rate_limit" env:"LOGIN_RATE_LIMIT" env-default:"10" env-description:"Login and second-factor attempts per minute and per IP"`
+	RateLimit     int           `yaml:"rate_limit"      env:"LOGIN_RATE_LIMIT"      env-default:"10"   env-description:"Login and second-factor attempts per minute and per IP (per /64 for IPv6)"`
+	SessionMaxAge time.Duration `yaml:"session_max_age" env:"LOGIN_SESSION_MAX_AGE" env-default:"168h" env-description:"Absolute lifetime of a session from sign-in, whatever its activity (auth.session_ttl slides within it)"`
 }
 
 // AgentAPI borne le débit de l'API des agents (/api/v1/agent/*) : par jeton, pour que des
@@ -95,6 +100,9 @@ type Bootstrap struct {
 	AdminPassword string `yaml:"admin_password"    env:"BOOTSTRAP_ADMIN_PASSWORD"    env-description:"Temporary password of the first administrator (12 characters at least, changed at first login)"`
 	RescueEmail   string `yaml:"rescue_totp_email" env:"BOOTSTRAP_RESCUE_TOTP_EMAIL" env-description:"Rescue: e-mail of an instance administrator whose TOTP is reset at startup (audited)"`
 	RescueTicket  string `yaml:"rescue_ticket"     env:"BOOTSTRAP_RESCUE_TICKET"     env-description:"Rescue: incident reference (8 characters at least); each ticket is applied once"`
+	// RescuePassword devient le mot de passe temporaire de l'administrateur secouru : sans
+	// lui, quiconque connaît l'ancien enrôlerait son propre TOTP (ADR 0029).
+	RescuePassword string `yaml:"rescue_password" env:"BOOTSTRAP_RESCUE_PASSWORD" env-description:"Rescue: temporary password given to the rescued administrator (12 characters at least, changed at next sign-in)"`
 }
 
 // HTTP règle les délais des serveurs HTTP (public et gestion) et l'arrêt propre.

@@ -606,7 +606,9 @@ type ClientInterface interface {
 	// décompressé, gzip corrompu) donne une ingestion `failed` avec sa clé d'erreur. Un
 	// envoi identique pour la même référence et le même commit renvoie l'ingestion
 	// existante (`200`), sans rien créer. Un envoi qui dépasse la taille admise est refusé
-	// (`413`).
+	// (`413`). Au-delà des quotas de l'instance (envois stockés d'une référence sur 24 h,
+	// volume des SBOM stockés de l'organisation), l'envoi est refusé sans rien stocker
+	// (`429`, `error.ingest.quota`, avec `Retry-After`).
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -745,7 +747,9 @@ func (c *Client) Heartbeat(ctx context.Context, body HeartbeatJSONRequestBody, r
 // décompressé, gzip corrompu) donne une ingestion `failed` avec sa clé d'erreur. Un
 // envoi identique pour la même référence et le même commit renvoie l'ingestion
 // existante (`200`), sans rien créer. Un envoi qui dépasse la taille admise est refusé
-// (`413`).
+// (`413`). Au-delà des quotas de l'instance (envois stockés d'une référence sur 24 h,
+// volume des SBOM stockés de l'organisation), l'envoi est refusé sans rien stocker
+// (`429`, `error.ingest.quota`, avec `Retry-After`).
 //
 // Takes any type of body and a specified content type.
 //
@@ -1126,7 +1130,9 @@ type ClientWithResponsesInterface interface {
 	// décompressé, gzip corrompu) donne une ingestion `failed` avec sa clé d'erreur. Un
 	// envoi identique pour la même référence et le même commit renvoie l'ingestion
 	// existante (`200`), sans rien créer. Un envoi qui dépasse la taille admise est refusé
-	// (`413`).
+	// (`413`). Au-delà des quotas de l'instance (envois stockés d'une référence sur 24 h,
+	// volume des SBOM stockés de l'organisation), l'envoi est refusé sans rien stocker
+	// (`429`, `error.ingest.quota`, avec `Retry-After`).
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -1598,7 +1604,9 @@ func (c *ClientWithResponses) HeartbeatWithResponse(ctx context.Context, body He
 // décompressé, gzip corrompu) donne une ingestion `failed` avec sa clé d'erreur. Un
 // envoi identique pour la même référence et le même commit renvoie l'ingestion
 // existante (`200`), sans rien créer. Un envoi qui dépasse la taille admise est refusé
-// (`413`).
+// (`413`). Au-delà des quotas de l'instance (envois stockés d'une référence sur 24 h,
+// volume des SBOM stockés de l'organisation), l'envoi est refusé sans rien stocker
+// (`429`, `error.ingest.quota`, avec `Retry-After`).
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //

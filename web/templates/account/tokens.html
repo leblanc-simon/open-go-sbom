@@ -85,6 +85,11 @@
         </select>
       </div>
       <p class="field__hint">{{T "tokens.scope_hint"}}</p>
+      <div class="field">
+        <label class="field__label" for="tk-code">{{T "tokens.code"}}</label>
+        <input class="input input--code" id="tk-code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required aria-describedby="tk-code-hint"{{if eq .Error.Field "code"}} aria-invalid="true"{{end}}>
+        <p class="field__hint" id="tk-code-hint">{{T "tokens.code_hint"}}</p>
+      </div>
       <p><button class="btn btn--primary" type="submit">{{T "tokens.create"}}</button></p>
     </form>
   </section>
