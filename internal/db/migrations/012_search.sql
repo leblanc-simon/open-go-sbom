@@ -1,4 +1,4 @@
--- 011_search : recherche transverse (T09, § 13 de l'architecture, ADR 0024) et jetons
+-- 012_search : recherche transverse (T09, § 13 de l'architecture, ADR 0024) et jetons
 -- d'accès personnels (ADR 0025).
 --
 -- La RLS évalue son filtre avant tout opérateur non LEAKPROOF : trigrammes, ILIKE et
