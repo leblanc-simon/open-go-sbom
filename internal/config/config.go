@@ -11,8 +11,8 @@ const EnvPrefix = "OGSBOM_"
 
 // Config est la configuration d'ogsbom-server : fragments d'appconf (Web, Logging, I18n,
 // CORS, base de données) et fragments propres au projet. Les fragments Auth et MFA
-// d'appconf arrivent avec authx et mfax (T03), Workers avec la file (T02), Ingest, VulnDB
-// et Bootstrap avec leurs lots.
+// d'appconf arrivent avec authx et mfax (T03), Ingest, VulnDB et Bootstrap avec leurs
+// lots.
 type Config struct {
 	Web        appconf.Web     `yaml:"web"        env-prefix:"OGSBOM_"`
 	HTTP       HTTP            `yaml:"http"       env-prefix:"OGSBOM_"`
@@ -24,6 +24,7 @@ type Config struct {
 	Database   Database        `yaml:"database"   env-prefix:"OGSBOM_"`
 	Migration  Migration       `yaml:"migration"  env-prefix:"OGSBOM_"`
 	Secrets    Secrets         `yaml:"secrets"    env-prefix:"OGSBOM_"`
+	Workers    Workers         `yaml:"workers"    env-prefix:"OGSBOM_"`
 }
 
 // HTTP règle les délais des serveurs HTTP (public et gestion) et l'arrêt propre.
@@ -79,6 +80,21 @@ type Secrets struct {
 	ActiveKey string            `yaml:"active_key" env:"SECRETS_ACTIVE_KEY" env-description:"Id of the key used to encrypt"`
 }
 
+// Workers règle la file de traitements (internal/jobs) : workers et planificateur de
+// l'instance. Enabled n'a pas d'env-default : un défaut d'appconf l'emporterait sur un
+// false écrit dans le fichier (il ne s'applique qu'à une valeur zéro) ; Defaults le pose.
+type Workers struct {
+	Enabled          bool          `yaml:"enabled"           env:"WORKERS_ENABLED"           env-description:"Run job workers and the scheduler on this instance (default true)"`
+	Concurrency      int           `yaml:"concurrency"       env:"WORKERS_CONCURRENCY"       env-default:"4"    env-description:"Number of jobs this instance runs at the same time"`
+	PollInterval     time.Duration `yaml:"poll_interval"     env:"WORKERS_POLL_INTERVAL"     env-default:"1s"   env-description:"Wait of an idle worker before looking for work again"`
+	Lease            time.Duration `yaml:"lease"             env:"WORKERS_LEASE"             env-default:"30s"  env-description:"Job lease, renewed while the job runs; a vanished worker's job is taken over after it"`
+	RetryBase        time.Duration `yaml:"retry_base"        env:"WORKERS_RETRY_BASE"        env-default:"10s"  env-description:"Delay before the first retry of a failed job, doubled at each attempt"`
+	RetryMax         time.Duration `yaml:"retry_max"         env:"WORKERS_RETRY_MAX"         env-default:"30m"  env-description:"Maximum retry delay, before jitter"`
+	Retention        time.Duration `yaml:"retention"         env:"WORKERS_RETENTION"         env-default:"168h" env-description:"How long finished jobs are kept"`
+	ScheduleInterval time.Duration `yaml:"schedule_interval" env:"WORKERS_SCHEDULE_INTERVAL" env-default:"10s"  env-description:"How often the scheduler looks for due schedules"`
+	ShutdownTimeout  time.Duration `yaml:"shutdown_timeout"  env:"WORKERS_SHUTDOWN_TIMEOUT"  env-default:"30s"  env-description:"Grace period for running jobs on SIGTERM, after which they are released"`
+}
+
 // Defaults renvoie les valeurs qui diffèrent des défauts d'appconf : appconf ne pose un
 // défaut que sur un champ vide, ces valeurs l'emportent donc tant que la configuration ne
 // les change pas.
@@ -87,6 +103,7 @@ func Defaults() Config {
 	c.Database.Driver = "postgres"
 	c.I18n.DefaultLanguage = "fr"
 	c.Logging.Level = "info"
+	c.Workers.Enabled = true
 	return c
 }
 

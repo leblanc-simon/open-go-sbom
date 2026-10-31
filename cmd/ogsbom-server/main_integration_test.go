@@ -189,6 +189,9 @@ func TestServerEndToEnd(t *testing.T) {
 		if code := i.exit(t); code != 0 {
 			t.Fatalf("code de sortie %d après SIGTERM :\n%s", code, i.out)
 		}
+		if out := i.out.String(); !strings.Contains(out, `"msg":"workers démarrés"`) || !strings.Contains(out, `"msg":"workers arrêtés"`) {
+			t.Fatalf("workers non démarrés ou non arrêtés :\n%s", out)
+		}
 		if !strings.Contains(i.out.String(), "arrêt terminé") {
 			t.Fatalf("arrêt non journalisé :\n%s", i.out)
 		}
