@@ -22,7 +22,7 @@ Aujourd'hui, répondre à « sommes-nous touchés par cette CVE ? » ou « où t
 
 - Alerte émise moins de 24 h après l'arrivée d'une CVE dans la base de vulnérabilités.
 - Recherche par composant en moins de 2 s sur 1 000 projets et 1 million de composants.
-- Agent serveur : un binaire statique, moins de 5 % d'un cœur CPU en moyenne sur la durée d'un scan.
+- Agent serveur : un binaire statique ; temps CPU par scan et mémoire maximale bornés, valeurs fixées après la première mesure (lot technique T07).
 
 ## 2. État de l'art et positionnement
 

@@ -100,9 +100,14 @@ Intégration de bout en bout du parcours de connexion (mot de passe, TOTP avec h
 simulée, rejeu de code refusé), du bootstrap, du changement de mot de passe imposé, des
 rôles, de l'isolement, de la procédure de secours.
 
-## Points à trancher
+## Décisions
 
-- Longueur minimale du mot de passe (12 proposé).
+Prises le 31 octobre 2026 :
+
+- Mot de passe : 12 caractères minimum.
+- Évolutions d'open-go-base (erreurs sous forme de clés, gestionnaire d'échec de csrfx)
+  réalisées dans open-go-base : branche, PR fusionnée quand la CI est verte, étiquette
+  semver ; open-go-sbom passe ensuite à cette version.
 
 ## Journal
 

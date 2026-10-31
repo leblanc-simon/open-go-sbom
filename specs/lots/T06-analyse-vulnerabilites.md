@@ -81,10 +81,13 @@ Unitaires avec faux `Matcher` pour tout le cycle de vie des constats et pour l'i
 de `analysis.ref`. Intégration étiquetée `grypedb` avec une vraie base sur un jeu de SBOM
 connus. Test de la bascule concurrente (analyses en cours pendant le changement de base).
 
-## Points à trancher
+## Décisions
 
-- Âge maximal de la base avant alerte (5 jours proposé).
-- Machine de référence des mesures.
+Prises le 31 octobre 2026 :
+
+- Alerte si la base Grype a plus de 5 jours.
+- Machine de référence des mesures : le poste de développement actuel (16 cœurs, 30 Go de
+  RAM) ; sa configuration exacte est consignée dans `docs/benchmarks.md`.
 
 ## Journal
 

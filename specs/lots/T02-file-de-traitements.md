@@ -69,9 +69,9 @@ Intégration PostgreSQL pour tous les critères ci-dessus, avec horloge injectab
 délais. Test de charge court (10 000 jobs, plusieurs workers, plusieurs organisations)
 sans doublon ni perte.
 
-## Points à trancher
+## Décisions
 
-Aucun s'il est confirmé en T00 (ADR 5) que la file reste maison.
+- File maison, sans dépendance (ADR 5 de T00).
 
 ## Journal
 

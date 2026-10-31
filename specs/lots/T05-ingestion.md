@@ -86,10 +86,14 @@ Fuzzing de la canonicalisation des purl, des bornes préalables et du décodage.
 de bout en bout (envoi → job → instantané), y compris ingestions concurrentes. Tests
 d'isolement sur les routes et les écrans.
 
-## Points à trancher
+## Décisions
 
-- Purl `generic` pour les composants sans purl, ou rejet du composant ?
-- Validation par les schémas JSON officiels (nouvelle dépendance) ou décodage strict seul ?
+Prises le 31 octobre 2026 :
+
+- Composant sans purl : gardé sous `pkg:generic/<nom>@<version>` et marqué
+  « identification faible ».
+- Validation par les schémas JSON officiels de CycloneDX et SPDX, embarqués, avec
+  `github.com/santhosh-tekuri/jsonschema` (validé).
 
 ## Journal
 

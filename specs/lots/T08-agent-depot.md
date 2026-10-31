@@ -16,8 +16,8 @@ viendra se greffer en T12 sans changer ce pipeline.
 
 - `internal/forge` : interface `Provider` (accès en lecture, vérification d'un webhook,
   résolution d'une référence en commit, liste des fichiers modifiés entre deux commits ;
-  publication de statut en T15) et trois implémentations : GitHub App, GitLab et Forgejo
-  par compte de service.
+  publication de statut en T15) et deux implémentations : GitHub App, et GitLab par compte
+  de service.
 - `internal/repoagent` : liste des dépôts et du dernier commit analysé par référence depuis
   `GET /api/v1/agent/projects`, récepteur de webhooks, planificateur de rattrapage, file en
   mémoire bornée et dédoublonnée, clonage, scan Syft du répertoire, encodage CycloneDX avec
@@ -36,7 +36,7 @@ Dependency-Track (T19).
 
 - GitHub App : JWT RS256 signé en stdlib, jeton d'installation mis en cache jusqu'à
   expiration ; webhook vérifié par `X-Hub-Signature-256`. GitLab : secret
-  `X-Gitlab-Token` comparé en temps constant. Forgejo : signature HMAC de l'en-tête dédié.
+  `X-Gitlab-Token` comparé en temps constant.
 - Pas de file durable côté agent : au démarrage puis à intervalle, le planificateur compare
   le commit de tête de chaque référence au dernier commit connu du serveur et rattrape les
   écarts.
@@ -74,10 +74,13 @@ Unitaires : vérification des webhooks (valides, invalides, rejoués), JWT GitHu
 Intégration : forges simulées (`httptest`), dépôt nu local créé par le test (avec liens
 symboliques piégés), serveur de test ; pipeline complet.
 
-## Points à trancher
+## Décisions
 
-Aucun : l'accès par application installée (GitHub App, comptes de service ailleurs) est
-décidé.
+Prises le 31 octobre 2026 :
+
+- Forges du lot 1 : GitHub (GitHub App) et GitLab (compte de service). Forgejo est
+  reporté : l'interface `Provider` l'accueillera sans changer le pipeline, quand le besoin
+  se présentera.
 
 ## Journal
 

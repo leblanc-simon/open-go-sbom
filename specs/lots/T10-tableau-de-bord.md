@@ -55,9 +55,11 @@ Planches « 2 · Tableau de bord », ses variantes en thème sombre et mobile du
 Fichiers SVG attendus (« golden ») pour les graphiques ; intégration des agrégats ;
 isolement.
 
-## Points à trancher
+## Décisions
 
-- Seuil « agent muet » par défaut (7 jours, comme dans le cahier des charges).
+Prises le 31 octobre 2026 :
+
+- Agent muet au-delà de 7 jours.
 
 ## Journal
 

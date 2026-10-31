@@ -66,9 +66,13 @@ Planches « 3 · Projets », « 8 · Agents et jetons » du [design de référen
 Unitaires : format, hachage et comparaison des jetons. Intégration : inscription, signal de
 vie, révocation, création automatique du projet d'hôte, droits par rôle.
 
-## Points à trancher
+## Décisions
 
-- Un agent `host` peut-il couvrir plusieurs hôtes (non, proposé) ?
+Prises le 31 octobre 2026 :
+
+- Un agent serveur couvre un seul hôte.
+- Limitation par jeton : évolution de `ratelimit` réalisée dans open-go-base, selon le même
+  processus qu'en T03.
 
 ## Journal
 
