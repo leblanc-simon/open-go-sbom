@@ -1,0 +1,52 @@
+app:
+  name: open-go-sbom
+  tagline: Per-project SBOM management
+
+layout:
+  skip_to_content: Skip to content
+  home_link: Home
+
+nav:
+  label: Main navigation
+
+theme:
+  system: "Theme: system"
+  light: "Theme: light"
+  dark: "Theme: dark"
+
+footer:
+  version: "Version {{.Version}}"
+  license: Free software under the WTFPL licence
+  source: Source code
+
+home:
+  title: Home
+  heading: Welcome to open-go-sbom
+  lead: >-
+    open-go-sbom inventories the software components of your repositories and servers,
+    and analyses them every day to spot known vulnerabilities.
+  status_title: Instance status
+  status_text: The server is running and its database schema is up to date.
+
+error:
+  back_home: Back to home
+  code: "Error {{.Code}}"
+  reference: "Request reference: {{.RequestID}}"
+  not_found:
+    title: Page not found
+    text: The requested page does not exist or has moved.
+  method_not_allowed:
+    title: Method not allowed
+    text: This address does not accept this kind of request.
+  too_many_requests:
+    title: Too many requests
+    text: You sent too many requests in a short time. Try again in a moment.
+  internal:
+    title: Internal error
+    text: An unexpected error occurred. It has been logged; please try again later.
+  invalid_cursor:
+    title: Invalid pagination cursor
+    text: The cursor is unreadable or stale. Restart the listing from the beginning.
+  invalid_limit:
+    title: Invalid page size
+    text: "The page size must be between 1 and {{.Max}}."
