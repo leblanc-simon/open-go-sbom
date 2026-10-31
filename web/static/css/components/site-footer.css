@@ -1,0 +1,21 @@
+/* Pied de page : version, licence, code source. Absent de la planche, il n'emploie que
+   ses tokens. */
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-5);
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-xs);
+  color: var(--color-text-3);
+
+  .site-footer__link {
+    color: var(--color-text-2);
+  }
+
+  @container ogsbom (width < 48rem) {
+    padding: var(--space-3) var(--space-4);
+  }
+}

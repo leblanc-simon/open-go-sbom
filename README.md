@@ -21,6 +21,7 @@ Prérequis : Go 1.26, `make`, PostgreSQL 16 pour les tests d'intégration
 ```bash
 make ci        # toutes les vérifications, identiques à la CI
 make build     # bin/ogsbom-server, bin/ogsbom-host-agent, bin/ogsbom-repo-agent
+make run       # serveur local (cp config.example.yaml config.yaml)
 make help      # liste des cibles
 ```
 
@@ -29,6 +30,7 @@ make help      # liste des cibles
 - [Cahier des charges](docs/cahier-des-charges.md)
 - [Architecture de référence](specs/architecture.md)
 - [Lots techniques](specs/README.md)
+- [Exploitation](docs/operations.md)
 - [Décisions d'architecture](docs/adr/)
 - [Modèle de menace](docs/security/threat-model.md)
 

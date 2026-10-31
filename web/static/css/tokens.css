@@ -1,0 +1,126 @@
+/* ==========================================================================
+   Tokens du système de design (planche « Fondations — tokens »).
+   Portés par la racine .ogsbom (élément html). Chaque couleur est donnée en
+   light-dark(clair, sombre) : sans choix explicite, le thème suit le système
+   (prefers-color-scheme) ; data-theme="light" ou "dark" l'impose.
+   ========================================================================== */
+
+.ogsbom {
+  /* — Typographie — */
+  --font-sans: "Atkinson Hyperlegible Next", system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Atkinson Hyperlegible Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  --leading-normal: 1.5;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 700;
+
+  /* — Espacements : pas de 4 px — */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* — Formes et densité — */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+  --control-h: 2.25rem;
+  --control-h-sm: 1.75rem;
+  --control-h-lg: 3rem;
+  --row-h: 2.25rem;
+  --badge-h: 1.375rem;
+  --header-h: 3.5rem;
+  --sidenav-w: 14rem;
+
+  /* — Couleurs : light-dark(clair, sombre) — */
+  --color-bg: light-dark(#F3F4F6, #13161B);
+  --color-surface: light-dark(#FFFFFF, #1A1E25);
+  --color-surface-2: light-dark(#F7F8FA, #20252D);
+  --color-surface-sunken: light-dark(#ECEEF2, #262C36);
+  --color-row-hover: light-dark(#F2F6FA, #222833);
+  --color-border: light-dark(#D5DAE1, #313844);
+  --color-border-strong: light-dark(#838C9A, #6B7585);
+  --color-text: light-dark(#161B26, #E6E8EC);
+  --color-text-2: light-dark(#434B5A, #B3BAC5);
+  --color-text-3: light-dark(#5B6474, #8F98A6);
+  --color-accent: light-dark(#0E6B68, #4FC1B8);
+  --color-accent-hover: light-dark(#0A5452, #7ED6CF);
+  --color-accent-soft: light-dark(#E1F2F0, #163331);
+  --color-accent-text: light-dark(#0E6B68, #4FC1B8);
+  --color-on-accent: light-dark(#FFFFFF, #0B1F1E);
+  --color-focus: light-dark(#0E6B68, #4FC1B8);
+  --color-danger: light-dark(#B42318, #FF8A7A);
+  --color-danger-soft: light-dark(#FDECEA, #3A1D1B);
+  --color-danger-border: light-dark(#E59A92, #8C3A31);
+  --color-success: light-dark(#1D6B3A, #6CCB8E);
+  --color-success-soft: light-dark(#E5F4EA, #173323);
+  --color-warning: light-dark(#8A5A00, #E8B530);
+  --color-warning-soft: light-dark(#FDF3D8, #352A10);
+  --color-warning-border: light-dark(#D4A63C, #8A6A1E);
+  --color-ai: light-dark(#3F3A8C, #C5C1F5);
+  --color-ai-soft: light-dark(#EFEEFA, #252340);
+  --color-ai-border: light-dark(#7D78C2, #8E88D6);
+  --color-code-bg: light-dark(#F7F8FA, #161A20);
+  --color-mark: light-dark(#FFE8A3, #5A4A12);
+  --shadow-1: 0 1px 2px light-dark(rgb(22 27 38 / 0.06), rgb(0 0 0 / 0.4));
+  --shadow-overlay:
+    0 16px 40px light-dark(rgb(22 27 38 / 0.18), rgb(0 0 0 / 0.55)),
+    0 2px 6px light-dark(rgb(22 27 38 / 0.08), rgb(0 0 0 / 0.4));
+  --scrim: light-dark(rgb(22 27 38 / 0.42), rgb(5 7 10 / 0.6));
+
+  /* — Échelle de sévérité : luminosité décroissante, forme et libellé — */
+  --sev-critical-bg: light-dark(#6E1230, #FFB3C6);
+  --sev-critical-fg: light-dark(#FFFFFF, #4A0518);
+  --sev-critical-mark: light-dark(#8E1B3D, #FF8FAB);
+  --sev-high-bg: light-dark(#C2362B, #F0735F);
+  --sev-high-fg: light-dark(#FFFFFF, #2A0602);
+  --sev-high-mark: light-dark(#C2362B, #F7826E);
+  --sev-medium-bg: light-dark(#FBE3A0, #4A3A0E);
+  --sev-medium-fg: light-dark(#5C4300, #F5D27A);
+  --sev-medium-mark: light-dark(#9A6A00, #E8B530);
+  --sev-low-bg: light-dark(#E1EAF5, #1C3350);
+  --sev-low-fg: light-dark(#1F4A7A, #B4D2F5);
+  --sev-low-mark: light-dark(#3B6EA8, #7DB3F0);
+  --sev-none-bg: transparent;
+  --sev-none-fg: light-dark(#434B5A, #B3BAC5);
+  --sev-none-border: light-dark(#838C9A, #6B7585);
+
+  /* — Vulnérabilité exploitée connue (KEV) — */
+  --kev-bg: #FFD43B;
+  --kev-fg: #161B26;
+  --kev-border: light-dark(#161B26, #FFD43B);
+
+  color-scheme: light dark;
+
+  @media (pointer: coarse) {
+    --control-h: 2.75rem;
+    --control-h-sm: 2.25rem;
+    --row-h: 2.75rem;
+  }
+
+  &[data-theme="light"] {
+    color-scheme: light;
+  }
+
+  &[data-theme="dark"] {
+    color-scheme: dark;
+  }
+}

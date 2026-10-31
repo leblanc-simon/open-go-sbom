@@ -1,0 +1,16 @@
+{{define "content" -}}
+<div class="home">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T "home.heading"}}</h1>
+    <p class="page-head__lead">{{T "home.lead"}}</p>
+  </div>
+  <section class="panel" aria-labelledby="home-status">
+    <div class="panel__head">
+      <h2 class="panel__title" id="home-status">{{T "home.status_title"}}</h2>
+    </div>
+    <div class="panel__body">
+      <p>{{T "home.status_text"}}</p>
+    </div>
+  </section>
+</div>
+{{- end}}

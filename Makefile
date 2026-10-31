@@ -31,7 +31,7 @@ build: ## Construit les trois binaires dans bin/
 
 .PHONY: run
 run: build ## Lance le serveur avec config.yaml
-	./bin/ogsbom-server --config config.yaml
+	./bin/ogsbom-server -c config.yaml
 
 .PHONY: fmt
 fmt: ## Formate le code

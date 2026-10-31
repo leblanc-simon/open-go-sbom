@@ -1,0 +1,52 @@
+app:
+  name: open-go-sbom
+  tagline: Gestion des SBOM par projet
+
+layout:
+  skip_to_content: Aller au contenu
+  home_link: Accueil
+
+nav:
+  label: Navigation principale
+
+theme:
+  system: "Thème : système"
+  light: "Thème : clair"
+  dark: "Thème : sombre"
+
+footer:
+  version: "Version {{.Version}}"
+  license: Logiciel libre sous licence WTFPL
+  source: Code source
+
+home:
+  title: Accueil
+  heading: Bienvenue sur open-go-sbom
+  lead: >-
+    open-go-sbom inventorie les composants logiciels de vos dépôts et de vos serveurs, et
+    les analyse chaque jour pour y repérer les vulnérabilités connues.
+  status_title: État de l'instance
+  status_text: Le serveur est démarré et son schéma de base de données est à jour.
+
+error:
+  back_home: Retour à l'accueil
+  code: "Erreur {{.Code}}"
+  reference: "Référence de la requête : {{.RequestID}}"
+  not_found:
+    title: Page introuvable
+    text: La page demandée n'existe pas ou a été déplacée.
+  method_not_allowed:
+    title: Méthode non autorisée
+    text: Cette adresse n'accepte pas ce type de requête.
+  too_many_requests:
+    title: Trop de requêtes
+    text: Vous avez envoyé trop de requêtes en peu de temps. Réessayez dans un instant.
+  internal:
+    title: Erreur interne
+    text: Une erreur inattendue s'est produite. Elle a été journalisée ; réessayez plus tard.
+  invalid_cursor:
+    title: Curseur de pagination invalide
+    text: Le curseur fourni est illisible ou périmé. Reprenez la liste depuis le début.
+  invalid_limit:
+    title: Taille de page invalide
+    text: "La taille de page doit être comprise entre 1 et {{.Max}}."

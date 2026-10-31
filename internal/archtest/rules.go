@@ -37,14 +37,15 @@ var anchoreImporters = map[string][]string{
 var domainPackages = []string{
 	"internal/account", "internal/agent", "internal/audit", "internal/dashboard",
 	"internal/db", "internal/finding", "internal/ingest", "internal/inventory",
-	"internal/jobs", "internal/license", "internal/notify", "internal/org",
-	"internal/policy", "internal/project", "internal/sbom", "internal/search",
+	"internal/jobs", "internal/license", "internal/locale", "internal/notify", "internal/org",
+	"internal/pagination", "internal/policy", "internal/project", "internal/sbom", "internal/search",
 	"internal/secret", "internal/team", "internal/tenant", "internal/triage",
 	"internal/version", "internal/vuln",
 }
 
-// presentationPackages ne sont importés que par cmd.
-var presentationPackages = []string{"internal/web", "internal/api", "internal/render"}
+// presentationPackages ne sont importés que par cmd et entre eux. web (à la racine)
+// embarque gabarits et fichiers statiques.
+var presentationPackages = []string{"internal/web", "internal/api", "internal/render", "web"}
 
 // agentPackages forment les binaires d'agents, qui restent légers.
 var agentPackages = []string{
@@ -55,10 +56,10 @@ var agentPackages = []string{
 var serverPackages = []string{
 	"internal/account", "internal/agent", "internal/api", "internal/audit", "internal/config",
 	"internal/dashboard", "internal/db", "internal/finding", "internal/ingest",
-	"internal/inventory", "internal/jobs", "internal/notify", "internal/org",
-	"internal/policy", "internal/project", "internal/ratelimit", "internal/render",
+	"internal/inventory", "internal/jobs", "internal/locale", "internal/notify", "internal/org",
+	"internal/pagination", "internal/policy", "internal/project", "internal/ratelimit", "internal/render",
 	"internal/search", "internal/secret", "internal/team", "internal/tenant",
-	"internal/triage", "internal/vuln", "internal/web",
+	"internal/triage", "internal/vuln", "internal/web", "web",
 }
 
 // forbiddenInDomain sont les paquets de la bibliothèque standard interdits au métier.

@@ -1,0 +1,63 @@
+/* En-tête de l'application : marque, organisation (T03), recherche (T09), actions. */
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
+  min-height: var(--header-h);
+  padding: var(--space-2) var(--space-5);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+
+  .topbar__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text);
+    font-weight: var(--weight-bold);
+    text-decoration: none;
+    white-space: nowrap;
+
+    svg {
+      width: 1.375rem;
+      height: 1.375rem;
+      color: var(--color-accent);
+    }
+  }
+
+  .topbar__search {
+    flex: 1 1 20rem;
+    max-width: 34rem;
+    margin-inline-start: auto;
+  }
+
+  .topbar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-inline-start: auto;
+  }
+
+  .topbar__user {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--color-text-2);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  @container ogsbom (width < 48rem) {
+    padding: var(--space-2) var(--space-4);
+
+    .topbar__search, .topbar__username {
+      display: none;
+    }
+
+    .topbar__user {
+      margin-inline-start: auto;
+    }
+  }
+}

@@ -1,0 +1,52 @@
+/* En-tête de page : titre, chapeau, métadonnées et actions. */
+.page-head {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+
+  .page-head__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+  }
+
+  .page-head__eyebrow {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    color: var(--color-text-3);
+  }
+
+  .page-head__title {
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-tight);
+
+    &.page-head__title--mono {
+      font-family: var(--font-mono);
+      letter-spacing: -0.01em;
+    }
+  }
+
+  .page-head__lead {
+    max-width: 48rem;
+    font-size: var(--text-base);
+    color: var(--color-text-2);
+  }
+
+  .page-head__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-4);
+    font-size: var(--text-sm);
+    color: var(--color-text-2);
+  }
+
+  .page-head__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-inline-start: auto;
+  }
+}

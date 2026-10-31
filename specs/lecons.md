@@ -31,3 +31,62 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   correctif, ou une fusion « squash » de la PR.
 - Commits signés « Simon Leblanc <contact@leblanc-simon.eu> », avec la ligne
   `Co-Authored-By` de Claude.
+
+## Base de données (T01)
+
+- **Tableaux pgx via `database/sql`** : passer une `[]string` en paramètre marche, mais la
+  relire (`Scan(&slice)`) échoue (« unsupported Scan »). Règle : `row.Scan(db.Array(&s))`.
+  Pour `[]uuid.UUID`, pgx exige d'enregistrer les types **pointeurs** (`*[]uuid.UUID`) :
+  `db.Array` le fait.
+- **RLS et `current_setting`** : jamais `current_setting('ogsbom.org_id', true)` dans une
+  politique (NULL, donc zéro ligne en silence). Après un `set_config(…, true)`, le
+  paramètre ne disparaît pas en fin de transaction : il vaut `''` sur la connexion, et
+  `''::uuid` échoue. Les tests RLS couvrent les deux cas (connexion neuve, connexion
+  réutilisée) avec un pool d'une connexion.
+- **Privilèges par défaut** : `ALTER DEFAULT PRIVILEGES … REVOKE EXECUTE ON FUNCTIONS
+  FROM PUBLIC` n'a d'effet que sans `IN SCHEMA`. Toute nouvelle table d'organisation :
+  `CALL ogsbom_enforce_org_rls('table')`, sinon le serveur refuse de démarrer.
+- **Migration sans nom de rôle en dur** : le rôle d'exécution est dans
+  `current_setting('ogsbom.app_role')`, à citer par `format('%I')`. Une migration est
+  exécutée dans la transaction du verrou : pas de `CREATE INDEX CONCURRENTLY`.
+- **Tests d'intégration** : toujours `dbtest.New(t)` (base et rôles jetables) ; jamais de
+  base nommée en dur. Une base de développement manuelle prend un nom propre au lot et se
+  supprime après usage.
+
+## Go, open-go-base et chi (T01)
+
+- **appconf** : `Load` lit `os.Args` (les options de `go test` font échouer l'analyse) et
+  termine le programme sur `--help`. Règle : dans les tests, fixer `os.Args`, et tester
+  `--help` dans un sous-processus. Un `env-default` ne s'applique qu'à un champ vide :
+  poser les défauts du projet avant `Load` (`config.Defaults`) ; `--help` affiche quand
+  même celui d'appconf.
+- **cleanenv** accepte un fragment embarqué avec `yaml:",inline"` : variables et YAML
+  fonctionnent (`config.Database`).
+- **go-i18n** prend pour un message toute table YAML qui contient un nom réservé
+  (`description`, `id`, `hash`, `translation`…) : ses clés disparaissent en silence. Le
+  test de `locales` l'interdit ; ne pas nommer un élément ainsi.
+- **chi** : un sous-routeur sans aucune route n'exécute pas ses propres middlewares
+  (sa réponse NotFound part sans en-têtes ni journal). Monter un groupe par
+  `r.With(mws...).Route(…)`. `middleware.GetHead` ne marche qu'au niveau racine, avant le
+  routage. Le `NotFound` racine ne passe pas par les middlewares d'un groupe : l'envelopper
+  explicitement (`chi.Chain(...).Handler`).
+- **html/template** échappe à la première exécution : `render` force l'échappement au
+  démarrage pour qu'un gabarit ambigu échoue tôt. Cloner un jeu par requête coûte cher
+  (ADR 0009).
+- **Course de données** : `http.Server.Serve` modifie `TLSConfig` (HTTP/2) ; ne pas le
+  relire depuis une autre goroutine. La sortie d'un `exec.Cmd` lue pendant qu'il tourne
+  passe par un tampon protégé par un mutex.
+- **TLS** : le client Go n'envoie pas un certificat client d'une autorité que le serveur
+  n'annonce pas ; pour tester un refus, forcer `GetClientCertificate`.
+- **`go get module/paquet` sans version** monte le module à sa dernière version : préciser
+  la version du graphe (`@v0.61.0`) si on ne veut pas de montée.
+
+## Outillage (T01)
+
+- **`make generate-check`** échoue tant que le code généré n'est pas commité (fichiers
+  non suivis ou seulement indexés) : committer avant de lancer `make ci`.
+- **Variables d'environnement** : chaque appel de commande repart d'un shell neuf ; un
+  `export` ne survit pas. Passer `OGSBOM_TEST_DATABASE_DSN=…` sur la ligne, ou passer par
+  `make test-integration` qui le pose.
+- **Captures d'écran** : `google-chrome --headless=new --screenshot` est disponible ;
+  `--blink-settings=preferredColorScheme=0` simule le thème sombre du système.

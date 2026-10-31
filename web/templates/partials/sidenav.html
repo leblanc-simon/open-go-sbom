@@ -1,0 +1,9 @@
+{{define "sidenav" -}}
+<nav class="sidenav" aria-label="{{T "nav.label"}}">
+  <ul class="sidenav__list">
+    {{- range .Page.Nav}}
+    <li class="sidenav__item"><a class="sidenav__link" href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}><span>{{T .LabelKey}}</span></a></li>
+    {{- end}}
+  </ul>
+</nav>
+{{- end}}
