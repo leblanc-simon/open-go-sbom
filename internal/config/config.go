@@ -26,6 +26,7 @@ type Config struct {
 	Auth       appconf.Auth    `yaml:"auth"       env-prefix:"OGSBOM_"`
 	MFA        appconf.MFA     `yaml:"mfa"        env-prefix:"OGSBOM_"`
 	Login      Login           `yaml:"login"      env-prefix:"OGSBOM_"`
+	AgentAPI   AgentAPI        `yaml:"agent_api"  env-prefix:"OGSBOM_"`
 	Bootstrap  Bootstrap       `yaml:"bootstrap"  env-prefix:"OGSBOM_"`
 	Workers    Workers         `yaml:"workers"    env-prefix:"OGSBOM_"`
 }
@@ -34,6 +35,14 @@ type Config struct {
 // minute et par IP, en plus de la limite générale de l'interface.
 type Login struct {
 	RateLimit int `yaml:"rate_limit" env:"LOGIN_RATE_LIMIT" env-default:"10" env-description:"Login and second-factor attempts per minute and per IP"`
+}
+
+// AgentAPI borne le débit de l'API des agents (/api/v1/agent/*) : par jeton, pour que des
+// hôtes derrière une même sortie NAT ne se gênent pas, et par IP pour les seuls jetons
+// refusés.
+type AgentAPI struct {
+	RateLimit        int `yaml:"rate_limit"         env:"AGENT_API_RATE_LIMIT"         env-default:"120" env-description:"Agent API requests per minute and per token (0: unlimited)"`
+	FailureRateLimit int `yaml:"failure_rate_limit" env:"AGENT_API_FAILURE_RATE_LIMIT" env-default:"30"  env-description:"Refused agent API tokens per minute and per IP (0: unlimited)"`
 }
 
 // Bootstrap crée le premier administrateur d'instance sur une base sans compte (ignoré dès

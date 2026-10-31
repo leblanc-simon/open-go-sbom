@@ -2,11 +2,14 @@ package web
 
 import (
 	"slices"
+	"strconv"
 	"testing"
 
 	"leblanc.io/open-go-sbom/internal/account"
+	"leblanc.io/open-go-sbom/internal/agent"
 	"leblanc.io/open-go-sbom/internal/audit"
 	"leblanc.io/open-go-sbom/internal/org"
+	"leblanc.io/open-go-sbom/internal/project"
 	"leblanc.io/open-go-sbom/internal/tenant"
 	"leblanc.io/open-go-sbom/locales"
 )
@@ -40,6 +43,26 @@ func TestDynamicKeysExist(t *testing.T) {
 		org.KeyMemberExists, org.KeyUnknownAccount, org.KeyLastOrgAdmin,
 		"login.error.invalid_credentials", "login.error.attempts_exhausted", "verify.error.invalid_code",
 		"totp_setup.error.invalid_code", "error.csrf.title", "error.csrf.text")
+	want = append(want, project.ValidationKeys()...)
+	want = append(want, agent.ValidationKeys()...)
+	for _, k := range agent.ErrorKeys() {
+		want = append(want, k+".title", k+".text")
+	}
+	for _, k := range project.Kinds() {
+		want = append(want, "project_type."+string(k))
+	}
+	for _, k := range agent.Kinds() {
+		want = append(want, "agent_type."+string(k))
+	}
+	for _, s := range []agent.State{agent.StateActive, agent.StatePending, agent.StateDisabled} {
+		want = append(want, "agent_state."+string(s))
+	}
+	for _, d := range agent.TokenLifetimes {
+		want = append(want, "agents.expiry_"+strconv.Itoa(d))
+	}
+	for _, h := range agent.EnrollmentLifetimes {
+		want = append(want, "enrollment.expiry_"+strconv.Itoa(h))
+	}
 	for _, k := range want {
 		if !slices.Contains(keys, k) {
 			t.Errorf("clé %s absente des traductions", k)

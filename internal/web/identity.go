@@ -16,11 +16,13 @@ import (
 	mfasql "leblanc.io/open-go-base/mfax/sqlstore"
 
 	"leblanc.io/open-go-sbom/internal/account"
+	"leblanc.io/open-go-sbom/internal/agent"
 	"leblanc.io/open-go-sbom/internal/audit"
 	"leblanc.io/open-go-sbom/internal/db"
 	"leblanc.io/open-go-sbom/internal/db/crossorg"
 	"leblanc.io/open-go-sbom/internal/locale"
 	"leblanc.io/open-go-sbom/internal/org"
+	"leblanc.io/open-go-sbom/internal/project"
 	"leblanc.io/open-go-sbom/internal/render"
 	"leblanc.io/open-go-sbom/internal/secret"
 	"leblanc.io/open-go-sbom/internal/tenant"
@@ -44,6 +46,8 @@ type IdentityOptions struct {
 	Pool     *db.Pool
 	Accounts *account.Service
 	Orgs     *org.Service
+	Projects *project.Service
+	Agents   *agent.Service
 	// Secrets chiffre les secrets TOTP en base.
 	Secrets *secret.Box
 	Auth    appconf.Auth
@@ -67,7 +71,7 @@ type identity struct {
 }
 
 func newIdentity(o IdentityOptions, rd *render.Renderer, cat *locale.Catalog, logger *slog.Logger, clientIP func(*http.Request) string) (*identity, error) {
-	if o.Pool == nil || o.Accounts == nil || o.Orgs == nil || o.Secrets == nil {
+	if o.Pool == nil || o.Accounts == nil || o.Orgs == nil || o.Projects == nil || o.Agents == nil || o.Secrets == nil {
 		return nil, errors.New("web: dépendances de l'identité incomplètes")
 	}
 	id := &identity{IdentityOptions: o, rd: rd, cat: cat, logger: logger, clientIP: clientIP}

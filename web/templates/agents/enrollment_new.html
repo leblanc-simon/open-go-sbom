@@ -1,0 +1,54 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
+      <ol>
+        <li><a href="{{.Base}}/agents">{{T "nav.agents"}}</a></li>
+        <li><span aria-current="page">{{T "enrollment_new.heading"}}</span></li>
+      </ol>
+    </nav>
+    <h1 class="page-head__title">{{T "enrollment_new.heading"}}</h1>
+    <p class="page-head__lead">{{T "enrollment_new.lead"}}</p>
+  </div>
+  {{template "form_error" .Error}}
+  <section class="panel" aria-labelledby="enrollment-form">
+    <div class="panel__head"><h2 class="panel__title" id="enrollment-form">{{T "enrollment_new.form_title"}}</h2></div>
+    <form class="panel__body form" method="post" action="{{.Base}}/enrollment-tokens">
+      {{csrfField .Page.CSRFToken}}
+      <div class="field">
+        <label class="field__label" for="enr-name">{{T "enrollment.col_name"}}</label>
+        <input class="input" id="enr-name" name="name" type="text" maxlength="100" required value="{{.Name}}" aria-describedby="enr-name-hint"{{if eq .Error.Field "name"}} aria-invalid="true"{{end}}>
+        <p class="field__hint" id="enr-name-hint">{{T "enrollment_new.name_hint"}}</p>
+      </div>
+      <div class="field">
+        <label class="field__label" for="enr-exp">{{T "enrollment_new.validity"}}</label>
+        <select class="select" id="enr-exp" name="expires_in"{{if eq .Error.Field "expires_in"}} aria-invalid="true"{{end}}>
+          {{- range .Lifetimes}}
+          <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+          {{- end}}
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="enr-uses">{{T "enrollment_new.max_uses"}}</label>
+        <input class="input" id="enr-uses" name="max_uses" type="number" min="1" max="10000" required value="{{.MaxUses}}" aria-describedby="enr-uses-hint"{{if eq .Error.Field "max_uses"}} aria-invalid="true"{{end}}>
+        <p class="field__hint" id="enr-uses-hint">{{T "enrollment_new.max_uses_hint"}}</p>
+      </div>
+      <div class="field">
+        <label class="field__label" for="enr-project">{{T "enrollment_new.project"}}</label>
+        <select class="select" id="enr-project" name="project" aria-describedby="enr-project-hint"{{if eq .Error.Field "project"}} aria-invalid="true"{{end}}>
+          {{- range .Projects}}
+          <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{if .LabelKey}}{{T .LabelKey}}{{else}}{{.Label}}{{end}}</option>
+          {{- end}}
+        </select>
+        <p class="field__hint" id="enr-project-hint">{{T "enrollment_new.project_hint"}}</p>
+      </div>
+      <div class="field">
+        <label class="field__label" for="enr-labels">{{T "project_form.labels"}}</label>
+        <input class="input" id="enr-labels" name="labels" type="text" value="{{.Labels}}" aria-describedby="enr-labels-hint"{{if eq .Error.Field "labels"}} aria-invalid="true"{{end}}>
+        <p class="field__hint" id="enr-labels-hint">{{T "enrollment_new.labels_hint"}}</p>
+      </div>
+      <p><button type="submit" class="btn btn--primary">{{T "enrollment_new.create"}}</button></p>
+    </form>
+  </section>
+</div>
+{{- end}}

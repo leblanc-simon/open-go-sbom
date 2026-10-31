@@ -1,0 +1,90 @@
+{{define "stamp" -}}
+{{- with .}}<time datetime="{{.ISO}}">{{T "format.utc" "Time" .Display}}</time>{{else}}<span class="muted">{{T "common.never"}}</span>{{end}}
+{{- end}}
+
+{{define "agent_status" -}}
+{{- if eq (print .State) "active"}}<span class="status status--active">{{T "agent_state.active"}}</span>
+{{- else if eq (print .State) "silent"}}<span class="silent-flag">{{Tn "agent_state.silent_for" .Days}}</span>
+{{- else if eq (print .State) "pending"}}<span class="status status--warning">{{T "agent_state.pending"}}</span>
+{{- else}}<span class="status status--revoked">{{T "agent_state.disabled"}}</span>{{end}}
+{{- end}}
+
+{{define "project_kind" -}}
+<span class="ptype{{if eq (print .) "host"}} ptype--server{{end}}">{{T (print "project_type." .)}}</span>
+{{- end}}
+
+{{define "labels" -}}
+{{- if .}}<span class="cluster">{{range .}}<span class="chip chip--tag">{{.}}</span>{{end}}</span>{{else}}<span class="muted">{{T "projects.no_labels"}}</span>{{end}}
+{{- end}}
+
+{{define "project_tabs" -}}
+<nav class="tabs" aria-label="{{T "project.tabs"}}">
+  {{- range .}}
+  <a href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}><span>{{T .LabelKey}}</span></a>
+  {{- end}}
+</nav>
+{{- end}}
+
+{{define "project_form" -}}
+<form class="form" method="post" action="{{.Action}}">
+  {{csrfField .Page.CSRFToken}}
+  {{- if .IsNew}}
+  <fieldset class="field">
+    <legend class="field__label">{{T "project_form.kind"}}</legend>
+    {{- range .Kinds}}
+    <label class="check"><input type="radio" name="kind" value="{{.Value}}"{{if .Selected}} checked{{end}}> <span>{{T .LabelKey}}</span></label>
+    {{- end}}
+    <p class="field__hint">{{T "project_form.kind_hint"}}</p>
+  </fieldset>
+  {{- end}}
+  <div class="field">
+    <label class="field__label" for="project-name">{{T "project_form.name"}}</label>
+    <input class="input" id="project-name" name="name" type="text" maxlength="100" required value="{{.Form.Name}}"{{if eq .Error.Field "name"}} aria-invalid="true"{{end}}>
+  </div>
+  {{- if .IsNew}}
+  <div class="field">
+    <label class="field__label" for="project-slug">{{T "project_form.slug"}}</label>
+    <input class="input input--code" id="project-slug" name="slug" type="text" maxlength="64" value="{{.Form.Slug}}" aria-describedby="project-slug-hint"{{if eq .Error.Field "slug"}} aria-invalid="true"{{end}}>
+    <p class="field__hint" id="project-slug-hint">{{T "project_form.slug_hint"}}</p>
+  </div>
+  {{- end}}
+  <div class="field">
+    <label class="field__label" for="project-description">{{T "project_form.summary"}}</label>
+    <textarea class="input" id="project-description" name="description" rows="3" maxlength="2000"{{if eq .Error.Field "description"}} aria-invalid="true"{{end}}>{{.Form.Description}}</textarea>
+  </div>
+  <div class="field">
+    <label class="field__label" for="project-labels">{{T "project_form.labels"}}</label>
+    <input class="input" id="project-labels" name="labels" type="text" value="{{.Form.Labels}}" aria-describedby="project-labels-hint"{{if eq .Error.Field "labels"}} aria-invalid="true"{{end}}>
+    <p class="field__hint" id="project-labels-hint">{{T "project_form.labels_hint"}}</p>
+  </div>
+  {{- if or .IsNew (eq (print .Form.Kind) "repo")}}
+  <fieldset class="stack stack--sm">
+    <legend class="field__label">{{T "project_form.repo_legend"}}</legend>
+    <div class="field">
+      <label class="field__label" for="project-forge">{{T "project_form.forge_url"}}</label>
+      <input class="input" id="project-forge" name="forge_url" type="url" maxlength="500" value="{{.Form.ForgeURL}}"{{if eq .Error.Field "forge_url"}} aria-invalid="true"{{end}}>
+    </div>
+    <div class="field">
+      <label class="field__label" for="project-branches">{{T "project_form.branches"}}</label>
+      <textarea class="input input--code" id="project-branches" name="branches" rows="3" aria-describedby="project-refs-hint"{{if eq .Error.Field "branches"}} aria-invalid="true"{{end}}>{{.Form.Branches}}</textarea>
+    </div>
+    <div class="field">
+      <label class="field__label" for="project-tags">{{T "project_form.tags"}}</label>
+      <textarea class="input input--code" id="project-tags" name="tags" rows="2" aria-describedby="project-refs-hint"{{if eq .Error.Field "tags"}} aria-invalid="true"{{end}}>{{.Form.Tags}}</textarea>
+      <p class="field__hint" id="project-refs-hint">{{T "project_form.refs_hint"}}</p>
+    </div>
+  </fieldset>
+  {{- end}}
+  {{- if or .IsNew (eq (print .Form.Kind) "host")}}
+  <fieldset class="stack stack--sm">
+    <legend class="field__label">{{T "project_form.host_legend"}}</legend>
+    <div class="field">
+      <label class="field__label" for="project-host">{{T "project_form.host_ref"}}</label>
+      <input class="input input--code" id="project-host" name="host_ref" type="text" maxlength="100" value="{{.Form.HostRef}}" aria-describedby="project-host-hint"{{if eq .Error.Field "host_ref"}} aria-invalid="true"{{end}}>
+      <p class="field__hint" id="project-host-hint">{{T "project_form.host_ref_hint"}}</p>
+    </div>
+  </fieldset>
+  {{- end}}
+  <p><button type="submit" class="btn btn--primary">{{if .IsNew}}{{T "project_form.create"}}{{else}}{{T "form.save"}}{{end}}</button></p>
+</form>
+{{- end}}

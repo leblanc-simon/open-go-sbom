@@ -28,6 +28,10 @@
     margin-inline-start: auto;
     font-size: var(--text-sm);
     white-space: nowrap;
+
+    .select {
+      width: auto;
+    }
   }
 
   .panel__body {

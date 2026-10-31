@@ -1,0 +1,21 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
+      <ol>
+        <li><a href="{{.Base}}/projects">{{T "nav.projects"}}</a></li>
+        <li><span aria-current="page">{{T "project_new.heading"}}</span></li>
+      </ol>
+    </nav>
+    <h1 class="page-head__title">{{T "project_new.heading"}}</h1>
+    <p class="page-head__lead">{{T "project_new.lead"}}</p>
+  </div>
+  {{template "form_error" .Error}}
+  <section class="panel" aria-labelledby="project-new-form">
+    <div class="panel__head"><h2 class="panel__title" id="project-new-form">{{T "project_new.form_title"}}</h2></div>
+    <div class="panel__body">
+      {{template "project_form" .}}
+    </div>
+  </section>
+</div>
+{{- end}}

@@ -1,0 +1,18 @@
+/* Fil d'Ariane. */
+.breadcrumb {
+  ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    padding: 0;
+    list-style: none;
+    font-size: var(--text-sm);
+    color: var(--color-text-2);
+  }
+
+  li + li::before {
+    content: "/" / "";
+    margin-inline-end: var(--space-1);
+    color: var(--color-text-3);
+  }
+}

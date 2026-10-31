@@ -171,6 +171,8 @@ func (c Config) Validate() error {
 		v.fail("mfa.max_attempts", "doit être compris entre 1 et 20 (reçu %d)", c.MFA.MaxAttempts)
 	}
 	v.nonNegative("login.rate_limit", int64(c.Login.RateLimit))
+	v.nonNegative("agent_api.rate_limit", int64(c.AgentAPI.RateLimit))
+	v.nonNegative("agent_api.failure_rate_limit", int64(c.AgentAPI.FailureRateLimit))
 	c.Bootstrap.validate(&v)
 	v.positive("workers.concurrency", int64(c.Workers.Concurrency))
 	v.positive("workers.poll_interval", int64(c.Workers.PollInterval))

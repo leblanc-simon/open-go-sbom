@@ -1,0 +1,8 @@
+# Client de l'API des agents et ses types (make generate), sans aucune dépendance serveur.
+package: gen
+generate:
+  models: true
+  client: true
+output-options:
+  include-tags: [agent]
+output: client.gen.go

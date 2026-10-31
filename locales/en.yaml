@@ -18,6 +18,8 @@ nav:
   audit: Audit log
   admin_users: Accounts
   admin_orgs: Organizations
+  projects: Projects
+  agents: Agents
 
 org_switcher:
   caption: Organization
@@ -65,6 +67,14 @@ flash:
   org_unarchived: The organization is active again.
   account_updated: The account is updated.
   totp_reset: The account's TOTP is reset; a new one will be enrolled at the next sign-in.
+  project_created: The project is created.
+  project_saved: The project is saved.
+  project_archived: The project is archived; it is no longer offered to its agent.
+  project_unarchived: The project is active again.
+  project_agent_saved: The project's agent is saved.
+  token_revoked: The token is revoked; the next request that presents it will be refused.
+  agent_disabled: The agent is disabled; its tokens are revoked and its projects taken away.
+  enrollment_revoked: The enrollment token is revoked.
 
 table:
   actions: Actions
@@ -95,6 +105,27 @@ validation:
   member_exists: This account is already a member of the organization.
   member_unknown_account: No account uses this address. An instance administrator must create it first.
   last_org_admin: The organization must keep at least one administrator.
+  project_kind_invalid: Choose a repository or a server.
+  project_slug_invalid: "The URL identifier only contains lowercase letters, digits and hyphens (64 characters at most, no hyphen at either end); “new” is reserved."
+  project_slug_taken: A project of the organization already uses this URL identifier.
+  description_too_long: The description is 2,000 characters at most.
+  label_invalid: "A label is written key or key=value: the key starts with a letter or digit (64 characters at most), the value is 100 characters at most, without commas."
+  labels_too_many: A project has 20 labels at most.
+  forge_url_invalid: The forge URL must be a complete http or https address, without credentials.
+  ref_invalid: "A branch or tag name contains no space, no “..”, none of ~ ^ : ? * [ \\, and does not start with a hyphen."
+  refs_too_many: A repository tracks 50 references at most.
+  refs_missing: Give at least one branch or tag to track.
+  host_ref_invalid: The host name only contains letters, digits, dots, hyphens and underscores (100 characters at most).
+  host_ref_taken: Another project of the organization already tracks this host.
+  agent_invalid: Choose an active repository agent of the organization.
+  project_archived: This project is archived; unarchive it to edit it.
+  agent_name_taken: An active agent of the organization already has this name.
+  token_expiry_invalid: Choose one of the offered validity periods.
+  token_max_uses_invalid: The number of uses is between 1 and 10,000.
+  agent_disabled: This agent is disabled.
+  agent_version_invalid: The agent version is 64 characters at most, without spaces.
+  enrollment_project_invalid: Choose an active server project of the organization.
+  token_already_revoked: This token is already revoked.
 
 home:
   title: Home
@@ -246,6 +277,18 @@ audit:
     member_added: "{{.Target}} added with the role {{.D_role}}"
     member_role_changed: "Role of {{.Target}}: {{.D_from}} → {{.D_to}}"
     member_removed: "{{.Target}} removed from the organization"
+    project_created: "Project {{.Target}} created"
+    project_updated: "Project {{.Target}} edited ({{.D_fields}})"
+    project_archived: "Project {{.Target}} archived"
+    project_unarchived: "Project {{.Target}} unarchived"
+    project_agent_changed: "Agent of project {{.Target}}: {{.D_agent}}"
+    agent_created: "Agent {{.Target}} created"
+    agent_enrolled: "Server agent {{.Target}} enrolled (project {{.D_project}}, token {{.D_token}})"
+    agent_disabled: "Agent {{.Target}} disabled"
+    agent_token_created: "Token {{.Target}} ({{.D_prefix}}) created for agent {{.D_agent}}"
+    agent_token_revoked: "Token {{.Target}} ({{.D_prefix}}) of agent {{.D_agent}} revoked"
+    enrollment_token_created: "Enrollment token {{.Target}} ({{.D_prefix}}) created"
+    enrollment_token_revoked: "Enrollment token {{.Target}} ({{.D_prefix}}) revoked"
 
 admin:
   single_admin_title: Only one instance administrator
@@ -351,8 +394,261 @@ error:
   invalid_limit:
     title: Invalid page size
     text: "The page size must be between 1 and {{.Max}}."
+  invalid_request:
+    title: Invalid request
+    text: The request body or parameters are unreadable or too large.
+  validation:
+    title: Input refused
+    text: A value of the request is not accepted.
+  unauthorized:
+    title: Authentication required
+    text: This address requires a valid token.
+  token:
+    invalid:
+      title: Token refused
+      text: "The token presented is missing, malformed or unknown. Check that it is complete (ogsbom_agt_… or ogsbom_enr_…) and suits this operation."
+    revoked:
+      title: Token revoked
+      text: This token has been revoked. Ask an administrator of the organization for a new one.
+    expired:
+      title: Token expired
+      text: This token is past its expiry date. Ask an administrator of the organization for a new one.
+  agent:
+    disabled:
+      title: Agent disabled
+      text: This agent has been disabled by an administrator of the organization.
+  enrollment:
+    exhausted:
+      title: Enrollment token used up
+      text: This enrollment token has reached its number of uses. Ask an administrator of the organization for a new one.
+    host_taken:
+      title: Host already tracked
+      text: An active agent already tracks this host, or already has this name. Disable the old agent before enrolling the host again.
+    project_unavailable:
+      title: Project unavailable
+      text: The project designated by this token is archived, or already has an active agent.
 
 footer:
   version: "Version {{.Version}}"
   license: Free software under the WTFPL licence
   source: Source code
+
+common:
+  all: All
+  filter: Filter
+  never: Never
+  breadcrumb: Breadcrumb
+
+project_type:
+  repo: Repository
+  host: Server
+
+agent_type:
+  repo: Repository agent
+  host: Server agent
+
+agent_state:
+  active: Active
+  pending: Never contacted
+  disabled: Disabled
+  silent_for:
+    one: "Silent for {{.Count}} day"
+    other: "Silent for {{.Count}} days"
+
+token_state:
+  active: Active
+  expired: Expired
+  revoked: Revoked
+  spent: Used up or expired
+
+projects:
+  title: Projects
+  heading: Projects
+  lead: The repositories and servers of the organization, and the agent that feeds each one.
+  new: New project
+  enroll_host: Enroll a server
+  filter_label: Filter projects
+  filter_name: Name
+  filter_type: Type
+  filter_label_field: Label
+  filter_label_hint: "key or key=value"
+  filter_archived: Archived projects
+  list_title: Active projects
+  list_archived: Archived projects
+  caption: Projects of the organization, by name
+  col_project: Project
+  col_type: Type
+  col_labels: Labels
+  col_agent: Agent
+  col_last_contact: Agent's last contact
+  no_agent: No agent
+  no_labels: None
+  empty: No project matches. Create a repository, or enroll a server with an enrollment token.
+  empty_archived: No archived project matches.
+
+project:
+  title: "{{.Name}}"
+  tabs: Project sections
+  tab_overview: Overview
+  tab_settings: Settings
+  agent_value: "Agent: {{.Name}}"
+  archived_title: Archived project
+  archived_text: This project is no longer offered to its agent; its history is kept.
+  silent_text: The agent of this project has not been heard from for several days; the inventory shown may be old.
+  about_title: About
+  no_description: No description.
+  kind: Type
+  no_forge: Not set
+  created: Created
+  refs_title: Tracked references
+  refs_meta: What the agent analyses.
+  branches: Branches
+  tags: Git tags
+  none: None
+  agent_title: Agent
+  agent_name: Name
+  no_agent_text: No agent feeds this project.
+  no_agent: No agent
+  assign_agent: Repository agent in charge of this repository
+  enroll_this_host: Enroll this server
+
+project_new:
+  title: New project
+  heading: New project
+  lead: A repository is then entrusted to a repository agent; a server gets its agent when the agent enrolls.
+  form_title: Project
+
+project_settings:
+  title: "Settings of {{.Name}}"
+  form_title: Project
+  archived_text: Unarchive the project to edit it.
+  archive_title: Archiving
+  archive_text: An archived project leaves the lists and is no longer offered to its agent; its history is kept.
+  archive: Archive the project
+  unarchive_text: Once unarchived, the project is offered to its agent again.
+  unarchive: Unarchive the project
+
+project_form:
+  kind: Project type
+  kind_hint: A repository tracks git branches and tags; a server tracks a host.
+  name: Name
+  slug: URL identifier
+  slug_hint: Optional, derived from the name; lowercase letters, digits and hyphens. It never changes afterwards.
+  summary: Description
+  labels: Labels
+  labels_hint: "Separated by commas: env=prod, internet-facing."
+  repo_legend: Repository
+  forge_url: Forge URL
+  branches: Tracked branches
+  tags: Tracked git tags
+  refs_hint: One per line, or separated by commas.
+  host_legend: Server
+  host_ref: Host name
+  host_ref_hint: The name the agent announces when enrolling; it identifies the host within the organization.
+  create: Create the project
+
+agents:
+  title: Agents
+  heading: Agents
+  lead: "The agents that send SBOMs: one server agent per host, and repository agents to which repositories are entrusted. An agent is silent after 3 days without contact."
+  new_repo: New repository agent
+  new_enrollment: Enroll servers
+  list_title: Active agents
+  list_disabled: Disabled agents
+  filter_type: Agent type
+  filter_disabled: Disabled
+  caption: Agents of the organization, by name
+  col_agent: Agent
+  col_type: Type
+  col_state: State
+  col_last_contact: Last contact
+  col_version: Version
+  col_projects: Projects
+  col_tokens: Active tokens
+  col_token_name: Name
+  col_token_prefix: Prefix
+  col_created: Created
+  col_last_used: Last used
+  col_expires: Expiry
+  version_unknown: Unknown version
+  empty: No agent matches.
+  revoke: Revoke
+  created_by: "by {{.Email}}"
+  expiry_30: 30 days
+  expiry_90: 90 days
+  expiry_180: 180 days
+  expiry_365: 1 year
+  expiry_0: No expiry
+  expiry_none: No expiry
+
+agent:
+  title: "Agent {{.Name}}"
+  version_value: "Version {{.Version}}"
+  projects_title: Covered projects
+  projects_meta_host: A server agent covers a single host.
+  projects_meta_repo: Repositories are entrusted to it from their page.
+  no_projects: No project is entrusted to it.
+  tokens_title: "Tokens of {{.Name}}"
+  tokens_meta: Each token only opens the agent API, for the projects entrusted to this agent.
+  no_tokens: No token.
+  rotation_hint: "Recommended rotation: create the new token, deploy it, check its “last used” date, then revoke the old one."
+  new_token: Create a token
+  token_name_hint: To recognize it when revoking.
+  token_once: The full value is shown only once, right after creation.
+  create_token: Create the token
+  disable_title: Disabling
+  disable_text: Its tokens are revoked and its projects taken away; a server can enroll again.
+  disable: Disable the agent
+
+agent_new:
+  title: New repository agent
+  heading: New repository agent
+  lead: "A repository agent (ogsbom-repo-agent) analyses the repositories entrusted to it. It gets its first token here."
+  form_title: Repository agent
+  name: Agent name
+  name_hint: For instance the instance that hosts it.
+  token_name: Name of the first token
+  create: Create the agent
+
+token_created:
+  title: Token created
+  agent_heading: Agent token created
+  agent_lead: "Token “{{.Token}}” of agent {{.Name}}."
+  enrollment_heading: Enrollment token created
+  enrollment_lead: "Enrollment token “{{.Name}}”."
+  once_title: Copy it now
+  once_text: This token will never be shown again; only its fingerprint is kept. If lost, create another one.
+  value: Token
+  agent_next: Give it to the agent through a 0600 file or a systemd credential, never in its configuration file.
+  enrollment_next: Give it to the server agents to enroll, through a 0600 file or a systemd credential; each one exchanges it for its own agent token.
+  back_agent: Back to the agent
+  back_agents: Back to the agents
+
+enrollment:
+  list_title: Enrollment tokens
+  list_meta: A server agent exchanges an enrollment token for its agent token.
+  col_name: Name
+  col_target: Project
+  col_uses: Uses
+  target_new: One project per host
+  uses_value: "{{.Uses}} / {{.Max}}"
+  empty: No enrollment token.
+  project_create: Create the project of each host
+  expiry_1: 1 hour
+  expiry_24: 24 hours
+  expiry_168: 7 days
+  expiry_720: 30 days
+
+enrollment_new:
+  title: Enroll servers
+  heading: Enroll servers
+  lead: An enrollment token lets server agents enroll themselves; on enrollment, the server creates the project of each host, or attaches the agent to the chosen project.
+  form_title: Enrollment token
+  name_hint: To recognize it in the audit log, for instance the deployment concerned.
+  validity: Validity
+  max_uses: Number of uses
+  max_uses_hint: How many hosts can enroll with this token.
+  project: Project
+  project_hint: An existing server project without an agent, or a project created for each host.
+  labels_hint: "Applied to the projects created on enrollment: env=prod, dc=paris."
+  create: Create the token

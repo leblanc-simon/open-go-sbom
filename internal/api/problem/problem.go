@@ -16,6 +16,8 @@ import (
 	"errors"
 	"net/http"
 
+	"leblanc.io/open-go-base/i18n"
+
 	"leblanc.io/open-go-sbom/internal/api/gen"
 	"leblanc.io/open-go-sbom/internal/locale"
 	"leblanc.io/open-go-sbom/internal/pagination"
@@ -33,11 +35,15 @@ const (
 	KeyInternal         = "error.internal"
 	KeyInvalidCursor    = "error.invalid_cursor"
 	KeyInvalidLimit     = "error.invalid_limit"
+	KeyInvalidRequest   = "error.invalid_request"
+	KeyValidation       = "error.validation"
+	KeyUnauthorized     = "error.unauthorized"
 )
 
 // Keys liste les clés employées par ce paquet, pour les tests de traduction.
 func Keys() []string {
-	return []string{KeyNotFound, KeyMethodNotAllowed, KeyTooManyRequests, KeyInternal, KeyInvalidCursor, KeyInvalidLimit}
+	return []string{KeyNotFound, KeyMethodNotAllowed, KeyTooManyRequests, KeyInternal, KeyInvalidCursor, KeyInvalidLimit,
+		KeyInvalidRequest, KeyValidation, KeyUnauthorized}
 }
 
 // Write écrit un problème de statut status et de clé key ; params alimente le texte.
@@ -47,6 +53,17 @@ func Write(w http.ResponseWriter, r *http.Request, cat *locale.Catalog, status i
 	if params == nil {
 		detail = loc.T(key + ".text")
 	}
+	write(w, r, loc, status, key, detail)
+}
+
+// WriteValidation écrit un problème 400 error.validation dont le détail est le message
+// traduit de la clé de validation detailKey (validation.*).
+func WriteValidation(w http.ResponseWriter, r *http.Request, cat *locale.Catalog, detailKey string) {
+	loc := middleware.Localizer(cat, r)
+	write(w, r, loc, http.StatusBadRequest, KeyValidation, loc.T(detailKey))
+}
+
+func write(w http.ResponseWriter, r *http.Request, loc *i18n.Localizer, status int, key, detail string) {
 	instance := r.URL.Path
 	p := gen.Problem{
 		Type:     key,

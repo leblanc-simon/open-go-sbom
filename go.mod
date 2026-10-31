@@ -14,15 +14,17 @@ require (
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.12.0
+	github.com/pquerna/otp v1.5.0
 	github.com/prometheus/client_golang v1.25.0
 	golang.org/x/net v0.62.0
 	golang.org/x/text v0.43.0
 	gopkg.in/yaml.v3 v3.0.1
-	leblanc.io/open-go-base v1.0.2-0.20261031034511-b9ccc67d239a
+	leblanc.io/open-go-base v1.0.2-0.20261031043924-3534c1429b63
 )
 
 require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
+	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -41,9 +43,9 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.6.1 // indirect
 	github.com/oapi-codegen/oapi-codegen/v2 v2.8.1 // indirect
+	github.com/oapi-codegen/runtime v1.8.0 // indirect
 	github.com/oasdiff/yaml v0.1.1 // indirect
 	github.com/oasdiff/yaml3 v0.0.14 // indirect
-	github.com/pquerna/otp v1.5.0 // indirect
 	github.com/prometheus/client_model v0.6.3 // indirect
 	github.com/prometheus/common v0.72.0 // indirect
 	github.com/prometheus/procfs v0.22.0 // indirect

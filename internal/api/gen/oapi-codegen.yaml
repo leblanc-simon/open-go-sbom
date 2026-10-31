@@ -1,6 +1,5 @@
-# Génération des types de l'API (make generate). Les serveurs des groupes agent et
-# utilisateur s'ajouteront avec leurs premières opérations (T04), un par groupe
-# (include-tags), pour que chacun garde sa chaîne de middlewares.
+# Types de l'API (make generate). Les serveurs sont générés à part, un par groupe de
+# routes (include-tags), pour que chacun garde sa chaîne de middlewares.
 package: gen
 generate:
   models: true

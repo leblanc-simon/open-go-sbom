@@ -18,6 +18,8 @@ nav:
   audit: Journal d'audit
   admin_users: Comptes
   admin_orgs: Organisations
+  projects: Projets
+  agents: Agents
 
 org_switcher:
   caption: Organisation
@@ -65,6 +67,14 @@ flash:
   org_unarchived: L'organisation est de nouveau active.
   account_updated: Le compte est modifié.
   totp_reset: Le TOTP du compte est réinitialisé ; il en enrôlera un nouveau à sa prochaine connexion.
+  project_created: Le projet est créé.
+  project_saved: Le projet est enregistré.
+  project_archived: Le projet est archivé ; il n'est plus proposé à son agent.
+  project_unarchived: Le projet est de nouveau actif.
+  project_agent_saved: L'agent du projet est enregistré.
+  token_revoked: Le jeton est révoqué ; la prochaine requête qui le présente sera refusée.
+  agent_disabled: L'agent est désactivé ; ses jetons sont révoqués et ses projets lui sont retirés.
+  enrollment_revoked: Le jeton d'inscription est révoqué.
 
 table:
   actions: Actions
@@ -95,6 +105,27 @@ validation:
   member_exists: Ce compte est déjà membre de l'organisation.
   member_unknown_account: Aucun compte n'utilise cette adresse. Un administrateur d'instance doit d'abord le créer.
   last_org_admin: L'organisation doit garder au moins un administrateur.
+  project_kind_invalid: Choisissez un dépôt ou un serveur.
+  project_slug_invalid: "L'identifiant d'URL ne contient que des minuscules, des chiffres et des tirets (64 caractères au plus, sans tiret au début ni à la fin) ; « new » est réservé."
+  project_slug_taken: Un projet de l'organisation utilise déjà cet identifiant d'URL.
+  description_too_long: La description compte au plus 2 000 caractères.
+  label_invalid: "Une étiquette s'écrit clé ou clé=valeur : la clé commence par une lettre ou un chiffre (64 caractères au plus), la valeur compte au plus 100 caractères, sans virgule."
+  labels_too_many: Un projet porte au plus 20 étiquettes.
+  forge_url_invalid: "L'URL de la forge doit être une adresse http ou https complète, sans identifiants."
+  ref_invalid: "Un nom de branche ou d'étiquette ne contient ni espace, ni « .. », ni ~ ^ : ? * [ \\, et ne commence pas par un tiret."
+  refs_too_many: Un dépôt suit au plus 50 références.
+  refs_missing: Indiquez au moins une branche ou une étiquette à suivre.
+  host_ref_invalid: "Le nom de l'hôte ne contient que des lettres, des chiffres, des points, des tirets et des soulignés (100 caractères au plus)."
+  host_ref_taken: Un autre projet de l'organisation suit déjà cet hôte.
+  agent_invalid: Choisissez un agent dépôt actif de l'organisation.
+  project_archived: Ce projet est archivé ; réactivez-le pour le modifier.
+  agent_name_taken: Un agent actif de l'organisation porte déjà ce nom.
+  token_expiry_invalid: Choisissez une durée de validité proposée.
+  token_max_uses_invalid: Le nombre d'usages est compris entre 1 et 10 000.
+  agent_disabled: Cet agent est désactivé.
+  agent_version_invalid: La version de l'agent compte au plus 64 caractères, sans espace.
+  enrollment_project_invalid: Choisissez un projet de serveur actif de l'organisation.
+  token_already_revoked: Ce jeton est déjà révoqué.
 
 home:
   title: Accueil
@@ -246,6 +277,18 @@ audit:
     member_added: "{{.Target}} ajouté avec le rôle {{.D_role}}"
     member_role_changed: "Rôle de {{.Target}} : {{.D_from}} → {{.D_to}}"
     member_removed: "{{.Target}} retiré de l'organisation"
+    project_created: "Projet {{.Target}} créé"
+    project_updated: "Projet {{.Target}} modifié ({{.D_fields}})"
+    project_archived: "Projet {{.Target}} archivé"
+    project_unarchived: "Projet {{.Target}} réactivé"
+    project_agent_changed: "Agent du projet {{.Target}} : {{.D_agent}}"
+    agent_created: "Agent {{.Target}} créé"
+    agent_enrolled: "Agent serveur {{.Target}} inscrit (projet {{.D_project}}, jeton {{.D_token}})"
+    agent_disabled: "Agent {{.Target}} désactivé"
+    agent_token_created: "Jeton {{.Target}} ({{.D_prefix}}) créé pour l'agent {{.D_agent}}"
+    agent_token_revoked: "Jeton {{.Target}} ({{.D_prefix}}) de l'agent {{.D_agent}} révoqué"
+    enrollment_token_created: "Jeton d'inscription {{.Target}} ({{.D_prefix}}) créé"
+    enrollment_token_revoked: "Jeton d'inscription {{.Target}} ({{.D_prefix}}) révoqué"
 
 admin:
   single_admin_title: Un seul administrateur d'instance
@@ -351,8 +394,261 @@ error:
   invalid_limit:
     title: Taille de page invalide
     text: "La taille de page doit être comprise entre 1 et {{.Max}}."
+  invalid_request:
+    title: Requête invalide
+    text: Le corps ou les paramètres de la requête sont illisibles ou trop volumineux.
+  validation:
+    title: Saisie refusée
+    text: Une valeur de la requête n'est pas acceptée.
+  unauthorized:
+    title: Authentification requise
+    text: Cette adresse exige un jeton valide.
+  token:
+    invalid:
+      title: Jeton refusé
+      text: "Le jeton présenté est absent, mal formé ou inconnu. Vérifiez qu'il est complet (ogsbom_agt_… ou ogsbom_enr_…) et qu'il convient à cette opération."
+    revoked:
+      title: Jeton révoqué
+      text: Ce jeton a été révoqué. Demandez-en un nouveau à un administrateur de l'organisation.
+    expired:
+      title: Jeton expiré
+      text: Ce jeton a dépassé sa date d'expiration. Demandez-en un nouveau à un administrateur de l'organisation.
+  agent:
+    disabled:
+      title: Agent désactivé
+      text: Cet agent a été désactivé par un administrateur de l'organisation.
+  enrollment:
+    exhausted:
+      title: Jeton d'inscription épuisé
+      text: Ce jeton d'inscription a atteint son nombre d'usages. Demandez-en un nouveau à un administrateur de l'organisation.
+    host_taken:
+      title: Hôte déjà suivi
+      text: Un agent actif suit déjà cet hôte, ou porte déjà ce nom. Désactivez l'ancien agent avant de réinscrire l'hôte.
+    project_unavailable:
+      title: Projet indisponible
+      text: Le projet désigné par ce jeton est archivé, ou a déjà un agent actif.
 
 footer:
   version: "Version {{.Version}}"
   license: Logiciel libre sous licence WTFPL
   source: Code source
+
+common:
+  all: Tous
+  filter: Filtrer
+  never: Jamais
+  breadcrumb: Fil d'Ariane
+
+project_type:
+  repo: Dépôt
+  host: Serveur
+
+agent_type:
+  repo: Agent dépôt
+  host: Agent serveur
+
+agent_state:
+  active: Actif
+  pending: Jamais contacté
+  disabled: Désactivé
+  silent_for:
+    one: "Muet depuis {{.Count}} jour"
+    other: "Muet depuis {{.Count}} jours"
+
+token_state:
+  active: Actif
+  expired: Expiré
+  revoked: Révoqué
+  spent: Épuisé ou expiré
+
+projects:
+  title: Projets
+  heading: Projets
+  lead: Les dépôts et les serveurs de l'organisation, et l'agent qui alimente chacun.
+  new: Nouveau projet
+  enroll_host: Inscrire un serveur
+  filter_label: Filtrer les projets
+  filter_name: Nom
+  filter_type: Type
+  filter_label_field: Étiquette
+  filter_label_hint: "clé ou clé=valeur"
+  filter_archived: Projets archivés
+  list_title: Projets actifs
+  list_archived: Projets archivés
+  caption: Projets de l'organisation, par nom
+  col_project: Projet
+  col_type: Type
+  col_labels: Étiquettes
+  col_agent: Agent
+  col_last_contact: Dernier contact de l'agent
+  no_agent: Aucun agent
+  no_labels: Aucune
+  empty: Aucun projet ne correspond. Créez un dépôt, ou inscrivez un serveur avec un jeton d'inscription.
+  empty_archived: Aucun projet archivé ne correspond.
+
+project:
+  title: "{{.Name}}"
+  tabs: Sections du projet
+  tab_overview: Vue d'ensemble
+  tab_settings: Paramètres
+  agent_value: "Agent : {{.Name}}"
+  archived_title: Projet archivé
+  archived_text: Ce projet n'est plus proposé à son agent ; son historique est conservé.
+  silent_text: L'agent de ce projet ne s'est pas manifesté depuis plusieurs jours ; l'inventaire affiché peut être ancien.
+  about_title: Présentation
+  no_description: Aucune description.
+  kind: Type
+  no_forge: Non renseignée
+  created: Création
+  refs_title: Références suivies
+  refs_meta: Ce que l'agent analyse.
+  branches: Branches
+  tags: Étiquettes git
+  none: Aucune
+  agent_title: Agent
+  agent_name: Nom
+  no_agent_text: Aucun agent n'alimente ce projet.
+  no_agent: Aucun agent
+  assign_agent: Agent dépôt chargé de ce dépôt
+  enroll_this_host: Inscrire ce serveur
+
+project_new:
+  title: Nouveau projet
+  heading: Nouveau projet
+  lead: Un dépôt est confié ensuite à un agent dépôt ; un serveur reçoit son agent quand celui-ci s'inscrit.
+  form_title: Projet
+
+project_settings:
+  title: "Paramètres de {{.Name}}"
+  form_title: Projet
+  archived_text: Réactivez le projet pour le modifier.
+  archive_title: Archivage
+  archive_text: Un projet archivé disparaît des listes et n'est plus proposé à son agent ; son historique est conservé.
+  archive: Archiver le projet
+  unarchive_text: Réactivé, le projet est de nouveau proposé à son agent.
+  unarchive: Réactiver le projet
+
+project_form:
+  kind: Type de projet
+  kind_hint: Un dépôt suit des branches et des étiquettes git ; un serveur suit un hôte.
+  name: Nom
+  slug: Identifiant d'URL
+  slug_hint: Facultatif, dérivé du nom ; minuscules, chiffres et tirets. Il ne change plus ensuite.
+  summary: Description
+  labels: Étiquettes
+  labels_hint: "Séparées par des virgules : env=prod, exposé-internet."
+  repo_legend: Dépôt
+  forge_url: URL de la forge
+  branches: Branches suivies
+  tags: Étiquettes git suivies
+  refs_hint: Une par ligne, ou séparées par des virgules.
+  host_legend: Serveur
+  host_ref: Nom de l'hôte
+  host_ref_hint: Le nom que l'agent annonce à l'inscription ; il identifie l'hôte dans l'organisation.
+  create: Créer le projet
+
+agents:
+  title: Agents
+  heading: Agents
+  lead: "Les agents qui envoient les SBOM : un agent serveur par hôte, et des agents dépôt auxquels les dépôts sont confiés. Un agent est muet après 3 jours sans contact."
+  new_repo: Nouvel agent dépôt
+  new_enrollment: Inscrire des serveurs
+  list_title: Agents actifs
+  list_disabled: Agents désactivés
+  filter_type: Type d'agent
+  filter_disabled: Désactivés
+  caption: Agents de l'organisation, par nom
+  col_agent: Agent
+  col_type: Type
+  col_state: État
+  col_last_contact: Dernier contact
+  col_version: Version
+  col_projects: Projets
+  col_tokens: Jetons actifs
+  col_token_name: Nom
+  col_token_prefix: Préfixe
+  col_created: Création
+  col_last_used: Dernière utilisation
+  col_expires: Expiration
+  version_unknown: Version inconnue
+  empty: Aucun agent ne correspond.
+  revoke: Révoquer
+  created_by: "par {{.Email}}"
+  expiry_30: 30 jours
+  expiry_90: 90 jours
+  expiry_180: 180 jours
+  expiry_365: 1 an
+  expiry_0: Sans expiration
+  expiry_none: Sans expiration
+
+agent:
+  title: "Agent {{.Name}}"
+  version_value: "Version {{.Version}}"
+  projects_title: Projets couverts
+  projects_meta_host: Un agent serveur couvre un seul hôte.
+  projects_meta_repo: Les dépôts lui sont confiés depuis leur fiche.
+  no_projects: Aucun projet ne lui est confié.
+  tokens_title: "Jetons de {{.Name}}"
+  tokens_meta: Chaque jeton n'ouvre que l'API des agents, pour les projets confiés à cet agent.
+  no_tokens: Aucun jeton.
+  rotation_hint: "Rotation conseillée : créez le nouveau jeton, déployez-le, vérifiez sa « dernière utilisation », puis révoquez l'ancien."
+  new_token: Créer un jeton
+  token_name_hint: Pour le reconnaître lors d'une révocation.
+  token_once: La valeur complète ne s'affiche qu'une fois, juste après la création.
+  create_token: Créer le jeton
+  disable_title: Désactivation
+  disable_text: Ses jetons sont révoqués et ses projets lui sont retirés ; un serveur pourra s'inscrire de nouveau.
+  disable: Désactiver l'agent
+
+agent_new:
+  title: Nouvel agent dépôt
+  heading: Nouvel agent dépôt
+  lead: "Un agent dépôt (ogsbom-repo-agent) analyse les dépôts qui lui sont confiés. Il reçoit ici son premier jeton."
+  form_title: Agent dépôt
+  name: Nom de l'agent
+  name_hint: Par exemple l'instance qui l'héberge.
+  token_name: Nom du premier jeton
+  create: Créer l'agent
+
+token_created:
+  title: Jeton créé
+  agent_heading: Jeton d'agent créé
+  agent_lead: "Jeton « {{.Token}} » de l'agent {{.Name}}."
+  enrollment_heading: Jeton d'inscription créé
+  enrollment_lead: "Jeton d'inscription « {{.Name}} »."
+  once_title: Copiez-le maintenant
+  once_text: Ce jeton ne sera plus jamais affiché ; seule son empreinte est conservée. Perdu, il faut en créer un autre.
+  value: Jeton
+  agent_next: "Fournissez-le à l'agent par un fichier en 0600 ou un credential systemd, jamais dans son fichier de configuration."
+  enrollment_next: "Fournissez-le aux agents serveur à inscrire, par un fichier en 0600 ou un credential systemd ; chacun l'échange contre son propre jeton d'agent."
+  back_agent: Retour à l'agent
+  back_agents: Retour aux agents
+
+enrollment:
+  list_title: Jetons d'inscription
+  list_meta: Un agent serveur échange un jeton d'inscription contre son jeton d'agent.
+  col_name: Nom
+  col_target: Projet
+  col_uses: Usages
+  target_new: Un projet par hôte
+  uses_value: "{{.Uses}} / {{.Max}}"
+  empty: Aucun jeton d'inscription.
+  project_create: Créer le projet de chaque hôte
+  expiry_1: 1 heure
+  expiry_24: 24 heures
+  expiry_168: 7 jours
+  expiry_720: 30 jours
+
+enrollment_new:
+  title: Inscrire des serveurs
+  heading: Inscrire des serveurs
+  lead: Un jeton d'inscription permet à des agents serveur de s'inscrire eux-mêmes ; à l'inscription, le serveur crée le projet de chaque hôte, ou rattache l'agent au projet choisi.
+  form_title: Jeton d'inscription
+  name_hint: Pour le reconnaître dans le journal, par exemple le déploiement concerné.
+  validity: Validité
+  max_uses: Nombre d'usages
+  max_uses_hint: Le nombre d'hôtes qui peuvent s'inscrire avec ce jeton.
+  project: Projet
+  project_hint: Un projet de serveur existant, sans agent, ou un projet créé pour chaque hôte.
+  labels_hint: "Appliquées aux projets créés à l'inscription : env=prod, dc=paris."
+  create: Créer le jeton

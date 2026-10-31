@@ -1,0 +1,39 @@
+/* Onglets d'une fiche : des liens, l'onglet courant porte aria-current="page". */
+.tabs {
+  display: flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-5);
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-bottom: 1px solid var(--color-border);
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--control-h);
+    margin-bottom: -1px;
+    padding: 0 var(--space-3);
+    border-bottom: 3px solid transparent;
+    color: var(--color-text-2);
+    font-weight: var(--weight-medium);
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover {
+      color: var(--color-text);
+    }
+
+    &[aria-current="page"] {
+      border-bottom-color: var(--color-accent);
+      color: var(--color-text);
+      font-weight: var(--weight-bold);
+    }
+  }
+
+  .tabs__count {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-regular);
+    color: var(--color-text-3);
+  }
+}

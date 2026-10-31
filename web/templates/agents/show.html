@@ -1,0 +1,128 @@
+{{define "content" -}}
+{{- $a := .Agent}}
+<div class="stack stack--lg">
+  <div class="page-head">
+    <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
+      <ol>
+        <li><a href="{{.Base}}/agents">{{T "nav.agents"}}</a></li>
+        <li><span aria-current="page">{{$a.Name}}</span></li>
+      </ol>
+    </nav>
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{$a.Name}}</h1>
+      {{template "agent_status" $a.Status}}
+    </div>
+    <p class="page-head__meta">
+      <span>{{T (print "agent_type." $a.Kind)}}</span>
+      <span>{{with $a.Version}}{{T "agent.version_value" "Version" .}}{{else}}{{T "agents.version_unknown"}}{{end}}</span>
+      <span>{{T "agents.col_last_contact"}} : {{template "stamp" $a.LastSeen}}</span>
+    </p>
+  </div>
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  <div class="layout">
+    <div class="stack">
+      <section class="panel" aria-labelledby="agent-projects">
+        <div class="panel__head">
+          <h2 class="panel__title" id="agent-projects">{{T "agent.projects_title"}}</h2>
+          <span class="panel__meta">{{if eq (print $a.Kind) "host"}}{{T "agent.projects_meta_host"}}{{else}}{{T "agent.projects_meta_repo"}}{{end}}</span>
+        </div>
+        <div class="panel__body">
+          {{- if $a.Projects}}
+          <ul class="stack stack--sm">
+            {{- range $a.Projects}}
+            <li><a href="{{$.Base}}/projects/{{.Slug}}">{{.Name}}</a>{{if .Archived}} <span class="status">{{T "status.archived"}}</span>{{end}}</li>
+            {{- end}}
+          </ul>
+          {{- else}}
+          <p class="muted">{{T "agent.no_projects"}}</p>
+          {{- end}}
+        </div>
+      </section>
+      <section class="panel" aria-labelledby="agent-tokens">
+        <div class="panel__head">
+          <h2 class="panel__title" id="agent-tokens">{{T "agent.tokens_title" "Name" $a.Name}}</h2>
+          <span class="panel__meta">{{T "agent.tokens_meta"}}</span>
+        </div>
+        {{- if .Tokens}}
+        <div class="table-wrap" role="region" aria-labelledby="agent-tokens" tabindex="0">
+          <table class="data-table">
+            <caption class="visually-hidden">{{T "agent.tokens_title" "Name" $a.Name}}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{{T "agents.col_token_name"}}</th>
+                <th scope="col">{{T "agents.col_token_prefix"}}</th>
+                <th scope="col">{{T "agents.col_created"}}</th>
+                <th scope="col">{{T "agents.col_last_used"}}</th>
+                <th scope="col">{{T "agents.col_expires"}}</th>
+                <th scope="col">{{T "agents.col_state"}}</th>
+                {{- if .CanAdmin}}<th scope="col" class="cell-actions">{{T "table.actions"}}</th>{{end}}
+              </tr>
+            </thead>
+            <tbody>
+              {{- $base := .Base}}{{$csrf := .Page.CSRFToken}}{{$can := .CanAdmin}}
+              {{- range .Tokens}}
+              <tr>
+                <th scope="row">{{.Name}}</th>
+                <td class="mono">{{.Prefix}}</td>
+                <td><span class="cell-stack">{{template "stamp" .Created}}{{with .CreatedBy}}<span class="muted">{{.}}</span>{{end}}</span></td>
+                <td>{{template "stamp" .LastUsed}}</td>
+                <td>{{with .Expires}}{{template "stamp" .}}{{else}}<span class="muted">{{T "agents.expiry_none"}}</span>{{end}}</td>
+                <td>{{if .Revoked}}<span class="cell-stack"><span class="status status--revoked">{{T "token_state.revoked"}}</span>{{template "stamp" .Revoked}}</span>{{else if .Active}}<span class="status status--active">{{T "token_state.active"}}</span>{{else}}<span class="status">{{T "token_state.expired"}}</span>{{end}}</td>
+                {{- if $can}}
+                <td class="cell-actions">
+                  {{- if not .Revoked}}
+                  <form method="post" action="{{$base}}/agents/{{$a.ID}}/tokens/{{.ID}}/revoke">
+                    {{csrfField $csrf}}
+                    <button type="submit" class="btn btn--sm btn--danger">{{T "agents.revoke"}}<span class="visually-hidden"> {{.Name}}</span></button>
+                  </form>
+                  {{- end}}
+                </td>
+                {{- end}}
+              </tr>
+              {{- end}}
+            </tbody>
+          </table>
+        </div>
+        <div class="panel__foot">{{T "agent.rotation_hint"}}</div>
+        {{- else}}
+        <div class="panel__body"><p class="muted">{{T "agent.no_tokens"}}</p></div>
+        {{- end}}
+      </section>
+    </div>
+    {{- if and .CanAdmin (not $a.DisabledAt)}}
+    <div class="stack">
+      <section class="panel" aria-labelledby="agent-new-token">
+        <div class="panel__head"><h2 class="panel__title" id="agent-new-token">{{T "agent.new_token"}}</h2></div>
+        <form class="panel__body stack" method="post" action="{{.Base}}/agents/{{$a.ID}}/tokens">
+          {{csrfField .Page.CSRFToken}}
+          <div class="field">
+            <label class="field__label" for="tk-name">{{T "agents.col_token_name"}}</label>
+            <input class="input" id="tk-name" name="name" type="text" maxlength="100" required value="{{.TokenName}}" aria-describedby="tk-name-hint"{{if eq .Error.Field "name"}} aria-invalid="true"{{end}}>
+            <p class="field__hint" id="tk-name-hint">{{T "agent.token_name_hint"}}</p>
+          </div>
+          <div class="field">
+            <label class="field__label" for="tk-exp">{{T "agents.col_expires"}}</label>
+            <select class="select" id="tk-exp" name="expires_in">
+              {{- range .Lifetimes}}
+              <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+              {{- end}}
+            </select>
+          </div>
+          <p class="field__hint">{{T "agent.token_once"}}</p>
+          <button class="btn btn--primary" type="submit">{{T "agent.create_token"}}</button>
+        </form>
+      </section>
+      <section class="panel" aria-labelledby="agent-disable">
+        <div class="panel__head"><h2 class="panel__title" id="agent-disable">{{T "agent.disable_title"}}</h2></div>
+        <form class="panel__body stack stack--sm" method="post" action="{{.Base}}/agents/{{$a.ID}}/disable">
+          {{csrfField .Page.CSRFToken}}
+          <p>{{T "agent.disable_text"}}</p>
+          <button class="btn btn--danger" type="submit">{{T "agent.disable"}}</button>
+        </form>
+      </section>
+    </div>
+    {{- end}}
+  </div>
+</div>
+{{- end}}
