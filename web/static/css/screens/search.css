@@ -128,7 +128,7 @@
     color: var(--color-text-2);
   }
 
-  @container ogsbom (width < 48rem) {
+  @container lotor (width < 48rem) {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -139,7 +139,7 @@
   align-items: start;
   gap: var(--space-6);
 
-  @container ogsbom (width < 64rem) {
+  @container lotor (width < 64rem) {
     grid-template-columns: minmax(0, 1fr);
   }
 }

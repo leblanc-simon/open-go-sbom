@@ -17,13 +17,13 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/jobs"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/sbom/schema"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/jobs"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/sbom/schema"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // DecodeKind est le type du job de décodage d'une ingestion.

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/version"
+	"leblanc.io/lotor/internal/version"
 )
 
 // FuzzCompare : sur toute entrée, le comparateur ne panique pas, renvoie un signe, et

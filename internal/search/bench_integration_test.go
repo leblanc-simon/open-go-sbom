@@ -12,17 +12,17 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/benchdata"
-	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/lotor/internal/benchdata"
+	"leblanc.io/lotor/internal/db"
 )
 
 // TestSearchBenchmark mesure la recherche sur le jeu de référence (1 000 projets,
 // 1 million de liens) selon docs/benchmarks.md : rôle d'exécution, RLS active, froid puis
-// 50 passages chauds, 95e centile sous 2 s. Long : seulement avec OGSBOM_BENCH=1
+// 50 passages chauds, 95e centile sous 2 s. Long : seulement avec LOTOR_BENCH=1
 // (make bench-search).
 func TestSearchBenchmark(t *testing.T) {
-	if os.Getenv("OGSBOM_BENCH") != "1" {
-		t.Skip("OGSBOM_BENCH=1 pour mesurer la recherche sur le jeu de référence")
+	if os.Getenv("LOTOR_BENCH") != "1" {
+		t.Skip("LOTOR_BENCH=1 pour mesurer la recherche sur le jeu de référence")
 	}
 	ctx := context.Background()
 	start := time.Now()

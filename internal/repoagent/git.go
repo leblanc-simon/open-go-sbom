@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/forge"
+	"leblanc.io/lotor/internal/forge"
 )
 
 // Erreurs du clonage.

@@ -16,11 +16,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/pagination"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/pagination"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // ErrNotFound : projet inconnu dans l'organisation déclarée (ou d'une autre organisation,

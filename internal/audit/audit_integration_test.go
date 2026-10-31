@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db/dbtest"
 )
 
 func TestRecordAndListInstance(t *testing.T) {

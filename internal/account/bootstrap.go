@@ -11,13 +11,13 @@ import (
 
 	"leblanc.io/open-go-base/authx"
 
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db"
 )
 
 // startupLockKey sérialise bootstrap et procédure de secours entre instances qui démarrent
 // ensemble (verrou consultatif de transaction, compatible avec pgbouncer).
-const startupLockKey int64 = 0x6f6773626f6d02 // « ogsbom » + 2
+const startupLockKey int64 = 0x6f6773626f6d02 // « lotor » + 2
 
 // MinRescueTicket est la longueur minimale du ticket de la procédure de secours.
 const MinRescueTicket = 8

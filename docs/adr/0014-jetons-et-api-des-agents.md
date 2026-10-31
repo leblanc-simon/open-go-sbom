@@ -16,15 +16,15 @@ l'organisation d'un jeton alors que toute lecture de ses tables exige de la conn
 
 ## Décision
 
-- **Format** : `ogsbom_<nature>_<identifiant public>_<secret>`, natures `agt` et `enr`
+- **Format** : `lotor_<nature>_<identifiant public>_<secret>`, natures `agt` et `enr`
   (`pat` réservé à l'API utilisateur). Identifiant public de 128 bits et secret de 256
   bits tirés par `crypto/rand`, écrits en base32 minuscule sans remplissage (26 et 52
   caractères) : ni `_` ni `-` dans les parties, donc un découpage sans ambiguïté, un jeton
   sélectionnable d'un double-clic, et une seule écriture acceptée (forme canonique
   vérifiée). Seuls l'identifiant public et le SHA-256 du secret sont stockés ; l'interface
-  affiche « `ogsbom_agt_` + 6 caractères de l'identifiant » pour reconnaître un jeton.
+  affiche « `lotor_agt_` + 6 caractères de l'identifiant » pour reconnaître un jeton.
 - **Organisation d'un jeton** : deux fonctions de `crossorg` (migration 007),
-  `ogsbom_agent_token_org(public_id)` et `ogsbom_enrollment_token_org(public_id)`, ne
+  `lotor_agent_token_org(public_id)` et `lotor_enrollment_token_org(public_id)`, ne
   renvoient que l'identifiant de l'organisation, et seulement si elle est active. Le
   secret, la révocation, l'expiration et l'état de l'agent sont vérifiés ensuite dans
   `InOrg`, sous la RLS. `public_id` est unique sur toute l'instance. Un jeton mal formé est
@@ -62,7 +62,7 @@ l'organisation d'un jeton alors que toute lecture de ses tables exige de la conn
 - La limitation est en mémoire par instance (comme celle d'open-go-base) : derrière un
   répartiteur à N instances, la limite effective d'un jeton peut atteindre N fois la
   valeur configurée.
-- `ogsbom_*_token_org` sont des ajouts à `crossorg`, inscrits au tableau de l'ADR 0012.
+- `lotor_*_token_org` sont des ajouts à `crossorg`, inscrits au tableau de l'ADR 0012.
 - T05 contrôle l'écriture d'un agent par `project.RefForAgent` ; T07 ajoutera la colonne
   qui porte la demande de scan (`scan_requested` vaut toujours `false` d'ici là).
 

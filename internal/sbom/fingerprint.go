@@ -9,7 +9,7 @@ import (
 
 // fingerprintVersion préfixe la sérialisation : changer les règles de l'empreinte change
 // ce préfixe, et donc toutes les empreintes, plutôt que de réutiliser à tort un ensemble.
-const fingerprintVersion = "ogsbom-inventory-v1\n"
+const fingerprintVersion = "lotor-inventory-v1\n"
 
 // Fingerprint est l'empreinte d'inventaire : SHA-256 de la liste triée des composants et
 // de ce qui fait un élément d'ensemble (purl canonique, origine, confiance, modèle,

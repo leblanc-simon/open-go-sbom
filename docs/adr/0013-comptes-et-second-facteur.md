@@ -29,7 +29,7 @@ connexions et de leurs échecs.
   TOTP actif (réinitialisé entre-temps). Un déclencheur sur `sessions` emporte la ligne
   de `session_auth` (clé : SHA-256 du jeton).
 - **Procédure de secours par ticket** **[à relire]** : deux variables,
-  `OGSBOM_BOOTSTRAP_RESCUE_TOTP_EMAIL` et `OGSBOM_BOOTSTRAP_RESCUE_TICKET` (référence
+  `LOTOR_BOOTSTRAP_RESCUE_TOTP_EMAIL` et `LOTOR_BOOTSTRAP_RESCUE_TICKET` (référence
   d'incident, 8 caractères au moins). Au démarrage, le TOTP de cet administrateur
   d'instance actif est retiré et ses sessions fermées, **une fois par couple (compte,
   ticket)** (journal d'audit) ; laissées en place, les variables n'ont plus d'effet et le

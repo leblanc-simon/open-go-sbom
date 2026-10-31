@@ -3,7 +3,7 @@
 -- Exécutée par le rôle propriétaire, dans la transaction du verrou de migration.
 DO $$
 DECLARE
-    app text := current_setting('ogsbom.app_role');
+    app text := current_setting('lotor.app_role');
 BEGIN
     -- Verrouillage par compte de mfax (table mfa_lockouts, créée par son Migrate avant
     -- les migrations du projet) : droits accordés explicitement, comme en 003.

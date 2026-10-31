@@ -46,7 +46,7 @@ les formats voulus. Les chemins absolus du répertoire temporaire ont ensuite é
 
 `portail-client-ia.cdx16.json` est dérivé à la main de `portail-client.cdx16.json` : autre
 horodatage et numéro de série, portée et empreinte SHA-512 sur deux composants, et trois
-composants d'origine IA (propriétés `ogsbom:origin`, `ogsbom:confidence`,
-`ogsbom:model`, champ `evidence`) : `jquery` (purl `pkg:NPM/…` à canonicaliser,
+composants d'origine IA (propriétés `lotor:origin`, `lotor:confidence`,
+`lotor:model`, champ `evidence`) : `jquery` (purl `pkg:NPM/…` à canonicaliser,
 empreinte SHA-256 en majuscules), `libfoo-interne` (sans purl : identification faible) et
 `Django_Extensions` (purl PyPI à canonicaliser, qualificatif vide).

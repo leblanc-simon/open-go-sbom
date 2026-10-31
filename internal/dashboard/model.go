@@ -6,9 +6,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/agent"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/agent"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // Period est la fenêtre des séries et des délais de correction, en jours.

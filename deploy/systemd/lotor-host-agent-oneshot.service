@@ -1,23 +1,23 @@
 # Un cycle de l'agent serveur (inscription au besoin, scan, envoi ou signal de vie),
-# lancé par ogsbom-host-agent-oneshot.timer. Mêmes protections que le démon.
+# lancé par lotor-host-agent-oneshot.timer. Mêmes protections que le démon.
 [Unit]
-Description=open-go-sbom host agent (one scan)
-Documentation=https://github.com/leblanc-simon/open-go-sbom/blob/main/docs/operations.md
+Description=lotor host agent (one scan)
+Documentation=https://github.com/leblanc-simon/lotor/blob/main/docs/operations.md
 Wants=network-online.target
 After=network-online.target
-Conflicts=ogsbom-host-agent.service
+Conflicts=lotor-host-agent.service
 
 [Service]
 Type=oneshot
-Environment=OGSBOM_HOST_AGENT_MODE=oneshot
-ExecStart=/usr/bin/ogsbom-host-agent -c /etc/ogsbom-host-agent/config.yaml
+Environment=LOTOR_HOST_AGENT_MODE=oneshot
+ExecStart=/usr/bin/lotor-host-agent -c /etc/lotor-host-agent/config.yaml
 
-User=ogsbom-agent
-Group=ogsbom-agent
+User=lotor-agent
+Group=lotor-agent
 AmbientCapabilities=CAP_DAC_READ_SEARCH
 CapabilityBoundingSet=CAP_DAC_READ_SEARCH
 NoNewPrivileges=yes
-StateDirectory=ogsbom-host-agent
+StateDirectory=lotor-host-agent
 StateDirectoryMode=0700
 UMask=0077
 ProtectSystem=strict
@@ -47,5 +47,5 @@ MemoryMax=1536M
 # Borne le cycle entier (scan.max_duration borne le scan seul).
 TimeoutStartSec=2h
 
-#LoadCredentialEncrypted=enrollment-token:/etc/ogsbom-host-agent/enrollment-token.cred
-#LoadCredentialEncrypted=client-key:/etc/ogsbom-host-agent/client-key.cred
+#LoadCredentialEncrypted=enrollment-token:/etc/lotor-host-agent/enrollment-token.cred
+#LoadCredentialEncrypted=client-key:/etc/lotor-host-agent/client-key.cred

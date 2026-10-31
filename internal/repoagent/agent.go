@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/forge"
+	"leblanc.io/lotor/internal/forge"
 )
 
 // Options assemble un agent dépôt.

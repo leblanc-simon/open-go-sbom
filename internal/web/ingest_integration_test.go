@@ -20,14 +20,14 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/agent"
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/ingest"
-	"leblanc.io/open-go-sbom/internal/org"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/web/webtest"
+	"leblanc.io/lotor/internal/agent"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/ingest"
+	"leblanc.io/lotor/internal/org"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/web/webtest"
 )
 
 func sbomFile(t *testing.T, name string) []byte {

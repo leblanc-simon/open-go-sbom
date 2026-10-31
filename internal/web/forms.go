@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"strconv"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/pagination"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/pagination"
 )
 
 // maxFormBytes borne le corps d'un formulaire de l'interface.

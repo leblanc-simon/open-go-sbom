@@ -14,7 +14,7 @@ Se connecter par le fournisseur d'identité de son organisation, la double authe
 **Inclus**
 
 - Décision préalable : composant `oidcx` ajouté à open-go-base (réutilisable par les autres
-  projets open-go) ou paquet propre à open-go-sbom.
+  projets open-go) ou paquet propre à lotor.
 - Un fournisseur par organisation : émetteur, identifiant client, secret chiffré, portées,
   domaines d'e-mail associés.
 - Flux « authorization code » avec PKCE, `state` et `nonce`, validation complète du jeton

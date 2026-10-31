@@ -7,7 +7,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/lotor/internal/db"
 )
 
 const collectTimeout = 2 * time.Second
@@ -15,10 +15,10 @@ const collectTimeout = 2 * time.Second
 // RegisterMetrics enregistre dans reg les métriques de la base de vulnérabilités, lues à
 // chaque collecte :
 //
-//   - ogsbom_vulndb_target_age_seconds : âge (date de construction) de la base cible,
+//   - lotor_vulndb_target_age_seconds : âge (date de construction) de la base cible,
 //     absente sans base ;
-//   - ogsbom_vulndb_stale : 1 si la cible manque ou dépasse maxAge (l'alerte), 0 sinon ;
-//   - ogsbom_vulndb_loaded : 1 si l'instance a une base chargée (manager non nil), 0 sinon.
+//   - lotor_vulndb_stale : 1 si la cible manque ou dépasse maxAge (l'alerte), 0 sinon ;
+//   - lotor_vulndb_loaded : 1 si l'instance a une base chargée (manager non nil), 0 sinon.
 func RegisterMetrics(reg prometheus.Registerer, pool *db.Pool, manager *Manager, maxAge time.Duration, logger *slog.Logger) error {
 	if logger == nil {
 		logger = slog.New(slog.DiscardHandler)
@@ -27,9 +27,9 @@ func RegisterMetrics(reg prometheus.Registerer, pool *db.Pool, manager *Manager,
 }
 
 var (
-	ageDesc    = prometheus.NewDesc("ogsbom_vulndb_target_age_seconds", "Age of the shared target vulnerability database.", nil, nil)
-	staleDesc  = prometheus.NewDesc("ogsbom_vulndb_stale", "1 when the target vulnerability database is missing or older than vulndb.max_age.", nil, nil)
-	loadedDesc = prometheus.NewDesc("ogsbom_vulndb_loaded", "1 when this worker instance has a vulnerability database loaded.", nil, nil)
+	ageDesc    = prometheus.NewDesc("lotor_vulndb_target_age_seconds", "Age of the shared target vulnerability database.", nil, nil)
+	staleDesc  = prometheus.NewDesc("lotor_vulndb_stale", "1 when the target vulnerability database is missing or older than vulndb.max_age.", nil, nil)
+	loadedDesc = prometheus.NewDesc("lotor_vulndb_loaded", "1 when this worker instance has a vulnerability database loaded.", nil, nil)
 )
 
 type collector struct {

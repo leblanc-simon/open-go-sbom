@@ -16,10 +16,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
-	"leblanc.io/open-go-sbom/internal/db/migrations"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/dbtest"
+	"leblanc.io/lotor/internal/db/migrations"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // withMigrations ajoute des migrations de test à celles du projet. Un nom « +N_sujet.sql »
@@ -243,15 +243,15 @@ func TestMigrateRefusesUnprotectedOrgTable(t *testing.T) {
 	}{
 		"sans RLS": {"CREATE TABLE things (org_id uuid NOT NULL, v text)", true},
 		"RLS standard": {`CREATE TABLE things (org_id uuid NOT NULL, v text);
-			CALL ogsbom_enforce_org_rls('things')`, false},
+			CALL lotor_enforce_org_rls('things')`, false},
 		"RLS non forcée": {`CREATE TABLE things (org_id uuid NOT NULL, v text);
-			CALL ogsbom_enforce_org_rls('things');
+			CALL lotor_enforce_org_rls('things');
 			ALTER TABLE things NO FORCE ROW LEVEL SECURITY`, true},
 		"politique permissive en plus": {`CREATE TABLE things (org_id uuid NOT NULL, v text);
-			CALL ogsbom_enforce_org_rls('things');
+			CALL lotor_enforce_org_rls('things');
 			CREATE POLICY open ON things USING (true)`, true},
 		"politique restrictive en plus": {`CREATE TABLE things (org_id uuid NOT NULL, v text);
-			CALL ogsbom_enforce_org_rls('things');
+			CALL lotor_enforce_org_rls('things');
 			CREATE POLICY not_empty ON things AS RESTRICTIVE USING (v <> '')`, false},
 		// La table organizations du projet existe déjà (004) : le contrôle porte sur le nom
 		// dans tout schéma utilisateur.
@@ -259,7 +259,7 @@ func TestMigrateRefusesUnprotectedOrgTable(t *testing.T) {
 			CREATE TABLE other.organizations (id uuid PRIMARY KEY)`, true},
 		"organizations protégée": {`CREATE SCHEMA other;
 			CREATE TABLE other.organizations (id uuid PRIMARY KEY);
-			CALL ogsbom_enforce_org_rls('other.organizations', 'id')`, false},
+			CALL lotor_enforce_org_rls('other.organizations', 'id')`, false},
 		"table globale à org_id facultatif": {"CREATE TABLE global_probe (org_id uuid, kind text)", false},
 	}
 	for name, c := range cases {
@@ -306,7 +306,7 @@ func TestDefaultPrivilegesOfRuntimeRole(t *testing.T) {
 		"ALTER TABLE later ADD COLUMN w text",
 		"DROP TABLE later",
 		"INSERT INTO " + db.MigrationsTable + " (version, name, checksum) VALUES (99, 'x', 'y')",
-		"CREATE TABLE z (org_id uuid NOT NULL); CALL ogsbom_enforce_org_rls('z')",
+		"CREATE TABLE z (org_id uuid NOT NULL); CALL lotor_enforce_org_rls('z')",
 	} {
 		if _, err := app.ExecContext(ctx, s); err == nil {
 			t.Errorf("%s : accepté pour le rôle d'exécution", s)
@@ -449,7 +449,7 @@ func rlsDB(t *testing.T) *dbtest.DB {
 	tdb := dbtest.New(t, dbtest.WithoutMigrations())
 	fsys := withMigrations(t, map[string]string{"+1_probe.sql": `
 		CREATE TABLE probe (org_id uuid NOT NULL, v text NOT NULL);
-		CALL ogsbom_enforce_org_rls('probe');`})
+		CALL lotor_enforce_org_rls('probe');`})
 	if _, err := db.Migrate(context.Background(), tdb.Owner(t), db.MigrateOptions{AppRole: tdb.AppRole, Migrations: fsys}); err != nil {
 		t.Fatal(err)
 	}
@@ -681,7 +681,7 @@ func TestPgxArrays(t *testing.T) {
 
 func startOptions(tdb *dbtest.DB) db.StartOptions {
 	return db.StartOptions{
-		DSN: tdb.AppDSN, Pool: db.PoolConfig{MaxOpenConns: 4, ApplicationName: "ogsbom-test"},
+		DSN: tdb.AppDSN, Pool: db.PoolConfig{MaxOpenConns: 4, ApplicationName: "lotor-test"},
 		StartupTimeout: 10 * time.Second, MigrationDSN: tdb.OwnerDSN, MigrationMaxConns: 2,
 	}
 }

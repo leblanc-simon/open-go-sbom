@@ -22,7 +22,7 @@ CREATE TABLE agents (
 -- Un nom ne désigne qu'un agent actif ; un agent désactivé libère le sien (réinscription).
 CREATE UNIQUE INDEX agents_active_name ON agents (org_id, lower(name)) WHERE disabled_at IS NULL;
 CREATE INDEX agents_list_idx ON agents (org_id, lower(name), id);
-CALL ogsbom_enforce_org_rls('agents');
+CALL lotor_enforce_org_rls('agents');
 
 CREATE TABLE projects (
     org_id      uuid NOT NULL REFERENCES organizations (id) ON DELETE CASCADE,
@@ -47,7 +47,7 @@ CREATE UNIQUE INDEX projects_one_host_per_agent ON projects (org_id, agent_id) W
 CREATE INDEX projects_agent_idx ON projects (org_id, agent_id) WHERE agent_id IS NOT NULL;
 CREATE INDEX projects_list_idx ON projects (org_id, lower(name), id);
 
-CALL ogsbom_enforce_org_rls('projects');
+CALL lotor_enforce_org_rls('projects');
 
 -- Références suivies : branches et étiquettes d'un dépôt, ou l'unique référence d'un hôte.
 -- Une référence retirée garde sa ligne (removed_at) : l'historique de ses instantanés
@@ -69,7 +69,7 @@ CREATE TABLE tracked_refs (
 CREATE UNIQUE INDEX tracked_refs_one_per_host ON tracked_refs (org_id, project_id) WHERE kind = 'host';
 -- Un hôte n'est suivi que par un projet de l'organisation.
 CREATE UNIQUE INDEX tracked_refs_host_name ON tracked_refs (org_id, lower(name)) WHERE kind = 'host';
-CALL ogsbom_enforce_org_rls('tracked_refs');
+CALL lotor_enforce_org_rls('tracked_refs');
 
 -- Jetons d'agent : seul le SHA-256 du secret est stocké ; public_id est unique sur toute
 -- l'instance, car le jeton seul désigne son organisation (crossorg, migration 007).
@@ -90,7 +90,7 @@ CREATE TABLE agent_tokens (
     FOREIGN KEY (org_id, agent_id) REFERENCES agents (org_id, id) ON DELETE CASCADE
 );
 CREATE INDEX agent_tokens_agent_idx ON agent_tokens (org_id, agent_id, created_at DESC);
-CALL ogsbom_enforce_org_rls('agent_tokens');
+CALL lotor_enforce_org_rls('agent_tokens');
 
 -- Jetons d'inscription des agents serveur : durée de validité, nombre d'usages, étiquettes
 -- des projets créés à l'inscription, ou projet de serveur existant à rattacher.
@@ -115,4 +115,4 @@ CREATE TABLE enrollment_tokens (
     FOREIGN KEY (org_id, project_id, project_kind) REFERENCES projects (org_id, id, kind) ON DELETE CASCADE
 );
 CREATE INDEX enrollment_tokens_list_idx ON enrollment_tokens (org_id, created_at DESC, id DESC);
-CALL ogsbom_enforce_org_rls('enrollment_tokens');
+CALL lotor_enforce_org_rls('enrollment_tokens');

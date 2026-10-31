@@ -11,11 +11,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/inventory"
-	"leblanc.io/open-go-sbom/internal/jobs"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/inventory"
+	"leblanc.io/lotor/internal/jobs"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // Engine est la base de vulnérabilités de l'instance (vuln.Manager) : Ensure la

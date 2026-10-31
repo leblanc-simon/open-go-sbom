@@ -12,11 +12,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/agent"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/agent"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // Service lit les indicateurs et enregistre les statistiques quotidiennes.
@@ -356,12 +356,12 @@ func widespread(ctx context.Context, tx *db.OrgTx) ([]Component, error) {
 		families AS (
 			SELECT c.purl_base, min(c.name) AS name, count(DISTINCT o.project_id) AS projects, max(o.rank) AS rank,
 			       bool_or(o.kev) AS kev
-			  FROM open o JOIN components c ON c.org_id = current_setting('ogsbom.org_id')::uuid AND c.id = o.component_id
+			  FROM open o JOIN components c ON c.org_id = current_setting('lotor.org_id')::uuid AND c.id = o.component_id
 			 GROUP BY c.purl_base
 			 ORDER BY count(DISTINCT o.project_id) DESC, max(o.rank) DESC, c.purl_base LIMIT $2),
 		versions AS (
 			SELECT DISTINCT c.purl_base, c.version, c.id
-			  FROM open o JOIN components c ON c.org_id = current_setting('ogsbom.org_id')::uuid AND c.id = o.component_id
+			  FROM open o JOIN components c ON c.org_id = current_setting('lotor.org_id')::uuid AND c.id = o.component_id
 			 WHERE c.purl_base IN (SELECT purl_base FROM families))
 		SELECT fa.purl_base, fa.name, fa.projects,
 		       (SELECT array_agg(v ORDER BY v) FROM (SELECT DISTINCT version AS v FROM versions WHERE purl_base = fa.purl_base

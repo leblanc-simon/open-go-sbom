@@ -18,7 +18,7 @@ d'une référence suivie, avec des ensembles d'inventaire adressés par contenu.
   calcul de `purl_base`, **empreinte d'inventaire** indépendante des horodatages et numéros
   de série du document.
 - `internal/sbom/syft` : détection du format, décodage de CycloneDX JSON 1.5 à 1.7, SPDX
-  JSON 2.3, Syft JSON ; lecture des propriétés `ogsbom:` et du champ `evidence` ; encodage
+  JSON 2.3, Syft JSON ; lecture des propriétés `lotor:` et du champ `evidence` ; encodage
   CycloneDX 1.6 et SPDX 2.3 pour l'export.
 - `internal/ingest` : route `POST /api/v1/agent/ingestions` (multipart du § 11), contrôles
   synchrones, stockage du blob compressé et dédoublonné, job `ingest.decode` mis en file
@@ -118,7 +118,7 @@ Réalisé le 31 octobre 2026, branche `lot/T05-ingestion`.
   fois, sans réseau ; `Validate` (réception) et `ValidateStrict` (production),
   `CycloneDXLicenseIDs`.
 - `internal/sbom/syft` : `Decode` (décodeurs de Syft, relecture CycloneDX pour empreintes,
-  portée, propriétés `ogsbom:` et `evidence`, sommes de contrôle SPDX, exclusion du
+  portée, propriétés `lotor:` et `evidence`, sommes de contrôle SPDX, exclusion du
   composant décrit, paniques converties en refus), `Encode` (CycloneDX 1.6 par
   `cyclonedxhelpers` + cyclonedx-go, licences trop récentes écrites en nom ; SPDX 2.3).
 - Migration **008** : `jobs.org_id` → `organizations` (`ON DELETE CASCADE`) ;
@@ -198,7 +198,7 @@ Réalisé le 31 octobre 2026, branche `lot/T05-ingestion`.
 - Syft JSON : pas de schéma embarqué (la décision ne vise que CycloneDX et SPDX) ; le
   décodeur de Syft fait foi.
 - Réencodage des téléchargements dans la requête web (bornée par les bornes d'ingestion),
-  à partir du SBOM d'origine décodé par Syft ; les propriétés `ogsbom:` et `evidence` ne
+  à partir du SBOM d'origine décodé par Syft ; les propriétés `lotor:` et `evidence` ne
   sont reportées que dans le SBOM reçu.
 
 ### Écarts
@@ -256,8 +256,8 @@ Réalisé le 31 octobre 2026, branche `lot/T05-ingestion`.
   effet (200, ingestion existante). Rattrapage : `TrackedRef.last_snapshot.commit` de
   `listAgentProjects`, puis envoi des commits manquants **du plus ancien au plus récent**
   (l'instantané courant est le plus récent par date de scan). Enrichissement IA (T12) :
-  propriétés CycloneDX `ogsbom:origin` (`ia`), `ogsbom:confidence` (0 à 1),
-  `ogsbom:model`, champ `evidence` ; un composant sans purl est accepté (identification
+  propriétés CycloneDX `lotor:origin` (`ia`), `lotor:confidence` (0 à 1),
+  `lotor:model`, champ `evidence` ; un composant sans purl est accepté (identification
   faible).
 - **T09 (recherche)** : `components (org_id, purl_base)` indexé ; `components.hashes`
   au format `algorithme:valeur` en minuscules (index à ajouter pour `sha256:`) ; recherche

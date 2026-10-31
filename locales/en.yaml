@@ -1,5 +1,5 @@
 app:
-  name: open-go-sbom
+  name: lotor
   tagline: Per-project SBOM management
 
 layout:
@@ -157,9 +157,9 @@ validation:
 
 home:
   title: Home
-  heading: Welcome to open-go-sbom
+  heading: Welcome to lotor
   lead: >-
-    open-go-sbom inventories the software components of your repositories and servers,
+    lotor inventories the software components of your repositories and servers,
     and analyses them every day to spot known vulnerabilities.
   status_title: Instance status
   status_text: The server is running and its database schema is up to date.
@@ -569,7 +569,7 @@ error:
       text: The account that owns this token is deactivated; its tokens are refused.
     invalid:
       title: Token refused
-      text: "The token presented is missing, malformed or unknown. Check that it is complete (ogsbom_agt_…, ogsbom_enr_… or ogsbom_pat_…) and suits this operation."
+      text: "The token presented is missing, malformed or unknown. Check that it is complete (lotor_agt_…, lotor_enr_… or lotor_pat_…) and suits this operation."
     revoked:
       title: Token revoked
       text: This token has been revoked. Ask an administrator of the organization for a new one.
@@ -808,7 +808,7 @@ agent:
 agent_new:
   title: New repository agent
   heading: New repository agent
-  lead: "A repository agent (ogsbom-repo-agent) analyses the repositories entrusted to it. It gets its first token here."
+  lead: "A repository agent (lotor-repo-agent) analyses the repositories entrusted to it. It gets its first token here."
   form_title: Repository agent
   name: Agent name
   name_hint: For instance the instance that hosts it.
@@ -933,7 +933,7 @@ snapshot:
   download_original: SBOM as received, in its original format
   download_cyclonedx: Re-encoded as CycloneDX 1.6
   download_spdx: Re-encoded as SPDX 2.3
-  download_hint: Re-encoded formats carry the inventory decoded by Syft; ogsbom properties and AI evidence only appear in the SBOM as received.
+  download_hint: Re-encoded formats carry the inventory decoded by Syft; lotor properties and AI evidence only appear in the SBOM as received.
   components_title: Components
   components_caption: Components of the snapshot, with their origin, type, purl and licenses
   filter_label: Filter components
@@ -966,14 +966,14 @@ host_agent:
 host_install:
   title: Install the host agent
   meta: Linux amd64 or arm64, deb or rpm package
-  package: Install the ogsbom-host-agent package, which creates the ogsbom-agent user and the systemd units.
+  package: Install the lotor-host-agent package, which creates the lotor-agent user and the systemd units.
   package_hint: Pick your distribution's command; replace amd64 or x86_64 with arm64 or aarch64 depending on the architecture.
   server: Set this server's address in the agent configuration.
   server_hint: With a private certificate authority or mTLS, fill in the tls section of the same file too.
   token: Store the enrollment token, readable by the agent user only.
   token_hint: Or encrypt it with systemd-creds (see the operations guide); it never goes into the configuration file.
   start: "Start the agent: it enrolls, inventories the host and sends its first SBOM."
-  start_hint: For one scan a day without a daemon, enable ogsbom-host-agent-oneshot.timer instead.
+  start_hint: For one scan a day without a daemon, enable lotor-host-agent-oneshot.timer instead.
   cleanup: Once the host shows up in the projects, delete the enrollment token; the agent keeps its own token.
 
 severity:
@@ -1336,7 +1336,7 @@ search:
 tokens:
   title: Access tokens
   heading: Personal access tokens
-  lead: "A personal token (ogsbom_pat_…) gives read-only access to the search API of the organizations you belong to, never more than your account. It always expires."
+  lead: "A personal token (lotor_pat_…) gives read-only access to the search API of the organizations you belong to, never more than your account. It always expires."
   created_text: "The token « {{.Name}} » is created. Copy it now: it will never be shown again."
   usage: "Send it in the Authorization: Bearer header, for instance GET /api/v1/orgs/<organization>/search?q=CVE-2021-44228."
   list_title: Your tokens

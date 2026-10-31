@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/forge"
+	"leblanc.io/lotor/internal/forge"
 )
 
 func writeSecret(t *testing.T, dir, name, value string, perm os.FileMode) string {
@@ -28,8 +28,8 @@ func writeSecret(t *testing.T, dir, name, value string, perm os.FileMode) string
 
 func TestReadSecret(t *testing.T) {
 	dir := t.TempDir()
-	ok := writeSecret(t, dir, "tok", "ogsbom_agt_x\n", 0o600)
-	if got, err := ReadSecret(ok); err != nil || string(got) != "ogsbom_agt_x" {
+	ok := writeSecret(t, dir, "tok", "lotor_agt_x\n", 0o600)
+	if got, err := ReadSecret(ok); err != nil || string(got) != "lotor_agt_x" {
 		t.Fatalf("%q %v", got, err)
 	}
 	ro := writeSecret(t, dir, "ro", "v", 0o400)
@@ -194,7 +194,7 @@ func TestLoadFromFile(t *testing.T) {
 	yaml := `server:
   url: https://sbom.example.org
 work:
-  dir: /var/lib/ogsbom-repo-agent/work
+  dir: /var/lib/lotor-repo-agent/work
 forges:
   - name: github
     kind: github
@@ -208,8 +208,8 @@ forges:
 	}
 	old := os.Args
 	t.Cleanup(func() { os.Args = old })
-	os.Args = []string{"ogsbom-repo-agent", "-c", path}
-	c, err := Load("ogsbom-repo-agent", "test", "/nonexistent")
+	os.Args = []string{"lotor-repo-agent", "-c", path}
+	c, err := Load("lotor-repo-agent", "test", "/nonexistent")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,8 +223,8 @@ forges:
 func TestExampleConfig(t *testing.T) {
 	old := os.Args
 	t.Cleanup(func() { os.Args = old })
-	os.Args = []string{"ogsbom-repo-agent", "-c", "../../deploy/ogsbom-repo-agent/config.example.yaml"}
-	c, err := Load("ogsbom-repo-agent", "test", "/nonexistent")
+	os.Args = []string{"lotor-repo-agent", "-c", "../../deploy/lotor-repo-agent/config.example.yaml"}
+	c, err := Load("lotor-repo-agent", "test", "/nonexistent")
 	if err != nil {
 		t.Fatal(err)
 	}

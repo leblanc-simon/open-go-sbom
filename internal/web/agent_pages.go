@@ -11,10 +11,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/agent"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/render"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/agent"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 func agentKindOptions(selected agent.Kind) []option {

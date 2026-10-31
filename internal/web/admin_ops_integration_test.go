@@ -14,10 +14,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/jobs"
-	"leblanc.io/open-go-sbom/internal/vuln"
-	"leblanc.io/open-go-sbom/internal/vuln/vulntest"
-	"leblanc.io/open-go-sbom/internal/web/webtest"
+	"leblanc.io/lotor/internal/jobs"
+	"leblanc.io/lotor/internal/vuln"
+	"leblanc.io/lotor/internal/vuln/vulntest"
+	"leblanc.io/lotor/internal/web/webtest"
 )
 
 // deadJob met en file un job puis le passe mort.

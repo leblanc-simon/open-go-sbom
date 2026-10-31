@@ -27,7 +27,7 @@ légitimes.
   `sbom.ComponentPURL` applique la règle ; l'analyse (T06) l'applique aux paquets de Grype.
 - **Les paquets viennent du décodeur de Syft**, celui qu'utilise Grype, si bien qu'un même
   blob donne les mêmes purl à l'ingestion et à l'analyse. CycloneDX est relu pour ce que
-  Syft ignore (empreintes, portée, propriétés `ogsbom:`, `evidence`), SPDX pour les sommes
+  Syft ignore (empreintes, portée, propriétés `lotor:`, `evidence`), SPDX pour les sommes
   de contrôle. Le composant décrit par le document lui-même (`metadata.component`, racine
   SPDX) n'est pas un composant ; les composants CycloneDX de type `file`,
   `operating-system`, `container`, `device`, `data`… non plus (seuls ceux que Syft lit comme
@@ -41,7 +41,7 @@ légitimes.
   champs ; listes unies ; portée la plus contraignante ; faible seulement si toutes les
   mentions le sont.
 - **Empreinte d'inventaire** : SHA-256 d'une sérialisation versionnée
-  (`ogsbom-inventory-v1`), champs préfixés par leur longueur, des éléments triés par purl ;
+  (`lotor-inventory-v1`), champs préfixés par leur longueur, des éléments triés par purl ;
   ni horodatage, ni numéro de série, ni outil, ni ordre du document, ni CPE.
 - **Instantanés** : dépôt, un instantané par (référence, commit) ; le même commit renvoyé
   avec le même inventaire ne crée rien (`unchanged`), avec un autre inventaire il remplace

@@ -6,10 +6,10 @@ import (
 	"context"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/dbtest"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 func TestRecordAndListOrg(t *testing.T) {

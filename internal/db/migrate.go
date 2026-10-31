@@ -17,16 +17,16 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"leblanc.io/open-go-sbom/internal/db/migrations"
+	"leblanc.io/lotor/internal/db/migrations"
 )
 
 // MigrationsTable suit les migrations du projet appliquées.
-const MigrationsTable = "ogsbom_schema_migrations"
+const MigrationsTable = "lotor_schema_migrations"
 
 // bootstrapLockKey sérialise la création de MigrationsTable entre instances qui démarrent
 // ensemble : deux CREATE TABLE IF NOT EXISTS concurrents peuvent sinon échouer sur le
 // catalogue. Verrou consultatif de transaction, compatible avec pgbouncer.
-const bootstrapLockKey int64 = 0x6f6773626f6d // « ogsbom »
+const bootstrapLockKey int64 = 0x6f6773626f6d // « lotor »
 
 var (
 	// ErrChecksumMismatch : une migration déjà appliquée a été modifiée depuis.
@@ -163,7 +163,7 @@ func Migrate(ctx context.Context, owner *sql.DB, opts MigrateOptions) ([]Migrati
 		return nil, err
 	}
 	if len(pending) > 0 {
-		if _, err := tx.ExecContext(ctx, "SELECT set_config('ogsbom.app_role', $1, true)", opts.AppRole); err != nil {
+		if _, err := tx.ExecContext(ctx, "SELECT set_config('lotor.app_role', $1, true)", opts.AppRole); err != nil {
 			return nil, fmt.Errorf("db: déclaration du rôle d'exécution : %w", err)
 		}
 	}

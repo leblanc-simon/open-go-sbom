@@ -11,9 +11,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/dbtest"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // orgTable est une table d'organisation du harnais d'isolement SQL : sa colonne

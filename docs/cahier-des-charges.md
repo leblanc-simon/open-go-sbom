@@ -1,12 +1,12 @@
-# Cahier des charges — open-go-sbom
+# Cahier des charges — lotor
 
 Version 0.2 du 31 octobre 2026 · copie du [document de travail](https://claude.ai/artifact/MbKyXZtq2r6j9oZqf1GMwS), qui reste la version de référence pour les commentaires.
 
-open-go-sbom collecte les SBOM des dépôts git (agent IA) et des serveurs (agent Go), les centralise et les réanalyse chaque jour. Ce brouillon v0.2 fixe le besoin et une architecture tout en Go ; dix décisions sont prises et quatre points restent ouverts (section 12).
+lotor collecte les SBOM des dépôts git (agent IA) et des serveurs (agent Go), les centralise et les réanalyse chaque jour. Ce brouillon v0.2 fixe le besoin et une architecture tout en Go ; dix décisions sont prises et quatre points restent ouverts (section 12).
 
 ## 1. Contexte et objectifs
 
-open-go-sbom tient à jour l'inventaire logiciel (SBOM) de chaque projet — dépôt git ou serveur — et en surveille les vulnérabilités en continu, depuis un serveur central unique.
+lotor tient à jour l'inventaire logiciel (SBOM) de chaque projet — dépôt git ou serveur — et en surveille les vulnérabilités en continu, depuis un serveur central unique.
 
 Aujourd'hui, répondre à « sommes-nous touchés par cette CVE ? » ou « où tourne encore telle version de cette bibliothèque ? » demande de fouiller chaque dépôt et chaque machine. Le [Cyber Resilience Act](https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act) européen rend cette réponse obligatoire pour les fabricants de produits numériques : signalement des vulnérabilités activement exploitées depuis le 11 septembre 2026, SBOM exigé avec les obligations principales au 11 décembre 2027.
 
@@ -83,7 +83,7 @@ flowchart TB
     teams["Équipes<br/>interface web, API REST"]
     alerts["Canaux d'alerte<br/>e-mail, webhook, Matrix, Slack"]
 
-    subgraph server["Serveur open-go-sbom — Go sur open-go-base, PostgreSQL"]
+    subgraph server["Serveur lotor — Go sur open-go-base, PostgreSQL"]
         ingestion["Ingestion<br/>CycloneDX, SPDX, Syft JSON"]
         inventory["Inventaire<br/>purl partagés, instantanés datés"]
         analysis["Analyse<br/>Grype et Grant, à chaque envoi"]
@@ -267,7 +267,7 @@ Tout en Go, sur le socle open-go-base et PostgreSQL seul : Syft, Grype et Grant 
 
 | Brique | Choix proposé | Raison |
 | --- | --- | --- |
-| Socle du serveur | leblanc.io/open-go-base : configuration par fichier YAML ou variables d'environnement, journaux, i18n, CSRF, limitation de débit, CORS, comptes, sessions, TOTP | Socle commun aux applications open-go : open-go-sbom n'écrit que son métier. |
+| Socle du serveur | leblanc.io/open-go-base : configuration par fichier YAML ou variables d'environnement, journaux, i18n, CSRF, limitation de débit, CORS, comptes, sessions, TOTP | Socle commun aux applications open-go : lotor n'écrit que son métier. |
 | Serveur et agent serveur | Go, binaires statiques | Syft, Grype et Grant sont des bibliothèques Go : agents et serveur partagent le même code d'analyse. |
 | Agent IA | Go, boucle d'agent avec outils en lecture seule ; fournisseur de modèle derrière une interface | Même langage que le reste ; changer de fournisseur ne touche pas la logique. |
 | Décodage des SBOM | Décodeurs de formats de Syft (CycloneDX, SPDX, Syft JSON) | Le modèle obtenu alimente Grype directement, sans conversion maison. |
@@ -310,7 +310,7 @@ Dix décisions ont été prises le 31 octobre 2026 ; le modèle par défaut rest
 **Points ouverts**
 
 - [ ] Choisir le fournisseur de modèle par défaut et la règle d'envoi de code à un modèle externe, avant le lot 2.
-- [ ] Développer OIDC dans open-go-sbom ou l'ajouter à open-go-base, qui ne le fournit pas encore, avant le lot 3.
+- [ ] Développer OIDC dans lotor ou l'ajouter à open-go-base, qui ne le fournit pas encore, avant le lot 3.
 - [ ] Définir l'identité d'un projet enfant : nom du conteneur, service Compose ou image.
 - [ ] Confirmer les cibles de volumétrie et de performance sur un parc réel.
 

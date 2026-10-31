@@ -10,7 +10,7 @@ VERSION=${1:?version attendue (v0.1.0)}
 OUT=${2:?répertoire de sortie attendu}
 GO=${GO:-go}
 ARCHES="amd64 arm64"
-ROLES="ogsbom-server ogsbom-host-agent ogsbom-repo-agent"
+ROLES="lotor-server lotor-host-agent lotor-repo-agent"
 
 case "$VERSION" in
 v[0-9]*.[0-9]*.[0-9]*) ;;
@@ -29,9 +29,9 @@ trap 'rm -rf "$WORK"' EXIT
 # Fichiers d'accompagnement de chaque rôle, en plus de LICENSE, README.md et CHANGELOG.md.
 extras() {
   case "$1" in
-  ogsbom-server) echo "config.example.yaml deploy/systemd/ogsbom-server.service" ;;
-  ogsbom-host-agent) echo "deploy/host-agent/config.example.yaml deploy/systemd/ogsbom-host-agent.service deploy/systemd/ogsbom-host-agent-oneshot.service deploy/systemd/ogsbom-host-agent-oneshot.timer" ;;
-  ogsbom-repo-agent) echo "deploy/ogsbom-repo-agent/config.example.yaml deploy/ogsbom-repo-agent/ogsbom-repo-agent.service" ;;
+  lotor-server) echo "config.example.yaml deploy/systemd/lotor-server.service" ;;
+  lotor-host-agent) echo "deploy/host-agent/config.example.yaml deploy/systemd/lotor-host-agent.service deploy/systemd/lotor-host-agent-oneshot.service deploy/systemd/lotor-host-agent-oneshot.timer" ;;
+  lotor-repo-agent) echo "deploy/lotor-repo-agent/config.example.yaml deploy/lotor-repo-agent/lotor-repo-agent.service" ;;
   esac
 }
 
@@ -53,8 +53,8 @@ done
 
 # Paquets de l'agent serveur (nfpm), version des paquets tirée de l'étiquette.
 make --no-print-directory packages VERSION="$VERSION" >/dev/null
-cp dist/ogsbom-host-agent_"$NUM"_amd64.deb dist/ogsbom-host-agent_"$NUM"_arm64.deb \
-  dist/ogsbom-host-agent-"$NUM"-1.x86_64.rpm dist/ogsbom-host-agent-"$NUM"-1.aarch64.rpm "$OUT/"
+cp dist/lotor-host-agent_"$NUM"_amd64.deb dist/lotor-host-agent_"$NUM"_arm64.deb \
+  dist/lotor-host-agent-"$NUM"-1.x86_64.rpm dist/lotor-host-agent-"$NUM"-1.aarch64.rpm "$OUT/"
 
 (cd "$OUT" && sha256sum -- *.tar.gz *.deb *.rpm > SHA256SUMS)
 echo "fichiers de $VERSION dans $OUT :"

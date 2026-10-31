@@ -27,9 +27,9 @@ T09 répond à « qui utilise ce composant, cette version, cette plage de versio
 ## Décision
 
 - **Deux fonctions `SECURITY DEFINER` « équivalentes à la RLS »** (migration 013) :
-  `ogsbom_search_component_names(query, limit)` et
-  `ogsbom_search_component_hashes(hash, limit)`, du propriétaire (`BYPASSRLS`), à
-  `search_path` fixé. Elles **lisent l'organisation dans `ogsbom.org_id`** (posé par
+  `lotor_search_component_names(query, limit)` et
+  `lotor_search_component_hashes(hash, limit)`, du propriétaire (`BYPASSRLS`), à
+  `search_path` fixé. Elles **lisent l'organisation dans `lotor.org_id`** (posé par
   `InOrg`), jamais en paramètre, et appliquent elles-mêmes la condition de la politique
   standard : même périmètre que la RLS, même échec franc hors `InOrg` (`''::uuid`). Elles
   ne renvoient que des identifiants de composants (et l'indication « approché »), bornés à
@@ -93,7 +93,7 @@ T09 répond à « qui utilise ce composant, cette version, cette plage de versio
 - **Table globale des noms ou des empreintes** : donnée d'organisation hors RLS
   (principe 6).
 - **Organisation en paramètre des fonctions** : une erreur d'appel lirait une autre
-  organisation ; la lire dans `ogsbom.org_id` donne exactement la garantie de la RLS.
+  organisation ; la lire dans `lotor.org_id` donne exactement la garantie de la RLS.
 - **Table dérivée `component_hashes` (B-tree sur l'égalité)** : utilisable sous la RLS,
   mais une table et une écriture de plus à chaque ingestion, pour une seule recherche.
 - **Export paginé en plusieurs transactions courtes** : mémoire bornée par lot, mais un

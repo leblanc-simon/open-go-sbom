@@ -9,7 +9,7 @@ CREATE TABLE organizations (
     archived_at      timestamptz,
     created_at       timestamptz NOT NULL DEFAULT now()
 );
-CALL ogsbom_enforce_org_rls('organizations', 'id');
+CALL lotor_enforce_org_rls('organizations', 'id');
 
 ALTER TABLE account_settings
     ADD CONSTRAINT account_settings_default_org_fk
@@ -23,7 +23,7 @@ CREATE TABLE org_memberships (
     PRIMARY KEY (org_id, user_id)
 );
 CREATE INDEX org_memberships_user_idx ON org_memberships (user_id);
-CALL ogsbom_enforce_org_rls('org_memberships');
+CALL lotor_enforce_org_rls('org_memberships');
 
 CREATE TABLE audit_events (
     org_id        uuid NOT NULL REFERENCES organizations (id) ON DELETE CASCADE,
@@ -41,4 +41,4 @@ CREATE TABLE audit_events (
     PRIMARY KEY (org_id, id)
 );
 CREATE INDEX audit_events_time_idx ON audit_events (org_id, occurred_at DESC, id DESC);
-CALL ogsbom_enforce_org_rls('audit_events');
+CALL lotor_enforce_org_rls('audit_events');

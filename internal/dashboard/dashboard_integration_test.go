@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/jobs"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/jobs"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 func wantCounts(t *testing.T, what string, got Counts, crit, high, med, low, kev int) {

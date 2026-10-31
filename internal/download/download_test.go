@@ -10,14 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 func TestFetch(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/ok":
-			if r.Header.Get("User-Agent") != "ogsbom-server test" {
+			if r.Header.Get("User-Agent") != "lotor-server test" {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
@@ -33,7 +33,7 @@ func TestFetch(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	c := New("ogsbom-server test", 0)
+	c := New("lotor-server test", 0)
 	ctx := context.Background()
 	var buf bytes.Buffer
 	if err := c.Fetch(ctx, srv.URL+"/ok", &buf, 100); err != nil || buf.String() != "contenu" {

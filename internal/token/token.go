@@ -21,19 +21,19 @@ const (
 	Personal   Kind = "pat" // jeton d'accès personnel : API utilisateur en lecture (ADR 0025)
 )
 
-// Format d'un jeton : ogsbom_<nature>_<identifiant public>_<secret>. L'identifiant public
+// Format d'un jeton : lotor_<nature>_<identifiant public>_<secret>. L'identifiant public
 // (128 bits) désigne la ligne ; le secret (256 bits) n'est jamais stocké, seulement son
 // SHA-256. Les deux parties sont en base32 minuscule sans remplissage : ni « _ » ni « - »,
 // donc un découpage sans ambiguïté et un jeton qu'un double-clic sélectionne en entier.
 const (
-	prefix      = "ogsbom_"
+	prefix      = "lotor_"
 	publicBytes = 16
 	secretBytes = 32
 	publicIDLen = 26 // base32 de 16 octets
 	secretLen   = 52 // base32 de 32 octets
 	bodyLen     = publicIDLen + 1 + secretLen
 	// displayLen est le nombre de caractères de l'identifiant public affichés pour
-	// reconnaître un jeton (« ogsbom_agt_k7q2xa… »).
+	// reconnaître un jeton (« lotor_agt_k7q2xa… »).
 	displayLen = 6
 )
 

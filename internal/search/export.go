@@ -13,9 +13,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // Format est le format d'un export.

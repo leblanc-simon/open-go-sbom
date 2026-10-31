@@ -3,7 +3,7 @@ package agent
 import (
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/token"
+	"leblanc.io/lotor/internal/token"
 )
 
 // TestKindOfAcceptsOnlyAgentTokens : un jeton personnel n'ouvre jamais l'API des agents,
@@ -20,7 +20,7 @@ func TestKindOfAcceptsOnlyAgentTokens(t *testing.T) {
 		if pub, _, err := ParseToken(kind, tok.Plaintext); err != nil || pub != tok.PublicID {
 			t.Fatalf("relecture : %v", err)
 		}
-		if DisplayPrefix(kind, tok.PublicID) != "ogsbom_"+string(kind)+"_"+tok.PublicID[:6] {
+		if DisplayPrefix(kind, tok.PublicID) != "lotor_"+string(kind)+"_"+tok.PublicID[:6] {
 			t.Fatal("préfixe affiché")
 		}
 	}

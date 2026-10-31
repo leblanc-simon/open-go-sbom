@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/version"
+	"leblanc.io/lotor/internal/version"
 )
 
 // FuzzParseVers : sur toute entrée, l'analyseur ne panique pas ; une plage acceptée se

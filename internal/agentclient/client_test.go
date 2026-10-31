@@ -19,7 +19,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/agentclient/gen"
+	"leblanc.io/lotor/internal/agentclient/gen"
 )
 
 // fastRetry garde les tests rapides tout en exerçant les réessais.
@@ -29,7 +29,7 @@ func newTestClient(t *testing.T, h http.Handler, opts ...func(*Options)) *Client
 	t.Helper()
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
-	o := Options{ServerURL: srv.URL, Token: "ogsbom_agt_x_y", UserAgent: "ogsbom-test/1.0", Language: "en",
+	o := Options{ServerURL: srv.URL, Token: "lotor_agt_x_y", UserAgent: "lotor-test/1.0", Language: "en",
 		Retry: fastRetry, Transport: srv.Client().Transport}
 	for _, f := range opts {
 		f(&o)
@@ -71,20 +71,20 @@ func TestEnrollSendsHeadersAndEnrollmentToken(t *testing.T) {
 		if r.URL.Path != "/api/v1/agent/enroll" || r.Method != http.MethodPost {
 			t.Errorf("requête %s %s", r.Method, r.URL.Path)
 		}
-		if got := r.Header.Get("Authorization"); got != "Bearer ogsbom_enr_a_b" {
+		if got := r.Header.Get("Authorization"); got != "Bearer lotor_enr_a_b" {
 			t.Errorf("Authorization = %q", got)
 		}
-		if r.Header.Get("User-Agent") != "ogsbom-test/1.0" || r.Header.Get("Accept-Language") != "en" {
+		if r.Header.Get("User-Agent") != "lotor-test/1.0" || r.Header.Get("Accept-Language") != "en" {
 			t.Errorf("en-têtes %v", r.Header)
 		}
 		var req gen.EnrollRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Hostname != "srv-1" {
 			t.Errorf("corps %+v, %v", req, err)
 		}
-		writeJSON(w, http.StatusCreated, gen.EnrollmentResult{AgentId: agentID, Token: "ogsbom_agt_new_secret"})
+		writeJSON(w, http.StatusCreated, gen.EnrollmentResult{AgentId: agentID, Token: "lotor_agt_new_secret"})
 	}))
-	res, err := c.Enroll(context.Background(), "ogsbom_enr_a_b", gen.EnrollRequest{Hostname: "srv-1", Version: "1.0"})
-	if err != nil || res.AgentId != agentID || res.Token != "ogsbom_agt_new_secret" {
+	res, err := c.Enroll(context.Background(), "lotor_enr_a_b", gen.EnrollRequest{Hostname: "srv-1", Version: "1.0"})
+	if err != nil || res.AgentId != agentID || res.Token != "lotor_agt_new_secret" {
 		t.Fatalf("Enroll = %+v, %v", res, err)
 	}
 	if _, err := c.Enroll(context.Background(), "", gen.EnrollRequest{}); !errors.Is(err, ErrNoToken) {
@@ -102,7 +102,7 @@ func TestNoTokenIsRefusedWithoutRequest(t *testing.T) {
 	if calls.Load() != 0 {
 		t.Errorf("%d requêtes envoyées sans jeton", calls.Load())
 	}
-	if _, err := c.WithToken("ogsbom_agt_t_s").Heartbeat(context.Background(), gen.HeartbeatRequest{Version: "1"}); err == nil {
+	if _, err := c.WithToken("lotor_agt_t_s").Heartbeat(context.Background(), gen.HeartbeatRequest{Version: "1"}); err == nil {
 		t.Error("réponse vide acceptée")
 	}
 }
@@ -128,7 +128,7 @@ func TestRetriesTransientStatusAndReplaysBody(t *testing.T) {
 	if calls.Load() != 3 {
 		t.Errorf("%d tentatives, 3 attendues", calls.Load())
 	}
-	if out := logs.String(); strings.Count(out, "op=heartbeat") != 2 || !strings.Contains(out, "status=503") || strings.Contains(out, "ogsbom_agt") {
+	if out := logs.String(); strings.Count(out, "op=heartbeat") != 2 || !strings.Contains(out, "status=503") || strings.Contains(out, "lotor_agt") {
 		t.Errorf("journal des réessais : %s", out)
 	}
 }
@@ -150,7 +150,7 @@ func TestRetriesAreBounded(t *testing.T) {
 	if !errors.As(err, &e) || e.RequestID != "req-1" || e.Detail == "" || e.Op != "heartbeat" {
 		t.Errorf("erreur détaillée %+v", e)
 	}
-	if !strings.Contains(err.Error(), "502") || strings.Contains(err.Error(), "ogsbom_agt") {
+	if !strings.Contains(err.Error(), "502") || strings.Contains(err.Error(), "lotor_agt") {
 		t.Errorf("message %q", err.Error())
 	}
 }

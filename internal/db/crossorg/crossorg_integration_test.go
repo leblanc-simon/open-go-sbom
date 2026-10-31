@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/crossorg"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/crossorg"
+	"leblanc.io/lotor/internal/db/dbtest"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // TestCrossOrgReturnsOnlyWhatIsNeeded : les fonctions inter-organisations ne renvoient que

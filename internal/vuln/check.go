@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/jobs"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/jobs"
 )
 
 // CheckKind est le job qui interroge la liste de distribution et obtient la nouvelle base.

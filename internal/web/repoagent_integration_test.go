@@ -22,12 +22,12 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/forge"
-	"leblanc.io/open-go-sbom/internal/ingest"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/repoagent"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/forge"
+	"leblanc.io/lotor/internal/ingest"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/repoagent"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // localForge est une GitHub App dont seuls les webhooks sont réels (signature

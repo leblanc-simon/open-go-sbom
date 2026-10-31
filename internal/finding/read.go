@@ -9,10 +9,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/pagination"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/pagination"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // Bornes des listes de constats.

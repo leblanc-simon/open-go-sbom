@@ -12,7 +12,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/web/webtest"
+	"leblanc.io/lotor/internal/web/webtest"
 )
 
 var update = flag.Bool("update", false, "réécrit les fichiers attendus de testdata/")

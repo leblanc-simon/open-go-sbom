@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/sbom/schema"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/sbom/schema"
 )
 
 var update = flag.Bool("update", false, "réécrit les fichiers attendus de testdata/sbom/golden")
@@ -146,7 +146,7 @@ func TestFormatsAgree(t *testing.T) {
 	}
 }
 
-func TestOgsbomPropertiesAndEvidence(t *testing.T) {
+func TestLotorPropertiesAndEvidence(t *testing.T) {
 	doc := decodeFile(t, "portail-client-ia.cdx16.json")
 	jq, ok := find(doc, "jquery")
 	if !ok {
@@ -299,7 +299,7 @@ func FuzzDecode(f *testing.F) {
 		}
 		f.Add(data)
 	}
-	f.Add([]byte(`{"bomFormat":"CycloneDX","specVersion":"1.6","components":[{"type":"library","name":"a","purl":"pkg:npm/a@1","properties":[{"name":"ogsbom:origin","value":"ia"}]}]}`))
+	f.Add([]byte(`{"bomFormat":"CycloneDX","specVersion":"1.6","components":[{"type":"library","name":"a","purl":"pkg:npm/a@1","properties":[{"name":"lotor:origin","value":"ia"}]}]}`))
 	small := sbom.Limits{MaxBytes: 1 << 20, MaxDepth: 32, MaxComponents: 2000}
 	f.Fuzz(func(t *testing.T, data []byte) {
 		h, err := sbom.Precheck(bytes.NewReader(data), small)

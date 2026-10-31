@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/agentclient"
+	"leblanc.io/lotor/internal/agentclient"
 )
 
 // NewClient construit le client de l'API depuis la configuration : autorité privée,
@@ -25,7 +25,7 @@ func NewClient(cfg Config, version string, logger *slog.Logger) (*agentclient.Cl
 	}
 	return agentclient.New(agentclient.Options{
 		ServerURL: cfg.Server.URL,
-		UserAgent: "ogsbom-host-agent/" + version,
+		UserAgent: "lotor-host-agent/" + version,
 		Language:  cfg.Server.Language,
 		TLS:       tlsOpts,
 		Proxy:     cfg.Server.Proxy,

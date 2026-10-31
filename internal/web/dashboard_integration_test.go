@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/finding"
-	"leblanc.io/open-go-sbom/internal/render"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/web/webtest"
+	"leblanc.io/lotor/internal/finding"
+	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/web/webtest"
 )
 
 // TestDashboardScreens : tableau de bord de l'organisation et en-tête de la fiche projet,

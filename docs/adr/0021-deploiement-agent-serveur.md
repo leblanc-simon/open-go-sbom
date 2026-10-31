@@ -14,12 +14,12 @@ contrôle mTLS côté serveur et la façon de produire les paquets.
 
 ## Décision
 
-- **Deux unités, une seule active** : `ogsbom-host-agent.service` (démon, recommandé :
-  il reçoit les demandes de scan) et `ogsbom-host-agent-oneshot.service` lancée par
-  `ogsbom-host-agent-oneshot.timer` (tous les jours à 2 h, `RandomizedDelaySec=1h`,
+- **Deux unités, une seule active** : `lotor-host-agent.service` (démon, recommandé :
+  il reçoit les demandes de scan) et `lotor-host-agent-oneshot.service` lancée par
+  `lotor-host-agent-oneshot.timer` (tous les jours à 2 h, `RandomizedDelaySec=1h`,
   `Persistent=true`) ; elles se déclarent en conflit. Le mode est posé par l'unité
-  (`OGSBOM_HOST_AGENT_MODE`).
-- **Durcissement** : `User=ogsbom-agent`, `AmbientCapabilities=` et
+  (`LOTOR_HOST_AGENT_MODE`).
+- **Durcissement** : `User=lotor-agent`, `AmbientCapabilities=` et
   `CapabilityBoundingSet=CAP_DAC_READ_SEARCH`, `NoNewPrivileges`, `ProtectSystem=strict`,
   `ProtectHome=read-only`, `PrivateTmp`, `PrivateDevices`, protections du noyau,
   `RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX`, filtre `@system-service`
@@ -29,7 +29,7 @@ contrôle mTLS côté serveur et la façon de produire les paquets.
   `GOMEMLIMIT`, `resources.memory_limit_mib`), `CPUQuota=` proposé en commentaire.
 - **Secrets** : jamais dans `config.yaml`. Jeton d'inscription : `enrollment_token_file`,
   sinon le credential systemd `enrollment-token` (`LoadCredentialEncrypted=`), sinon
-  `/etc/ogsbom-host-agent/enrollment-token` ; clé du certificat client :
+  `/etc/lotor-host-agent/enrollment-token` ; clé du certificat client :
   `server.client_key_file`, sinon le credential `client-key`. Hors du répertoire des
   credentials, un fichier secret accessible au groupe ou aux autres est **refusé**. Le
   jeton d'agent est écrit par l'agent dans son répertoire d'état (`0700`, fichier `0600`,
@@ -47,7 +47,7 @@ contrôle mTLS côté serveur et la façon de produire les paquets.
 - **Paquets** : `make packages` construit l'agent pour amd64 et arm64 (`CGO_ENABLED=0`)
   et produit avec nfpm (directive `tool`, v2.48.0) quatre paquets non signés : binaire,
   configuration (`config|noreplace`), unités, `sysusers.d`. Le script d'installation crée
-  l'utilisateur (`systemd-sysusers`, sinon `useradd`) et rend `/etc/ogsbom-host-agent`
+  l'utilisateur (`systemd-sysusers`, sinon `useradd`) et rend `/etc/lotor-host-agent`
   lisible du seul groupe de l'agent ; aucune unité n'est activée d'office. La
   désinstallation arrête les unités, sauf lors d'une mise à jour, et garde l'état.
   `make packages` fait partie de `make ci`.

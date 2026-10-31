@@ -107,7 +107,7 @@ Prises le 31 octobre 2026 :
 - Mot de passe : 12 caractères minimum.
 - Évolutions d'open-go-base (erreurs sous forme de clés, gestionnaire d'échec de csrfx)
   réalisées dans open-go-base : branche, PR fusionnée quand la CI est verte, étiquette
-  semver ; open-go-sbom passe ensuite à cette version.
+  semver ; lotor passe ensuite à cette version.
 
 ## Journal
 
@@ -123,7 +123,7 @@ Réalisé le 31 octobre 2026, branche `lot/T03-comptes-organisations`, en parall
   d'open-go-base, fusionnée (squash, commit `b9ccc67`). Pas de CI sur ce dépôt :
   `go vet ./...` et `go test -race ./...` verts en local, seule vérification possible.
   Étiquette `v1.1.0` annotée créée dans le clone, **pas poussée** (voir Écarts) :
-  open-go-sbom utilise la pseudo-version `v1.0.2-0.20261031034511-b9ccc67d239a`.
+  lotor utilise la pseudo-version `v1.0.2-0.20261031034511-b9ccc67d239a`.
 - **Stores PostgreSQL d'authx et de mfax** exécutés pour la première fois sur
   PostgreSQL 16 (sonde jetable, puis tous les tests d'intégration de ce lot) : migrations
   idempotentes, les quatre stores, anti-rejeu et plafond de tentatives. **Aucun défaut**.
@@ -166,7 +166,7 @@ Réalisé le 31 octobre 2026, branche `lot/T03-comptes-organisations`, en parall
 - **Propriétaire `BYPASSRLS`** (ADR 0012) **[à relire]** : sous RLS forcée, une fonction
   `SECURITY DEFINER` du propriétaire ne voit rien sans organisation déclarée.
   L'attribut ne lui donne rien qu'il n'ait déjà (il peut désactiver la RLS de ses tables).
-  Exige `ALTER ROLE ogsbom_owner BYPASSRLS` sur une base existante ; `initdb` et `dbtest`
+  Exige `ALTER ROLE lotor_owner BYPASSRLS` sur une base existante ; `initdb` et `dbtest`
   le posent.
 - **Secrets TOTP chiffrés** par `internal/secret` (ADR 0013) **[à relire]** : écart à
   mfax, qui les stocke en clair ; `secrets.keys` devient obligatoire ; rechiffrement par
@@ -231,7 +231,7 @@ Réalisé le 31 octobre 2026, branche `lot/T03-comptes-organisations`, en parall
 
 ### Pour les lots suivants
 
-- Nouvelle table d'organisation : `CALL ogsbom_enforce_org_rls(...)` **et** une entrée
+- Nouvelle table d'organisation : `CALL lotor_enforce_org_rls(...)` **et** une entrée
   dans `orgTables` (`internal/db/orgtables_integration_test.go`), sinon les tests
   échouent. Nouvelle route de données d'organisation : sous `/o/{slug}` (le harnais de
   routes la teste seul) ; ailleurs, l'ajouter à `globalRoutes` en connaissance de cause.

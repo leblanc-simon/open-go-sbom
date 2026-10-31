@@ -1,16 +1,16 @@
-# Unité systemd d'ogsbom-server (voir docs/operations.md, « Installation de production »).
+# Unité systemd d'lotor-server (voir docs/operations.md, « Installation de production »).
 # Les secrets (DSN avec mot de passe, clés de chiffrement) sont dans un fichier
 # d'environnement en 0600, lu par systemd avant le changement d'utilisateur.
 [Unit]
-Description=open-go-sbom server
-Documentation=https://github.com/leblanc-simon/open-go-sbom/blob/main/docs/operations.md
+Description=lotor server
+Documentation=https://github.com/leblanc-simon/lotor/blob/main/docs/operations.md
 Wants=network-online.target
 After=network-online.target postgresql.service
 
 [Service]
 Type=exec
-ExecStart=/usr/local/bin/ogsbom-server -c /etc/ogsbom/config.yaml
-EnvironmentFile=/etc/ogsbom/ogsbom-server.env
+ExecStart=/usr/local/bin/lotor-server -c /etc/lotor/config.yaml
+EnvironmentFile=/etc/lotor/lotor-server.env
 Restart=on-failure
 RestartSec=5s
 # Plus long que http.shutdown_timeout et workers.shutdown_timeout (30 s chacun).
@@ -19,12 +19,12 @@ TimeoutStopSec=45s
 #Environment=GOMEMLIMIT=6GiB
 
 DynamicUser=yes
-# /var/lib/ogsbom : copie locale de la base de vulnérabilités (vulndb.dir, 8 Gio libres).
-StateDirectory=ogsbom
+# /var/lib/lotor : copie locale de la base de vulnérabilités (vulndb.dir, 8 Gio libres).
+StateDirectory=lotor
 StateDirectoryMode=0700
 # TLS natif : la clé privée (root, 0600) passe par un credential, lu sous
-# tls.key_file: /run/credentials/ogsbom-server.service/tls-key
-#LoadCredential=tls-key:/etc/ogsbom/tls.key
+# tls.key_file: /run/credentials/lotor-server.service/tls-key
+#LoadCredential=tls-key:/etc/lotor/tls.key
 
 # Aucune capacité. Pour écouter sur un port privilégié (443) en TLS natif, remplacer les
 # deux lignes par CapabilityBoundingSet=CAP_NET_BIND_SERVICE et

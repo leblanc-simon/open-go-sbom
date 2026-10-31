@@ -7,7 +7,7 @@ import (
 
 const good = `<!doctype html><html lang="fr"><head><title>Accueil</title></head><body>
 <a class="skip-link" href="#main">Aller au contenu</a>
-<header><a href="/"><img src="/logo.svg" alt=""><span>open-go-sbom</span></a>
+<header><a href="/"><img src="/logo.svg" alt=""><span>lotor</span></a>
 <button type="button" hidden>Thème</button></header>
 <main id="main" tabindex="-1"><h1>Titre</h1><h2>Section</h2>
 <form><label for="q">Recherche</label><input id="q" name="q">

@@ -37,7 +37,7 @@ CREATE TABLE org_daily_stats (
     recorded_at     timestamptz NOT NULL,
     PRIMARY KEY (org_id, day)
 );
-CALL ogsbom_enforce_org_rls('org_daily_stats');
+CALL lotor_enforce_org_rls('org_daily_stats');
 
 -- Même série à l'échelle d'un projet actif (en-tête de la fiche projet).
 CREATE TABLE project_daily_stats (
@@ -55,7 +55,7 @@ CREATE TABLE project_daily_stats (
     PRIMARY KEY (org_id, project_id, day),
     FOREIGN KEY (org_id, project_id) REFERENCES projects (org_id, id) ON DELETE CASCADE
 );
-CALL ogsbom_enforce_org_rls('project_daily_stats');
+CALL lotor_enforce_org_rls('project_daily_stats');
 
 -- Délai de correction sur une période : constats résolus par date de résolution.
 CREATE INDEX findings_resolved_idx ON findings (org_id, resolved_at) WHERE status = 'resolved';

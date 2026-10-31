@@ -32,7 +32,7 @@ de 7 jours.
   l'état de sa fin de journée. Historique par projet purgé au-delà de 400 jours ;
   historique d'organisation conservé (une ligne par jour).
 - **Pas de nouvelle fonction `crossorg`** : la liste des organisations vient de
-  `ogsbom_list_organizations`, comme la réanalyse (ADR 0018).
+  `lotor_list_organizations`, comme la réanalyse (ADR 0018).
 - **Séries.** Lecture des lignes de la période (un jour sur sept au-delà de 90 jours),
   plus l'état courant comme dernier point ; abscisse proportionnelle au temps (un jour
   manquant reste visible). Variation « en 7 jours » : état courant moins la ligne d'il y a

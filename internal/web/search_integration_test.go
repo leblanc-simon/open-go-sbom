@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/api/gen/userapi"
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/search"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/web/webtest"
+	"leblanc.io/lotor/internal/api/gen/userapi"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/search"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/web/webtest"
 )
 
 // apiGet appelle l'API utilisateur avec un jeton personnel.
@@ -33,7 +33,7 @@ func (a *app) apiGet(token, path string) page {
 	return a.browser().do(req)
 }
 
-var patPattern = regexp.MustCompile(`ogsbom_pat_[a-z2-7]{26}_[a-z2-7]{52}`)
+var patPattern = regexp.MustCompile(`lotor_pat_[a-z2-7]{26}_[a-z2-7]{52}`)
 
 // TestSearchScreenAndAPI : écran (deux langues, accessibilité, filtres reflétés dans
 // l'URL), export, API identique à l'écran, jeton personnel, isolement.

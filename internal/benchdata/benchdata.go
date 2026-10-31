@@ -22,8 +22,8 @@ import (
 	"strings"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // Params dimensionne le jeu.

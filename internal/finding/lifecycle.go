@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // Status est l'état d'un constat.

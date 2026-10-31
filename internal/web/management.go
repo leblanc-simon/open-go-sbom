@@ -11,7 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"leblanc.io/open-go-sbom/internal/web/middleware"
+	"leblanc.io/lotor/internal/web/middleware"
 )
 
 // checkTimeout borne chaque vérification de /readyz.

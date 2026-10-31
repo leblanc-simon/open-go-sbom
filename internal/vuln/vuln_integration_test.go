@@ -13,10 +13,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
-	"leblanc.io/open-go-sbom/internal/vuln"
-	"leblanc.io/open-go-sbom/internal/vuln/vulntest"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/dbtest"
+	"leblanc.io/lotor/internal/vuln"
+	"leblanc.io/lotor/internal/vuln/vulntest"
 )
 
 var built1 = time.Date(2026, 10, 29, 6, 0, 0, 0, time.UTC)

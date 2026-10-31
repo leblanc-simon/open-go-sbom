@@ -10,9 +10,9 @@ import (
 
 	"leblanc.io/open-go-base/mfax"
 
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/secret"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/secret"
 )
 
 // sealedPrefix marque un secret TOTP chiffré : « s1:<clé>:<chiffré en base64> ».

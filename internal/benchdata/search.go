@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // SearchVersions est le nombre de versions de pkg:npm/lodash ajoutées par

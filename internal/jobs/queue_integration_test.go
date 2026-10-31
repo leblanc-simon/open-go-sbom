@@ -15,10 +15,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
-	"leblanc.io/open-go-sbom/internal/pagination"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/dbtest"
+	"leblanc.io/lotor/internal/pagination"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // Test de charge court : 10 000 jobs, trois runners de huit workers, dix organisations,
@@ -471,16 +471,16 @@ func TestMetrics(t *testing.T) {
 	if v := testutil.ToFloat64(m.runs.WithLabelValues("test.ok", outcomeDone)); v != 1 {
 		t.Fatalf("runs done = %v", v)
 	}
-	if n := testutil.CollectAndCount(reg, "ogsbom_job_duration_seconds"); n != 2 {
+	if n := testutil.CollectAndCount(reg, "lotor_job_duration_seconds"); n != 2 {
 		t.Fatalf("%d séries de durée", n)
 	}
 	want := `
-# HELP ogsbom_jobs Jobs in the queue by kind and status (pending, running, dead), shared by all instances.
-# TYPE ogsbom_jobs gauge
-ogsbom_jobs{kind="test.ko",status="pending"} 1
-ogsbom_jobs{kind="test.unknown",status="pending"} 1
+# HELP lotor_jobs Jobs in the queue by kind and status (pending, running, dead), shared by all instances.
+# TYPE lotor_jobs gauge
+lotor_jobs{kind="test.ko",status="pending"} 1
+lotor_jobs{kind="test.unknown",status="pending"} 1
 `
-	if err := testutil.GatherAndCompare(reg, strings.NewReader(want), "ogsbom_jobs"); err != nil {
+	if err := testutil.GatherAndCompare(reg, strings.NewReader(want), "lotor_jobs"); err != nil {
 		t.Fatal(err)
 	}
 }

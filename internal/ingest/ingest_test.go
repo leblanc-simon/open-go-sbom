@@ -10,9 +10,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/sbom"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/sbom"
 )
 
 func unitService() *Service {

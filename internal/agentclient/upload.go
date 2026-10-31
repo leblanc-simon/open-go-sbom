@@ -9,7 +9,7 @@ import (
 	"mime/multipart"
 	"net/textproto"
 
-	"leblanc.io/open-go-sbom/internal/agentclient/gen"
+	"leblanc.io/lotor/internal/agentclient/gen"
 )
 
 // Upload envoie un SBOM (JSON, non compressé : le client le compresse) pour la référence

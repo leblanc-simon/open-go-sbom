@@ -6,7 +6,7 @@
 
 ## Objectif
 
-Porter `ogsbom-host-agent` sur Windows Server avec les mêmes garanties que sous Linux.
+Porter `lotor-host-agent` sur Windows Server avec les mêmes garanties que sous Linux.
 
 ## Périmètre
 

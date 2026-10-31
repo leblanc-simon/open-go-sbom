@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/crossorg"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/crossorg"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // ViewerState est ce que l'interface vérifie et affiche à chaque requête d'un compte

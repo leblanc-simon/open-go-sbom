@@ -44,7 +44,7 @@ organisation à l'autre.
    durée de validité, le nombre de serveurs à inscrire et, au besoin, des étiquettes
    (`env=prod`). Le **jeton d'inscription** et les commandes d'installation s'affichent
    une seule fois.
-2. Sur chaque serveur, l'exploitant installe le paquet `ogsbom-host-agent`, renseigne
+2. Sur chaque serveur, l'exploitant installe le paquet `lotor-host-agent`, renseigne
    l'adresse du serveur, dépose le jeton et démarre l'agent
    ([`operations.md`](operations.md#agent-serveur)).
 3. Au premier passage, le serveur apparaît dans **Projets** avec son système, son noyau
@@ -101,7 +101,7 @@ occurrences. Détails : [`utilisation.md`](utilisation.md).
 demandé, affiché une seule fois). Il donne la lecture de ce que votre compte voit :
 
 ```bash
-curl -H "Authorization: Bearer $OGSBOM_TOKEN" \
+curl -H "Authorization: Bearer $LOTOR_TOKEN" \
   "https://sbom.example.org/api/v1/orgs/infra/search?q=CVE-2023-48795"
 ```
 

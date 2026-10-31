@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/inventory"
-	"leblanc.io/open-go-sbom/internal/jobs"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/vuln"
-	"leblanc.io/open-go-sbom/internal/vuln/vulntest"
+	"leblanc.io/lotor/internal/inventory"
+	"leblanc.io/lotor/internal/jobs"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/vuln"
+	"leblanc.io/lotor/internal/vuln/vulntest"
 )
 
 // TestLog4ShellFindingIsKEV : un SBOM contenant log4j-core 2.14.1 produit un constat

@@ -2,8 +2,8 @@
    Base : racine, remises à zéro et utilitaires (planche « Fondations »).
    ========================================================================== */
 
-.ogsbom {
-  container: ogsbom / inline-size;
+.lotor {
+  container: lotor / inline-size;
   min-height: 100vh;
   background: var(--color-bg);
   color: var(--color-text);

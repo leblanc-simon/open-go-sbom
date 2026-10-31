@@ -6,7 +6,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"leblanc.io/open-go-sbom/internal/db/migrations"
+	"leblanc.io/lotor/internal/db/migrations"
 )
 
 func TestEmbeddedMigrationsAreWellFormed(t *testing.T) {

@@ -15,11 +15,11 @@ import (
 	"leblanc.io/open-go-base/csrfx"
 	"leblanc.io/open-go-base/ratelimit"
 
-	apiv1 "leblanc.io/open-go-sbom/internal/api"
-	"leblanc.io/open-go-sbom/internal/api/problem"
-	"leblanc.io/open-go-sbom/internal/locale"
-	"leblanc.io/open-go-sbom/internal/render"
-	"leblanc.io/open-go-sbom/internal/web/middleware"
+	apiv1 "leblanc.io/lotor/internal/api"
+	"leblanc.io/lotor/internal/api/problem"
+	"leblanc.io/lotor/internal/locale"
+	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/web/middleware"
 )
 
 // RouterOptions réunit les dépendances du routeur.

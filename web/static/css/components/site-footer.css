@@ -15,7 +15,7 @@
     color: var(--color-text-2);
   }
 
-  @container ogsbom (width < 48rem) {
+  @container lotor (width < 48rem) {
     padding: var(--space-3) var(--space-4);
   }
 }

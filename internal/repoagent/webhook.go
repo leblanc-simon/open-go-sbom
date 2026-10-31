@@ -9,7 +9,7 @@ import (
 
 	"leblanc.io/open-go-base/ratelimit"
 
-	"leblanc.io/open-go-sbom/internal/forge"
+	"leblanc.io/lotor/internal/forge"
 )
 
 // PushHandler reçoit un push vérifié ; faux si le travail n'a pas pu être mis en file.

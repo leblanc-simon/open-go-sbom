@@ -11,9 +11,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/agentclient"
-	"leblanc.io/open-go-sbom/internal/agentclient/gen"
-	"leblanc.io/open-go-sbom/internal/forge"
+	"leblanc.io/lotor/internal/agentclient"
+	"leblanc.io/lotor/internal/agentclient/gen"
+	"leblanc.io/lotor/internal/forge"
 )
 
 // apiServer est l'implémentation de Server sur l'API des agents, par le client commun
@@ -50,7 +50,7 @@ func NewServer(cfg ServerConfig, token string, o ServerOptions) (Server, error) 
 		tlsOpts.ClientKeyFile = path
 	}
 	c, err := agentclient.New(agentclient.Options{
-		ServerURL: cfg.URL, Token: token, UserAgent: "ogsbom-repo-agent/" + o.Version, TLS: tlsOpts,
+		ServerURL: cfg.URL, Token: token, UserAgent: "lotor-repo-agent/" + o.Version, TLS: tlsOpts,
 		Proxy: cfg.Proxy, Timeout: cfg.Timeout, Logger: o.Logger, Transport: o.Transport,
 		Retry: agentclient.Retry{Attempts: cfg.Retries, Base: 2 * time.Second, Max: 5 * time.Minute},
 	})

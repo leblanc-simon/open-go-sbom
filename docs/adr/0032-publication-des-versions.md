@@ -30,8 +30,8 @@ pose reste un geste de l'utilisateur, qui doit suffire à tout déclencher.
   dates, propriétaires fixés, `gzip -n`) ; les paquets deb et rpm de l'agent serveur
   (`make packages`, version tirée de l'étiquette) ; `SHA256SUMS`. Le répertoire de sortie
   doit être vide.
-- **Unité systemd du serveur** livrée (`deploy/systemd/ogsbom-server.service`) :
-  `DynamicUser`, `StateDirectory=ogsbom` pour `vulndb.dir`, secrets dans un
+- **Unité systemd du serveur** livrée (`deploy/systemd/lotor-server.service`) :
+  `DynamicUser`, `StateDirectory=lotor` pour `vulndb.dir`, secrets dans un
   `EnvironmentFile` en `0600`, clé TLS par `LoadCredential`, durcissement aligné sur
   l'unité de l'agent dépôt.
 - Pas de signature des binaires ni des paquets (T24, T26), pas d'image de conteneur

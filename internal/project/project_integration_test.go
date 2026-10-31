@@ -10,15 +10,15 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/agent"
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
-	"leblanc.io/open-go-sbom/internal/org"
-	"leblanc.io/open-go-sbom/internal/pagination"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/agent"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/dbtest"
+	"leblanc.io/lotor/internal/org"
+	"leblanc.io/lotor/internal/pagination"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 func isKey(err error, k string) bool {

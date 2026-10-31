@@ -4,7 +4,7 @@ Ce fichier guide Claude Code lorsqu'il travaille sur ce dépôt.
 
 ## Projet
 
-**open-go-sbom** : plateforme open source de gestion de SBOM par projet (dépôt git ou
+**lotor** : plateforme open source de gestion de SBOM par projet (dépôt git ou
 serveur). Deux agents produisent les SBOM (agent dépôt avec enrichissement IA, agent serveur
 en Go sans IA) ; un serveur central les historise, les analyse chaque jour avec Grype, et
 offre recherche transverse, triage et tableaux de bord. Multi-organisation, en Go, sur
@@ -25,7 +25,7 @@ offre recherche transverse, triage et tableaux de bord. Multi-organisation, en G
 
 ## État actuel
 
-T00 et T01 terminés : `ogsbom-server` démarre, migre, sert une page d'accueil traduite,
+T00 et T01 terminés : `lotor-server` démarre, migre, sert une page d'accueil traduite,
 ses sondes et ses métriques. Prochains lots, en parallèle :
 [T02 — File de traitements](specs/lots/T02-file-de-traitements.md) et
 [T03 — Comptes et organisations](specs/lots/T03-comptes-organisations.md). Le socle
@@ -48,14 +48,14 @@ parallèle : [T06](specs/lots/T06-analyse-vulnerabilites.md),
 T08 terminé : forges (`internal/forge` : GitHub App, GitLab par compte de service,
 webhooks vérifiés), agent dépôt (`internal/repoagent` : récepteur de webhooks,
 rattrapage, file en mémoire, git sous environnement maîtrisé, Syft hors ligne, SBOM
-déterministe), `ogsbom-repo-agent` et `deploy/ogsbom-repo-agent/` (ADR 0023).
+déterministe), `lotor-repo-agent` et `deploy/lotor-repo-agent/` (ADR 0023).
 T06 terminé : base Grype commune (`internal/vuln`, `internal/vuln/grype`, ADR 0017 :
 archives en blocs dans PostgreSQL, cible, copie locale par instance, `/readyz` des
 workers), analyse et constats (`internal/finding`, ADR 0018), téléchargements par
 `internal/download`, écrans des constats, des vulnérabilités et des composants, jeu de
 mesure `internal/benchdata` et `docs/benchmarks.md` (ADR 0019), autoanalyse des binaires
 en CI (`make selfscan`).
-T07 terminé : agent serveur `ogsbom-host-agent` (`internal/hostagent`, ADR 0020, 0021),
+T07 terminé : agent serveur `lotor-host-agent` (`internal/hostagent`, ADR 0020, 0021),
 client commun des agents `internal/agentclient` (réessais, mTLS, envoi gzip, suivi d'une
 ingestion : voir son `doc.go`, à adopter par l'agent dépôt), compte rendu d'inventaire et
 demande de scan par le signal de vie, mTLS exigé sur l'API des agents avec
@@ -80,8 +80,11 @@ quatre dépôts publics, trois CVE de contrôle exactes), mesures consolidées
 (`docs/benchmarks.md`), `docs/operations.md` complet, guides de démarrage
 (`docs/demarrage.md`, `docs/getting-started.md`), préversion `v0.1.0` prête
 (`CHANGELOG.md`, `.github/workflows/release.yml`, `scripts/release.sh`, unité
-`deploy/systemd/ogsbom-server.service`, ADR 0032). Publication de `v0.1.0` et étiquettes
+`deploy/systemd/lotor-server.service`, ADR 0032). Publication de `v0.1.0` et étiquettes
 d'open-go-base : actions de l'utilisateur ([`specs/avancement.md`](specs/avancement.md)).
+Projet renommé **lotor** (open-go-sbom, préfixe `ogsbom`, avant le 31 octobre 2026) :
+module `leblanc.io/lotor`, commandes `lotor-*`, préfixe `LOTOR_`, objets SQL `lotor_*`,
+identité visuelle dans `docs/logo/` (ADR 0033).
 Prochain lot : [T16 — Équipes et droits](specs/lots/T16-equipes-droits.md) (lot 2).
 
 ## Règles de travail
@@ -136,18 +139,18 @@ make help               # liste des cibles
 make ci                 # fmt-check, generate-check, vet, lint, test-race, test-integration, vuln, build, packages
 make test-race          # tests unitaires
 make test-integration   # tests étiquetés integration ; PostgreSQL : docker compose -f deploy/compose.yaml up -d
-                        # (OGSBOM_TEST_DATABASE_DSN, par défaut postgres://postgres:postgres@localhost:5432/postgres)
+                        # (LOTOR_TEST_DATABASE_DSN, par défaut postgres://postgres:postgres@localhost:5432/postgres)
 make lint               # staticcheck (go tool), sans étiquette puis par étiquette de test
 make vuln               # govulncheck (go tool)
 make generate           # code généré depuis api/openapi.yaml (à committer avant make ci)
-make test-grypedb       # vraie base Grype (OGSBOM_TEST_GRYPEDB_DIR : base v6 installée)
+make test-grypedb       # vraie base Grype (LOTOR_TEST_GRYPEDB_DIR : base v6 installée)
 make bench              # mesures sur le jeu de référence (docs/benchmarks.md)
 make bench-search       # mesures de la recherche sur le jeu de référence, RLS active
 make bench-ingest       # ingestion et analyse de 5 000 composants, vraie base Grype
 make selfscan           # SBOM des binaires (Syft) et analyse (Grype) ; échec sur une KEV
-make build              # bin/ogsbom-server, bin/ogsbom-host-agent, bin/ogsbom-repo-agent (CGO_ENABLED=0)
+make build              # bin/lotor-server, bin/lotor-host-agent, bin/lotor-repo-agent (CGO_ENABLED=0)
 make release VERSION=v0.1.0 RELEASE_DIR=/chemin/vide  # archives, paquets, SHA256SUMS (ADR 0032)
-make packages           # ogsbom-host-agent amd64 et arm64, paquets deb et rpm dans dist/ (nfpm)
+make packages           # lotor-host-agent amd64 et arm64, paquets deb et rpm dans dist/ (nfpm)
 make run                # serveur avec config.yaml (cp config.example.yaml config.yaml)
 ```
 

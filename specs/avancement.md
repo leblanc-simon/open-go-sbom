@@ -28,12 +28,13 @@ dépôt sur une vraie forge (voir « Actions pour l'utilisateur »).
 | T06 | #9 | Terminé | Base Grype commune en blocs dans PostgreSQL, téléchargement par `internal/download` (ADR 0017) ; correspondance hors transaction et écriture sous verrou, identifiants CVE, réanalyse par organisation sans nouvelle fonction `crossorg` (ADR 0018) ; jeu synthétique et autoanalyse par `go run` des commandes Syft et Grype (ADR 0019) ; valeurs par défaut `vulndb.*` ; mesures faites sur 4 cœurs, pas sur la machine de référence — tous **[à relire]** |
 | T07 | #10 | Terminé | Envoi conditionnel confirmé par le serveur, Syft JSON, demande de scan remise une fois, muet sur le dernier inventaire pour un agent serveur (ADR 0020) ; unités, secrets, mTLS par middleware, paquets nfpm (ADR 0021) ; scan à la demande ouvert aux analystes ; valeurs par défaut ; cibles 5 min de CPU et 1 Gio par scan ; agent dépôt branché sur le client commun (adresse https exigée) — tous **[à relire]** |
 | T08 | #8 | Terminé | Agent dépôt (ADR 0023) : webhook = signal, tête résolue auprès de la forge ; `git fetch --depth 1` du commit au lieu de `clone --single-branch` ; SBOM déterministe (ni numéro de série ni horodatage) ; Syft sans `go list` ni réseau ; échecs définitifs non retentés avant redémarrage ; secrets par `credential:<nom>` ou fichier 0600 ; jeton GitHub restreint à `contents: read` ; valeurs par défaut ; droits GitLab vérifiables seulement sur forge réelle — tous **[à relire]** |
-| T09 | #12 | Terminé | Recherche (ADR 0024) : deux nouvelles fonctions `crossorg` de recherche par nom et empreinte (organisation lue dans `ogsbom.org_id`, contournent la RLS pour les index GIN), sous-chaîne puis trigrammes, bornes, export en flux borné en nombre et durée ; jetons personnels en table globale valables sur les organisations du compte, expiration obligatoire, sans session dans l'API (ADR 0025) ; comparateurs de Grype corrigés et plages vers maison (ADR 0026) ; défauts `user_api` ; écarts à la maquette ; mesures sur 4 cœurs — tous **[à relire]** |
+| T09 | #12 | Terminé | Recherche (ADR 0024) : deux nouvelles fonctions `crossorg` de recherche par nom et empreinte (organisation lue dans `lotor.org_id`, contournent la RLS pour les index GIN), sous-chaîne puis trigrammes, bornes, export en flux borné en nombre et durée ; jetons personnels en table globale valables sur les organisations du compte, expiration obligatoire, sans session dans l'API (ADR 0025) ; comparateurs de Grype corrigés et plages vers maison (ADR 0026) ; défauts `user_api` ; écarts à la maquette ; mesures sur 4 cœurs — tous **[à relire]** |
 | T10 | #11 | Terminé | Tableau de bord (ADR 0027) : constats des références actives des projets actifs ; statistiques réécrites toutes les heures sous la date du jour ; `project_daily_stats` en plus d'`org_daily_stats` ; pas de nouvelle fonction `crossorg` ; seuil « muet » de 7 jours pour toute l'interface ; périodes 30/90/365 j ; tuiles sans lien (pas de liste transverse avant T09) ; section « Alertes » et objectifs de délai renvoyés à T15 ; mesures sur 4 cœurs partagés — tous **[à relire]** |
 | T11 (1/2, administration) | #13 | Terminé | Administration de l'instance (ADR 0028) : archive téléversée rangée dans PostgreSQL puis installée par un job, jeton CSRF en tête du formulaire présenté à csrfx, archive importée cible même plus ancienne, un import à la fois, état par instance (`vulndb_instances`), purge de toutes les archives non cibles avec confirmation ; `download_timeout` borne aussi le téléversement ; test instable corrigé dans le test (bail simulé complet) ; codes de secours de mfax absents d'open-go-base, reportés à T18 — tous **[à relire]** |
 | T11 (accessibilité) | #14 | Terminé | Audit RGAA : 13 NC corrigées, 100 % des critères applicables ; page de confirmation commune pour les actions irréversibles (abandon d'un traitement compris) ; plan du site plutôt que la recherche pour 12.1 ; préfixe « Erreur : » sur tout écran en 4xx ; abréviations des sévérités — tous **[à relire]** |
 | T11 (sécurité) | #15 | Terminé | Revue de sécurité du lot 1 (14 constats, 0 haut ni critique) : 3 Medium, 6 Low et 2 Note corrigés (SEC-11 et SEC-14 en partie), SEC-13 accepté, SEC-09 (Low) accepté jusqu'à T16 ; open-go-base v1.3.0 (PR #3 fusionnée, étiquette à pousser) ; ADR 0029 à 0031 — tous **[à relire]** |
 | T11 (recette) | #16 | Terminé (v0.1.0 à publier par l'utilisateur) | Parc pilote en conteneurs et forge simulée ; CVE de contrôle ; cibles tenues sur 4 cœurs, valant pour la référence ; publication des versions (ADR 0032) et unité systemd du serveur ; guides de démarrage FR et EN séparés de `utilisation.md` ; outillage de recette hors dépôt — tous **[à relire]** |
+| Renommage en lotor | — | Terminé | Correspondance unique `open-go-sbom`/`ogsbom` → `lotor` partout, migrations réécrites en place avant toute publication, identité visuelle dans `docs/logo/` et l'interface (ADR 0033) — **[à relire]** |
 
 ## Décisions à relire, par thème
 
@@ -92,29 +93,34 @@ Chaque point renvoie à l'ADR ou au Journal qui le détaille.
 
 ## Actions pour l'utilisateur
 
-Le mandataire git de la session refuse les pushs d'étiquettes (HTTP 403) : open-go-sbom
+Le mandataire git de la session refuse les pushs d'étiquettes (HTTP 403) : lotor
 utilise des pseudo-versions d'open-go-base, et `v0.1.0` n'est pas posée. À faire, dans
 l'ordre :
 
-1. Pousser les étiquettes annotées d'open-go-base créées localement :
+1. Renommer le dépôt GitHub `leblanc-simon/open-go-sbom` en `leblanc-simon/lotor`
+   (*Settings* → *General* → *Repository name*), puis `git remote set-url origin
+   https://github.com/leblanc-simon/lotor.git` dans le clone local (et renommer le
+   dossier si souhaité). Si `leblanc.io` sert des métadonnées `go-import`, ajouter celle de
+   `leblanc.io/lotor` ([ADR 0033](../docs/adr/0033-renommage-en-lotor.md)).
+2. Pousser les étiquettes annotées d'open-go-base créées localement :
    `git -C ../open-go-base push origin v1.1.0` (commit `b9ccc67`, T03),
    `git -C ../open-go-base push origin v1.2.0` (commit `3534c14`, `ratelimit.WithKeyFunc`),
    `git -C ../open-go-base push origin v1.3.0` (commit `9a7b91f`, PR #3 : verrouillage par
    compte de mfax, `Confirm`, `WithChallengeCookieName`, `csrfx.WithSessionBinding`).
    Toutes compatibles.
-2. Dans open-go-sbom, sur une branche : `go get leblanc.io/open-go-base@v1.3.0 && go mod
+3. Dans lotor, sur une branche : `go get leblanc.io/open-go-base@v1.3.0 && go mod
    tidy` (même code que la pseudo-version actuelle `v1.0.2-0.20261031121913-9a7b91fdbbfe` ;
    ne pas utiliser `v1.1.0` ni `v1.2.0`), `make ci`, PR, fusion quand la CI est verte.
-3. Relire les décisions **[à relire]** ci-dessus, et confirmer (ou corriger) au cahier des
+4. Relire les décisions **[à relire]** ci-dessus, et confirmer (ou corriger) au cahier des
    charges les cibles de performance encore « proposées » (§ objectifs et § volumétrie ;
    mesures : Journal de T11). Une cible changée se reporte dans `docs/benchmarks.md`.
-4. Essayer l'agent dépôt sur une vraie GitHub App et un vrai projet GitLab : procédure pas
+5. Essayer l'agent dépôt sur une vraie GitHub App et un vrai projet GitLab : procédure pas
    à pas dans [`docs/operations.md`](../docs/operations.md#recette-sur-une-vraie-forge)
    (une demi-heure). La recette n'a pu l'exercer que contre une forge simulée.
-5. Publier la préversion **v0.1.0**, une fois les étapes 1 et 2 sur `main` :
+6. Publier la préversion **v0.1.0**, une fois les étapes 1 à 3 sur `main` :
    1. vérifier que la section `## [0.1.0] - 2026-10-31` de `CHANGELOG.md` est à jour (date
       du jour de la pose, ajouts éventuels) et que la CI de `main` est verte ;
-   2. `git fetch origin && git tag -a v0.1.0 origin/main -m "open-go-sbom 0.1.0 — préversion du lot 1"` ;
+   2. `git fetch origin && git tag -a v0.1.0 origin/main -m "lotor 0.1.0 — préversion du lot 1"` ;
    3. `git push origin v0.1.0` ;
    4. suivre le workflow **release** (onglet *Actions*) ; vérifier sur la page *Releases*
       une **préversion** `v0.1.0` portant six archives `.tar.gz` (trois rôles × amd64,
@@ -123,7 +129,7 @@ l'ordre :
    5. cocher le critère « `v0.1.0` publiée » de [T11](lots/T11-recette-lot-1.md).
    En cas d'échec du workflow : corriger par un commit sur `main` et poser `v0.1.1` (ne
    jamais déplacer une étiquette poussée).
-6. Facultatif : rejouer les mesures sur la machine de référence (16 cœurs) par les
+7. Facultatif : rejouer les mesures sur la machine de référence (16 cœurs) par les
    commandes de [`docs/benchmarks.md`](../docs/benchmarks.md) ; elles tiennent déjà sur
    4 cœurs.
 

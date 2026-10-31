@@ -1,6 +1,6 @@
 # Architecture technique de référence
 
-Ce document fait autorité sur l'architecture, les noms et les conventions d'open-go-sbom.
+Ce document fait autorité sur l'architecture, les noms et les conventions d'lotor.
 Le besoin fonctionnel est dans [`docs/cahier-des-charges.md`](../docs/cahier-des-charges.md) ;
 le découpage du travail est dans [`specs/README.md`](README.md). Toute décision qui s'en
 écarte passe par un ADR (`docs/adr/`) et une mise à jour de ce document dans le même commit.
@@ -30,24 +30,24 @@ le découpage du travail est dans [`specs/README.md`](README.md). Toute décisio
 
 | Binaire | Rôle | Lots |
 | --- | --- | --- |
-| `ogsbom-server` | Interface web, API REST, workers (ingestion, analyse, notifications), planificateur | T01 → |
-| `ogsbom-host-agent` | Agent serveur Linux (puis Windows) : inventaire de l'hôte et de ses conteneurs | T07, T13, T19, T22, T23, T24 |
-| `ogsbom-repo-agent` | Agent dépôt, service externe : forges, clonage, Syft, enrichissement IA | T08, T12, T15, T19, T23, T24 |
+| `lotor-server` | Interface web, API REST, workers (ingestion, analyse, notifications), planificateur | T01 → |
+| `lotor-host-agent` | Agent serveur Linux (puis Windows) : inventaire de l'hôte et de ses conteneurs | T07, T13, T19, T22, T23, T24 |
+| `lotor-repo-agent` | Agent dépôt, service externe : forges, clonage, Syft, enrichissement IA | T08, T12, T15, T19, T23, T24 |
 
-`ogsbom-server` lance web et workers dans le même processus ; `workers.enabled: false` sert à
+`lotor-server` lance web et workers dans le même processus ; `workers.enabled: false` sert à
 séparer les rôles sur plusieurs instances (recommandé dès qu'on dépasse un usage modeste,
 pour qu'un envoi lourd ne ralentisse pas l'interface).
 
-Un `ogsbom-repo-agent` sert une organisation (un jeton d'agent). Plusieurs organisations sur
+Un `lotor-repo-agent` sert une organisation (un jeton d'agent). Plusieurs organisations sur
 une instance → une instance d'agent dépôt par organisation qui en a besoin.
 
 ## 3. Arborescence du dépôt
 
 ```
 cmd/
-  ogsbom-server/            # main : chargement config, câblage, démarrage
-  ogsbom-host-agent/
-  ogsbom-repo-agent/
+  lotor-server/            # main : chargement config, câblage, démarrage
+  lotor-host-agent/
+  lotor-repo-agent/
 internal/
   config/                # Config composée : fragments appconf + fragments propres
   db/                    # pool, transactions (InTx, InOrg), démarrage, migrations
@@ -170,7 +170,7 @@ confinement des fichiers (`os.Root`).
 
 ## 6. Configuration
 
-`internal/config.Config` compose les fragments d'`appconf` avec le préfixe `OGSBOM_` :
+`internal/config.Config` compose les fragments d'`appconf` avec le préfixe `LOTOR_` :
 `Web`, `Logging`, `I18n`, `Database` (complété par les réglages du pool et l'attente au
 démarrage), `Auth` et `MFA` (avec authx et mfax, T03), `CORS` (API utilisateur). Fragments
 propres au projet : `HTTP` (délais des serveurs, délai d'arrêt propre),
@@ -210,13 +210,13 @@ Contrôles au démarrage :
 - PostgreSQL 16 ou plus, seul moteur supporté. Connexion directe, ou via pgbouncer en mode
   session (le mode transaction est incompatible avec les migrations et les verrous).
 - Deux rôles PostgreSQL (noms par défaut) :
-  - `ogsbom_owner` possède le schéma, applique les migrations (y compris celles d'authx et
+  - `lotor_owner` possède le schéma, applique les migrations (y compris celles d'authx et
     de mfax) et possède les fonctions de `crossorg` ; il a l'attribut `BYPASSRLS`, sans
     lequel ces fonctions ne verraient rien sous la RLS forcée (ADR 0012) — il ne lui
     donne aucun pouvoir nouveau sur des tables qu'il possède ;
-  - `ogsbom_app` exécute l'application : `SELECT`, `INSERT`, `UPDATE`, `DELETE` accordés
+  - `lotor_app` exécute l'application : `SELECT`, `INSERT`, `UPDATE`, `DELETE` accordés
     par les migrations (privilèges par défaut sur les tables futures), rien d'autre.
-- En fonctionnement, un pool `*sql.DB` unique sur `ogsbom_app`, partagé par les stores
+- En fonctionnement, un pool `*sql.DB` unique sur `lotor_app`, partagé par les stores
   d'authx/mfax et par le code du projet ; le pool du propriétaire n'existe que le temps de
   migrer.
 - Identifiants : UUID v7 générés en Go pour les entités du projet. Les comptes gardent
@@ -227,15 +227,15 @@ Contrôles au démarrage :
   contexte d'hôte).
 - **Migrations** : celles d'authx et de mfax par leur `Migrate` ; celles du projet par
   l'exécuteur de `internal/db`, dans `internal/db/migrations/NNN_<sujet>.sql`, suivies dans
-  la table `ogsbom_schema_migrations` avec leur somme SHA-256. Une migration publiée dont la
+  la table `lotor_schema_migrations` avec leur somme SHA-256. Une migration publiée dont la
   somme a changé empêche le démarrage : l'immuabilité est vérifiée, pas seulement promise.
   Ordre au démarrage, avec le pool du rôle propriétaire : transaction de verrou
-  (`LOCK TABLE ogsbom_schema_migrations IN EXCLUSIVE MODE`) sur une connexion dédiée →
+  (`LOCK TABLE lotor_schema_migrations IN EXCLUSIVE MODE`) sur une connexion dédiée →
   authx → mfax → projet (dont politiques RLS, droits du rôle d'exécution et fonctions de
   `crossorg`) → validation. Une seconde instance attend le verrou puis constate qu'il n'y a
   rien à faire. Les migrations du projet, leur enregistrement et la validation partagent
   la transaction du verrou (tout ou rien, donc pas de `CREATE INDEX CONCURRENTLY`) ; le
-  rôle d'exécution, lu dans `database.dsn`, leur est déclaré dans `ogsbom.app_role` ; la
+  rôle d'exécution, lu dans `database.dsn`, leur est déclaré dans `lotor.app_role` ; la
   validation refuse toute table d'organisation sans la RLS standard (ADR 0010). Sans
   `migration.dsn`, une instance ne migre pas et refuse un schéma en retard.
 - Accès : un « store » par paquet métier, qui ne renvoie que des types du domaine.
@@ -302,14 +302,14 @@ rétention supprime les ensembles orphelins.
 ### RLS obligatoire
 
 - Toute table d'organisation a `ENABLE` et `FORCE ROW LEVEL SECURITY`, et une politique
-  `USING (org_id = current_setting('ogsbom.org_id')::uuid)` avec la même condition en
+  `USING (org_id = current_setting('lotor.org_id')::uuid)` avec la même condition en
   `WITH CHECK` (pour `organizations`, la colonne est `id`). PostgreSQL limite ainsi lecture
   et écriture à l'organisation déclarée, même si une requête oublie son filtre. Une
-  migration la pose par `CALL ogsbom_enforce_org_rls('table')` (ou
+  migration la pose par `CALL lotor_enforce_org_rls('table')` (ou
   `('organizations', 'id')`) ; le démarrage refuse une table à `org_id NOT NULL` qui ne
-  l'a pas, ou qui a en plus une politique permissive étrangère à `ogsbom.org_id`.
+  l'a pas, ou qui a en plus une politique permissive étrangère à `lotor.org_id`.
 - `db.InOrg(ctx, orgID, fn)` ouvre une transaction et y déclare l'organisation par
-  `set_config('ogsbom.org_id', $1, true)` : portée limitée à la transaction, donc
+  `set_config('lotor.org_id', $1, true)` : portée limitée à la transaction, donc
   compatible avec un pool de connexions et avec pgbouncer. C'est le seul accès aux tables
   d'organisation.
 - Échec franc : hors `InOrg`, le paramètre est absent ou vide et sa conversion en `uuid`
@@ -322,10 +322,10 @@ rétention supprime les ensembles orphelins.
   quotidiennes. Ce sont des fonctions
   `SECURITY DEFINER` du rôle propriétaire, à `search_path` fixé, qui ne renvoient que le
   strict nécessaire. Elles vivent toutes dans `internal/db/crossorg`, sont listées dans un
-  ADR (0012 : `ogsbom_org_access`, `ogsbom_user_orgs`, `ogsbom_list_organizations`,
-  `ogsbom_org_id_by_slug` ; 0014 : `ogsbom_agent_token_org`, `ogsbom_enrollment_token_org`,
+  ADR (0012 : `lotor_org_access`, `lotor_user_orgs`, `lotor_list_organizations`,
+  `lotor_org_id_by_slug` ; 0014 : `lotor_agent_token_org`, `lotor_enrollment_token_org`,
   qui donnent l'organisation d'un jeton présenté à l'API des agents ; 0024 :
-  `ogsbom_search_component_names`, `ogsbom_search_component_hashes`, qui ne sortent pas
+  `lotor_search_component_names`, `lotor_search_component_hashes`, qui ne sortent pas
   de l'organisation déclarée par `InOrg` mais contournent la RLS pour servir les index de
   recherche, § 13), et tout ajout est relu comme un changement de sécurité.
 - La RLS s'ajoute aux autres protections sans les remplacer : PostgreSQL ne l'applique pas
@@ -384,7 +384,7 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
 - Pas d'envoi de courriel avant T15 : les comptes sont créés avec un mot de passe temporaire.
 - Rôles d'organisation : `viewer`, `analyst` (trie les constats), `admin`. Les équipes (T16)
   restreignent ensuite la visibilité par projet.
-- Jetons : préfixés par leur nature (`ogsbom_agt_`, `ogsbom_enr_`, `ogsbom_pat_`), puis un
+- Jetons : préfixés par leur nature (`lotor_agt_`, `lotor_enr_`, `lotor_pat_`), puis un
   identifiant public (128 bits) et un secret de 256 bits, en base32 minuscule séparés par
   `_`. Seul le SHA-256 du secret est stocké ; comparaison en temps constant ; révocation
   immédiate ; date de dernier usage (écrite une fois par minute au plus). L'organisation
@@ -444,8 +444,8 @@ spécification purl, telle que l'applique `packageurl-go` (ADR 0016) ; **les qua
 d'identité (`distro`, `arch`, `epoch`, `upstream`…) sont conservés**, car Grype en a
 besoin. Un composant sans purl utilisable reçoit `pkg:generic/<nom>@<version>` et
 l'« identification faible ». Les CPE sont conservés. Propriétés CycloneDX propres
-au projet, espace de noms `ogsbom:` : `ogsbom:origin` (`syft` ou `ia`), `ogsbom:confidence` (0 à 1),
-`ogsbom:model` ; la preuve IA utilise le champ standard `evidence`.
+au projet, espace de noms `lotor:` : `lotor:origin` (`syft` ou `ia`), `lotor:confidence` (0 à 1),
+`lotor:model` ; la preuve IA utilise le champ standard `evidence`.
 
 Le décodage s'exécute dans le processus worker ; les bornes préalables, le délai du job
 et le plafond de jobs simultanés par organisation (`workers.org_limit`) empêchent un seul
@@ -487,7 +487,7 @@ qu'aucune mesure ne la justifie (ADR 0015).
   organisation active, qui met en file un `analysis.ref` par référence active, en priorité
   basse.
 - Une base plus vieille que `vulndb.max_age` (5 jours) déclenche une alerte sur chaque page
-  d'administration et la métrique `ogsbom_vulndb_stale`.
+  d'administration et la métrique `lotor_vulndb_stale`.
 
 ## 13. Recherche
 
@@ -506,7 +506,7 @@ qu'aucune mesure ne la justifie (ADR 0015).
   `LEAKPROOF` (trigrammes, `ILIKE`, `@>` sur un tableau) ne peut alors pas servir de
   condition d'index. Les recherches par nom et par empreinte passent donc par deux
   fonctions `SECURITY DEFINER` de `crossorg` qui lisent l'organisation dans
-  `ogsbom.org_id` et appliquent elles-mêmes la condition de la politique, sur des index
+  `lotor.org_id` et appliquent elles-mêmes la condition de la politique, sur des index
   GIN composites (`btree_gin`) qui commencent par `org_id` ; le reste de la recherche
   s'exécute sous la RLS sur des index B-tree (ADR 0024). Versions comparées par
   `internal/version` (ADR 0026).
@@ -516,10 +516,10 @@ qu'aucune mesure ne la justifie (ADR 0015).
 ## 14. Interface web
 
 - **Design de référence** : canevas
-  [« open-go-sbom — Interface »](https://claude.ai/artifact/PPcixBYWkzQJ1XoEVco9Qj) (fondations,
+  [« lotor — Interface »](https://claude.ai/artifact/PPcixBYWkzQJ1XoEVco9Qj) (fondations,
   composants, huit écrans en thème clair, thème sombre, mobile). Sa feuille `project/ogs.css`
   est la source des tokens et des composants portés dans `web/static/css` (T01) ; sa
-  racine `.ogs` devient `.ogsbom` au portage, et le thème se choisit par `data-theme`.
+  racine `.ogs` devient `.lotor` au portage, et le thème se choisit par `data-theme`.
   Ses polices (Atkinson Hyperlegible Next et Mono, licence OFL) sont auto-hébergées et
   embarquées, jamais chargées depuis un CDN (CSP `'self'`). Chaque fiche de lot à écran
   nomme ses planches.
@@ -552,7 +552,7 @@ qu'aucune mesure ne la justifie (ADR 0015).
   composant et par écran. Modificateurs BEM écrits `&.bloc--modificateur`. Au démarrage, le
   serveur concatène les feuilles embarquées en `css/app.css` et sert tous les fichiers
   statiques sous `/static/<empreinte>/` (immuables, un an de cache). La bascule de thème
-  mémorise le choix dans `localStorage` et dans le cookie `ogsbom_theme`, que le serveur
+  mémorise le choix dans `localStorage` et dans le cookie `lotor_theme`, que le serveur
   lit pour rendre `data-theme` dès la première peinture, sans script en ligne.
 - JavaScript : modules ES natifs, un par écran, amélioration progressive ; chaque page
   fonctionne sans JS. Les libellés arrivent traduits via des attributs `data-`.
@@ -571,7 +571,7 @@ qu'aucune mesure ne la justifie (ADR 0015).
     conséquences, bouton d'action, lien « Annuler »), sans effet et avec les mêmes 404
     que le `POST`, qui agit. Une action réversible (archiver, réactiver, rétablir un
     rôle) agit en un clic ;
-  - **titre de page** : « écran — organisation · open-go-sbom », préfixé « Erreur : »
+  - **titre de page** : « écran — organisation · lotor », préfixé « Erreur : »
     quand un écran est rendu avec un statut 4xx (`render.Page.Failed`) ;
   - **plan du site** `/sitemap`, lié du pied de page, construit par les fonctions des
     navigations latérales : une rubrique ajoutée à une navigation y paraît d'elle-même ;
@@ -640,7 +640,7 @@ qu'aucune mesure ne la justifie (ADR 0015).
 - Secrets des agents (jeton, clés de forge, clés d'API des modèles) : jamais dans le fichier
   de configuration. Ils sont fournis par les credentials systemd (`LoadCredentialEncrypted=`,
   chiffrés au repos) ou par des fichiers en `0600`, au choix de l'exploitant.
-- `ogsbom-host-agent` (T07, ADR 0020 et 0021) : configuration `OGSBOM_HOST_AGENT_*`
+- `lotor-host-agent` (T07, ADR 0020 et 0021) : configuration `LOTOR_HOST_AGENT_*`
   (`deploy/host-agent/config.example.yaml`), modes `daemon` et `oneshot` ; scan de `/`
   par Syft (catalogueurs d'un système installé, sans catalogage de fichiers, systèmes
   virtuels, stockages de conteneurs et montages réseau ou de conteneurs exclus) ;
@@ -652,7 +652,7 @@ qu'aucune mesure ne la justifie (ADR 0015).
   dernier contact, au-delà de 7 jours (T10, ADR 0027). Unités systemd durcies (`CAP_DAC_READ_SEARCH` seule), paquets deb et
   rpm (nfpm, `make packages`). Avec `tls.client_ca_file`, l'API des agents exige un
   certificat client vérifié. Suite : T13 (conteneurs), T22 (Windows), T23 (hors ligne).
-- `ogsbom-repo-agent` : service externe qui détient seul les secrets des forges. Il reçoit les
+- `lotor-repo-agent` : service externe qui détient seul les secrets des forges. Il reçoit les
   webhooks, clone, analyse, envoie, puis attend le verdict du serveur pour publier le statut
   de commit (T15). Tout accès au contenu d'un dépôt passe par `os.Root` (aucune sortie de
   l'arborescence, aucun lien symbolique suivi hors d'elle). Voir T08 et T12.
@@ -666,8 +666,8 @@ qu'aucune mesure ne la justifie (ADR 0015).
   mesurée pendant le clonage ; Syft, qui lit l'arborescence par son propre résolveur
   borné à sa racine, hors ligne et sans exécution (`golang.UsePackagesLib=false`) ; SBOM
   CycloneDX 1.6 déterministe (ni numéro de série ni horodatage) ; secrets désignés par
-  `credential:<nom>` ou par un fichier `0600`. Configuration (`OGSBOM_REPO_*`) et unité
-  systemd : `deploy/ogsbom-repo-agent/`.
+  `credential:<nom>` ou par un fichier `0600`. Configuration (`LOTOR_REPO_*`) et unité
+  systemd : `deploy/lotor-repo-agent/`.
 
 ## 18. Internationalisation
 
@@ -729,7 +729,7 @@ qu'aucune mesure ne la justifie (ADR 0015).
 - `make ci` (identique en CI) : `gofmt`, `go vet`, `staticcheck`, `govulncheck`, tests
   `-race`, tests d'intégration PostgreSQL (dont les tests RLS du § 9, exécutés avec le rôle
   d'exécution réel), tests d'architecture, complétude des traductions, code généré à jour.
-- Tests d'intégration contre un vrai PostgreSQL (`OGSBOM_TEST_DATABASE_DSN`, fourni par
+- Tests d'intégration contre un vrai PostgreSQL (`LOTOR_TEST_DATABASE_DSN`, fourni par
   `deploy/compose.yaml` en local et par un service en CI), base jetable par test.
 - SBOM d'exemple dans `testdata/sbom/` (CycloneDX 1.5, 1.6, 1.7, SPDX 2.3, Syft JSON),
   dont des SBOM d'hôtes Debian, RHEL et Alpine ; fichiers attendus (« golden »).

@@ -38,16 +38,16 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   relire (`Scan(&slice)`) échoue (« unsupported Scan »). Règle : `row.Scan(db.Array(&s))`.
   Pour `[]uuid.UUID`, pgx exige d'enregistrer les types **pointeurs** (`*[]uuid.UUID`) :
   `db.Array` le fait.
-- **RLS et `current_setting`** : jamais `current_setting('ogsbom.org_id', true)` dans une
+- **RLS et `current_setting`** : jamais `current_setting('lotor.org_id', true)` dans une
   politique (NULL, donc zéro ligne en silence). Après un `set_config(…, true)`, le
   paramètre ne disparaît pas en fin de transaction : il vaut `''` sur la connexion, et
   `''::uuid` échoue. Les tests RLS couvrent les deux cas (connexion neuve, connexion
   réutilisée) avec un pool d'une connexion.
 - **Privilèges par défaut** : `ALTER DEFAULT PRIVILEGES … REVOKE EXECUTE ON FUNCTIONS
   FROM PUBLIC` n'a d'effet que sans `IN SCHEMA`. Toute nouvelle table d'organisation :
-  `CALL ogsbom_enforce_org_rls('table')`, sinon le serveur refuse de démarrer.
+  `CALL lotor_enforce_org_rls('table')`, sinon le serveur refuse de démarrer.
 - **Migration sans nom de rôle en dur** : le rôle d'exécution est dans
-  `current_setting('ogsbom.app_role')`, à citer par `format('%I')`. Une migration est
+  `current_setting('lotor.app_role')`, à citer par `format('%I')`. Une migration est
   exécutée dans la transaction du verrou : pas de `CREATE INDEX CONCURRENTLY`.
 - **Tests d'intégration** : toujours `dbtest.New(t)` (base et rôles jetables) ; jamais de
   base nommée en dur. Une base de développement manuelle prend un nom propre au lot et se
@@ -120,7 +120,7 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
 - **`make generate-check`** échoue tant que le code généré n'est pas commité (fichiers
   non suivis ou seulement indexés) : committer avant de lancer `make ci`.
 - **Variables d'environnement** : chaque appel de commande repart d'un shell neuf ; un
-  `export` ne survit pas. Passer `OGSBOM_TEST_DATABASE_DSN=…` sur la ligne, ou passer par
+  `export` ne survit pas. Passer `LOTOR_TEST_DATABASE_DSN=…` sur la ligne, ou passer par
   `make test-integration` qui le pose.
 - **Captures d'écran** : `google-chrome --headless=new --screenshot` est disponible ;
   `--blink-settings=preferredColorScheme=0` simule le thème sombre du système.
@@ -163,7 +163,7 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   `specs/avancement.md` (et dans le Journal). Ne pas chercher à la pousser autrement.
 - **Tests d'un binaire et configuration obligatoire** : rendre un réglage obligatoire
   (`secrets.keys`) casse le test de bout en bout du binaire, qui part d'un environnement
-  vide. Règle : mettre à jour `start()` de `cmd/ogsbom-server/main_integration_test.go`
+  vide. Règle : mettre à jour `start()` de `cmd/lotor-server/main_integration_test.go`
   dans le même commit.
 - **Codes TOTP en test** : mfax refuse un pas déjà consommé et tolère ±1 pas. Règle : au
   plus trois connexions TOTP par compte et par test, avec des pas croissants (−30 s, 0,
@@ -200,7 +200,7 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   exerce déjà.
 - **Outil d'isolement des agents (suite)** : refusées aussi, les commandes qui citent un
   DSN entre guillemets (`'postgres://…'`) ou combinent `cd sous-dossier && heredoc`.
-  Règle : DSN sans guillemets (`OGSBOM_TEST_DATABASE_DSN=postgres://…?sslmode=disable go
+  Règle : DSN sans guillemets (`LOTOR_TEST_DATABASE_DSN=postgres://…?sslmode=disable go
   test …`), fichiers écrits par l'outil d'écriture, éditions multiples par un script
   Python du répertoire temporaire lancé seul.
 
@@ -276,9 +276,9 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   TestGolden -update`, relire l'attendu, compléter `testdata/sbom/README.md`.
 - **Instances worker et `/readyz`** : depuis T06, une instance à workers n'est prête
   qu'avec une base de vulnérabilités chargée ; le test de bout en bout du binaire importe
-  une base (`grypetest`) et passe `OGSBOM_VULNDB_OFFLINE=true` pour ne jamais sortir sur le
+  une base (`grypetest`) et passe `LOTOR_VULNDB_OFFLINE=true` pour ne jamais sortir sur le
   réseau. Règle : tout nouveau test qui attend `/readyz` sur une instance à workers fait de
-  même (ou `OGSBOM_WORKERS_ENABLED=false`).
+  même (ou `LOTOR_WORKERS_ENABLED=false`).
 - **Commandes Anchore en CI sans action tierce** : `go run github.com/anchore/syft/cmd/syft@<version>`
   (et grype) fonctionne (aucune directive `replace`), compile en une quinzaine de secondes
   et reprend les versions de `go.mod` (`go list -m -f '{{.Version}}'`). Le champ KEV du
@@ -370,7 +370,7 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   et `= ANY` le sont. Un index GIN `(org_id, name gin_trgm_ops)` est donc ignoré par une
   requête du rôle d'exécution. Règle : vérifier `proleakproof` avant de compter sur un
   index sous la RLS ; sinon une fonction `SECURITY DEFINER` qui lit l'organisation dans
-  `ogsbom.org_id` (jamais en paramètre), dans `crossorg`, testée pour ne pas sortir de
+  `lotor.org_id` (jamais en paramètre), dans `crossorg`, testée pour ne pas sortir de
   l'organisation (ADR 0024).
 - **GIN composite `btree_gin`** : la clé `org_id` lit toute la liste de l'organisation ; sur
   une petite table, le planificateur lui préfère la clé primaire, même parcours
@@ -449,7 +449,7 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   charge, le même runner reprenait le job (seconde exécution du handler) avant une
   vérification faite après `time.Sleep(50 ms)`. Règle : une simulation d'un autre worker
   pose son jeton **et** son bail ; un test attend un événement observable (métrique
-  `ogsbom_job_runs_total{outcome="lost"}`, canal) au lieu de dormir ; un bail de test se
+  `lotor_job_runs_total{outcome="lost"}`, canal) au lieu de dormir ; un bail de test se
   dimensionne pour qu'un renouvellement retardé de plusieurs centaines de millisecondes ne
   le perde pas (3 s). `TestLeaseIsRenewedWhileHandlerRuns` (bail de 300 ms) a fini par échouer
   en CI (revue de sécurité de T11) : bail porté à 1,5 s, handler de 4 s.
@@ -518,7 +518,7 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   commit que la montée.
 - **Tester avant la PR d'open-go-base** : un `replace` local temporaire
   (`go mod edit -replace leblanc.io/open-go-base=/home/user/open-go-base`) a permis de
-  passer les tests d'intégration PostgreSQL d'open-go-sbom (store de verrouillage) avant
+  passer les tests d'intégration PostgreSQL d'lotor (store de verrouillage) avant
   d'ouvrir et de fusionner la PR, donc une seule PR. Règle : `-dropreplace` puis
   `go get …@<sha fusionné>` avant tout commit ; jamais de `replace` commité.
 - **Recherche d'une ancre de remplacement dans un YAML de traductions** : `expiry_365: 1 an`
@@ -609,7 +609,7 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
 - **Mesures muettes** : `make test-grypedb` lance les tests sans `-v` ; les résultats de
   `TestIngestAndAnalyze5000` (`t.Logf`) n'apparaissent pas. Règle : `make bench-ingest`.
 - **Test interrompu = base jetable orpheline** : tuer un `go test` d'intégration laisse sa
-  base `ogsbom_t_<suffixe>` et ses deux rôles (le nettoyage de `dbtest` ne passe pas).
+  base `lotor_t_<suffixe>` et ses deux rôles (le nettoyage de `dbtest` ne passe pas).
   Règle : après une interruption, `DROP DATABASE … WITH (FORCE)` puis `DROP ROLE` des
   seuls objets créés après l'heure du lancement.
 - **Disque** : base Grype installée (3,2 Gio), copie locale du serveur (3,2 Gio), archive
@@ -622,3 +622,14 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   (n'existe pas en `sh`), une variable passée à `sed`. Règle : script Python du répertoire
   temporaire qui appelle git par `subprocess` (`git --git-dir <chemin absolu>`), lancé
   seul ; motifs de recherche sans « git » (`ithub`).
+
+## Renommage en lotor
+
+- Un remplacement de texte qui raccourcit un nom décale les colonnes que `gofmt` aligne
+  (clés d'une table de cas dans `internal/db/pool_test.go`). Règle : après tout
+  remplacement de masse, lancer `gofmt -l .`, puis `gofmt -w` sur les fichiers listés.
+- `make generate-check` compare le code régénéré au dernier commit (`git status`), pas au
+  fichier modifié : sur une copie de travail non commitée qui touche `api/openapi.yaml`, il
+  échoue même si le code régénéré est juste. Règle : commiter avant de lancer `make ci`.
+- `git grep -lz` : l'option `-z` se place avant les motifs, sinon la commande échoue et
+  le `xargs` qui suit ne reçoit rien.

@@ -19,11 +19,11 @@
      partagent la hauteur libre (flex: 1 dans un body à hauteur d'écran) et une bande vide
      apparaît sous la navigation. Au-dessus, une seule ligne étirée garde la navigation sur
      toute la hauteur. */
-  @container ogsbom (width < 64rem) {
+  @container lotor (width < 64rem) {
     align-content: flex-start;
   }
 
-  @container ogsbom (width < 48rem) {
+  @container lotor (width < 48rem) {
     .shell__main {
       padding: var(--space-4) var(--space-4) var(--space-10);
     }
@@ -94,7 +94,7 @@
     color: var(--color-text-3);
   }
 
-  @container ogsbom (width < 64rem) {
+  @container lotor (width < 64rem) {
     flex-basis: 100%;
     /* Sans elle, la liste en ligne élargit la page au lieu de défiler. */
     min-width: 0;
@@ -112,7 +112,7 @@
     }
   }
 
-  @container ogsbom (width < 48rem) {
+  @container lotor (width < 48rem) {
     .sidenav__item {
       &.sidenav__item--desktop {
         display: none;

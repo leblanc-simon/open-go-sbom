@@ -466,15 +466,15 @@
    ],
    "properties": [
     {
-     "name": "ogsbom:origin",
+     "name": "lotor:origin",
      "value": "ia"
     },
     {
-     "name": "ogsbom:confidence",
+     "name": "lotor:confidence",
      "value": "0.82"
     },
     {
-     "name": "ogsbom:model",
+     "name": "lotor:model",
      "value": "example-model"
     }
    ],
@@ -508,15 +508,15 @@
    "scope": "optional",
    "properties": [
     {
-     "name": "ogsbom:origin",
+     "name": "lotor:origin",
      "value": "ia"
     },
     {
-     "name": "ogsbom:confidence",
+     "name": "lotor:confidence",
      "value": "0.4"
     },
     {
-     "name": "ogsbom:model",
+     "name": "lotor:model",
      "value": "example-model"
     }
    ],
@@ -536,11 +536,11 @@
    "purl": "pkg:pypi/Django_Extensions@3.2.3?repository_url=https://pypi.org/simple&Arch=",
    "properties": [
     {
-     "name": "ogsbom:origin",
+     "name": "lotor:origin",
      "value": "ia"
     },
     {
-     "name": "ogsbom:confidence",
+     "name": "lotor:confidence",
      "value": "0.95"
     }
    ]

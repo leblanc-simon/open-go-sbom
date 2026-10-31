@@ -7,10 +7,10 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/lotor/internal/db"
 )
 
-// Issues d'une exécution, étiquette outcome de ogsbom_job_runs_total.
+// Issues d'une exécution, étiquette outcome de lotor_job_runs_total.
 const (
 	outcomeDone     = "done"     // terminé
 	outcomeRetry    = "retry"    // échec, nouvel essai programmé
@@ -32,28 +32,28 @@ type Metrics struct {
 
 // NewMetrics enregistre les métriques de la file dans reg :
 //
-//   - ogsbom_jobs{kind, status} : jobs en attente (pending), en cours (running) et morts
+//   - lotor_jobs{kind, status} : jobs en attente (pending), en cours (running) et morts
 //     (dead), lus en base à chaque collecte, donc identiques sur toutes les instances ;
-//   - ogsbom_job_runs_total{kind, outcome} : exécutions de l'instance par issue (done,
+//   - lotor_job_runs_total{kind, outcome} : exécutions de l'instance par issue (done,
 //     retry et dead pour les échecs, lost, released) ;
-//   - ogsbom_job_duration_seconds{kind} : durée des exécutions de l'instance ;
-//   - ogsbom_job_schedule_fires_total{schedule} : échéances prises par l'instance.
+//   - lotor_job_duration_seconds{kind} : durée des exécutions de l'instance ;
+//   - lotor_job_schedule_fires_total{schedule} : échéances prises par l'instance.
 func NewMetrics(reg prometheus.Registerer, pool *db.Pool, logger *slog.Logger) (*Metrics, error) {
 	if logger == nil {
 		logger = slog.New(slog.DiscardHandler)
 	}
 	m := &Metrics{
 		runs: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: "ogsbom_job_runs_total",
+			Name: "lotor_job_runs_total",
 			Help: "Job executions on this instance by kind and outcome (done, retry, dead, lost, released).",
 		}, []string{"kind", "outcome"}),
 		duration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Name:    "ogsbom_job_duration_seconds",
+			Name:    "lotor_job_duration_seconds",
 			Help:    "Duration of job executions on this instance.",
 			Buckets: []float64{0.01, 0.05, 0.1, 0.5, 1, 5, 10, 30, 60, 300, 900},
 		}, []string{"kind"}),
 		fires: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: "ogsbom_job_schedule_fires_total",
+			Name: "lotor_job_schedule_fires_total",
 			Help: "Schedule occurrences taken by this instance.",
 		}, []string{"schedule"}),
 	}
@@ -92,7 +92,7 @@ type queueCollector struct {
 }
 
 func newQueueCollector(pool *db.Pool, logger *slog.Logger) *queueCollector {
-	return &queueCollector{pool: pool, log: logger, desc: prometheus.NewDesc("ogsbom_jobs",
+	return &queueCollector{pool: pool, log: logger, desc: prometheus.NewDesc("lotor_jobs",
 		"Jobs in the queue by kind and status (pending, running, dead), shared by all instances.",
 		[]string{"kind", "status"}, nil)}
 }

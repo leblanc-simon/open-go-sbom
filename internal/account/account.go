@@ -12,9 +12,9 @@ import (
 
 	"leblanc.io/open-go-base/authx"
 
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/pagination"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/pagination"
 )
 
 // RoleAdmin est le rôle d'instance (colonne role d'authx) de l'administrateur d'instance.

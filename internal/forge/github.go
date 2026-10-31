@@ -220,7 +220,7 @@ func (g *GitHub) headers(auth string) http.Header {
 		"Accept":               {"application/vnd.github+json"},
 		"X-Github-Api-Version": {"2022-11-28"},
 		"Authorization":        {auth},
-		"User-Agent":           {"ogsbom-repo-agent"},
+		"User-Agent":           {"lotor-repo-agent"},
 	}
 }
 

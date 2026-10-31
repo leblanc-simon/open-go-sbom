@@ -24,10 +24,10 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/forge"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/sbom/schema"
-	sbomsyft "leblanc.io/open-go-sbom/internal/sbom/syft"
+	"leblanc.io/lotor/internal/forge"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/sbom/schema"
+	sbomsyft "leblanc.io/lotor/internal/sbom/syft"
 )
 
 // testRepo est un dépôt de test : une copie de travail et son dépôt nu.

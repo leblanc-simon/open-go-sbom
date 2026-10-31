@@ -1,4 +1,4 @@
-// Commande ogsbom-host-agent : agent serveur Linux. Elle charge la configuration, règle
+// Commande lotor-host-agent : agent serveur Linux. Elle charge la configuration, règle
 // la sobriété du processus, câble le client de l'API, le scanner et l'état, puis lance le
 // démon ou un seul cycle (mode oneshot, pour un timer systemd).
 package main
@@ -14,24 +14,24 @@ import (
 
 	"leblanc.io/open-go-base/logx"
 
-	"leblanc.io/open-go-sbom/internal/hostagent"
+	"leblanc.io/lotor/internal/hostagent"
 )
 
 // version est injectée à la construction : -ldflags "-X 'main.version=…'".
 var version = "develop"
 
 // defaultConfig est le fichier installé par les paquets.
-const defaultConfig = "/etc/ogsbom-host-agent/config.yaml"
+const defaultConfig = "/etc/lotor-host-agent/config.yaml"
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Fprintf(os.Stderr, "ogsbom-host-agent: %v\n", err)
+		fmt.Fprintf(os.Stderr, "lotor-host-agent: %v\n", err)
 		os.Exit(1)
 	}
 }
 
 func run() error {
-	cfg, err := hostagent.Load("ogsbom-host-agent", version, defaultConfig)
+	cfg, err := hostagent.Load("lotor-host-agent", version, defaultConfig)
 	if err != nil {
 		return err
 	}

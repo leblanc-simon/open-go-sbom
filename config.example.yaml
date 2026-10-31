@@ -1,15 +1,15 @@
-# Configuration d'exemple d'ogsbom-server. Copier en config.yaml (lu par défaut, ou -c
-# chemin). Chaque clé a sa variable d'environnement OGSBOM_*, qui l'emporte sur le
-# fichier : ogsbom-server --help les liste toutes. Valeurs de développement, adaptées à
+# Configuration d'exemple d'lotor-server. Copier en config.yaml (lu par défaut, ou -c
+# chemin). Chaque clé a sa variable d'environnement LOTOR_*, qui l'emporte sur le
+# fichier : lotor-server --help les liste toutes. Valeurs de développement, adaptées à
 # deploy/compose.yaml.
 
 # Interface web et API publiques.
 web:
-  host: 127.0.0.1        # OGSBOM_HOST
-  port: 8080             # OGSBOM_PORT
-  rate_limit: 100        # OGSBOM_RATE_LIMIT : requêtes par minute et par IP (0 : sans limite)
+  host: 127.0.0.1        # LOTOR_HOST
+  port: 8080             # LOTOR_PORT
+  rate_limit: 100        # LOTOR_RATE_LIMIT : requêtes par minute et par IP (0 : sans limite)
   # Mandataires inverses de confiance (CIDR) : seuls eux peuvent déclarer l'IP du client
-  # (X-Forwarded-For) et le HTTPS (X-Forwarded-Proto). OGSBOM_TRUSTED_PROXIES, séparés par ,
+  # (X-Forwarded-For) et le HTTPS (X-Forwarded-Proto). LOTOR_TRUSTED_PROXIES, séparés par ,
   trusted_proxies: []
 
 # Délais des serveurs HTTP et arrêt propre.
@@ -54,7 +54,7 @@ cors:
 # tables : le serveur refuse sinon de démarrer).
 database:
   driver: postgres       # seul pilote supporté
-  dsn: postgres://ogsbom_app:ogsbom_app@localhost:5432/ogsbom?sslmode=disable
+  dsn: postgres://lotor_app:lotor_app@localhost:5432/lotor?sslmode=disable
   max_open_conns: 20
   max_idle_conns: 10
   conn_max_lifetime: 30m
@@ -63,14 +63,14 @@ database:
 # Connexion du rôle propriétaire, utilisée seulement pour migrer au démarrage. Vide : le
 # serveur ne migre pas et refuse de démarrer si le schéma n'est pas à jour.
 migration:
-  dsn: postgres://ogsbom_owner:ogsbom_owner@localhost:5432/ogsbom?sslmode=disable
+  dsn: postgres://lotor_owner:lotor_owner@localhost:5432/lotor?sslmode=disable
   max_conns: 2           # au moins 2 : le verrou de migration tient une connexion
   lock_timeout: 5m       # attente du verrou d'une autre instance
 
 # Clés de chiffrement des secrets stockés en base (AES-256-GCM). Une clé : 32 octets en
 # base64 (openssl rand -base64 32). La clé active chiffre, les autres déchiffrent encore
-# (rotation : voir docs/operations.md). Variables : OGSBOM_SECRETS_KEYS=id:base64,id2:base64
-# et OGSBOM_SECRETS_ACTIVE_KEY. Obligatoire : les secrets TOTP sont chiffrés. La clé
+# (rotation : voir docs/operations.md). Variables : LOTOR_SECRETS_KEYS=id:base64,id2:base64
+# et LOTOR_SECRETS_ACTIVE_KEY. Obligatoire : les secrets TOTP sont chiffrés. La clé
 # ci-dessous ne sert qu'au développement ; en production, en générer une et la fournir
 # hors du fichier.
 secrets:
@@ -81,8 +81,8 @@ secrets:
 # Sessions (authx).
 auth:
   session_ttl: 12h       # durée glissante d'une session
-  cookie_name: ogsbom_session
-  # on en production : cookies Secure et préfixés __Host- (__Host-ogsbom_session,
+  cookie_name: lotor_session
+  # on en production : cookies Secure et préfixés __Host- (__Host-lotor_session,
   # __Host-csrf_token, __Host-mfa_challenge), qu'aucun sous-domaine ne peut écraser. Les
   # navigateurs acceptent les cookies Secure sur http://localhost ; auto (Secure en HTTPS,
   # sans préfixe) ou off pour un autre accès en clair (développement seulement).
@@ -91,7 +91,7 @@ auth:
 
 # Second facteur TOTP (mfax), obligatoire pour tout compte local.
 mfa:
-  issuer: open-go-sbom   # nom affiché dans l'application d'authentification
+  issuer: lotor   # nom affiché dans l'application d'authentification
   challenge_ttl: 10m     # délai pour saisir le code après le mot de passe
   max_attempts: 5        # codes faux tolérés avant de reprendre au mot de passe
   # Verrouillage par compte, tous défis confondus (un nouveau défi s'obtient en rejouant le
@@ -116,7 +116,7 @@ agent_api:
   rate_limit: 120
   failure_rate_limit: 30
 
-# API utilisateur (/api/v1/orgs/{org}/*, jetons personnels ogsbom_pat_) : requêtes par
+# API utilisateur (/api/v1/orgs/{org}/*, jetons personnels lotor_pat_) : requêtes par
 # minute et par jeton, jetons refusés par minute et par IP (0 : sans limite). Exports de
 # la recherche (écran et API) : durée maximale de l'un, nombre simultané par instance
 # (au-delà : 429).
@@ -130,13 +130,13 @@ user_api:
 bootstrap:
   # Premier administrateur d'instance, créé seulement si aucun compte n'existe. Mot de
   # passe temporaire (12 caractères au moins), changé à la première connexion avec
-  # l'enrôlement du TOTP. Préférer OGSBOM_BOOTSTRAP_ADMIN_PASSWORD au fichier.
+  # l'enrôlement du TOTP. Préférer LOTOR_BOOTSTRAP_ADMIN_PASSWORD au fichier.
   admin_email: ""
   admin_password: ""
   # Procédure de secours : retire au démarrage le TOTP de cet administrateur d'instance et
   # lui impose rescue_password comme mot de passe temporaire (audité), une seule fois par
   # ticket (référence d'incident, 8 caractères au moins). Préférer
-  # OGSBOM_BOOTSTRAP_RESCUE_PASSWORD au fichier.
+  # LOTOR_BOOTSTRAP_RESCUE_PASSWORD au fichier.
   rescue_totp_email: ""
   rescue_ticket: ""
   rescue_password: ""
@@ -179,7 +179,7 @@ ingest:
 # instance worker en tient une copie locale, synchronisée sur la cible commune.
 vulndb:
   listing_url: https://grype.anchore.io/databases/v6/latest.json # liste de distribution, ou son miroir
-  dir: /var/lib/ogsbom/vulndb # copie locale (environ 3,5 Gio, le double pendant une bascule)
+  dir: /var/lib/lotor/vulndb # copie locale (environ 3,5 Gio, le double pendant une bascule)
   offline: false              # true : jamais de liste, bases importées seulement (site isolé)
   check_interval: 6h          # fréquence d'interrogation de la liste
   sync_interval: 1m           # fréquence à laquelle une instance worker vérifie sa copie

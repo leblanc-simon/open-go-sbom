@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"leblanc.io/open-go-sbom/internal/render"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // registerUI déclare les routes de l'interface. Les écrans des lots suivants s'y ajoutent ;

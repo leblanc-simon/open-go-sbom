@@ -14,7 +14,7 @@ func TestRepository(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if module != "leblanc.io/open-go-sbom" {
+	if module != "leblanc.io/lotor" {
 		t.Fatalf("module = %q", module)
 	}
 	if len(pkgs) == 0 {

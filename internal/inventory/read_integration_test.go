@@ -10,9 +10,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/pagination"
-	"leblanc.io/open-go-sbom/internal/sbom"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/pagination"
+	"leblanc.io/lotor/internal/sbom"
 )
 
 func TestReadSnapshots(t *testing.T) {

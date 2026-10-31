@@ -15,16 +15,16 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/dbtest"
-	"leblanc.io/open-go-sbom/internal/finding"
-	"leblanc.io/open-go-sbom/internal/ingest"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/sbom/schema"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/vuln"
-	"leblanc.io/open-go-sbom/internal/vuln/grype"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/dbtest"
+	"leblanc.io/lotor/internal/finding"
+	"leblanc.io/lotor/internal/ingest"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/sbom/schema"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/vuln"
+	"leblanc.io/lotor/internal/vuln/grype"
 )
 
 // realEngine sert une vraie base Grype ouverte directement (sans synchronisation depuis
@@ -41,13 +41,13 @@ func (e *realEngine) Match(ctx context.Context, blob []byte) (vuln.Result, error
 	return vuln.Result{Version: e.version, Matches: ms, Vulnerabilities: vs}, err
 }
 
-// openReal ouvre la base de OGSBOM_TEST_GRYPEDB_DIR et la déclare cible dans la base de
+// openReal ouvre la base de LOTOR_TEST_GRYPEDB_DIR et la déclare cible dans la base de
 // test (archive fictive : seule la cible compte pour l'analyse).
 func openReal(t *testing.T, pool *db.Pool) *realEngine {
 	t.Helper()
-	dir := os.Getenv("OGSBOM_TEST_GRYPEDB_DIR")
+	dir := os.Getenv("LOTOR_TEST_GRYPEDB_DIR")
 	if dir == "" {
-		t.Fatal("OGSBOM_TEST_GRYPEDB_DIR : répertoire d'une base Grype v6 installée")
+		t.Fatal("LOTOR_TEST_GRYPEDB_DIR : répertoire d'une base Grype v6 installée")
 	}
 	start := time.Now()
 	d, err := grype.NewEngine().Open(context.Background(), dir)

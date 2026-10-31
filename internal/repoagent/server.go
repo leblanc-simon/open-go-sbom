@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/forge"
+	"leblanc.io/lotor/internal/forge"
 )
 
 // Project est un dépôt confié à l'agent par le serveur.
@@ -34,7 +34,7 @@ type Upload struct {
 	SBOM []byte
 }
 
-// Server est ce que l'agent attend du serveur open-go-sbom : la liste des dépôts qui lui
+// Server est ce que l'agent attend du serveur lotor : la liste des dépôts qui lui
 // sont confiés, le signal de vie et l'envoi des SBOM. Réessais et respect de Retry-After
 // relèvent de l'implémentation.
 type Server interface {

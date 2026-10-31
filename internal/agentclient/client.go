@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/agentclient/gen"
+	"leblanc.io/lotor/internal/agentclient/gen"
 )
 
 // apiPrefix est le préfixe des routes de l'API (servers du contrat).
@@ -25,10 +25,10 @@ const defaultTimeout = 2 * time.Minute
 type Options struct {
 	// ServerURL est l'adresse du serveur (https://sbom.example.org), sans /api/v1.
 	ServerURL string
-	// Token est le jeton d'agent (ogsbom_agt_…) ; vide avant l'inscription (Enroll prend
+	// Token est le jeton d'agent (lotor_agt_…) ; vide avant l'inscription (Enroll prend
 	// son jeton d'inscription en paramètre).
 	Token string
-	// UserAgent identifie l'agent et sa version (ogsbom-host-agent/1.4.0).
+	// UserAgent identifie l'agent et sa version (lotor-host-agent/1.4.0).
 	UserAgent string
 	// Language demande les messages des erreurs dans cette langue (Accept-Language).
 	Language string

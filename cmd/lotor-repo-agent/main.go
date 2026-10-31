@@ -1,4 +1,4 @@
-// Commande ogsbom-repo-agent : agent dépôt, service externe aux CI qui détient seul les
+// Commande lotor-repo-agent : agent dépôt, service externe aux CI qui détient seul les
 // accès aux forges. Elle câble la configuration, les forges, le client du serveur, le
 // pipeline et le récepteur de webhooks ; la logique vit dans internal/repoagent.
 package main
@@ -17,16 +17,16 @@ import (
 
 	"leblanc.io/open-go-base/logx"
 
-	"leblanc.io/open-go-sbom/internal/forge"
-	"leblanc.io/open-go-sbom/internal/repoagent"
+	"leblanc.io/lotor/internal/forge"
+	"leblanc.io/lotor/internal/repoagent"
 )
 
 // version est injectée à la construction : -ldflags "-X 'main.version=…'".
 var version = "develop"
 
 const (
-	name        = "ogsbom-repo-agent"
-	defaultPath = "/etc/ogsbom-repo-agent/config.yaml"
+	name        = "lotor-repo-agent"
+	defaultPath = "/etc/lotor-repo-agent/config.yaml"
 	// shutdownTimeout laisse aux webhooks en cours le temps de recevoir leur réponse.
 	shutdownTimeout = 10 * time.Second
 )

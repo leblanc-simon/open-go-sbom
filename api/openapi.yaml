@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
-  title: open-go-sbom
+  title: lotor
   version: 0.1.0
-  summary: API REST d'open-go-sbom
+  summary: API REST d'lotor
   description: |
     Contrat unique de l'API : le serveur et le client des agents en sont générés
     (oapi-codegen, ADR 0006).
@@ -320,15 +320,15 @@ components:
     enrollmentToken:
       type: http
       scheme: bearer
-      description: Jeton d'inscription (`ogsbom_enr_…`), créé dans l'interface.
+      description: Jeton d'inscription (`lotor_enr_…`), créé dans l'interface.
     agentToken:
       type: http
       scheme: bearer
-      description: Jeton d'agent (`ogsbom_agt_…`), obtenu à l'inscription.
+      description: Jeton d'agent (`lotor_agt_…`), obtenu à l'inscription.
     personalToken:
       type: http
       scheme: bearer
-      description: Jeton d'accès personnel (`ogsbom_pat_…`).
+      description: Jeton d'accès personnel (`lotor_pat_…`).
   parameters:
     Org:
       name: org
@@ -506,7 +506,7 @@ components:
           format: uuid
         token:
           type: string
-          description: Jeton d'agent (`ogsbom_agt_…`), renvoyé une seule fois.
+          description: Jeton d'agent (`lotor_agt_…`), renvoyé une seule fois.
         project:
           $ref: "#/components/schemas/ProjectRef"
     ProjectRef:

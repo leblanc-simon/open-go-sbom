@@ -1,4 +1,4 @@
-// Package hostagent porte le pipeline de l'agent serveur (ogsbom-host-agent) : inventaire
+// Package hostagent porte le pipeline de l'agent serveur (lotor-host-agent) : inventaire
 // de l'hôte avec Syft et envoi conditionnel au serveur.
 //
 // Un cycle (Agent.Cycle) :

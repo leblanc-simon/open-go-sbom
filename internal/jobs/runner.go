@@ -16,7 +16,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/lotor/internal/db"
 )
 
 // Valeurs par défaut de RunnerOptions.

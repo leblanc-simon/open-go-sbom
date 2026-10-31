@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/lotor/internal/db"
 )
 
 // Confirm traite le compte rendu d'un scan d'hôte sans changement (signal de vie de

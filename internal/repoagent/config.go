@@ -13,29 +13,29 @@ import (
 
 	"leblanc.io/open-go-base/appconf"
 
-	"leblanc.io/open-go-sbom/internal/forge"
+	"leblanc.io/lotor/internal/forge"
 )
 
 // EnvPrefix préfixe les variables d'environnement de l'agent dépôt.
-const EnvPrefix = "OGSBOM_REPO_"
+const EnvPrefix = "LOTOR_REPO_"
 
-// Config est la configuration d'ogsbom-repo-agent. Aucun secret n'y figure : jeton
+// Config est la configuration d'lotor-repo-agent. Aucun secret n'y figure : jeton
 // d'agent, clé privée de la GitHub App, jetons des comptes de service et secrets de
 // webhook sont désignés par « credential:nom » (credentials systemd) ou par le chemin d'un
 // fichier en 0600 (ReadSecret).
 type Config struct {
-	Logging appconf.Logging `yaml:"logging" env-prefix:"OGSBOM_REPO_"`
-	Server  ServerConfig    `yaml:"server"  env-prefix:"OGSBOM_REPO_"`
-	Webhook WebhookConfig   `yaml:"webhook" env-prefix:"OGSBOM_REPO_"`
-	Work    WorkConfig      `yaml:"work"    env-prefix:"OGSBOM_REPO_"`
-	Catchup CatchupConfig   `yaml:"catchup" env-prefix:"OGSBOM_REPO_"`
+	Logging appconf.Logging `yaml:"logging" env-prefix:"LOTOR_REPO_"`
+	Server  ServerConfig    `yaml:"server"  env-prefix:"LOTOR_REPO_"`
+	Webhook WebhookConfig   `yaml:"webhook" env-prefix:"LOTOR_REPO_"`
+	Work    WorkConfig      `yaml:"work"    env-prefix:"LOTOR_REPO_"`
+	Catchup CatchupConfig   `yaml:"catchup" env-prefix:"LOTOR_REPO_"`
 	// Forges ne se déclarent que dans le fichier de configuration.
 	Forges []Forge `yaml:"forges"`
 }
 
-// ServerConfig décrit le serveur open-go-sbom et le jeton d'agent.
+// ServerConfig décrit le serveur lotor et le jeton d'agent.
 type ServerConfig struct {
-	URL       string        `yaml:"url"        env:"SERVER_URL"        env-description:"URL of the open-go-sbom server (https://sbom.example.org)"`
+	URL       string        `yaml:"url"        env:"SERVER_URL"        env-description:"URL of the lotor server (https://sbom.example.org)"`
 	TokenFile string        `yaml:"token_file" env:"SERVER_TOKEN_FILE" env-default:"credential:agent-token" env-description:"Agent token: credential:<name> (systemd credential) or absolute path of a 0600 file"`
 	CAFile    string        `yaml:"ca_file"    env:"SERVER_CA_FILE"    env-description:"PEM file of the authority that signed the server certificate (system roots if empty)"`
 	Timeout   time.Duration `yaml:"timeout"    env:"SERVER_TIMEOUT"    env-default:"2m"  env-description:"Maximum duration of one request to the server (SBOM upload included)"`
@@ -59,7 +59,7 @@ type WebhookConfig struct {
 
 // WorkConfig borne le travail d'analyse.
 type WorkConfig struct {
-	Dir          string        `yaml:"dir"           env:"WORK_DIR"           env-default:"/var/lib/ogsbom-repo-agent/work" env-description:"Working directory: one subdirectory per analysis, always removed"`
+	Dir          string        `yaml:"dir"           env:"WORK_DIR"           env-default:"/var/lib/lotor-repo-agent/work" env-description:"Working directory: one subdirectory per analysis, always removed"`
 	Parallelism  int           `yaml:"parallelism"   env:"WORK_PARALLELISM"   env-default:"2"    env-description:"Analyses run at the same time"`
 	QueueSize    int           `yaml:"queue_size"    env:"WORK_QUEUE_SIZE"    env-default:"1000" env-description:"Maximum references waiting for analysis (in memory, deduplicated)"`
 	CloneTimeout time.Duration `yaml:"clone_timeout" env:"WORK_CLONE_TIMEOUT" env-default:"10m"  env-description:"Maximum duration of a clone"`

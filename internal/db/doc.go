@@ -29,7 +29,7 @@
 //		})
 //	}
 //
-// InOrg déclare l'organisation par set_config('ogsbom.org_id', …, true) : la RLS limite
+// InOrg déclare l'organisation par set_config('lotor.org_id', …, true) : la RLS limite
 // alors lecture et écriture à cette organisation, même si la requête oublie son filtre, et
 // toute requête sur une table d'organisation hors InOrg échoue. InTx sert aux tables
 // globales (jobs, vulnérabilités…). Ni Tx ni OrgTx n'exposent Commit : la transaction est
@@ -40,7 +40,7 @@
 // # Migrations
 //
 // Migrate applique les fichiers de internal/db/migrations sous un verrou (LOCK TABLE
-// ogsbom_schema_migrations IN EXCLUSIVE MODE, sur une connexion dédiée), dans une seule
+// lotor_schema_migrations IN EXCLUSIVE MODE, sur une connexion dédiée), dans une seule
 // transaction, enregistre leur somme SHA-256 et refuse une migration publiée modifiée.
 // Les migrations d'authx puis de mfax sont jouées sous ce verrou, avant celles du projet. Avant
 // de valider, CheckOrgIsolation refuse toute table d'organisation sans la RLS standard.

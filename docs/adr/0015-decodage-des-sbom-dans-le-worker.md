@@ -71,7 +71,7 @@ remplacer l'appel à `sbom/syft.Decode` dans `ingest`, l'entrée (blob) et la so
 
 ## Alternatives écartées
 
-- **Sous-processus du même binaire** (`ogsbom-server decode`, blob sur l'entrée standard,
+- **Sous-processus du même binaire** (`lotor-server decode`, blob sur l'entrée standard,
   `sbom.Document` en JSON sur la sortie, `exec.CommandContext` pour le délai) : isole les
   paniques et les fuites, mais la limite de mémoire n'est fiable qu'avec un cgroup (Linux,
   droits de délégation systemd) — `RLIMIT_AS` interagit mal avec le ramasse-miettes et les

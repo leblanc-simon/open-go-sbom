@@ -75,11 +75,11 @@ var ErrUnprotectedOrgTable = errors.New("db: table d'organisation sans RLS forc�
 
 // CheckOrgIsolation vérifie, dans le catalogue, que chaque table d'organisation (colonne
 // org_id NOT NULL, ou la table organizations) a la RLS activée et forcée, une politique
-// pour toutes les commandes fondée sur ogsbom.org_id, et aucune politique permissive qui
+// pour toutes les commandes fondée sur lotor.org_id, et aucune politique permissive qui
 // s'en passerait (elle s'ajouterait par OU). Migrate l'exécute avant de valider : une
-// migration qui oublie ogsbom_enforce_org_rls empêche le démarrage.
+// migration qui oublie lotor_enforce_org_rls empêche le démarrage.
 func CheckOrgIsolation(ctx context.Context, q Querier) error {
-	const ref = `LIKE '%ogsbom.org_id%'`
+	const ref = `LIKE '%lotor.org_id%'`
 	var bad string
 	err := q.QueryRowContext(ctx, `
 		SELECT coalesce(string_agg(n.nspname || '.' || c.relname, ', ' ORDER BY n.nspname, c.relname), '')
@@ -105,7 +105,7 @@ func CheckOrgIsolation(ctx context.Context, q Querier) error {
 		return fmt.Errorf("db: contrôle de la RLS : %w", err)
 	}
 	if bad != "" {
-		return fmt.Errorf("%w : %s (appeler ogsbom_enforce_org_rls)", ErrUnprotectedOrgTable, bad)
+		return fmt.Errorf("%w : %s (appeler lotor_enforce_org_rls)", ErrUnprotectedOrgTable, bad)
 	}
 	return nil
 }

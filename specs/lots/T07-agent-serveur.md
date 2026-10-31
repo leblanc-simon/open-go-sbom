@@ -6,7 +6,7 @@
 
 ## Objectif
 
-`ogsbom-host-agent` : un binaire statique qui inventorie un hôte Linux avec Syft, avec le
+`lotor-host-agent` : un binaire statique qui inventorie un hôte Linux avec Syft, avec le
 moins de privilèges possible, et n'envoie un SBOM que lorsque l'inventaire a changé.
 
 ## Périmètre
@@ -68,7 +68,7 @@ section « Agent serveur » de `docs/operations.md`.
 ## Tests attendus
 
 Unitaires : empreinte stable, configuration, état. Intégration : parcours complet contre un
-serveur de test (`httptest` ou `ogsbom-server` réel), avec et sans mTLS.
+serveur de test (`httptest` ou `lotor-server` réel), avec et sans mTLS.
 
 ## Décisions
 
@@ -95,8 +95,8 @@ Réalisé le 31 octobre 2026, branche `lot/T07-agent-serveur`, en parallèle de 
   `HasStatus` ; `Enroll`, `Heartbeat`, `Projects` (toutes les pages), `Upload` (multipart
   `context` puis `sbom` gzip, construit une fois et rejoué), `Ingestion`, `Wait`, `Final`,
   `WithToken`. Réponses bornées à 8 Mio. Couverture 91 %.
-- **`internal/hostagent`** et `cmd/ogsbom-host-agent` : configuration
-  (`OGSBOM_HOST_AGENT_*`, `deploy/host-agent/config.example.yaml`), inscription, état
+- **`internal/hostagent`** et `cmd/lotor-host-agent` : configuration
+  (`LOTOR_HOST_AGENT_*`, `deploy/host-agent/config.example.yaml`), inscription, état
   (`Store` : répertoire `0700`, jeton et `state.json` en `0600`, écritures atomiques),
   secrets (fichier privé ou credential systemd ; fichier ouvert refusé), scan Syft
   (`SyftScanner` : catalogueurs « image » d'un système installé, sans catalogage de
@@ -125,8 +125,8 @@ Réalisé le 31 octobre 2026, branche `lot/T07-agent-serveur`, en parallèle de 
   `repoagent.NewServer` sur le client commun (réessais, `Retry-After`, mTLS, mandataire,
   `server.retries`), adaptateur provisoire `APIServer` supprimé, adresse `https`
   exigée ; écart retiré du Journal de T08 et de `specs/avancement.md`.
-- **Déploiement** : `deploy/systemd/ogsbom-host-agent.service` (démon),
-  `ogsbom-host-agent-oneshot.service` et `.timer`, durcis (`systemd-analyze security` :
+- **Déploiement** : `deploy/systemd/lotor-host-agent.service` (démon),
+  `lotor-host-agent-oneshot.service` et `.timer`, durcis (`systemd-analyze security` :
   1,9) ; `deploy/host-agent/` (configuration, `sysusers.d`, scripts) ;
   `deploy/nfpm/host-agent.yaml` ; `make packages` (amd64 et arm64, deb et rpm, dans
   `make ci` et la CI) ; nfpm v2.48.0 en directive `tool`.
@@ -207,9 +207,9 @@ local ; binaire réel sous `nobody` avec `CAP_DAC_READ_SEARCH`, `max_procs` 1,
   parcours des fichiers par Syft (index de tous les chemins) et par la relecture du SBOM
   pour l'empreinte (environ trente fois sa taille, mesure de T05).
 - `testdata/rootfs` : environ 2 s par scan (tests unitaires).
-- **Binaires** (`CGO_ENABLED=0`, `-s -w`) : `ogsbom-host-agent` 83,6 Mo (amd64), 77,7 Mo
+- **Binaires** (`CGO_ENABLED=0`, `-s -w`) : `lotor-host-agent` 83,6 Mo (amd64), 77,7 Mo
   (arm64) — Syft et tous ses fournisseurs de sources (images, archives) ; paquets deb et
-  rpm 25,5 à 28,1 Mo. Pour comparaison, `ogsbom-server` 65,9 Mo, `ogsbom-repo-agent`
+  rpm 25,5 à 28,1 Mo. Pour comparaison, `lotor-server` 65,9 Mo, `lotor-repo-agent`
   84,2 Mo.
 - Couverture : `agentclient` 91,1 %, `hostagent` 83,0 %, `agent` et `inventory` couverts
   par leurs tests d'intégration (nouveaux cas).

@@ -13,12 +13,12 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/finding"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/vuln"
-	"leblanc.io/open-go-sbom/internal/vuln/vulntest"
-	"leblanc.io/open-go-sbom/internal/web/webtest"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/finding"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/vuln"
+	"leblanc.io/lotor/internal/vuln/vulntest"
+	"leblanc.io/lotor/internal/web/webtest"
 )
 
 const log4jCore = "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1"

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/lotor/internal/db"
 )
 
 // DefaultSchedulerInterval espace les tentatives de prise des échéances.

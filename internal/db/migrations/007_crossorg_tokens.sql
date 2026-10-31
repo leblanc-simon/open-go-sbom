@@ -9,7 +9,7 @@
 -- tirage aléatoire de 128 bits, que l'on ne peut pas deviner : la fonction ne révèle rien
 -- à qui ne détient pas déjà le jeton.
 
-CREATE FUNCTION ogsbom_agent_token_org(p_public_id text)
+CREATE FUNCTION lotor_agent_token_org(p_public_id text)
 RETURNS uuid
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = pg_catalog, public, pg_temp
@@ -20,7 +20,7 @@ AS $$
      WHERE t.public_id = p_public_id AND o.archived_at IS NULL
 $$;
 
-CREATE FUNCTION ogsbom_enrollment_token_org(p_public_id text)
+CREATE FUNCTION lotor_enrollment_token_org(p_public_id text)
 RETURNS uuid
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = pg_catalog, public, pg_temp

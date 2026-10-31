@@ -14,15 +14,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/package-url/packageurl-go"
 
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/crossorg"
-	"leblanc.io/open-go-sbom/internal/finding"
-	"leblanc.io/open-go-sbom/internal/pagination"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/version"
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/crossorg"
+	"leblanc.io/lotor/internal/finding"
+	"leblanc.io/lotor/internal/pagination"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/version"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // Bornes de l'exécution.

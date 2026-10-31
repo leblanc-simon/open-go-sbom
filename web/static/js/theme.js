@@ -5,8 +5,8 @@
 // data-theme dès la première peinture, sans script en ligne (CSP stricte). Les libellés
 // arrivent traduits dans les attributs data-label-*.
 
-const STORAGE_KEY = "ogsbom.theme";
-const COOKIE = "ogsbom_theme";
+const STORAGE_KEY = "lotor.theme";
+const COOKIE = "lotor_theme";
 const ORDER = ["system", "light", "dark"];
 
 function readStored() {

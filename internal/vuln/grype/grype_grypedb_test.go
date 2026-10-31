@@ -11,16 +11,16 @@ import (
 	"sync"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/vuln"
 )
 
-// openReal ouvre la base réelle désignée par OGSBOM_TEST_GRYPEDB_DIR (répertoire racine
+// openReal ouvre la base réelle désignée par LOTOR_TEST_GRYPEDB_DIR (répertoire racine
 // d'une base Grype v6 installée, qui contient 6/vulnerability.db).
 func openReal(t *testing.T) vuln.Database {
 	t.Helper()
-	dir := os.Getenv("OGSBOM_TEST_GRYPEDB_DIR")
+	dir := os.Getenv("LOTOR_TEST_GRYPEDB_DIR")
 	if dir == "" {
-		t.Fatal("OGSBOM_TEST_GRYPEDB_DIR : répertoire d'une base Grype v6 installée")
+		t.Fatal("LOTOR_TEST_GRYPEDB_DIR : répertoire d'une base Grype v6 installée")
 	}
 	d, err := NewEngine().Open(context.Background(), dir)
 	if err != nil {

@@ -52,7 +52,7 @@
     grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr);
   }
 
-  @container ogsbom (width < 64rem) {
+  @container lotor (width < 64rem) {
     grid-template-columns: minmax(0, 1fr);
 
     &.layout--halves, &.layout--aside, &.layout--rail, &.layout--split, &.layout--thirds {

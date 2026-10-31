@@ -7,31 +7,31 @@ import (
 )
 
 // EnvPrefix préfixe toutes les variables d'environnement du serveur.
-const EnvPrefix = "OGSBOM_"
+const EnvPrefix = "LOTOR_"
 
-// Config est la configuration d'ogsbom-server : fragments d'appconf (Web, Logging, I18n,
+// Config est la configuration d'lotor-server : fragments d'appconf (Web, Logging, I18n,
 // CORS, base de données, Auth et MFA) et fragments propres au projet. Workers arrive avec
 // la file (T02), Ingest et VulnDB avec leurs lots.
 type Config struct {
-	Web        appconf.Web     `yaml:"web"        env-prefix:"OGSBOM_"`
-	HTTP       HTTP            `yaml:"http"       env-prefix:"OGSBOM_"`
-	TLS        TLS             `yaml:"tls"        env-prefix:"OGSBOM_"`
-	Management Management      `yaml:"management" env-prefix:"OGSBOM_"`
-	Logging    appconf.Logging `yaml:"logging"    env-prefix:"OGSBOM_"`
-	I18n       appconf.I18n    `yaml:"i18n"       env-prefix:"OGSBOM_"`
-	CORS       appconf.CORS    `yaml:"cors"       env-prefix:"OGSBOM_"`
-	Database   Database        `yaml:"database"   env-prefix:"OGSBOM_"`
-	Migration  Migration       `yaml:"migration"  env-prefix:"OGSBOM_"`
-	Secrets    Secrets         `yaml:"secrets"    env-prefix:"OGSBOM_"`
-	Auth       appconf.Auth    `yaml:"auth"       env-prefix:"OGSBOM_"`
-	MFA        appconf.MFA     `yaml:"mfa"        env-prefix:"OGSBOM_"`
-	Login      Login           `yaml:"login"      env-prefix:"OGSBOM_"`
-	AgentAPI   AgentAPI        `yaml:"agent_api"  env-prefix:"OGSBOM_"`
-	UserAPI    UserAPI         `yaml:"user_api"   env-prefix:"OGSBOM_"`
-	Bootstrap  Bootstrap       `yaml:"bootstrap"  env-prefix:"OGSBOM_"`
-	Workers    Workers         `yaml:"workers"    env-prefix:"OGSBOM_"`
-	Ingest     Ingest          `yaml:"ingest"     env-prefix:"OGSBOM_"`
-	VulnDB     VulnDB          `yaml:"vulndb"     env-prefix:"OGSBOM_"`
+	Web        appconf.Web     `yaml:"web"        env-prefix:"LOTOR_"`
+	HTTP       HTTP            `yaml:"http"       env-prefix:"LOTOR_"`
+	TLS        TLS             `yaml:"tls"        env-prefix:"LOTOR_"`
+	Management Management      `yaml:"management" env-prefix:"LOTOR_"`
+	Logging    appconf.Logging `yaml:"logging"    env-prefix:"LOTOR_"`
+	I18n       appconf.I18n    `yaml:"i18n"       env-prefix:"LOTOR_"`
+	CORS       appconf.CORS    `yaml:"cors"       env-prefix:"LOTOR_"`
+	Database   Database        `yaml:"database"   env-prefix:"LOTOR_"`
+	Migration  Migration       `yaml:"migration"  env-prefix:"LOTOR_"`
+	Secrets    Secrets         `yaml:"secrets"    env-prefix:"LOTOR_"`
+	Auth       appconf.Auth    `yaml:"auth"       env-prefix:"LOTOR_"`
+	MFA        appconf.MFA     `yaml:"mfa"        env-prefix:"LOTOR_"`
+	Login      Login           `yaml:"login"      env-prefix:"LOTOR_"`
+	AgentAPI   AgentAPI        `yaml:"agent_api"  env-prefix:"LOTOR_"`
+	UserAPI    UserAPI         `yaml:"user_api"   env-prefix:"LOTOR_"`
+	Bootstrap  Bootstrap       `yaml:"bootstrap"  env-prefix:"LOTOR_"`
+	Workers    Workers         `yaml:"workers"    env-prefix:"LOTOR_"`
+	Ingest     Ingest          `yaml:"ingest"     env-prefix:"LOTOR_"`
+	VulnDB     VulnDB          `yaml:"vulndb"     env-prefix:"LOTOR_"`
 }
 
 // VulnDB règle la base de vulnérabilités (§ 12 de l'architecture, ADR 0017) : liste de
@@ -39,7 +39,7 @@ type Config struct {
 // worker, alerte d'âge.
 type VulnDB struct {
 	ListingURL      string        `yaml:"listing_url"      env:"VULNDB_LISTING_URL"      env-default:"https://grype.anchore.io/databases/v6/latest.json" env-description:"Grype database listing (latest.json, or a mirror of it)"`
-	Dir             string        `yaml:"dir"              env:"VULNDB_DIR"              env-default:"/var/lib/ogsbom/vulndb" env-description:"Local directory of the vulnerability database of this worker instance (about 7 GiB free during a switch)"`
+	Dir             string        `yaml:"dir"              env:"VULNDB_DIR"              env-default:"/var/lib/lotor/vulndb" env-description:"Local directory of the vulnerability database of this worker instance (about 7 GiB free during a switch)"`
 	Offline         bool          `yaml:"offline"          env:"VULNDB_OFFLINE"          env-description:"Never query the listing: databases are only imported (isolated sites)"`
 	CheckInterval   time.Duration `yaml:"check_interval"   env:"VULNDB_CHECK_INTERVAL"   env-default:"6h"    env-description:"How often one instance queries the listing for a newer database"`
 	SyncInterval    time.Duration `yaml:"sync_interval"    env:"VULNDB_SYNC_INTERVAL"    env-default:"1m"    env-description:"How often a worker instance checks that its local copy is the shared target"`
@@ -182,8 +182,8 @@ func Defaults() Config {
 	c.Database.Driver = "postgres"
 	c.I18n.DefaultLanguage = "fr"
 	c.Logging.Level = "info"
-	c.Auth.CookieName = "ogsbom_session"
-	c.MFA.Issuer = "open-go-sbom"
+	c.Auth.CookieName = "lotor_session"
+	c.MFA.Issuer = "lotor"
 	c.Workers.Enabled = true
 	return c
 }

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/version/grypeversion"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/version/grypeversion"
 )
 
 var cmp = grypeversion.New()

@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/text/language"
 
-	"leblanc.io/open-go-sbom/locales"
+	"leblanc.io/lotor/locales"
 )
 
 func catalog(t *testing.T) *Catalog {

@@ -6,13 +6,13 @@ package hostagent
 // pour changer d'utilisateur) :
 //
 //	make build GOARCH=amd64
-//	OGSBOM_HOST_AGENT_BINARY=$PWD/bin/ogsbom-host-agent go test -tags measure -count=1 -v \
+//	LOTOR_HOST_AGENT_BINARY=$PWD/bin/lotor-host-agent go test -tags measure -count=1 -v \
 //	    -run TestMeasure ./internal/hostagent/
 //
 // Le binaire tourne sous l'utilisateur nobody avec la seule capacité CAP_DAC_READ_SEARCH
 // (comme l'unité systemd, par setpriv), contre un faux serveur HTTPS, deux fois de suite :
-// un envoi, puis un signal de vie. OGSBOM_MEASURE_ROOT choisit la racine (défaut /),
-// OGSBOM_MEASURE_EXCLUDE ajoute des exclusions (liste YAML : /root, /home).
+// un envoi, puis un signal de vie. LOTOR_MEASURE_ROOT choisit la racine (défaut /),
+// LOTOR_MEASURE_EXCLUDE ajoute des exclusions (liste YAML : /root, /home).
 
 import (
 	"bytes"
@@ -38,9 +38,9 @@ const nobody = 65534
 
 func measureBinary(t *testing.T) string {
 	t.Helper()
-	bin := os.Getenv("OGSBOM_HOST_AGENT_BINARY")
+	bin := os.Getenv("LOTOR_HOST_AGENT_BINARY")
 	if bin == "" {
-		t.Skip("OGSBOM_HOST_AGENT_BINARY non défini")
+		t.Skip("LOTOR_HOST_AGENT_BINARY non défini")
 	}
 	if os.Geteuid() != 0 {
 		t.Skip("root requis pour lancer l'agent sous nobody")
@@ -86,7 +86,7 @@ func runAgent(t *testing.T, bin, serverURL, ca, root, stateDir string, withCap b
 	t.Helper()
 	cfg := filepath.Join(filepath.Dir(stateDir), "config.yaml")
 	yaml := fmt.Sprintf("mode: oneshot\nhostname: srv-mesure\nstate_dir: %s\nenrollment_token_file: %s\nserver:\n  url: %s\n  ca_file: %s\n  retries: 1\nscan:\n  root: %s\n  max_duration: 30m\n  exclude: [%s]\nlogging:\n  level: info\n",
-		stateDir, filepath.Join(filepath.Dir(stateDir), "enrollment-token"), serverURL, ca, root, os.Getenv("OGSBOM_MEASURE_EXCLUDE"))
+		stateDir, filepath.Join(filepath.Dir(stateDir), "enrollment-token"), serverURL, ca, root, os.Getenv("LOTOR_MEASURE_EXCLUDE"))
 	if err := os.WriteFile(cfg, []byte(yaml), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func prepareState(t *testing.T) string {
 		t.Fatal(err)
 	}
 	tok := filepath.Join(base, "enrollment-token")
-	if err := os.WriteFile(tok, []byte("ogsbom_enr_jeton\n"), 0o600); err != nil {
+	if err := os.WriteFile(tok, []byte("lotor_enr_jeton\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	state := filepath.Join(base, "etat")
@@ -135,7 +135,7 @@ func prepareState(t *testing.T) string {
 // TestMeasureScan mesure deux cycles (envoi, puis signal de vie) sur la racine choisie.
 func TestMeasureScan(t *testing.T) {
 	bin := measureBinary(t)
-	root := os.Getenv("OGSBOM_MEASURE_ROOT")
+	root := os.Getenv("LOTOR_MEASURE_ROOT")
 	if root == "" {
 		root = "/"
 	}

@@ -1,4 +1,4 @@
-# Exploitation d'ogsbom-server
+# Exploitation d'lotor-server
 
 Installation, configuration, exploitation et surveillance du serveur et des agents,
 pour le lot 1 (version 0.1). Les premiers pas des utilisateurs sont dans le guide de
@@ -22,23 +22,23 @@ Prérequis : Go 1.26 (la chaîne exacte est téléchargée d'après `go.mod`), `
 PostgreSQL 16 ou plus.
 
 1. PostgreSQL : `docker compose -f deploy/compose.yaml up -d` démarre un PostgreSQL 16 et
-   crée la base `ogsbom`, le rôle propriétaire `ogsbom_owner` et le rôle d'exécution
-   `ogsbom_app` (`deploy/initdb/01-roles.sql`, mots de passe de développement). Sur un
+   crée la base `lotor`, le rôle propriétaire `lotor_owner` et le rôle d'exécution
+   `lotor_app` (`deploy/initdb/01-roles.sql`, mots de passe de développement). Sur un
    PostgreSQL déjà installé, voir « Rôles et droits » ci-dessous.
 2. Configuration : `cp config.example.yaml config.yaml` (valeurs prévues pour
    `deploy/compose.yaml`).
-3. `make run` construit les binaires et lance `bin/ogsbom-server -c config.yaml`.
+3. `make run` construit les binaires et lance `bin/lotor-server -c config.yaml`.
    L'interface répond sur <http://127.0.0.1:8080/>, la gestion sur
    <http://127.0.0.1:8081/readyz>.
 
 Tests : `make test` (unitaires), `make test-integration` (PostgreSQL requis : chaque test
-crée sa base et ses rôles jetables à partir de `OGSBOM_TEST_DATABASE_DSN`, connexion
+crée sa base et ses rôles jetables à partir de `LOTOR_TEST_DATABASE_DSN`, connexion
 d'administration, par défaut celle de `deploy/compose.yaml`), `make ci` (tout ce que fait
 la CI).
 
 ## Installation de production
 
-Une instance = un binaire `ogsbom-server`, un fichier de configuration et un fichier
+Une instance = un binaire `lotor-server`, un fichier de configuration et un fichier
 d'environnement pour les secrets, sous systemd. PostgreSQL 16 ou plus est commun à toutes
 les instances. Parcours vérifié lors de la recette du lot 1 (T11).
 
@@ -48,47 +48,47 @@ environ trente fois la taille du plus gros SBOM attendu (voir « Ingestion ») ;
 synchronisée (NTP).
 
 1. **Fichiers** : télécharger depuis la page des versions
-   `ogsbom-server_<version>_linux_<arch>.tar.gz` et `SHA256SUMS`, vérifier
+   `lotor-server_<version>_linux_<arch>.tar.gz` et `SHA256SUMS`, vérifier
    (`sha256sum -c --ignore-missing SHA256SUMS`), extraire. L'archive contient le binaire,
-   `config.example.yaml`, l'unité `ogsbom-server.service`, `LICENSE`, `README.md` et
+   `config.example.yaml`, l'unité `lotor-server.service`, `LICENSE`, `README.md` et
    `CHANGELOG.md`.
 
    ```bash
-   sudo install -m 0755 ogsbom-server /usr/local/bin/ogsbom-server
-   sudo install -d -m 0755 /etc/ogsbom
-   sudo install -m 0644 config.example.yaml /etc/ogsbom/config.yaml
-   sudo install -m 0644 ogsbom-server.service /etc/systemd/system/ogsbom-server.service
+   sudo install -m 0755 lotor-server /usr/local/bin/lotor-server
+   sudo install -d -m 0755 /etc/lotor
+   sudo install -m 0644 config.example.yaml /etc/lotor/config.yaml
+   sudo install -m 0644 lotor-server.service /etc/systemd/system/lotor-server.service
    ```
 
 2. **Base** : créer les deux rôles et la base (« Rôles et droits » ci-dessous), avec des
    mots de passe aléatoires (`openssl rand -base64 24`).
-3. **Configuration** `/etc/ogsbom/config.yaml` : `web.host` et `web.port`, `tls.*` (ou
+3. **Configuration** `/etc/lotor/config.yaml` : `web.host` et `web.port`, `tls.*` (ou
    `web.trusted_proxies` derrière un mandataire), `auth.cookie_secure: on`,
-   `logging.format: json`, `vulndb.dir: /var/lib/ogsbom/vulndb` (répertoire d'état de
+   `logging.format: json`, `vulndb.dir: /var/lib/lotor/vulndb` (répertoire d'état de
    l'unité), `i18n.default_language`. Retirer de la copie les DSN et les clés de
    l'exemple : ils passent par l'environnement.
-4. **Secrets** `/etc/ogsbom/ogsbom-server.env` (`root`, `0600`), lu par systemd :
+4. **Secrets** `/etc/lotor/lotor-server.env` (`root`, `0600`), lu par systemd :
 
    ```bash
-   OGSBOM_DB_DSN=postgres://ogsbom_app:<mot de passe>@db.example.org:5432/ogsbom?sslmode=verify-full
-   OGSBOM_MIGRATION_DSN=postgres://ogsbom_owner:<mot de passe>@db.example.org:5432/ogsbom?sslmode=verify-full
-   OGSBOM_SECRETS_KEYS=2026-10:<openssl rand -base64 32>
-   OGSBOM_SECRETS_ACTIVE_KEY=2026-10
+   LOTOR_DB_DSN=postgres://lotor_app:<mot de passe>@db.example.org:5432/lotor?sslmode=verify-full
+   LOTOR_MIGRATION_DSN=postgres://lotor_owner:<mot de passe>@db.example.org:5432/lotor?sslmode=verify-full
+   LOTOR_SECRETS_KEYS=2026-10:<openssl rand -base64 32>
+   LOTOR_SECRETS_ACTIVE_KEY=2026-10
    # Premier démarrage seulement (base sans compte) :
-   OGSBOM_BOOTSTRAP_ADMIN_EMAIL=admin@example.org
-   OGSBOM_BOOTSTRAP_ADMIN_PASSWORD=<mot de passe temporaire>
+   LOTOR_BOOTSTRAP_ADMIN_EMAIL=admin@example.org
+   LOTOR_BOOTSTRAP_ADMIN_PASSWORD=<mot de passe temporaire>
    ```
 
    **Sauvegarder la clé de chiffrement à part** (coffre-fort) : sans elle, les secrets TOTP
    de tous les comptes sont perdus (« Clés de chiffrement des secrets »).
 5. **TLS natif** : l'unité tourne sous un utilisateur dynamique, qui ne lit pas un fichier
-   de `/etc` réservé à `root`. Déposer la clé en `/etc/ogsbom/tls.key` (`0600`),
-   décommenter `LoadCredential=tls-key:/etc/ogsbom/tls.key` dans l'unité et poser
-   `tls.key_file: /run/credentials/ogsbom-server.service/tls-key` ; le certificat et
+   de `/etc` réservé à `root`. Déposer la clé en `/etc/lotor/tls.key` (`0600`),
+   décommenter `LoadCredential=tls-key:/etc/lotor/tls.key` dans l'unité et poser
+   `tls.key_file: /run/credentials/lotor-server.service/tls-key` ; le certificat et
    l'autorité des agents (`tls.client_ca_file`) peuvent rester en `0644`. Pour écouter sur
    443, l'unité indique la capacité à accorder.
 6. **Démarrage** : `sudo systemctl daemon-reload && sudo systemctl enable --now
-   ogsbom-server`, puis `journalctl -u ogsbom-server` (« schéma à jour », « serveur
+   lotor-server`, puis `journalctl -u lotor-server` (« schéma à jour », « serveur
    démarré ») et `curl -s http://127.0.0.1:8081/readyz`. Tant qu'aucune base de
    vulnérabilités n'est chargée, `/readyz` répond 503 avec `vulndb` en échec (premier
    téléchargement : quelques minutes ; site isolé : import manuel, voir « Base de
@@ -99,7 +99,7 @@ synchronisée (NTP).
    (guide de démarrage, [`demarrage.md`](demarrage.md)).
 
 **Plusieurs instances** : même configuration et mêmes clés ; une seule a besoin de
-`OGSBOM_MIGRATION_DSN` (les autres refusent de démarrer tant que le schéma n'est pas à
+`LOTOR_MIGRATION_DSN` (les autres refusent de démarrer tant que le schéma n'est pas à
 jour) ; `workers.enabled: false` pour une instance purement web. Les limitations de débit
 sont comptées par instance.
 
@@ -112,7 +112,7 @@ agent un certificat client. Exemple avec OpenSSL (autorité gardée hors ligne) 
 ```bash
 # Autorité des agents (une fois)
 openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 3650 \
-  -subj "/CN=open-go-sbom agents CA" -keyout agents-ca.key -out agents-ca.crt \
+  -subj "/CN=lotor agents CA" -keyout agents-ca.key -out agents-ca.crt \
   -addext "basicConstraints=critical,CA:TRUE" -addext "keyUsage=critical,keyCertSign,cRLSign"
 # Certificat client d'un hôte (clé générée sur l'hôte de préférence)
 openssl req -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -subj "/CN=srv-01" \
@@ -132,13 +132,13 @@ révoqués) ; pour couper un certificat, renouveler l'autorité.
 ## Configuration
 
 Le serveur lit le fichier YAML désigné par `-c` (`config.yaml` par défaut) s'il existe,
-sinon l'environnement. Chaque clé a sa variable `OGSBOM_*`, qui l'emporte sur le fichier ;
-`ogsbom-server --help` les liste toutes avec leur description, et
+sinon l'environnement. Chaque clé a sa variable `LOTOR_*`, qui l'emporte sur le fichier ;
+`lotor-server --help` les liste toutes avec leur description, et
 [`config.example.yaml`](../config.example.yaml) les documente. Une configuration invalide
 arrête le démarrage (code de sortie 2) avec un message par champ fautif, par exemple :
 
 ```
-database.driver (OGSBOM_DB_DRIVER) : doit valoir « postgres » (reçu "sqlite")
+database.driver (LOTOR_DB_DRIVER) : doit valoir « postgres » (reçu "sqlite")
 ```
 
 Défauts propres au projet, qui s'appliquent bien que `--help` affiche ceux
@@ -168,12 +168,12 @@ Deux rôles PostgreSQL :
 Création sur un PostgreSQL existant (en superutilisateur) :
 
 ```sql
-CREATE ROLE ogsbom_owner LOGIN BYPASSRLS PASSWORD '…';
--- base existante créée avant T03 : ALTER ROLE ogsbom_owner BYPASSRLS;
-CREATE ROLE ogsbom_app LOGIN PASSWORD '…' NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB;
-CREATE DATABASE ogsbom OWNER ogsbom_owner;
-REVOKE ALL ON DATABASE ogsbom FROM PUBLIC;
-GRANT CONNECT ON DATABASE ogsbom TO ogsbom_app;
+CREATE ROLE lotor_owner LOGIN BYPASSRLS PASSWORD '…';
+-- base existante créée avant T03 : ALTER ROLE lotor_owner BYPASSRLS;
+CREATE ROLE lotor_app LOGIN PASSWORD '…' NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB;
+CREATE DATABASE lotor OWNER lotor_owner;
+REVOKE ALL ON DATABASE lotor FROM PUBLIC;
+GRANT CONNECT ON DATABASE lotor TO lotor_app;
 ```
 
 Les droits du rôle d'exécution sur les tables sont posés par les migrations (privilèges
@@ -194,8 +194,8 @@ l'ancien :
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO nouveau;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO nouveau;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO nouveau;
-REVOKE INSERT, UPDATE, DELETE ON ogsbom_schema_migrations FROM nouveau;
-REVOKE EXECUTE ON PROCEDURE ogsbom_enforce_org_rls(regclass, name) FROM nouveau;
+REVOKE INSERT, UPDATE, DELETE ON lotor_schema_migrations FROM nouveau;
+REVOKE EXECUTE ON PROCEDURE lotor_enforce_org_rls(regclass, name) FROM nouveau;
 -- Journaux d'audit en ajout seul (ADR 0030) : sans ces retraits, le serveur refuse de démarrer.
 REVOKE UPDATE, DELETE, TRUNCATE ON audit_events, instance_audit_events FROM nouveau;
 ALTER DEFAULT PRIVILEGES GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO nouveau;
@@ -225,7 +225,7 @@ lancement ponctuel lors d'une mise à jour.
 Le serveur refuse aussi de démarrer si :
 
 - une migration déjà appliquée a été modifiée depuis (somme SHA-256 différente de celle
-  enregistrée dans `ogsbom_schema_migrations`) : les migrations publiées sont immuables ;
+  enregistrée dans `lotor_schema_migrations`) : les migrations publiées sont immuables ;
 - la base porte une migration inconnue du binaire (base migrée par une version plus
   récente) ;
 - une table d'organisation n'a pas la RLS forcée et sa politique standard.
@@ -256,7 +256,7 @@ ou mandataire de confiance).
   de confiance qui ne pose pas `X-Forwarded-For` doit **écraser** `X-Real-IP`, sinon le
   client choisit l'IP comptée par la limitation de débit et journalisée.
 - **`auth.cookie_secure: on` en production** : cookies `Secure` et préfixés `__Host-`
-  (`__Host-ogsbom_session`, `__Host-csrf_token`, `__Host-mfa_challenge`), qu'aucun
+  (`__Host-lotor_session`, `__Host-csrf_token`, `__Host-mfa_challenge`), qu'aucun
   sous-domaine ne peut écraser. En `auto` ou `off`, les noms restent sans préfixe et le
   serveur l'avertit au démarrage. Passer de `auto` à `on` ferme de fait les sessions en
   cours (nouveaux noms de cookie).
@@ -270,7 +270,7 @@ pas exposer publiquement :
 | --- | --- |
 | `/healthz` | vivacité : le processus répond (200), indépendamment de la base |
 | `/readyz` | disponibilité : 200 si la base répond et si le schéma est à jour ; 503 sinon, avec la vérification en échec, et 503 dès le début d'un arrêt. Sur une instance à workers (`workers.enabled`), 503 aussi tant qu'aucune base de vulnérabilités n'est chargée (vérification `vulndb`). |
-| `/metrics` | métriques Prometheus : `ogsbom_http_requests_total` et `ogsbom_http_request_duration_seconds` (par groupe de routes, méthode, motif de route, statut), file de traitements (`ogsbom_jobs`, `ogsbom_job_*`, voir « Traitements »), base de vulnérabilités (`ogsbom_vulndb_target_age_seconds`, `ogsbom_vulndb_stale`, `ogsbom_vulndb_loaded`, voir « Base de vulnérabilités »), pool de connexions (`go_sql_*`), processus et moteur Go |
+| `/metrics` | métriques Prometheus : `lotor_http_requests_total` et `lotor_http_request_duration_seconds` (par groupe de routes, méthode, motif de route, statut), file de traitements (`lotor_jobs`, `lotor_job_*`, voir « Traitements »), base de vulnérabilités (`lotor_vulndb_target_age_seconds`, `lotor_vulndb_stale`, `lotor_vulndb_loaded`, voir « Base de vulnérabilités »), pool de connexions (`go_sql_*`), processus et moteur Go |
 
 ## Traitements
 
@@ -311,12 +311,12 @@ Métriques (`/metrics`) :
 
 | Métrique | Contenu |
 | --- | --- |
-| `ogsbom_jobs{kind, status}` | jobs en attente (`pending`), en cours (`running`) et morts (`dead`), lus en base : même valeur sur toutes les instances |
-| `ogsbom_job_runs_total{kind, outcome}` | exécutions de l'instance : `done`, `retry` et `dead` (échecs), `lost` (bail perdu, résultat ignoré), `released` (interrompu par l'arrêt) |
-| `ogsbom_job_duration_seconds{kind}` | durée des exécutions de l'instance |
-| `ogsbom_job_schedule_fires_total{schedule}` | échéances prises par l'instance |
+| `lotor_jobs{kind, status}` | jobs en attente (`pending`), en cours (`running`) et morts (`dead`), lus en base : même valeur sur toutes les instances |
+| `lotor_job_runs_total{kind, outcome}` | exécutions de l'instance : `done`, `retry` et `dead` (échecs), `lost` (bail perdu, résultat ignoré), `released` (interrompu par l'arrêt) |
+| `lotor_job_duration_seconds{kind}` | durée des exécutions de l'instance |
+| `lotor_job_schedule_fires_total{schedule}` | échéances prises par l'instance |
 
-À surveiller : `ogsbom_jobs{status="dead"}` qui croît, `ogsbom_jobs{status="pending"}`
+À surveiller : `lotor_jobs{status="dead"}` qui croît, `lotor_jobs{status="pending"}`
 qui ne décroît pas (workers absents ou sous-dimensionnés), `outcome="lost"` fréquent
 (bail trop court ou base saturée).
 
@@ -337,7 +337,7 @@ Tout compte local se connecte par mot de passe **et** code TOTP (enrôlement obl
 la première connexion). Les mots de passe comptent 12 caractères au moins.
 
 **Premier administrateur.** Sur une base sans compte, définir au premier démarrage
-`OGSBOM_BOOTSTRAP_ADMIN_EMAIL` et `OGSBOM_BOOTSTRAP_ADMIN_PASSWORD` (mot de passe
+`LOTOR_BOOTSTRAP_ADMIN_EMAIL` et `LOTOR_BOOTSTRAP_ADMIN_PASSWORD` (mot de passe
 temporaire). Le compte est créé administrateur d'instance ; à sa connexion, il enrôle son
 TOTP puis choisit un nouveau mot de passe. Les variables sont ignorées dès qu'un compte
 existe : les retirer ensuite (le journal le rappelle). Deux instances qui démarrent
@@ -356,9 +356,9 @@ administrateurs d'instance au moins** : l'interface avertit s'il n'y en a qu'un.
 
 1. Ouvrir un ticket d'incident et choisir sa référence (8 caractères au moins, par
    exemple `INC-2026-0042`).
-2. Redémarrer le serveur avec `OGSBOM_BOOTSTRAP_RESCUE_TOTP_EMAIL=<e-mail de
-   l'administrateur>`, `OGSBOM_BOOTSTRAP_RESCUE_TICKET=<référence>` et
-   `OGSBOM_BOOTSTRAP_RESCUE_PASSWORD=<mot de passe temporaire>` (12 caractères au moins,
+2. Redémarrer le serveur avec `LOTOR_BOOTSTRAP_RESCUE_TOTP_EMAIL=<e-mail de
+   l'administrateur>`, `LOTOR_BOOTSTRAP_RESCUE_TICKET=<référence>` et
+   `LOTOR_BOOTSTRAP_RESCUE_PASSWORD=<mot de passe temporaire>` (12 caractères au moins,
    transmis à l'administrateur par un canal sûr). Le TOTP de ce compte est retiré, le mot
    de passe temporaire imposé, ses sessions fermées et ses jetons personnels révoqués ;
    l'événement « procédure de secours » entre au journal d'audit avec la référence. Le
@@ -401,13 +401,13 @@ heures (job `auth.purge`, instances à workers).
 Les écrans **Projets** et **Agents** d'une organisation (`/o/<slug>/projects`,
 `/o/<slug>/agents`) sont réservés en écriture à ses administrateurs.
 
-- **Agent serveur** (`ogsbom-host-agent`, T07) : créer un **jeton d'inscription**
+- **Agent serveur** (`lotor-host-agent`, T07) : créer un **jeton d'inscription**
   (« Inscrire des serveurs ») : validité (1 heure à 30 jours), nombre d'usages (un par
   hôte), étiquettes des projets créés, ou projet de serveur existant à rattacher. Chaque
   hôte l'échange contre son propre jeton d'agent (`POST /api/v1/agent/enroll`) ; le
   serveur crée le projet de l'hôte, ou rattache l'agent au projet désigné, ou au projet
   qui suit déjà ce nom d'hôte s'il n'a plus d'agent actif.
-- **Agent dépôt** (`ogsbom-repo-agent`, T08) : « Nouvel agent dépôt » crée l'agent et son
+- **Agent dépôt** (`lotor-repo-agent`, T08) : « Nouvel agent dépôt » crée l'agent et son
   premier jeton ; les dépôts lui sont confiés depuis leur fiche.
 - Un jeton n'est **affiché qu'une fois** ; seul son SHA-256 est conservé. Le fournir à
   l'agent par un fichier en `0600` ou un credential systemd, jamais dans un fichier de
@@ -425,53 +425,53 @@ Les écrans **Projets** et **Agents** d'une organisation (`/o/<slug>/projects`,
 
 ## Agent serveur
 
-`ogsbom-host-agent` inventorie un hôte Linux (amd64, arm64) avec Syft et n'envoie un SBOM
+`lotor-host-agent` inventorie un hôte Linux (amd64, arm64) avec Syft et n'envoie un SBOM
 que lorsque l'inventaire a changé (ADR 0020, 0021).
 
 ### Installation
 
 1. Installer le paquet (page des versions, ou `make packages` qui les produit dans `dist/` ;
-   deb et rpm, amd64 et arm64, non signés, à vérifier par `SHA256SUMS`) : `sudo apt install ./ogsbom-host-agent_<version>_amd64.deb`
-   ou `sudo dnf install ./ogsbom-host-agent-<version>.x86_64.rpm`. Le paquet crée
-   l'utilisateur système `ogsbom-agent`, `/etc/ogsbom-host-agent/config.yaml`, les unités
+   deb et rpm, amd64 et arm64, non signés, à vérifier par `SHA256SUMS`) : `sudo apt install ./lotor-host-agent_<version>_amd64.deb`
+   ou `sudo dnf install ./lotor-host-agent-<version>.x86_64.rpm`. Le paquet crée
+   l'utilisateur système `lotor-agent`, `/etc/lotor-host-agent/config.yaml`, les unités
    systemd ; il n'en active aucune.
 2. Renseigner `server.url` (`https://…` seulement) dans la configuration, et au besoin
    `server.ca_file` (autorité privée, qui remplace celles du système), `server.proxy`,
    `server.client_cert_file` (mTLS), `labels`, `scan.exclude`. Chaque clé a sa variable
-   `OGSBOM_HOST_AGENT_*` (`ogsbom-host-agent --help`).
+   `LOTOR_HOST_AGENT_*` (`lotor-host-agent --help`).
 3. Déposer le **jeton d'inscription** (« Inscrire des serveurs », l'écran qui l'affiche
    donne ces commandes), lisible du seul agent :
-   `printf '%s' '<jeton>' | sudo install -m 0600 -o ogsbom-agent -g ogsbom-agent /dev/stdin /etc/ogsbom-host-agent/enrollment-token`.
-   Variante chiffrée : `printf '%s' '<jeton>' | sudo systemd-creds encrypt --name=enrollment-token - /etc/ogsbom-host-agent/enrollment-token.cred`,
-   puis `sudo systemctl edit ogsbom-host-agent` et
-   `LoadCredentialEncrypted=enrollment-token:/etc/ogsbom-host-agent/enrollment-token.cred`.
+   `printf '%s' '<jeton>' | sudo install -m 0600 -o lotor-agent -g lotor-agent /dev/stdin /etc/lotor-host-agent/enrollment-token`.
+   Variante chiffrée : `printf '%s' '<jeton>' | sudo systemd-creds encrypt --name=enrollment-token - /etc/lotor-host-agent/enrollment-token.cred`,
+   puis `sudo systemctl edit lotor-host-agent` et
+   `LoadCredentialEncrypted=enrollment-token:/etc/lotor-host-agent/enrollment-token.cred`.
    La clé du certificat client suit le même chemin (fichier `server.client_key_file` en
    `0600`, ou credential `client-key`). Un fichier secret lisible par le groupe ou les
    autres est refusé.
-4. Démarrer **une** des deux formes : `sudo systemctl enable --now ogsbom-host-agent.service`
+4. Démarrer **une** des deux formes : `sudo systemctl enable --now lotor-host-agent.service`
    (démon : un scan par `scan.interval`, 24 h, et un signal de vie par
    `scan.poll_interval`, 5 min, qui reçoit les demandes « Scanner maintenant ») ou
-   `sudo systemctl enable --now ogsbom-host-agent-oneshot.timer` (un scan par jour vers 2 h,
+   `sudo systemctl enable --now lotor-host-agent-oneshot.timer` (un scan par jour vers 2 h,
    heure tirée dans l'heure ; une demande de scan attend le passage suivant).
 5. Au premier cycle, l'agent s'inscrit et garde son jeton d'agent dans
-   `/var/lib/ogsbom-host-agent/agent-token` (`0600`) ; supprimer ensuite le jeton
+   `/var/lib/lotor-host-agent/agent-token` (`0600`) ; supprimer ensuite le jeton
    d'inscription. L'hôte apparaît dans les projets avec son contexte (système, noyau,
    architecture, durée du scan).
 
 ### Sans systemd (conteneur, Alpine, init sans systemd)
 
 Vérifié en recette sur Debian 12, Rocky Linux 9 et Alpine 3.18 (conteneurs). Les paquets
-s'installent sans systemd (`dpkg -i`, `rpm -i` : l'utilisateur `ogsbom-agent` est créé par
+s'installent sans systemd (`dpkg -i`, `rpm -i` : l'utilisateur `lotor-agent` est créé par
 `useradd`, aucune unité n'est activée). Sur une distribution sans paquet (Alpine) : copier
-le binaire de l'archive `ogsbom-host-agent_<version>_linux_<arch>.tar.gz` en
-`/usr/bin/ogsbom-host-agent`, créer `/etc/ogsbom-host-agent` et
-`/var/lib/ogsbom-host-agent` (`0700`).
+le binaire de l'archive `lotor-host-agent_<version>_linux_<arch>.tar.gz` en
+`/usr/bin/lotor-host-agent`, créer `/etc/lotor-host-agent` et
+`/var/lib/lotor-host-agent` (`0700`).
 
 - Poser `enrollment_token_file` (et `server.client_key_file` pour le mTLS) en chemins
   absolus : les credentials systemd n'existent pas hors systemd.
-- Lancer l'agent sous `ogsbom-agent` avec la seule capacité `CAP_DAC_READ_SEARCH`, comme
+- Lancer l'agent sous `lotor-agent` avec la seule capacité `CAP_DAC_READ_SEARCH`, comme
   l'unité, par exemple
-  `setpriv --reuid ogsbom-agent --regid ogsbom-agent --init-groups --inh-caps +dac_read_search --ambient-caps +dac_read_search --bounding-set -all,+dac_read_search ogsbom-host-agent`
+  `setpriv --reuid lotor-agent --regid lotor-agent --init-groups --inh-caps +dac_read_search --ambient-caps +dac_read_search --bounding-set -all,+dac_read_search lotor-host-agent`
   (conteneur : `--cap-add DAC_READ_SEARCH`). Sans `setpriv` (busybox), l'agent tourne en
   root.
 - Forme démon sous le superviseur du système (OpenRC, runit, s6), ou `mode: oneshot` lancé
@@ -499,21 +499,21 @@ le binaire de l'archive `ogsbom-host-agent_<version>_linux_<arch>.tar.gz` en
   simultanés, `resources.memory_limit_mib` (512) la mémoire du runtime (limite douce),
   `scan.max_duration` (1 h) le scan ; l'unité ajoute `Nice=19`, `IOSchedulingClass=idle`,
   `MemoryMax=1536M`, et propose `CPUQuota=` (à décommenter, au prix d'un scan plus long).
-- **Moindre privilège** : utilisateur `ogsbom-agent`, seule capacité
+- **Moindre privilège** : utilisateur `lotor-agent`, seule capacité
   `CAP_DAC_READ_SEARCH` (lecture de tout fichier), écriture limitée au répertoire d'état,
   unité durcie (`systemd-analyze security` : 1,9).
 - **Mise à jour** : installer le nouveau paquet ; le démon redémarre, l'état est gardé.
-  **Désinstallation** : arrête les unités ; `/var/lib/ogsbom-host-agent` et l'utilisateur
+  **Désinstallation** : arrête les unités ; `/var/lib/lotor-host-agent` et l'utilisateur
   restent (à supprimer à la main pour une réinscription propre, après avoir désactivé
   l'agent dans l'interface).
-- **Journaux** : `journalctl -u ogsbom-host-agent` ; ni jeton ni contenu de SBOM.
+- **Journaux** : `journalctl -u lotor-host-agent` ; ni jeton ni contenu de SBOM.
 
 ### Mesures
 
 Protocole (root requis, hors CI) : `make build GOARCH=amd64`, puis
-`OGSBOM_HOST_AGENT_BINARY=$PWD/bin/ogsbom-host-agent go test -tags measure -count=1 -v -run 'TestMeasure|TestLeastPrivilege' ./internal/hostagent/`
+`LOTOR_HOST_AGENT_BINARY=$PWD/bin/lotor-host-agent go test -tags measure -count=1 -v -run 'TestMeasure|TestLeastPrivilege' ./internal/hostagent/`
 (agent sous `nobody` avec `CAP_DAC_READ_SEARCH`, contre un faux serveur ;
-`OGSBOM_MEASURE_ROOT` choisit la racine). Résultats et cibles : Journal de T07 et cahier
+`LOTOR_MEASURE_ROOT` choisit la racine). Résultats et cibles : Journal de T07 et cahier
 des charges.
 
 ## Ingestion
@@ -590,13 +590,13 @@ erreur, la **version chargée par chaque instance worker** (à jour, en retard, 
 ou sans nouvelles depuis 15 min ou trois `vulndb.sync_interval` ; table
 `vulndb_instances`, rapportée à chaque synchronisation, retirée à l'arrêt propre, oubliée
 après 7 jours sans nouvelles), les derniers imports et les archives stockées. Au-delà de `vulndb.max_age` (5 jours par défaut), ou sans base, un
-avertissement apparaît sur toutes les pages d'administration et `ogsbom_vulndb_stale`
-vaut 1 : à surveiller (alerte Prometheus conseillée sur `ogsbom_vulndb_stale == 1`).
+avertissement apparaît sur toutes les pages d'administration et `lotor_vulndb_stale`
+vaut 1 : à surveiller (alerte Prometheus conseillée sur `lotor_vulndb_stale == 1`).
 
 | Réglage | Défaut | Rôle |
 | --- | --- | --- |
 | `listing_url` | liste d'Anchore | `latest.json` de Grype, ou d'un miroir interne (même arborescence) |
-| `dir` | `/var/lib/ogsbom/vulndb` | copie locale de l'instance (chemin absolu) |
+| `dir` | `/var/lib/lotor/vulndb` | copie locale de l'instance (chemin absolu) |
 | `offline` | `false` | `true` : aucune interrogation de la liste (site isolé) |
 | `check_interval` | 6 h | fréquence de vérification (au moins 10 min ; Anchore publie chaque jour) |
 | `sync_interval` | 1 min | fréquence de contrôle de la copie locale |
@@ -654,7 +654,7 @@ La recherche transverse (`/o/<slug>/search`, T09, ADR 0024) et l'API utilisateur
   gérée qui les réserve à un administrateur, les créer avant la mise à jour, dans le schéma
   `public` : `CREATE EXTENSION pg_trgm WITH SCHEMA public; CREATE EXTENSION btree_gin WITH
   SCHEMA public;` (la migration les trouve alors déjà présentes).
-- **Jetons d'accès personnels** (`ogsbom_pat_…`, ADR 0025) : chaque compte les crée et les
+- **Jetons d'accès personnels** (`lotor_pat_…`, ADR 0025) : chaque compte les crée et les
   révoque depuis « Mon compte » → « Jetons d'accès » (7 jours à 1 an, 20 actifs au plus,
   secret affiché une seule fois). Lecture seule, sur les organisations dont le compte est
   membre **au moment de la requête** : retirer un membre lui coupe l'accès sans toucher à
@@ -689,31 +689,31 @@ les plus répandus (ADR 0027).
 - L'historique par projet est purgé au-delà de 400 jours ; celui de l'organisation est
   conservé (une ligne par jour).
 - Sans instance à workers, les courbes ne s'allongent plus (les chiffres du moment restent
-  justes) : `ogsbom_job_schedule_fires_total{schedule="dashboard.stats_all"}` doit
+  justes) : `lotor_job_schedule_fires_total{schedule="dashboard.stats_all"}` doit
   progresser d'une unité par heure sur l'ensemble des instances.
 
 ## Agent dépôt
 
-`ogsbom-repo-agent` est un service externe aux CI : il détient seul les accès aux forges,
+`lotor-repo-agent` est un service externe aux CI : il détient seul les accès aux forges,
 reçoit leurs webhooks de push, extrait le commit visé, l'analyse avec Syft et envoie le
-SBOM (CycloneDX 1.6, composants marqués `ogsbom:origin=syft`). Configuration d'exemple
-commentée et unité systemd durcie : `deploy/ogsbom-repo-agent/`.
+SBOM (CycloneDX 1.6, composants marqués `lotor:origin=syft`). Configuration d'exemple
+commentée et unité systemd durcie : `deploy/lotor-repo-agent/`.
 
 ### Installation
 
 1. Dans l'organisation : **Agents › Nouvel agent dépôt** ; noter le jeton (affiché une
    fois).
 2. Sur la machine de l'agent (git 2.30 ou plus, accès HTTPS aux forges et au serveur) :
-   extraire `ogsbom-repo-agent_<version>_linux_<arch>.tar.gz`, puis
-   `sudo install -m 0755 ogsbom-repo-agent /usr/bin/`,
-   `sudo install -m 0644 ogsbom-repo-agent.service /etc/systemd/system/`,
-   `sudo install -d -m 0700 /etc/ogsbom-repo-agent` et
-   `sudo install -m 0644 config.example.yaml /etc/ogsbom-repo-agent/config.yaml`.
+   extraire `lotor-repo-agent_<version>_linux_<arch>.tar.gz`, puis
+   `sudo install -m 0755 lotor-repo-agent /usr/bin/`,
+   `sudo install -m 0644 lotor-repo-agent.service /etc/systemd/system/`,
+   `sudo install -d -m 0700 /etc/lotor-repo-agent` et
+   `sudo install -m 0644 config.example.yaml /etc/lotor-repo-agent/config.yaml`.
 3. Créer la GitHub App ou le compte de service GitLab (ci-dessous), renseigner
    `server.*`, `forges[]` et `allowed_namespaces`, chiffrer les secrets (« Secrets et
    credentials systemd »), retirer de l'unité les credentials des forges non utilisées.
-4. `sudo systemctl daemon-reload && sudo systemctl enable --now ogsbom-repo-agent` ;
-   `journalctl -u ogsbom-repo-agent` montre le premier rattrapage (« rattrapage »,
+4. `sudo systemctl daemon-reload && sudo systemctl enable --now lotor-repo-agent` ;
+   `journalctl -u lotor-repo-agent` montre le premier rattrapage (« rattrapage »,
    « SBOM envoyé »).
 5. Confier les dépôts à l'agent depuis la fiche de chaque projet de type dépôt, puis
    déclarer le webhook sur la forge.
@@ -776,7 +776,7 @@ commentée et unité systemd durcie : `deploy/ogsbom-repo-agent/`.
 - Le SBOM produit ne porte ni numéro de série ni horodatage : deux analyses du même
   commit donnent les mêmes octets, que le serveur reconnaît comme un renvoi (200, rien de
   créé). Le composant décrit est le projet (son slug) à ce commit.
-- **Réseau sortant** : le serveur open-go-sbom, l'API et le service git HTTPS des forges.
+- **Réseau sortant** : le serveur lotor, l'API et le service git HTTPS des forges.
   Entrant : le récepteur de webhooks seul.
 
 ### GitHub : GitHub App
@@ -848,16 +848,16 @@ Les secrets (jeton d'agent, clé privée de la GitHub App, jeton GitLab, secrets
 webhook, clé TLS du récepteur) ne sont **jamais dans le fichier de configuration** : celui-ci
 les désigne par `credential:<nom>` (credential systemd) ou par le chemin absolu d'un
 fichier lisible du seul compte de l'agent (`0600` ou `0400`, refusé sinon). Avec l'unité
-fournie (`DynamicUser=yes`, `StateDirectory=ogsbom-repo-agent`, durcissement
+fournie (`DynamicUser=yes`, `StateDirectory=lotor-repo-agent`, durcissement
 `ProtectSystem=strict`, `NoNewPrivileges=yes`, aucune capacité) :
 
 ```bash
-install -d -m 0700 /etc/ogsbom-repo-agent
-systemd-creds encrypt --name=agent-token agent-token.txt /etc/ogsbom-repo-agent/agent-token.cred
-systemd-creds encrypt --name=github-app-key app.private-key.pem /etc/ogsbom-repo-agent/github-app-key.cred
-systemd-creds encrypt --name=github-webhook-secret github-secret.txt /etc/ogsbom-repo-agent/github-webhook-secret.cred
-systemd-creds encrypt --name=gitlab-token gitlab-token.txt /etc/ogsbom-repo-agent/gitlab-token.cred
-systemd-creds encrypt --name=gitlab-webhook-secret gitlab-secret.txt /etc/ogsbom-repo-agent/gitlab-webhook-secret.cred
+install -d -m 0700 /etc/lotor-repo-agent
+systemd-creds encrypt --name=agent-token agent-token.txt /etc/lotor-repo-agent/agent-token.cred
+systemd-creds encrypt --name=github-app-key app.private-key.pem /etc/lotor-repo-agent/github-app-key.cred
+systemd-creds encrypt --name=github-webhook-secret github-secret.txt /etc/lotor-repo-agent/github-webhook-secret.cred
+systemd-creds encrypt --name=gitlab-token gitlab-token.txt /etc/lotor-repo-agent/gitlab-token.cred
+systemd-creds encrypt --name=gitlab-webhook-secret gitlab-secret.txt /etc/lotor-repo-agent/gitlab-webhook-secret.cred
 shred -u agent-token.txt app.private-key.pem github-secret.txt gitlab-token.txt gitlab-secret.txt
 ```
 
@@ -880,7 +880,7 @@ invisible` cache aux autres comptes.
 
 Les secrets stockés en base (canaux de notification, OIDC, dans les lots qui les
 introduisent) sont chiffrés en AES-256-GCM par des clés nommées :
-`secrets.keys` (`OGSBOM_SECRETS_KEYS=id:base64,…`) et `secrets.active_key`. Générer une
+`secrets.keys` (`LOTOR_SECRETS_KEYS=id:base64,…`) et `secrets.active_key`. Générer une
 clé : `openssl rand -base64 32`. Un nom de clé : minuscules, chiffres, `-` et `_`, 32
 caractères au plus (par exemple la date : `2026-10`).
 
@@ -902,7 +902,7 @@ base de vulnérabilités. À sauvegarder :
 | --- | --- | --- |
 | Base PostgreSQL | `pg_dump -Fc` par le **rôle propriétaire**, ou sauvegarde physique (`pg_basebackup`, archivage WAL) | le propriétaire a `BYPASSRLS` : le vidage contient toutes les organisations |
 | Clés `secrets.keys` | coffre-fort, **séparément** de la base | sans elles, les secrets TOTP restaurés sont illisibles |
-| `/etc/ogsbom/` | configuration et fichier d'environnement | TLS : certificats, clés, autorité des agents |
+| `/etc/lotor/` | configuration et fichier d'environnement | TLS : certificats, clés, autorité des agents |
 | Agents | rien d'indispensable | un agent perdu se réinscrit (nouveau jeton) |
 
 `vulndb.dir` n'est **pas** à sauvegarder : chaque instance le reconstruit depuis
@@ -912,7 +912,7 @@ archives précédentes** avant la sauvegarde la réduit.
 
 ```bash
 # Sauvegarde logique (cohérente, sans arrêt du service)
-pg_dump -Fc -d 'postgres://ogsbom_owner:…@db:5432/ogsbom' -f ogsbom-$(date -u +%F).dump
+pg_dump -Fc -d 'postgres://lotor_owner:…@db:5432/lotor' -f lotor-$(date -u +%F).dump
 ```
 
 **Restauration** (vérifiée en recette sur la base du parc pilote : vidage, restauration
@@ -923,7 +923,7 @@ dans une base neuve, démarrage, connexion et recherche identiques) :
    (« Rôles et droits ») ; sur un PostgreSQL neuf, créer `pg_trgm` et `btree_gin` si le
    propriétaire n'en a pas le droit (« Recherche et API utilisateur »).
 3. Restaurer par le propriétaire :
-   `pg_restore --no-owner --role=ogsbom_owner -d 'postgres://ogsbom_owner:…@db:5432/ogsbom' ogsbom-AAAA-MM-JJ.dump`.
+   `pg_restore --no-owner --role=lotor_owner -d 'postgres://lotor_owner:…@db:5432/lotor' lotor-AAAA-MM-JJ.dump`.
    Les droits du rôle d'exécution, les privilèges par défaut et les retraits du journal en
    ajout seul sont dans le vidage : avec les mêmes noms de rôles, rien à reprendre. Avec un
    autre nom de rôle d'exécution, appliquer « Changer de rôle d'exécution ».
@@ -945,12 +945,12 @@ conditionnel, rattrapage de l'agent dépôt).
    inconnue : elle refuse de redémarrer et son `/readyz` passe à 503 (`schema`), ce qui la
    retire d'un répartiteur de charge. Prévoir donc une courte interruption, ou démarrer
    les nouvelles instances avant d'arrêter les anciennes.
-4. Vérifier `journalctl -u ogsbom-server` (« migration appliquée », « schéma à jour ») et
+4. Vérifier `journalctl -u lotor-server` (« migration appliquée », « schéma à jour ») et
    `/readyz`.
 5. **Agents** : l'API des agents est versionnée (`/api/v1`) ; un changement incompatible
    serait annoncé dans `CHANGELOG.md`, avec l'ordre de mise à jour. Mettre à jour l'agent serveur par son
    paquet (le démon redémarre, l'inscription est gardée) et l'agent dépôt en remplaçant
-   son binaire puis `systemctl restart ogsbom-repo-agent`.
+   son binaire puis `systemctl restart lotor-repo-agent`.
 
 Retour arrière : restaurer la sauvegarde prise avant la mise à jour et réinstaller
 l'ancien binaire (un ancien binaire refuse une base migrée par une version plus récente).
@@ -960,13 +960,13 @@ l'ancien binaire (un ancien binaire refuse une base migrée par une version plus
 | Quoi | Où | Seuil conseillé |
 | --- | --- | --- |
 | Disponibilité | `GET /readyz` (écoute de gestion) | 503 plus de 2 min hors démarrage |
-| Base de vulnérabilités | `ogsbom_vulndb_stale == 1`, `ogsbom_vulndb_target_age_seconds` | âge > `vulndb.max_age` (5 jours) |
-| Instance worker sans base | `ogsbom_vulndb_loaded == 0` | plus de 15 min |
-| Traitements en échec | `ogsbom_jobs{status="dead"}` | toute hausse ; détail dans **Administration › Traitements** |
-| File qui ne se vide pas | `ogsbom_jobs{status="pending"}` | croissante pendant 30 min |
-| Baux perdus | `rate(ogsbom_job_runs_total{outcome="lost"}[15m])` | non nulle durablement |
-| Statistiques du tableau de bord | `increase(ogsbom_job_schedule_fires_total{schedule="dashboard.stats_all"}[2h])` (somme des instances) | 0 |
-| Erreurs HTTP | `ogsbom_http_requests_total{status=~"5.."}` | taux anormal |
+| Base de vulnérabilités | `lotor_vulndb_stale == 1`, `lotor_vulndb_target_age_seconds` | âge > `vulndb.max_age` (5 jours) |
+| Instance worker sans base | `lotor_vulndb_loaded == 0` | plus de 15 min |
+| Traitements en échec | `lotor_jobs{status="dead"}` | toute hausse ; détail dans **Administration › Traitements** |
+| File qui ne se vide pas | `lotor_jobs{status="pending"}` | croissante pendant 30 min |
+| Baux perdus | `rate(lotor_job_runs_total{outcome="lost"}[15m])` | non nulle durablement |
+| Statistiques du tableau de bord | `increase(lotor_job_schedule_fires_total{schedule="dashboard.stats_all"}[2h])` (somme des instances) | 0 |
+| Erreurs HTTP | `lotor_http_requests_total{status=~"5.."}` | taux anormal |
 | Pool de connexions | `go_sql_wait_count_total`, `go_sql_in_use_connections` | attentes croissantes |
 | Disque | `vulndb.dir` (8 Gio libres), volume de PostgreSQL | < 20 % libre |
 | Agents muets | tableau de bord de chaque organisation (« Agents muets », 7 jours) | tout agent muet |
@@ -976,18 +976,18 @@ Exemple de règles Prometheus :
 
 ```yaml
 groups:
-  - name: open-go-sbom
+  - name: lotor
     rules:
-      - alert: OgsbomVulnDBStale
-        expr: max(ogsbom_vulndb_stale) == 1
+      - alert: LotorVulnDBStale
+        expr: max(lotor_vulndb_stale) == 1
         for: 1h
-      - alert: OgsbomDeadJobs
-        expr: max(ogsbom_jobs{status="dead"}) > 0
+      - alert: LotorDeadJobs
+        expr: max(lotor_jobs{status="dead"}) > 0
         for: 15m
-      - alert: OgsbomQueueStuck
-        expr: min_over_time(max(ogsbom_jobs{status="pending"})[30m:]) > 0 and deriv(max(ogsbom_jobs{status="pending"})[30m:]) >= 0
-      - alert: OgsbomNotReady
-        expr: up{job="ogsbom"} == 0
+      - alert: LotorQueueStuck
+        expr: min_over_time(max(lotor_jobs{status="pending"})[30m:]) > 0 and deriv(max(lotor_jobs{status="pending"})[30m:]) >= 0
+      - alert: LotorNotReady
+        expr: up{job="lotor"} == 0
         for: 2m
 ```
 

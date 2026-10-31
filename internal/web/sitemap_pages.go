@@ -3,8 +3,8 @@ package web
 import (
 	"net/http"
 
-	"leblanc.io/open-go-sbom/internal/render"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // pathSiteMap est le plan du site, lié depuis le pied de chaque page authentifiée.

@@ -16,7 +16,7 @@ const (
 )
 
 // Origin est l'origine d'un composant : trouvé par Syft, ou ajouté par l'enrichissement IA
-// de l'agent dépôt (propriété ogsbom:origin).
+// de l'agent dépôt (propriété lotor:origin).
 type Origin string
 
 // Origines d'un composant.
@@ -85,7 +85,7 @@ type Component struct {
 	Licenses []string `json:"licenses,omitempty"`
 	Hashes   []string `json:"hashes,omitempty"`
 	Origin   Origin   `json:"origin"`
-	// Confidence (0 à 1, quatre décimales) vient d'ogsbom:confidence ; nil si absente.
+	// Confidence (0 à 1, quatre décimales) vient d'lotor:confidence ; nil si absente.
 	Confidence *float64 `json:"confidence,omitempty"`
 	Model      string   `json:"model,omitempty"`
 	// Evidence est le champ evidence de CycloneDX, en JSON canonique (clés triées).

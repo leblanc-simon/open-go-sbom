@@ -13,9 +13,9 @@ import (
 
 	"golang.org/x/text/language"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/secret"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/secret"
 )
 
 // FieldError est une erreur de configuration qui nomme son champ.

@@ -14,10 +14,10 @@ import (
 
 	"golang.org/x/text/language"
 
-	"leblanc.io/open-go-sbom/internal/locale"
-	"leblanc.io/open-go-sbom/internal/web/webtest"
-	"leblanc.io/open-go-sbom/locales"
-	"leblanc.io/open-go-sbom/web"
+	"leblanc.io/lotor/internal/locale"
+	"leblanc.io/lotor/internal/web/webtest"
+	"leblanc.io/lotor/locales"
+	"leblanc.io/lotor/web"
 )
 
 func catalog(t testing.TB) *locale.Catalog {
@@ -75,9 +75,9 @@ func TestRenderHomeInEveryLanguage(t *testing.T) {
 	cases := map[string]struct {
 		query, accept, lang, heading string
 	}{
-		"défaut":          {"", "", "fr", "Bienvenue sur open-go-sbom"},
-		"Accept-Language": {"", "en-US,en;q=0.9", "en", "Welcome to open-go-sbom"},
-		"?lang=":          {"?lang=en", "fr", "en", "Welcome to open-go-sbom"},
+		"défaut":          {"", "", "fr", "Bienvenue sur lotor"},
+		"Accept-Language": {"", "en-US,en;q=0.9", "en", "Welcome to lotor"},
+		"?lang=":          {"?lang=en", "fr", "en", "Welcome to lotor"},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -160,10 +160,10 @@ func TestRenderTitle(t *testing.T) {
 		lang   string
 		want   string
 	}{
-		{http.StatusOK, nil, "fr", "Accueil · open-go-sbom"},
-		{http.StatusOK, org, "fr", "Accueil — Atelier &lt;Nord&gt; · open-go-sbom"},
-		{http.StatusUnprocessableEntity, nil, "fr", "Erreur : Accueil · open-go-sbom"},
-		{http.StatusConflict, org, "en", "Error: Home — Atelier &lt;Nord&gt; · open-go-sbom"},
+		{http.StatusOK, nil, "fr", "Accueil · lotor"},
+		{http.StatusOK, org, "fr", "Accueil — Atelier &lt;Nord&gt; · lotor"},
+		{http.StatusUnprocessableEntity, nil, "fr", "Erreur : Accueil · lotor"},
+		{http.StatusConflict, org, "en", "Error: Home — Atelier &lt;Nord&gt; · lotor"},
 	} {
 		if got := title(c.status, c.chrome, c.lang); got != c.want {
 			t.Errorf("%d %s : titre %q, attendu %q", c.status, c.lang, got, c.want)

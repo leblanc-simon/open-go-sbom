@@ -14,15 +14,15 @@ import (
 
 	"leblanc.io/open-go-base/ratelimit"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/api/gen/userapi"
-	"leblanc.io/open-go-sbom/internal/api/problem"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/crossorg"
-	"leblanc.io/open-go-sbom/internal/locale"
-	"leblanc.io/open-go-sbom/internal/search"
-	"leblanc.io/open-go-sbom/internal/tenant"
-	"leblanc.io/open-go-sbom/internal/web/middleware"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/api/gen/userapi"
+	"leblanc.io/lotor/internal/api/problem"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/crossorg"
+	"leblanc.io/lotor/internal/locale"
+	"leblanc.io/lotor/internal/search"
+	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/web/middleware"
 )
 
 // UserOptions réunit les dépendances de l'API utilisateur (/api/v1/orgs/{org}/*).
@@ -110,7 +110,7 @@ func (h *userAPI) writeRefusal(w http.ResponseWriter, r *http.Request) {
 	if key == "" {
 		key = account.KeyTokenInvalid
 	}
-	w.Header().Set("WWW-Authenticate", `Bearer realm="ogsbom"`)
+	w.Header().Set("WWW-Authenticate", `Bearer realm="lotor"`)
 	problem.Write(w, r, h.Catalog, http.StatusUnauthorized, key, nil)
 }
 
@@ -224,7 +224,7 @@ func ServeExport(w http.ResponseWriter, r *http.Request, o ExportOptions) {
 	if format == search.FormatJSON {
 		contentType = "application/json"
 	}
-	name := "ogsbom-" + o.Slug + "-" + time.Now().UTC().Format("20060102-150405") + "." + string(format)
+	name := "lotor-" + o.Slug + "-" + time.Now().UTC().Format("20060102-150405") + "." + string(format)
 	lw := &lazyHeaders{w: w, set: func(hd http.Header) {
 		hd.Set("Content-Type", contentType)
 		hd.Set("Content-Disposition", `attachment; filename="`+name+`"`)

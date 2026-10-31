@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 // Client télécharge par HTTP(S).

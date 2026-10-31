@@ -18,10 +18,10 @@ import (
 
 	"leblanc.io/open-go-base/i18n"
 
-	"leblanc.io/open-go-sbom/internal/api/gen"
-	"leblanc.io/open-go-sbom/internal/locale"
-	"leblanc.io/open-go-sbom/internal/pagination"
-	"leblanc.io/open-go-sbom/internal/web/middleware"
+	"leblanc.io/lotor/internal/api/gen"
+	"leblanc.io/lotor/internal/locale"
+	"leblanc.io/lotor/internal/pagination"
+	"leblanc.io/lotor/internal/web/middleware"
 )
 
 // ContentType est le type des réponses d'erreur.

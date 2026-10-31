@@ -11,13 +11,13 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/account"
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/db/crossorg"
-	"leblanc.io/open-go-sbom/internal/inventory"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/account"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/db/crossorg"
+	"leblanc.io/lotor/internal/inventory"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // Clés des refus d'un jeton (problèmes de l'API, traduits par <clé>.title et <clé>.text).

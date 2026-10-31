@@ -107,7 +107,7 @@ Réalisée le 31 octobre 2026, branche `lot/T11-administration`.
   navigation) : `.shell` est en `flex-wrap: wrap` et `flex: 1` dans un `body` à hauteur
   d'écran ; sous 64rem la navigation passe sur sa propre ligne et `align-content` par
   défaut (`normal`, soit `stretch`) partage la hauteur libre entre les deux lignes.
-  Correctif : `align-content: flex-start` dans `@container ogsbom (width < 64rem)`
+  Correctif : `align-content: flex-start` dans `@container lotor (width < 64rem)`
   seulement (au-dessus, la ligne unique étirée garde la navigation sur toute la hauteur).
   Avec les deux défauts voisins signalés par l'audit RGAA : `min-width: 0` sur `.sidenav`
   dans le même bloc (défilement horizontal à 320/390 px) et `position: relative` sur
@@ -127,7 +127,7 @@ Réalisée le 31 octobre 2026, branche `lot/T11-administration`.
   Correctif : l'autre worker pose son jeton **et** son bail (une heure) ; bail du test
   porté à 3 s (renouvelé chaque seconde) pour qu'un renouvellement retardé ne perde pas le
   bail avant la simulation ; attente déterministe de l'issue `lost` dans
-  `ogsbom_job_runs_total` au lieu du `sleep` ; le test vérifie en plus le jeton, le bail,
+  `lotor_job_runs_total` au lieu du `sleep` ; le test vérifie en plus le jeton, le bail,
   les tentatives, l'absence d'erreur enregistrée et une seule exécution du handler. Après
   correctif : 50 passages sur 50 dans les mêmes conditions. Ce que le test prouve est
   inchangé (annulation du handler sur perte de bail, résultat ignoré).
@@ -215,7 +215,7 @@ a été vérifié dans le code avant correction. Bilan de la revue : 0 Critical,
 | SEC-09 | Un administrateur d'organisation énumère les comptes et ajoute sans consentement | Low | Accepté, reporté à T16 **[à relire]** | Une réponse uniforme sans invitation tromperait l'administrateur (« ajouté » pour un compte inexistant) ; l'invitation à accepter relève des équipes et droits (T16). Administrateurs d'organisation désignés par l'administrateur d'instance, ajouts audités ; consigné au modèle de menace |
 | SEC-10 | Agent dépôt : identifiants plus larges que nécessaire, aucun périmètre côté agent | Low | Corrigé | `9dd1f8f` : `allowed_namespaces` obligatoire, jeton GitHub restreint au dépôt ; droits du jeton GitLab documentés ; ADR 0031 |
 | SEC-11 | `decode_timeout` sans effet sur les étapes CPU | Note | Corrigé (en partie, documenté) | `efe7185` : lecture de `Precheck` interrompue, contexte vérifié entre les étapes ; validation et décodage de Syft vont au bout de l'étape (linéaires, bornés par le plafond par organisation) ; ADR 0030 |
-| SEC-12 | `CREATE` non contrôlé, fonctions `SECURITY DEFINER` sans garde SQL | Note | Corrigé | `ea9d307` : `REVOKE CREATE ON SCHEMA public FROM PUBLIC`, refus au démarrage ; absence de garde SQL de `ogsbom_list_organizations` et `ogsbom_org_id_by_slug` consignée (risque accepté, métadonnées seules) |
+| SEC-12 | `CREATE` non contrôlé, fonctions `SECURITY DEFINER` sans garde SQL | Note | Corrigé | `ea9d307` : `REVOKE CREATE ON SCHEMA public FROM PUBLIC`, refus au démarrage ; absence de garde SQL de `lotor_list_organizations` et `lotor_org_id_by_slug` consignée (risque accepté, métadonnées seules) |
 | SEC-13 | Jeton d'inscription : rattachement à un projet hôte orphelin par nom déclaré | Note | Accepté | Conforme à l'hypothèse « hôtes non compromis à l'inscription » (jetons d'inscription bornés en durée et usages, inscription auditée) ; changer le rattachement modifierait le parcours de T07 (ADR 0021) ; consigné au modèle de menace |
 | SEC-14 | Divers (audit alimentable par un anonyme, `X-Real-IP`, base Grype non signée, webhook en clair, jetons d'agent sans expiration) | Note | Corrigé en partie, reste accepté | `9909ef9` (borne par /64 du journal des échecs) ; `X-Real-IP`, TLS du récepteur et droits GitLab documentés (`docs/operations.md`) ; base Grype non signée et extraction non bornée : risque amont accepté ; jetons d'agent sans expiration : ADR 0014 |
 
@@ -472,13 +472,13 @@ chaque serveur manque à au moins une liste.
 Machine : environnement de réalisation (4 cœurs Intel Xeon 2,8 GHz, 15 Gio, Linux 6.18,
 PostgreSQL 16.15 local, Docker 29.9). Binaires de `make build` au commit `8639f13`.
 
-- Base `ogsbom_t11r_cc6902` et rôles jetables `ogsbom_owner_cc6902` (`BYPASSRLS`) et
-  `ogsbom_app_cc6902` créés selon « Rôles et droits » de `docs/operations.md` ; les
+- Base `lotor_t11r_cc6902` et rôles jetables `lotor_owner_cc6902` (`BYPASSRLS`) et
+  `lotor_app_cc6902` créés selon « Rôles et droits » de `docs/operations.md` ; les
   15 migrations passent au premier démarrage, le contrôle du rôle d'exécution aussi.
 - TLS natif par une autorité de test (certificat `sbom.pilot.test`), **mTLS exigé**
   (`tls.client_ca_file` : autorité des agents distincte), `auth.cookie_secure: on`,
   `vulndb.offline: true`.
-- Premier administrateur par `OGSBOM_BOOTSTRAP_ADMIN_*` ; connexion, enrôlement TOTP et
+- Premier administrateur par `LOTOR_BOOTSTRAP_ADMIN_*` ; connexion, enrôlement TOTP et
   changement du mot de passe temporaire pilotés par l'interface (formulaires, jeton CSRF
   lié à la session, code TOTP calculé), comme un navigateur.
 - **Base Grype réelle importée par l'écran d'administration** : archive tar.gz de la base
@@ -490,12 +490,12 @@ PostgreSQL 16.15 local, Docker 29.9). Binaires de `make build` au commit `8639f1
 #### Parc pilote : résultat
 
 - **Serveurs** : agent installé par son **paquet deb** (Debian) et **rpm** (Rocky), qui
-  créent l'utilisateur `ogsbom-agent` sans systemd ; lancé sous cet utilisateur avec la
+  créent l'utilisateur `lotor-agent` sans systemd ; lancé sous cet utilisateur avec la
   seule capacité `CAP_DAC_READ_SEARCH` (`setpriv`, comme l'unité), en démon (`poll_interval`
   30 s). Alpine : binaire et configuration, root, mode `oneshot`. Les trois s'inscrivent
   en mTLS (certificat client par hôte) et envoient leur SBOM en 3 à 5 s (288 à 392
   composants : paquets du système et modules Go de l'agent lui-même).
-- **Dépôts** : l'agent dépôt réel (`ogsbom-repo-agent` dans un conteneur `alpine/git`)
+- **Dépôts** : l'agent dépôt réel (`lotor-repo-agent` dans un conteneur `alpine/git`)
   contre une **forge simulée** locale qui sert l'API de GitHub (JWT RS256 de l'application
   vérifié, jeton d'installation restreint au dépôt et à `contents: read`) et de GitLab
   (`Private-Token`), et git HTTP intelligent (`git http-backend`) sur des **clones nus des
@@ -573,11 +573,11 @@ machine de référence elle-même (facultatif, mêmes commandes).
 - **`CHANGELOG.md`** (Keep a Changelog, en français) : section `[0.1.0]` par lot
   technique, liens vers les PR #1 à #16.
 - **`.github/workflows/release.yml`** et **`scripts/release.sh`** (`make release`),
-  **`deploy/systemd/ogsbom-server.service`** (vérifiée par `systemd-analyze verify`),
+  **`deploy/systemd/lotor-server.service`** (vérifiée par `systemd-analyze verify`),
   `make bench-ingest` ; ADR 0032. Construction vérifiée en local
   (`make release VERSION=v0.1.0 RELEASE_DIR=…`, répertoire temporaire) : six archives
   (trois rôles × amd64, arm64 ; binaire statique, `--version` donne `v0.1.0`, configuration
-  d'exemple et unités), quatre paquets (`ogsbom-host-agent_0.1.0_amd64.deb`…, version
+  d'exemple et unités), quatre paquets (`lotor-host-agent_0.1.0_amd64.deb`…, version
   `0.1.0`), `SHA256SUMS` vérifié par `sha256sum -c` ; deux constructions donnent des
   archives identiques octet pour octet (les paquets diffèrent par l'horodatage de nfpm) ;
   une version mal formée (`0.1`) est refusée. Extraction des notes de version rejouée.
@@ -620,7 +620,7 @@ machine de référence elle-même (facultatif, mêmes commandes).
 - `v0.1.0` non publiée (action de l'utilisateur) : critère non coché.
 - Agent dépôt non essayé sur une vraie forge (action de l'utilisateur, procédure écrite).
 - Aucun défaut du produit trouvé par la recette : aucun correctif de code.
-- Une base jetable orpheline d'un autre lot (`ogsbom_t_3fc4057fe7b5`, 10:43 UTC) reste sur
+- Une base jetable orpheline d'un autre lot (`lotor_t_3fc4057fe7b5`, 10:43 UTC) reste sur
   le PostgreSQL partagé de la session ; non supprimée (elle n'est pas de ce lot).
 
 #### ADR créés

@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"leblanc.io/open-go-sbom/internal/finding"
-	"leblanc.io/open-go-sbom/internal/sbom"
-	"leblanc.io/open-go-sbom/internal/vuln"
+	"leblanc.io/lotor/internal/finding"
+	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/vuln"
 )
 
 func expectOccurrences(t *testing.T, res Result, want ...string) {

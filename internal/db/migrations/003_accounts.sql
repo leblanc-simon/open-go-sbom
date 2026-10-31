@@ -7,7 +7,7 @@
 -- (instruction idempotente sur une base où elles sont venues après).
 DO $$
 DECLARE
-    app text := current_setting('ogsbom.app_role');
+    app text := current_setting('lotor.app_role');
 BEGIN
     EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON users, sessions, mfa_totp, mfa_challenges TO %I', app);
     EXECUTE format('GRANT USAGE, SELECT ON SEQUENCE users_id_seq TO %I', app);
@@ -41,7 +41,7 @@ CREATE INDEX session_auth_user_idx ON session_auth (user_id);
 
 -- Une session supprimée par authx (déconnexion, expiration purgée, compte supprimé) emporte
 -- sa ligne : session_auth ne survit jamais à sa session.
-CREATE FUNCTION ogsbom_session_auth_forget() RETURNS trigger
+CREATE FUNCTION lotor_session_auth_forget() RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = pg_catalog, public, pg_temp
 AS $$
@@ -51,7 +51,7 @@ BEGIN
 END
 $$;
 CREATE TRIGGER session_auth_forget AFTER DELETE ON sessions
-    FOR EACH ROW EXECUTE FUNCTION ogsbom_session_auth_forget();
+    FOR EACH ROW EXECUTE FUNCTION lotor_session_auth_forget();
 
 -- Journal d'audit des événements sans organisation : comptes, connexions, administration
 -- de l'instance, démarrage (bootstrap, procédure de secours).

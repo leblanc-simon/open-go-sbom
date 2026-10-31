@@ -10,10 +10,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/audit"
-	"leblanc.io/open-go-sbom/internal/db"
-	"leblanc.io/open-go-sbom/internal/project"
-	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/project"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // EnrollmentToken est un jeton d'inscription d'agents serveur, sans son secret.

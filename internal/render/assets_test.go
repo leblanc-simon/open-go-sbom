@@ -10,9 +10,9 @@ import (
 
 func minimalStatic() fstest.MapFS {
 	return fstest.MapFS{
-		"css/tokens.css":         {Data: []byte(".ogsbom { --a: 1; }")},
+		"css/tokens.css":         {Data: []byte(".lotor { --a: 1; }")},
 		"css/fonts.css":          {Data: []byte("@font-face { src: url(\"../fonts/f.woff2\"); }")},
-		"css/base.css":           {Data: []byte(".ogsbom body { margin: 0; }")},
+		"css/base.css":           {Data: []byte(".lotor body { margin: 0; }")},
 		"css/components/btn.css": {Data: []byte(".btn {}")},
 		"css/components/a.css":   {Data: []byte(".a {}")},
 		"css/screens/home.css":   {Data: []byte(".home {}")},
@@ -139,7 +139,7 @@ func TestRealAssets(t *testing.T) {
 		t.Fatal(err)
 	}
 	css := string(a.files[StylesheetName].body)
-	for _, want := range []string{"--color-bg: light-dark(", "--sev-critical-bg", "--kev-bg", "--color-ai", "@font-face", ".topbar", ".sidenav", ".site-footer", "@container ogsbom"} {
+	for _, want := range []string{"--color-bg: light-dark(", "--sev-critical-bg", "--kev-bg", "--color-ai", "@font-face", ".topbar", ".sidenav", ".site-footer", "@container lotor"} {
 		if !strings.Contains(css, want) {
 			t.Errorf("feuille : %q absent", want)
 		}

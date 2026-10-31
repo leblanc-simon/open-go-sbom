@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"leblanc.io/open-go-sbom/internal/agent"
+	"leblanc.io/lotor/internal/agent"
 )
 
 // TestActivityState : règles de l'état d'un agent, par nature.

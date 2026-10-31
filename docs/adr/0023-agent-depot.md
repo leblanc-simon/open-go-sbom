@@ -6,7 +6,7 @@
 
 ## Contexte
 
-`ogsbom-repo-agent` reçoit des webhooks venus d'Internet, détient les secrets des forges et
+`lotor-repo-agent` reçoit des webhooks venus d'Internet, détient les secrets des forges et
 traite le contenu de dépôts non fiables. La fiche T08 fixe le cadre : GitHub App et GitLab
 par compte de service, pas de file durable côté agent, rattrapage périodique, clonage par
 le binaire `git` sous environnement maîtrisé, secrets hors du fichier de configuration.
@@ -56,7 +56,7 @@ ce que Syft a le droit de faire pendant le scan, et la forme des références au
    `repoagent` lui-même.
 6. **SBOM déterministe** : CycloneDX 1.6 de `cyclonedxhelpers`, sans `serialNumber` ni
    `metadata.timestamp` (facultatifs), composant décrit = slug du projet et commit (à la
-   place du chemin temporaire), `ogsbom:origin=syft` sur chaque composant. Deux analyses
+   place du chemin temporaire), `lotor:origin=syft` sur chaque composant. Deux analyses
    du même commit donnent les mêmes octets : le serveur répond 200 sans rien créer.
 7. **Échecs** : un dépôt trop gros, un lien symbolique restant ou un refus définitif du
    serveur (4xx hors 429) marquent le commit en échec dans un ensemble borné en mémoire,

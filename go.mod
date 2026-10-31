@@ -1,4 +1,4 @@
-module leblanc.io/open-go-sbom
+module leblanc.io/lotor
 
 go 1.26.8
 

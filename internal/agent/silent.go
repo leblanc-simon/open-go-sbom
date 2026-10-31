@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/lotor/internal/db"
 )
 
 // silentPage borne les agents lus par requête lors du décompte des agents muets.
