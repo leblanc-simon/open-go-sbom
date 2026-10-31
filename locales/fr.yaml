@@ -7,6 +7,8 @@ layout:
   home_link: Accueil
 
 nav:
+  search: Recherche
+  tokens: Jetons d'accès
   vulnerabilities: Vulnérabilités
   components: Composants
   admin_vulndb: Base de vulnérabilités
@@ -61,6 +63,7 @@ form:
   save: Enregistrer
 
 flash:
+  personal_token_revoked: Le jeton d'accès est révoqué ; il est refusé dès maintenant.
   scan_requested: "Scan demandé : l'agent le lancera à son prochain signal de vie."
   title: C'est fait
   settings_saved: Vos préférences sont enregistrées.
@@ -91,6 +94,7 @@ pagination:
   next: Page suivante
 
 validation:
+  token_limit: "Vous avez déjà le nombre maximal de jetons actifs : révoquez-en un d'abord."
   host_context_invalid: Le contexte de l'hôte est invalide (champ trop long ou caractère interdit).
   inventory_report_invalid: Le compte rendu d'inventaire est invalide (référence d'hôte, empreinte ou date de scan).
   scan_not_host: Seul un projet de serveur actif, suivi par un agent serveur, peut être scanné à la demande.
@@ -307,6 +311,8 @@ audit:
     agent_token_revoked: "Jeton {{.Target}} ({{.D_prefix}}) de l'agent {{.D_agent}} révoqué"
     enrollment_token_created: "Jeton d'inscription {{.Target}} ({{.D_prefix}}) créé"
     enrollment_token_revoked: "Jeton d'inscription {{.Target}} ({{.D_prefix}}) révoqué"
+    personal_token_created: "Jeton d'accès personnel {{.Target}} ({{.D_prefix}}) créé"
+    personal_token_revoked: "Jeton d'accès personnel {{.Target}} ({{.D_prefix}}) révoqué"
 
 admin:
   vulndb_missing_title: Aucune base de vulnérabilités
@@ -393,6 +399,49 @@ admin_org:
   unarchive: Réactiver
 
 error:
+  search:
+    empty:
+      title: Requête vide
+      text: Saisissez un composant, un purl, une CVE ou une empreinte SHA-256.
+    too_long:
+      title: Requête trop longue
+      text: La requête dépasse 1 024 octets, ou un nom recherché dépasse 200 caractères.
+    purl_invalid:
+      title: purl illisible
+      text: "Un purl s'écrit pkg:<type>/<espace de noms>/<nom>, éventuellement suivi de @<version>, et se cherche seul ou avec une plage vers."
+    range_needs_purl:
+      title: Plage sans purl
+      text: "Une plage vers ne s'applique qu'à un paquet désigné par son purl exact, sans version : pkg:npm/lodash vers:npm/<4.17.21. La recherche par nom n'accepte pas de plage."
+    range_and_version:
+      title: Version et plage à la fois
+      text: "Retirez la version du purl (@…) ou la plage vers : l'une ou l'autre."
+    vers_invalid:
+      title: Plage vers illisible
+      text: "Une plage s'écrit vers:<schéma>/<contraintes>, contraintes séparées par « | » (=, !=, <, <=, >, >=), par exemple vers:npm/>=4.0.0|<4.17.21."
+    vers_scheme:
+      title: Schéma vers inconnu
+      text: "Schémas acceptés : npm, maven, pypi, gem, golang, deb, rpm, alpine, semver et les écosystèmes semver (cargo, nuget, composer…)."
+    vers_duplicate:
+      title: Version répétée
+      text: Une même version figure dans deux contraintes de la plage.
+    vers_version:
+      title: Version illisible dans la plage
+      text: Une version de la plage ne se lit pas selon les règles de son écosystème.
+    vers_mismatch:
+      title: Schéma différent du purl
+      text: Le schéma de la plage doit être celui du paquet (vers:npm pour pkg:npm, vers:deb pour pkg:deb…).
+    vulnerability_invalid:
+      title: Identifiant illisible
+      text: Un identifiant s'écrit CVE-AAAA-NNNN ou GHSA-xxxx-xxxx-xxxx, seul.
+    hash_invalid:
+      title: Empreinte illisible
+      text: Une empreinte s'écrit sha256:<64 caractères hexadécimaux>, ou les 64 caractères seuls.
+    license_unavailable:
+      title: Recherche par licence à venir
+      text: La recherche par licence arrive avec l'analyse des licences ; cherchez en attendant par composant.
+    filter_invalid:
+      title: Filtre inconnu
+      text: Un filtre ou un ordre de l'adresse n'existe pas ; réinitialisez les filtres.
   client_cert_required:
     title: Certificat client exigé
     text: Ce serveur exige un certificat client valide (mTLS) pour l'API des agents. Configurez le certificat et la clé de l'agent.
@@ -436,9 +485,12 @@ error:
     title: Authentification requise
     text: Cette adresse exige un jeton valide.
   token:
+    account_inactive:
+      title: Compte désactivé
+      text: Le compte propriétaire de ce jeton est désactivé ; ses jetons sont refusés.
     invalid:
       title: Jeton refusé
-      text: "Le jeton présenté est absent, mal formé ou inconnu. Vérifiez qu'il est complet (ogsbom_agt_… ou ogsbom_enr_…) et qu'il convient à cette opération."
+      text: "Le jeton présenté est absent, mal formé ou inconnu. Vérifiez qu'il est complet (ogsbom_agt_…, ogsbom_enr_… ou ogsbom_pat_…) et qu'il convient à cette opération."
     revoked:
       title: Jeton révoqué
       text: Ce jeton a été révoqué. Demandez-en un nouveau à un administrateur de l'organisation.
@@ -1032,3 +1084,104 @@ admin_vulndb:
   is_target: Cible
   previous: Précédente
   no_archives: Aucune archive stockée.
+
+search:
+  title: Recherche
+  heading: Recherche transverse
+  subtitle: "Un composant, un purl avec une plage de versions, une CVE ou une empreinte SHA-256 : dans tous les projets de l'organisation."
+  form_label: Recherche dans les projets
+  label: Rechercher dans les projets
+  placeholder: Composant, purl, CVE ou SHA-256…
+  submit: Rechercher
+  interpreted_as: Interprété comme
+  kind_name: nom
+  kind_purl: purl
+  kind_range: plage
+  kind_vulnerability: vulnérabilité
+  kind_hash: empreinte
+  syntax: Syntaxe de recherche
+  syntax_name: Nom de composant, approché, toutes versions et tous écosystèmes
+  syntax_purl: purl, éventuellement suivi d'une plage de versions au format vers (comparée selon l'écosystème)
+  syntax_vulnerability: "Identifiant CVE ou GHSA : projets touchés, avec statut et version corrigée"
+  syntax_hash: Empreinte SHA-256 d'un fichier connu d'un SBOM
+  filters: Filtres
+  facet_project_type: Type de projet
+  facet_label: Étiquette
+  facet_origin: Origine de la détection
+  facet_exploitation: Exploitation
+  kev_only: uniquement
+  facet_severity: Sévérité maximale
+  severity_none: Sans vulnérabilité
+  facet_status: Constats
+  include_resolved: Inclure les constats résolus
+  sort_by: Trier par
+  sort_risk: Risque décroissant
+  sort_name: Nom du projet
+  sort_snapshot: Instantané le plus récent
+  apply_filters: Appliquer
+  reset_filters: Réinitialiser
+  summary_occurrences:
+    one: "{{.Count}} occurrence"
+    other: "{{.Count}} occurrences"
+  summary_projects:
+    one: "dans {{.Count}} projet"
+    other: "dans {{.Count}} projets"
+  export_csv: Exporter en CSV
+  export_json: Exporter en JSON
+  active_filters: Filtres actifs
+  remove_filter: Retirer le filtre
+  filter_kev: KEV uniquement
+  filter_resolved: Constats résolus inclus
+  truncated_title: Résultat partiel
+  truncated: La requête désigne trop de composants ; seuls les plus proches sont recherchés. Précisez-la.
+  approximate_title: Résultats approchés
+  approximate: Aucun nom ne contient ce texte ; voici les composants dont le nom lui ressemble.
+  snapshot_of: "Instantané du {{.Date}}"
+  occurrences:
+    one: "{{.Count}} occurrence"
+    other: "{{.Count}} occurrences"
+  col_component: Composant
+  col_version: Version
+  col_ref: Référence
+  col_origin: Origine
+  col_vulnerability: Vulnérabilité
+  col_vulnerabilities: Vulnérabilités
+  col_fixed_in: Corrigée en
+  col_risk: Risque
+  confidence: "({{.Pct}} %)"
+  weak: identification faible
+  not_in_inventory: hors de l'inventaire courant
+  status_open: Ouvert
+  status_resolved: Résolu
+  vuln_count:
+    one: "{{.Count}} vulnérabilité"
+    other: "{{.Count}} vulnérabilités"
+  no_vulnerability: Aucune vulnérabilité ouverte
+  no_fix: Aucune connue
+  group_truncated: "{{.Shown}} occurrences sur {{.Total}} affichées ; l'export les donne toutes."
+  no_result: Aucun projet ne correspond à cette recherche.
+  out_of_range:
+    one: "{{.Count}} occurrence du paquet hors de la version ou de la plage demandée n'est pas affichée."
+    other: "{{.Count}} occurrences du paquet hors de la version ou de la plage demandée ne sont pas affichées."
+  remove_range: Retirer la plage
+  unreadable_title: Versions non comparables
+  unreadable_text: "Ces versions ne se lisent pas selon les règles de l'écosystème : impossible de dire si elles sont dans la plage. Leurs occurrences ne sont pas affichées."
+
+tokens:
+  title: Jetons d'accès
+  heading: Jetons d'accès personnels
+  lead: "Un jeton personnel (ogsbom_pat_…) donne accès en lecture seule à l'API de recherche des organisations dont vous êtes membre, jamais plus que votre compte. Il expire toujours."
+  created_text: "Le jeton « {{.Name}} » est créé. Copiez-le maintenant : il ne sera plus jamais affiché."
+  usage: "À envoyer dans l'en-tête Authorization: Bearer, par exemple GET /api/v1/orgs/<organisation>/search?q=CVE-2021-44228."
+  list_title: Vos jetons
+  list_meta: "{{.Max}} jetons actifs au plus"
+  none: Aucun jeton pour l'instant.
+  new: Nouveau jeton
+  name_hint: Un nom qui dit à quoi il sert (script, intégration continue…).
+  scope_hint: "Lecture seule : recherche et export, dans les organisations dont vous êtes membre au moment de chaque requête."
+  create: Créer le jeton
+  expiry_7: 7 jours
+  expiry_30: 30 jours
+  expiry_90: 90 jours
+  expiry_180: 180 jours
+  expiry_365: 1 an

@@ -45,6 +45,8 @@ var flashes = map[string]string{
 	"token_revoked":       "flash.token_revoked",
 	"agent_disabled":      "flash.agent_disabled",
 	"enrollment_revoked":  "flash.enrollment_revoked",
+
+	"personal_token_revoked": "flash.personal_token_revoked",
 }
 
 func flashKey(r *http.Request) string { return flashes[r.URL.Query().Get("done")] }

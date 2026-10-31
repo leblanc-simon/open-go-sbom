@@ -12,6 +12,7 @@ func accountNav(current string) []render.NavItem {
 	return []render.NavItem{
 		{LabelKey: "nav.profile", Href: "/account", Current: current == "profile"},
 		{LabelKey: "nav.password", Href: pathPassword, Current: current == "password"},
+		{LabelKey: "nav.tokens", Href: pathTokens, Current: current == "tokens"},
 	}
 }
 

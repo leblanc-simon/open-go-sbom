@@ -41,6 +41,9 @@ type RouterOptions struct {
 	// AgentAPI monte l'API des agents (catalogue, journal, mandataires et IP du client
 	// sont repris du routeur) ; nil, elle n'a aucune opération.
 	AgentAPI *apiv1.AgentOptions
+	// UserAPI monte l'API utilisateur (catalogue, journal et mandataires repris du
+	// routeur) ; nil, elle n'a aucune opération.
+	UserAPI *apiv1.UserOptions
 
 	// extraUI ajoute des routes à l'interface (tests du paquet).
 	extraUI func(chi.Router)
@@ -143,12 +146,19 @@ func NewRouter(o RouterOptions) (http.Handler, error) {
 				err = mountErr
 			}
 		}
-		// L'API utilisateur arrive avec ses premières opérations ; les middlewares d'un
-		// groupe s'appliquent au montage (With), car chi ne passe pas par ceux d'un
-		// sous-routeur qui n'a encore aucune route.
+		// API utilisateur (/api/v1/orgs/{org}/…, jeton personnel) : la chaîne du groupe
+		// (CORS compris) s'applique au montage (With), avant le routage, pour les requêtes
+		// préliminaires et pour une route inconnue.
 		r.With(append(chi.Middlewares{corsx.Middleware(o.CORS)}, api("user")...)...).Route("/orgs/{org}", func(r chi.Router) {
 			r.NotFound(apiNotFound.ServeHTTP)
 			r.MethodNotAllowed(apiNotAllowed.ServeHTTP)
+			if o.UserAPI != nil {
+				uo := *o.UserAPI
+				uo.Catalog, uo.Logger, uo.TrustedProxies = o.Catalog, o.Logger, o.TrustedProxies
+				if mountErr := apiv1.MountUser(r, uo); mountErr != nil {
+					err = mountErr
+				}
+			}
 		})
 	})
 	if err != nil {
