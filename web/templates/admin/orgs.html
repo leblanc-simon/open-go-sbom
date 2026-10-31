@@ -1,0 +1,75 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T "admin_orgs.heading"}}</h1>
+    <p class="page-head__lead">{{T "admin_orgs.lead"}}</p>
+  </div>
+  {{template "single_admin" .SingleAdmin}}
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  <section class="panel" aria-labelledby="orgs-create">
+    <div class="panel__head"><h2 class="panel__title" id="orgs-create">{{T "admin_orgs.create_title"}}</h2></div>
+    <div class="panel__body">
+      <form class="form" method="post" action="/admin/orgs">
+        {{csrfField .Page.CSRFToken}}
+        <div class="form-row">
+          <div class="field">
+            <label class="field__label" for="org-slug">{{T "org.slug"}}</label>
+            <input class="input" id="org-slug" name="slug" type="text" maxlength="48" pattern="[a-z0-9][a-z0-9\-]*" required value="{{.Form.Slug}}" aria-describedby="org-slug-hint"{{if eq .Error.Field "slug"}} aria-invalid="true"{{end}}>
+            <p class="field__hint" id="org-slug-hint">{{T "org.slug_hint"}}</p>
+          </div>
+          <div class="field">
+            <label class="field__label" for="org-name">{{T "org.name"}}</label>
+            <input class="input" id="org-name" name="name" type="text" maxlength="100" required value="{{.Form.Name}}"{{if eq .Error.Field "name"}} aria-invalid="true"{{end}}>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field field--narrow">
+            <label class="field__label" for="org-language">{{T "org.language"}}</label>
+            <select class="select" id="org-language" name="language">
+              {{- range .Languages}}
+              <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+              {{- end}}
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label" for="org-admin">{{T "admin_orgs.admin_email"}}</label>
+            <input class="input" id="org-admin" name="admin_email" type="email" required value="{{.Form.AdminEmail}}" aria-describedby="org-admin-hint"{{if eq .Error.Field "admin_email"}} aria-invalid="true"{{end}}>
+            <p class="field__hint" id="org-admin-hint">{{T "admin_orgs.admin_hint"}}</p>
+          </div>
+        </div>
+        <p><button type="submit" class="btn btn--primary">{{T "admin_orgs.create"}}</button></p>
+      </form>
+    </div>
+  </section>
+  <section class="panel" aria-labelledby="orgs-list">
+    <div class="panel__head"><h2 class="panel__title" id="orgs-list">{{T "admin_orgs.list_title"}}</h2></div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "admin_orgs.list_title"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "org.name"}}</th>
+            <th scope="col">{{T "org.slug"}}</th>
+            <th scope="col">{{T "org.language"}}</th>
+            <th scope="col">{{T "admin_orgs.members"}}</th>
+            <th scope="col">{{T "admin_users.status"}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{- range .Orgs}}
+          <tr>
+            <th scope="row"><a href="/admin/orgs/{{.Slug}}">{{.Name}}</a></th>
+            <td class="mono">{{.Slug}}</td>
+            <td>{{T (print "language." .DefaultLanguage)}}</td>
+            <td>{{.Members}}</td>
+            <td>{{if .ArchivedAt}}<span class="status status--revoked">{{T "status.archived"}}</span>{{else}}<span class="status status--active">{{T "status.active"}}</span>{{end}}</td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{template "next_page" .NextCursor}}
+  </section>
+</div>
+{{- end}}

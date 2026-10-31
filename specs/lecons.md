@@ -124,3 +124,46 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   `make test-integration` qui le pose.
 - **Captures d'écran** : `google-chrome --headless=new --screenshot` est disponible ;
   `--blink-settings=preferredColorScheme=0` simule le thème sombre du système.
+
+## Comptes, RLS et open-go-base (T03)
+
+- **RLS forcée et `SECURITY DEFINER`** : `FORCE ROW LEVEL SECURITY` soumet aussi le
+  propriétaire ; une fonction `SECURITY DEFINER` qu'il possède ne lit rien sans
+  organisation déclarée (erreur sur `''::uuid`). Règle : le propriétaire a `BYPASSRLS`
+  (ADR 0012), vérifié par la migration 005 ; dans `dbtest`, le rôle propriétaire est créé
+  avec cet attribut.
+- **Tables d'authx et de mfax créées avant 001** : sur une base neuve, leur `Migrate` passe
+  avant les privilèges par défaut du projet ; le rôle d'exécution n'y a alors aucun droit.
+  Règle : droits accordés explicitement par une migration du projet (003).
+- **Paramètre SQL réutilisé avec deux types** : `VALUES ($1, … left($1::text, 8))` échoue
+  (« inconsistent types deduced for parameter $1 »). Règle : caster chaque occurrence
+  (`$1::uuid`). Et un UUID v7 commence par l'horodatage : ses 8 premiers caractères se
+  répètent d'un test à l'autre, prendre la fin pour un slug unique.
+- **Écrire après `WriteHeader`** : mfax appelle `w.WriteHeader(401)` avant le `Renderer` ;
+  le rendu ne peut plus poser son `Content-Type`. Règle : envelopper le `ResponseWriter`
+  (`deferredHeader`) pour retenir le statut jusqu'à la première écriture.
+- **`wrap(err)` sans test de nil** : une fonction d'enveloppe d'erreur qui ne renvoie pas
+  `nil` pour `nil` transforme chaque succès en échec (`%!w(<nil>)`). Règle : `if err ==
+  nil { return nil }` en tête, et un test d'intégration du cas nominal dès le premier
+  appel.
+- **Gabarits et texte en dur** : le test de `render` refuse toute lettre hors action de
+  gabarit, même « UTC ». Règle : clé `format.utc`. Un champ caché `<input hidden>` sans
+  libellé fait aussi échouer l'assistant d'accessibilité.
+- **Gabarit partagé entre pages** : un `{{define}}` placé dans le fichier d'une page n'est
+  pas vu des autres pages (un jeu par page). Règle : les blocs communs vont dans
+  `partials/`.
+- **Outil d'isolement des agents** : les longues commandes shell composées (heredoc
+  python, `for … do git`) sont refusées dans un worktree isolé. Règle : écrire les scripts
+  d'édition dans le répertoire temporaire et les lancer par une commande simple ; une
+  commande git par appel, avec `git -C` pour un autre dépôt.
+- **Pousser une étiquette** : le mandataire git de la session refuse les pushs
+  d'étiquettes (HTTP 403) mais accepte les branches. Règle : pseudo-version du commit
+  fusionné (`go get module@<sha>`) et étiquette laissée à pousser par l'utilisateur,
+  consignée dans le Journal.
+- **Tests d'un binaire et configuration obligatoire** : rendre un réglage obligatoire
+  (`secrets.keys`) casse le test de bout en bout du binaire, qui part d'un environnement
+  vide. Règle : mettre à jour `start()` de `cmd/ogsbom-server/main_integration_test.go`
+  dans le même commit.
+- **Codes TOTP en test** : mfax refuse un pas déjà consommé et tolère ±1 pas. Règle : au
+  plus trois connexions TOTP par compte et par test, avec des pas croissants (−30 s, 0,
+  +30 s) ; voir `app.code` dans `internal/web/app_integration_test.go`.

@@ -33,6 +33,10 @@ réutilisable (config, `db.InOrg`, `dbtest`, rendu, i18n, problèmes RFC 9457, p
 `webtest`) est décrit dans les `doc.go` et dans le Journal de T01.
 T02 terminé : file de traitements `internal/jobs` (`Enqueue` dans la transaction de
 l'appelant, `Runner`, `Scheduler`, horloge injectable), voir son `doc.go` et l'ADR 0011.
+T03 terminé : comptes (`internal/account`), TOTP obligatoire, organisations
+(`internal/org`), garde `/o/{slug}`, journal d'audit (`internal/audit`), fonctions
+`crossorg` (ADR 0012, 0013), harnais d'isolement SQL et par route. Prochain lot :
+[T04 — Projets, agents et jetons](specs/lots/T04-projets-agents.md).
 
 ## Règles de travail
 

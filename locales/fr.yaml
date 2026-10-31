@@ -8,16 +8,93 @@ layout:
 
 nav:
   label: Navigation principale
+  profile: Mon compte
+  password: Mot de passe
+  logout: Se déconnecter
+  admin: Administration
+  org_overview: Vue d'ensemble
+  members: Membres
+  org_settings: Paramètres
+  audit: Journal d'audit
+  admin_users: Comptes
+  admin_orgs: Organisations
+
+org_switcher:
+  caption: Organisation
+  choose: Choisir
+
+language:
+  fr: Français
+  en: English
 
 theme:
   system: "Thème : système"
   light: "Thème : clair"
   dark: "Thème : sombre"
 
-footer:
-  version: "Version {{.Version}}"
-  license: Logiciel libre sous licence WTFPL
-  source: Code source
+role:
+  viewer: Lecteur
+  analyst: Analyste
+  admin: Administrateur
+
+status:
+  active: Actif
+  inactive: Désactivé
+  archived: Archivée
+  enrolled: Enrôlé
+  not_enrolled: Non enrôlé
+  password_pending: Mot de passe à changer
+
+format:
+  utc: "{{.Time}} UTC"
+
+form:
+  error_title: La saisie n'a pas été acceptée
+  save: Enregistrer
+
+flash:
+  title: C'est fait
+  settings_saved: Vos préférences sont enregistrées.
+  password_changed: Votre mot de passe est changé ; vos autres sessions sont fermées.
+  member_added: Le membre est ajouté.
+  member_updated: Le rôle du membre est modifié.
+  member_removed: Le membre est retiré de l'organisation.
+  org_saved: Les paramètres de l'organisation sont enregistrés.
+  org_created: L'organisation est créée.
+  org_archived: L'organisation est archivée ; ses membres n'y ont plus accès.
+  org_unarchived: L'organisation est de nouveau active.
+  account_updated: Le compte est modifié.
+  totp_reset: Le TOTP du compte est réinitialisé ; il en enrôlera un nouveau à sa prochaine connexion.
+
+table:
+  actions: Actions
+
+pagination:
+  label: Pagination
+  next: Page suivante
+
+validation:
+  email_invalid: Saisissez une adresse e-mail valide, sans nom ni espace.
+  email_taken: Un compte utilise déjà cette adresse.
+  password_too_short: Le mot de passe doit compter au moins 12 caractères.
+  password_too_long: Le mot de passe doit compter au plus 256 caractères.
+  password_is_email: Le mot de passe ne peut pas être votre adresse e-mail.
+  password_unchanged: Le nouveau mot de passe doit différer de l'actuel.
+  password_mismatch: Les deux saisies du nouveau mot de passe diffèrent.
+  password_wrong: Le mot de passe actuel est incorrect.
+  language_invalid: Langue inconnue.
+  theme_invalid: Thème inconnu.
+  default_org_invalid: Choisissez une organisation dont vous êtes membre.
+  last_admin: Il faut au moins un administrateur d'instance actif.
+  cannot_target_self: Vous ne pouvez pas désactiver votre propre compte.
+  rescue_ticket_too_short: Le ticket de secours doit compter au moins 8 caractères.
+  slug_invalid: "L'identifiant d'URL ne contient que des minuscules, des chiffres et des tirets (48 caractères au plus, sans tiret au début ni à la fin)."
+  slug_taken: Une organisation utilise déjà cet identifiant d'URL.
+  name_invalid: Le nom doit compter de 1 à 100 caractères.
+  role_invalid: Rôle inconnu.
+  member_exists: Ce compte est déjà membre de l'organisation.
+  member_unknown_account: Aucun compte n'utilise cette adresse. Un administrateur d'instance doit d'abord le créer.
+  last_org_admin: L'organisation doit garder au moins un administrateur.
 
 home:
   title: Accueil
@@ -27,11 +104,235 @@ home:
     les analyse chaque jour pour y repérer les vulnérabilités connues.
   status_title: État de l'instance
   status_text: Le serveur est démarré et son schéma de base de données est à jour.
+  no_org_title: Aucune organisation
+  no_org_text: >-
+    Votre compte n'est membre d'aucune organisation. Demandez à un administrateur de
+    l'organisation de vous y ajouter.
+  create_org: Créer une organisation
+
+login:
+  title: Connexion
+  heading: Connexion
+  lead: Connectez-vous avec votre adresse e-mail et votre mot de passe. Un code TOTP vous sera ensuite demandé.
+  email: Adresse e-mail
+  password: Mot de passe
+  submit: Continuer
+  help: Mot de passe oublié ou appareil perdu ? Adressez-vous à un administrateur de l'instance.
+  error:
+    title: Connexion refusée
+    invalid_credentials: Adresse e-mail ou mot de passe incorrect.
+    attempts_exhausted: Trop de codes incorrects. Reprenez la connexion depuis le début.
+
+verify:
+  title: Code de vérification
+  heading: Code de vérification
+  lead: Saisissez le code à six chiffres affiché par votre application d'authentification.
+  code: Code TOTP
+  code_hint: Six chiffres, renouvelés toutes les trente secondes. Un code ne sert qu'une fois.
+  submit: Vérifier
+  lost: Appareil perdu ? Un administrateur de l'instance peut réinitialiser votre TOTP.
+  error:
+    title: Code refusé
+    invalid_code: Ce code est incorrect, expiré ou déjà utilisé.
+
+totp_setup:
+  title: Configuration du TOTP
+  heading: Configurez votre second facteur
+  lead: Le second facteur est obligatoire. Associez une application d'authentification à votre compte pour continuer.
+  step_app: Installez une application d'authentification (FreeOTP, Aegis, KeePassXC…).
+  step_scan: Scannez le code QR, ou saisissez la clé ci-dessous.
+  step_code: Saisissez le code à six chiffres qu'elle affiche.
+  qr_alt: Code QR de configuration du TOTP de votre compte
+  secret: Clé de configuration
+  code: Code affiché par l'application
+  submit: Activer
+  error:
+    invalid_code: "Ce code est incorrect : une nouvelle clé a été générée, scannez à nouveau le code QR."
+
+profile:
+  title: Mon compte
+  heading: Mon compte
+  lead: "Connecté en tant que {{.Email}}."
+  preferences: Préférences
+  language: Langue de l'interface
+  language_auto: Automatique (navigateur, puis organisation)
+  theme: Thème
+  default_org: Organisation par défaut
+  default_org_first: La première de la liste
+  security: Sécurité
+  totp_active: Second facteur actif
+  totp_help: Pour changer d'appareil, demandez à un administrateur de l'instance de réinitialiser votre TOTP.
+  change_password: Changer de mot de passe
+
+password:
+  title: Mot de passe
+  heading: Changer de mot de passe
+  forced: Votre mot de passe est temporaire. Choisissez-en un nouveau pour accéder à l'application.
+  lead: Le changement ferme vos autres sessions.
+  form_title: Nouveau mot de passe
+  current: Mot de passe actuel
+  new: Nouveau mot de passe
+  rule: "{{.Min}} caractères au moins, sans autre règle : une phrase de passe convient très bien."
+  confirm: Confirmation du nouveau mot de passe
+  submit: Changer de mot de passe
+
+org:
+  name: Nom
+  language: Langue par défaut
+  language_hint: Langue des membres qui n'en ont pas choisi, et des notifications de l'organisation.
+  slug: Identifiant d'URL
+  slug_hint: "Minuscules, chiffres et tirets ; il apparaît dans les adresses (/o/identifiant)."
+
+org_overview:
+  title: "{{.Name}}"
+  your_role: "Votre rôle : {{.Role}}."
+  next_title: Pour commencer
+  next_text: Les projets, les agents et le tableau de bord de l'organisation arrivent avec les prochaines versions.
+
+members:
+  title: Membres
+  heading: Membres de l'organisation
+  lead: Les membres voient les données de l'organisation selon leur rôle ; seuls ses administrateurs les gèrent.
+  add_title: Ajouter un membre
+  email: Adresse e-mail
+  role: Rôle
+  add: Ajouter
+  add_hint: Le compte doit exister ; un administrateur de l'instance le crée.
+  list_title: Liste des membres
+  status: État du compte
+  you: vous
+  role_of: "Rôle de {{.Email}}"
+  change_role: Modifier
+  remove: Retirer
+
+org_settings:
+  title: Paramètres de l'organisation
+  heading: Paramètres de l'organisation
+  lead: Le nom et la langue par défaut de l'organisation.
+  form_title: Organisation
+
+audit:
+  title: Journal d'audit
+  instance_title: Journal d'audit de l'instance
+  lead: Chaque action d'administration, connexion et échec de connexion, du plus récent au plus ancien.
+  list_title: Événements
+  when: Date
+  event: Événement
+  actor: Auteur
+  ip: Adresse IP
+  system: Système (démarrage)
+  empty: Aucun événement pour l'instant.
+  action:
+    auth_login: "Connexion de {{.Target}}"
+    auth_login_failed: "Échec de connexion pour « {{.Target}} »"
+    auth_totp_failed: "Code TOTP refusé pour {{.Target}}"
+    auth_totp_enrolled: "Second facteur enrôlé pour {{.Target}}"
+    auth_logout: "Déconnexion de {{.Target}}"
+    account_created: "Compte {{.Target}} créé"
+    account_deactivated: "Compte {{.Target}} désactivé"
+    account_activated: "Compte {{.Target}} réactivé"
+    account_password_reset: "Mot de passe de {{.Target}} réinitialisé"
+    account_password_changed: "Mot de passe de {{.Target}} changé"
+    account_totp_reset: "TOTP de {{.Target}} réinitialisé"
+    account_role_changed: "Rôle d'instance de {{.Target}} modifié"
+    account_settings_changed: "Préférences de {{.Target}} modifiées"
+    account_bootstrapped: "Premier administrateur {{.Target}} créé au démarrage"
+    account_rescue_totp_reset: "Procédure de secours : TOTP de {{.Target}} réinitialisé (ticket {{.D_ticket}})"
+    org_created: "Organisation {{.Target}} créée"
+    org_renamed: "Organisation renommée de « {{.D_from}} » en « {{.D_to}} »"
+    org_language_changed: "Langue par défaut de l'organisation : {{.D_from}} → {{.D_to}}"
+    org_archived: "Organisation {{.Target}} archivée"
+    org_unarchived: "Organisation {{.Target}} réactivée"
+    member_added: "{{.Target}} ajouté avec le rôle {{.D_role}}"
+    member_role_changed: "Rôle de {{.Target}} : {{.D_from}} → {{.D_to}}"
+    member_removed: "{{.Target}} retiré de l'organisation"
+
+admin:
+  single_admin_title: Un seul administrateur d'instance
+  single_admin_text: >-
+    S'il perdait l'accès à son compte, seule la procédure de secours le lui rendrait.
+    Désignez un second administrateur.
+
+admin_users:
+  title: Comptes
+  heading: Comptes
+  lead: Les comptes de l'instance. Un nouveau compte reçoit un mot de passe temporaire et enrôle son TOTP à la première connexion.
+  create_title: Créer un compte
+  email: Adresse e-mail
+  make_admin: Administrateur d'instance
+  create: Créer
+  create_hint: Le mot de passe temporaire est affiché une seule fois, à transmettre au titulaire par un canal sûr.
+  list_title: Liste des comptes
+  role: Rôle d'instance
+  status: État
+  totp: Second facteur
+  last_login: Dernière connexion
+  role_admin: Administrateur
+  role_user: Utilisateur
+  never: Jamais
+
+admin_user:
+  title: "Compte {{.Email}}"
+  info: Informations
+  created: Créé le
+  orgs: Organisations
+  no_org: Aucune
+  actions: Actions
+  actions_hint: Chaque action est journalisée. Les réinitialisations ferment les sessions du compte.
+  reset_password: Réinitialiser le mot de passe
+  reset_totp: Réinitialiser le TOTP
+  demote: Retirer le rôle d'administrateur
+  promote: Nommer administrateur d'instance
+  deactivate: Désactiver
+  activate: Réactiver
+
+admin_password:
+  title: Mot de passe temporaire
+  created_heading: Compte créé
+  reset_heading: Mot de passe réinitialisé
+  lead: "Mot de passe temporaire de {{.Email}}."
+  once_title: Affiché une seule fois
+  once_text: Notez-le maintenant et transmettez-le au titulaire par un canal sûr ; il ne sera plus jamais affiché.
+  password: Mot de passe temporaire
+  next_steps: À sa connexion, le titulaire enrôlera son TOTP puis choisira un nouveau mot de passe.
+  back: Retour au compte
+
+admin_orgs:
+  title: Organisations
+  heading: Organisations
+  lead: Les organisations de l'instance. Un administrateur d'instance ne voit pas leurs données s'il n'en est pas membre.
+  create_title: Créer une organisation
+  admin_email: Administrateur de l'organisation
+  admin_hint: Adresse d'un compte existant, qui gérera les membres.
+  create: Créer
+  list_title: Liste des organisations
+  members: Membres
+
+admin_org:
+  title: "Organisation {{.Name}}"
+  admins: Administrateurs de l'organisation
+  no_admin: Aucun administrateur.
+  add_admin: Adresse du compte
+  add_admin_submit: Nommer administrateur
+  admins_hint: Le compte devient administrateur de l'organisation (ajouté s'il n'en est pas membre).
+  archive_title: Archivage
+  archive_hint: Une organisation archivée disparaît pour ses membres ; ses données sont conservées.
+  archive: Archiver
+  unarchive: Réactiver
 
 error:
   back_home: Retour à l'accueil
   code: "Erreur {{.Code}}"
   reference: "Référence de la requête : {{.RequestID}}"
+  bad_request:
+    title: Requête invalide
+    text: La requête est illisible ou trop volumineuse.
+  forbidden:
+    title: Accès refusé
+    text: Votre rôle dans cette organisation ne permet pas cette action.
+  csrf:
+    title: Formulaire expiré
+    text: Le formulaire n'a pas pu être vérifié. Rechargez la page, puis renvoyez-le.
   not_found:
     title: Page introuvable
     text: La page demandée n'existe pas ou a été déplacée.
@@ -50,3 +351,8 @@ error:
   invalid_limit:
     title: Taille de page invalide
     text: "La taille de page doit être comprise entre 1 et {{.Max}}."
+
+footer:
+  version: "Version {{.Version}}"
+  license: Logiciel libre sous licence WTFPL
+  source: Code source

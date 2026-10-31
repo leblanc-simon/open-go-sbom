@@ -2,7 +2,7 @@
 
 | Lot fonctionnel | Dépend de | Statut |
 | --- | --- | --- |
-| 1 · MVP inventaire | T01 | À faire |
+| 1 · MVP inventaire | T01 | Terminé |
 
 ## Objectif
 
@@ -80,19 +80,19 @@ membres d'organisation, journal d'audit ; migrations avec politiques RLS ; fonct
 
 ## Critères d'acceptation
 
-- [ ] Un compte local sans TOTP enrôlé ne peut ouvrir aucune session applicative.
-- [ ] Un compte avec `must_change_pwd` ne peut atteindre aucune page avant d'avoir changé
+- [x] Un compte local sans TOTP enrôlé ne peut ouvrir aucune session applicative.
+- [x] Un compte avec `must_change_pwd` ne peut atteindre aucune page avant d'avoir changé
       son mot de passe.
-- [ ] Le premier administrateur est créé une seule fois ; `bootstrap.*` est ignoré ensuite.
-- [ ] Un membre de l'organisation A reçoit 404 sur toute URL de l'organisation B.
-- [ ] Dans `InOrg(A)`, des requêtes sans filtre sur `organizations`, `org_memberships` et
+- [x] Le premier administrateur est créé une seule fois ; `bootstrap.*` est ignoré ensuite.
+- [x] Un membre de l'organisation A reçoit 404 sur toute URL de l'organisation B.
+- [x] Dans `InOrg(A)`, des requêtes sans filtre sur `organizations`, `org_memberships` et
       `audit_events` ne lisent ni n'écrivent rien de B ; hors `InOrg`, elles échouent.
-- [ ] Un `viewer` ne peut modifier ni les membres ni les paramètres de l'organisation.
-- [ ] Chaque action d'administration produit un événement d'audit lisible.
-- [ ] Les erreurs de connexion sont génériques, traduites et à temps de réponse égalisé.
-- [ ] La procédure de secours rend l'accès à un administrateur qui a perdu son TOTP, et
+- [x] Un `viewer` ne peut modifier ni les membres ni les paramètres de l'organisation.
+- [x] Chaque action d'administration produit un événement d'audit lisible.
+- [x] Les erreurs de connexion sont génériques, traduites et à temps de réponse égalisé.
+- [x] La procédure de secours rend l'accès à un administrateur qui a perdu son TOTP, et
       laisse une trace d'audit.
-- [ ] Tous les écrans passent l'assistant d'accessibilité, en français et en anglais.
+- [x] Tous les écrans passent l'assistant d'accessibilité, en français et en anglais.
 
 ## Tests attendus
 
@@ -111,4 +111,137 @@ Prises le 31 octobre 2026 :
 
 ## Journal
 
-_À remplir pendant la réalisation._
+Réalisé le 31 octobre 2026, branche `lot/T03-comptes-organisations`, en parallèle de T02
+(fusionné dans la branche avant la version finale).
+
+### Livré
+
+- **open-go-base** (évolutions du § 23) : erreurs d'authx et de mfax sous forme de codes
+  stables (`ErrorCode`, `LoginView.Code`, `VerifyView.Code`, `SetupView.Code`),
+  `ErrorHandler` configurable pour les 400, 403 et 500 (la cause n'est plus jamais
+  renvoyée au client), `csrfx.WithFailureHandler`, `mfax.ChallengeCookieName`. PR #1
+  d'open-go-base, fusionnée (squash, commit `b9ccc67`). Pas de CI sur ce dépôt :
+  `go vet ./...` et `go test -race ./...` verts en local, seule vérification possible.
+  Étiquette `v1.1.0` annotée créée dans le clone, **pas poussée** (voir Écarts) :
+  open-go-sbom utilise la pseudo-version `v1.0.2-0.20261031034511-b9ccc67d239a`.
+- **Stores PostgreSQL d'authx et de mfax** exécutés pour la première fois sur
+  PostgreSQL 16 (sonde jetable, puis tous les tests d'intégration de ce lot) : migrations
+  idempotentes, les quatre stores, anti-rejeu et plafond de tentatives. **Aucun défaut**.
+- `internal/db` : `Migrate` joue toujours authx puis mfax sous le verrou (`external.go`) ;
+  migrations **003** (droits sur les tables d'authx et de mfax, `account_settings`,
+  `session_auth` et son déclencheur de nettoyage, `instance_audit_events`), **004**
+  (`organizations`, `org_memberships`, `audit_events`, RLS standard) et **005**
+  (fonctions de `crossorg`).
+- `internal/db/crossorg` : `Access`, `UserOrgs`, `ListOrganizations`, `OrgIDBySlug`.
+- `internal/tenant` : `Role` (`viewer` < `analyst` < `admin`), `Access` et son contexte.
+- `internal/audit` : `RecordOrg`, `RecordInstance` (dans la transaction de l'action),
+  `ListOrg`, `ListInstance` (curseurs), catalogue des actions et leurs phrases traduites.
+- `internal/account` : seul écrivain de `users` (création à mot de passe temporaire,
+  activation, rôle d'instance, réinitialisations, changement de mot de passe),
+  préférences, `SessionRecorder` (méthode de session et journal des connexions),
+  `SealedTOTPStore` (secrets TOTP chiffrés) et rechiffrement, bootstrap, procédure de
+  secours, `Startup`, purge horaire (`auth.purge` sur la file de T02), état du visiteur.
+- `internal/org` : organisations (création, nom, langue, archivage) et membres (ajout d'un
+  compte existant, rôle, retrait), toujours par `InOrg`.
+- `internal/config` : fragments `Auth`, `MFA` (appconf), `Login`, `Bootstrap` ; clés de
+  secrets obligatoires.
+- `internal/web` : identité (authx, mfax, visiteur, gardes), pages de connexion, compte,
+  organisation et administration ; `render.Chrome` (en-tête : compte, sélecteur
+  d'organisation) ; page d'erreur 400/403 et `ErrorWithKey`.
+- Écrans (fr, en, clair, sombre) : connexion, second facteur, enrôlement TOTP avec QR,
+  compte (langue, thème, organisation par défaut), mot de passe, vue d'ensemble de
+  l'organisation, membres, paramètres de l'organisation, journal d'audit (organisation et
+  instance), comptes, compte, mot de passe temporaire, organisations, organisation.
+  Composants portés depuis `ogs.css` : champs (`form.css`), `callout`, tableau,
+  `status`/`chip`, `avatar`/`org-switcher`, `kv` ; écran `auth.css` (pas de planche :
+  carte construite sur panneau et champs).
+- Harnais d'isolement : SQL (`internal/db/orgtables_integration_test.go`, contrôlé contre
+  le catalogue) et routes (`internal/web/isolation_integration_test.go`, `chi.Walk`).
+- ADR 0012 (isolement des organisations) et 0013 (comptes et second facteur) ;
+  `architecture.md`, `docs/operations.md` (comptes, secours, rôle `BYPASSRLS`, clés),
+  modèle de menace, `config.example.yaml`.
+
+### Décisions
+
+- **Propriétaire `BYPASSRLS`** (ADR 0012) **[à relire]** : sous RLS forcée, une fonction
+  `SECURITY DEFINER` du propriétaire ne voit rien sans organisation déclarée.
+  L'attribut ne lui donne rien qu'il n'ait déjà (il peut désactiver la RLS de ses tables).
+  Exige `ALTER ROLE ogsbom_owner BYPASSRLS` sur une base existante ; `initdb` et `dbtest`
+  le posent.
+- **Secrets TOTP chiffrés** par `internal/secret` (ADR 0013) **[à relire]** : écart à
+  mfax, qui les stocke en clair ; `secrets.keys` devient obligatoire ; rechiffrement par
+  la clé active au démarrage.
+- **Procédure de secours par ticket** (ADR 0013) **[à relire]** : deux variables
+  (`bootstrap.rescue_totp_email`, `bootstrap.rescue_ticket`) au lieu d'une, appliquées une
+  fois par couple (compte, ticket), pour qu'une variable oubliée ne retire pas le TOTP à
+  chaque redémarrage.
+- **Ordre du premier login** **[à relire]** : enrôlement du TOTP (session de configuration
+  de mfax), puis changement de mot de passe imposé.
+- **Administration** : une page refusée à un non-administrateur d'instance répond **404**
+  (comme une page absente) ; une action refusée à un membre de l'organisation répond 403
+  (il connaît l'organisation). Le journal de l'organisation et ses paramètres sont
+  réservés à ses administrateurs **[à relire]**. Les administrateurs de l'organisation en
+  gèrent le nom et la langue ; l'archivage et la création reviennent à l'administrateur
+  d'instance, qui peut aussi nommer un administrateur d'organisation (cas d'une
+  organisation sans administrateur).
+- **Garde-fous** : le dernier administrateur d'instance actif ne peut être ni désactivé
+  ni rétrogradé ; un administrateur ne se désactive pas lui-même ; une organisation garde
+  au moins un administrateur.
+- **Journal** : événements d'instance (comptes, connexions, organisations) dans
+  `instance_audit_events` ; événements d'organisation (membres, paramètres) dans
+  `audit_events` ; création, renommage et archivage d'une organisation dans les deux.
+  Échecs de connexion journalisés avec l'adresse saisie. Préférences du compte
+  journalisées aussi.
+- **IP des sessions** : `X-Forwarded-For` réécrit avec l'IP résolue par les mandataires de
+  confiance avant authx (qui lit l'en-tête sans vérifier le pair).
+- **Désactivation du TOTP par l'utilisateur** non montée : le TOTP est obligatoire ; pour
+  changer d'appareil, un administrateur le réinitialise (codes de secours en T11).
+- **Thème du compte** : le cookie de la bascule l'emporte ; la préférence s'applique faute
+  de cookie, et l'enregistrer pose le cookie.
+- `jobs.org_id` reste **sans** clé étrangère vers `organizations` : les tests de T02
+  mettent en file des jobs d'organisations fictives ; à poser avec le premier lot qui met
+  en file des jobs d'organisation réels (T05) **[à relire]**.
+- Purge des sessions et défis expirés : job horaire `auth.purge` de la file de T02.
+
+### Écarts
+
+- **Étiquette `v1.1.0` d'open-go-base non poussée** : le mandataire git de la session
+  refuse les pushs d'étiquettes (HTTP 403, branches acceptées). L'étiquette annotée existe
+  dans `/home/user/open-go-base` (sur `b9ccc67`). À faire par l'utilisateur :
+  `git -C ../open-go-base push origin v1.1.0`, puis
+  `go get leblanc.io/open-go-base@v1.1.0 && go mod tidy` ici (même code).
+- `internal/tenant` ne porte pas le middleware `/o/{slug}` ni `RequireOrgRole` : `tenant`
+  est un paquet métier, interdit de `net/http` (§ 4). La garde (`orgGuard`) et
+  `requireOrgRole` vivent dans `internal/web/identity.go` ; `tenant` porte les types
+  (`Role`, `Access`) et le contexte.
+- Handlers et modèles de vue dans `internal/web` (un fichier par famille d'écrans), comme
+  la page d'accueil de T01, plutôt qu'un sous-paquet par écran.
+- Horloge simulée du TOTP : mfax n'injecte pas d'horloge ; les tests produisent des codes
+  pour les pas −30 s, 0 et +30 s (tolérance de mfax), ce qui couvre l'avancée du temps et
+  le rejeu.
+
+### Mesures
+
+- Couverture (unitaires et intégration) : `account` 84,5 %, `org` 85,7 %, `audit`
+  87,3 %, `db/crossorg` 80,4 %, `tenant` 97,6 %, `db` 84,8 %, `web` 82,3 %, `render`
+  90,0 %, `config` 97,2 %.
+- Requêtes par page authentifiée : session et compte (authx, 3 dont le glissement de
+  session), état du visiteur (1 transaction : méthode, TOTP, préférences, organisations),
+  garde d'organisation (1 fonction).
+
+### Pour les lots suivants
+
+- Nouvelle table d'organisation : `CALL ogsbom_enforce_org_rls(...)` **et** une entrée
+  dans `orgTables` (`internal/db/orgtables_integration_test.go`), sinon les tests
+  échouent. Nouvelle route de données d'organisation : sous `/o/{slug}` (le harnais de
+  routes la teste seul) ; ailleurs, l'ajouter à `globalRoutes` en connaissance de cause.
+- Handler d'organisation : `tenant.AccessFrom(ctx)` (organisation, slug, rôle) ;
+  `id.requireOrgRole(tenant.RoleAnalyst)` pour le triage ; auteur pour l'audit :
+  `id.actor(r)`, puis `audit.RecordOrg(ctx, tx, actor, …)` dans la même `InOrg`
+  (nouvelle action : constante dans `audit`, phrase `audit.action.*` en fr et en).
+- Messages de réussite : redirection `?done=<code>` (liste fermée `flashes`) ; erreurs de
+  saisie : `account.ValidationError{Field, Key}`.
+- T04 (jetons personnels) : la garde d'API utilisateur pourra réutiliser
+  `crossorg.Access`. T25 : `session_auth.method = 'sso'` et `sso_org_id` existent déjà ;
+  `loadViewer` est l'endroit où imposer le SSO d'une organisation.
+- T11 : codes de secours de mfax (§ 23), et `docs/operations.md` § Comptes à compléter.

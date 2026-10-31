@@ -1,0 +1,80 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T "members.heading"}}</h1>
+    <p class="page-head__lead">{{T "members.lead"}}</p>
+  </div>
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  {{- if .CanAdmin}}
+  <section class="panel" aria-labelledby="members-add">
+    <div class="panel__head"><h2 class="panel__title" id="members-add">{{T "members.add_title"}}</h2></div>
+    <div class="panel__body">
+      <form class="form form--inline" method="post" action="{{.Base}}/members">
+        {{csrfField .Page.CSRFToken}}
+        <div class="field">
+          <label class="field__label" for="member-email">{{T "members.email"}}</label>
+          <input class="input" id="member-email" name="email" type="email" required value="{{.Email}}"{{if eq .Error.Field "email"}} aria-invalid="true"{{end}}>
+        </div>
+        <div class="field">
+          <label class="field__label" for="member-role">{{T "members.role"}}</label>
+          <select class="select" id="member-role" name="role">
+            {{- range .Roles}}
+            <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+            {{- end}}
+          </select>
+        </div>
+        <button type="submit" class="btn btn--primary">{{T "members.add"}}</button>
+      </form>
+      <p class="field__hint">{{T "members.add_hint"}}</p>
+    </div>
+  </section>
+  {{- end}}
+  <section class="panel" aria-labelledby="members-list">
+    <div class="panel__head"><h2 class="panel__title" id="members-list">{{T "members.list_title"}}</h2></div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "members.list_title"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "members.email"}}</th>
+            <th scope="col">{{T "members.role"}}</th>
+            <th scope="col">{{T "members.status"}}</th>
+            {{- if .CanAdmin}}<th scope="col" class="cell-actions">{{T "table.actions"}}</th>{{end}}
+          </tr>
+        </thead>
+        <tbody>
+          {{- $base := .Base}}{{$can := .CanAdmin}}{{$csrf := .Page.CSRFToken}}{{$roles := .Roles}}
+          {{- range .Members}}
+          <tr>
+            <th scope="row">{{.Email}}{{if .Self}} <span class="chip">{{T "members.you"}}</span>{{end}}</th>
+            <td>{{T .RoleKey}}</td>
+            <td>{{if .Active}}<span class="status status--active">{{T "status.active"}}</span>{{else}}<span class="status status--revoked">{{T "status.inactive"}}</span>{{end}}</td>
+            {{- if $can}}
+            <td class="cell-actions">
+              {{- $m := .}}
+              <form class="form form--inline" method="post" action="{{$base}}/members/{{.UserID}}/role">
+                {{csrfField $csrf}}
+                <label class="visually-hidden" for="role-{{.UserID}}">{{T "members.role_of" "Email" .Email}}</label>
+                <select class="select select--sm" id="role-{{.UserID}}" name="role">
+                  {{- range $roles}}
+                  <option value="{{.Value}}"{{if eq .Value (print $m.Role)}} selected{{end}}>{{T .LabelKey}}</option>
+                  {{- end}}
+                </select>
+                <button type="submit" class="btn btn--sm">{{T "members.change_role"}}</button>
+              </form>
+              <form class="form form--inline" method="post" action="{{$base}}/members/{{.UserID}}/remove">
+                {{csrfField $csrf}}
+                <button type="submit" class="btn btn--sm btn--danger">{{T "members.remove"}}<span class="visually-hidden"> {{.Email}}</span></button>
+              </form>
+            </td>
+            {{- end}}
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{template "next_page" .NextCursor}}
+  </section>
+</div>
+{{- end}}

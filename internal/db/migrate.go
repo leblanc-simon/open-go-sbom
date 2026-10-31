@@ -81,8 +81,8 @@ func LoadMigrations(fsys fs.FS) ([]Migration, error) {
 	return out, nil
 }
 
-// Step est une migration externe au projet (authx, mfax en T03) jouée sous le verrou de
-// migration, avant celles du projet. Elle utilise le pool du propriétaire, sur une autre
+// Step est une migration externe au projet jouée sous le verrou de migration, avant celles
+// du projet : celles d'authx et de mfax toujours, puis MigrateOptions.Before. Elle utilise le pool du propriétaire, sur une autre
 // connexion que celle qui tient le verrou.
 type Step struct {
 	Name string
@@ -98,14 +98,14 @@ type MigrateOptions struct {
 	Migrations fs.FS
 	// LockTimeout borne l'attente du verrou de migration (0 : sans limite).
 	LockTimeout time.Duration
-	// Before est joué sous le verrou, avant les migrations du projet.
+	// Before est joué sous le verrou, après authx et mfax et avant les migrations du projet.
 	Before []Step
 	Logger *slog.Logger
 }
 
 // Migrate applique les migrations avec le pool du rôle propriétaire, dans cet ordre :
 // verrou (LOCK TABLE … IN EXCLUSIVE MODE dans une transaction, sur une connexion dédiée),
-// étapes Before, migrations du projet en attente, validation (CheckOrgIsolation), puis
+// migrations d'authx et de mfax, étapes Before, migrations du projet en attente, validation (CheckOrgIsolation), puis
 // validation de la transaction. Les migrations du projet et leur enregistrement partagent
 // la transaction du verrou : tout ou rien. Une seconde instance attend le verrou, puis
 // constate qu'il n'y a rien à faire. Le pool doit permettre au moins deux connexions.
@@ -149,7 +149,7 @@ func Migrate(ctx context.Context, owner *sql.DB, opts MigrateOptions) ([]Migrati
 	if err := lock(ctx, tx, opts.LockTimeout); err != nil {
 		return nil, err
 	}
-	for _, step := range opts.Before {
+	for _, step := range append(externalSteps(), opts.Before...) {
 		if err := step.Run(ctx, owner); err != nil {
 			return nil, fmt.Errorf("db: migration %s : %w", step.Name, err)
 		}

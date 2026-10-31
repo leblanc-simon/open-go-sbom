@@ -105,7 +105,8 @@ func New(t testing.TB, opts ...Option) *DB {
 	// mi-chemin, et après la fermeture des pools (t.Cleanup est LIFO).
 	t.Cleanup(func() { d.drop(t) })
 	d.adminExec(ctx, t,
-		fmt.Sprintf("CREATE ROLE %s LOGIN PASSWORD '%s'", ident(d.OwnerRole), ownerPwd),
+		// BYPASSRLS : les fonctions de crossorg en dépendent (migration 005, ADR 0012).
+		fmt.Sprintf("CREATE ROLE %s LOGIN BYPASSRLS PASSWORD '%s'", ident(d.OwnerRole), ownerPwd),
 		fmt.Sprintf("CREATE ROLE %s LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD '%s'", ident(d.AppRole), appPwd),
 		fmt.Sprintf("CREATE DATABASE %s OWNER %s TEMPLATE template0 ENCODING 'UTF8'", ident(d.Name), ident(d.OwnerRole)),
 		fmt.Sprintf("REVOKE ALL ON DATABASE %s FROM PUBLIC", ident(d.Name)),

@@ -14,7 +14,8 @@ const CSRFFieldName = "csrf_token"
 // staticFuncs ne dépendent ni de la langue ni de la requête.
 func staticFuncs(assets *Assets) template.FuncMap {
 	return template.FuncMap{
-		"asset": assets.URL,
+		"asset":    assets.URL,
+		"initials": Initials,
 		"csrfField": func(token string) template.HTML {
 			return template.HTML(`<input type="hidden" name="` + CSRFFieldName + `" value="` + html.EscapeString(token) + `">`)
 		},

@@ -50,11 +50,18 @@ parades prévues, et le lot qui les porte.
 | --- | --- | --- |
 | Vol de session par XSS | `html/template`, CSP sans script ni style en ligne, cookies `HttpOnly`, `Secure`, `SameSite` | T01, T03 |
 | Requête forgée (CSRF) | csrfx sur l'interface et l'API utilisateur par session | T03 |
-| Force brute sur la connexion | limitation par IP, TOTP obligatoire, journal d'audit des échecs | T03 |
+| Force brute sur la connexion | limitation par IP dédiée à `/login` et `/login/2fa`, TOTP obligatoire, plafond de codes par défi, journal d'audit des échecs | T03 |
+| Énumération des comptes | message d'échec unique (e-mail inconnu, mot de passe faux, compte désactivé), temps égalisé par une comparaison bcrypt factice | T03 |
+| Session ouverte sans second facteur | enrôlement obligatoire ; session authentifiée refusée sans méthode enregistrée (`session_auth`) ou sans TOTP actif | T03 |
+| Mot de passe temporaire conservé | `must_change_pwd` impose le changement avant toute page ; affiché une seule fois, jamais dans une URL ni un journal | T03 |
+| Texte arbitraire injecté par un lien (`?error=`) | seuls des codes connus sont affichés (open-go-base v1.1.0, messages `?done=` en liste fermée) | T03 |
+| Usurpation de l'IP journalisée | `X-Forwarded-For` réécrit avec l'IP résolue par les seuls mandataires de confiance | T03 |
 | Rejeu d'un code TOTP | mfax refuse un code déjà utilisé | T03 |
 | Accès à une autre organisation (IDOR) | garde d'organisation, RLS forcée, 404 uniforme, tests d'isolement par route | T03 → |
 | Clickjacking | `frame-ancestors 'none'` | T01 |
-| Compte administrateur unique perdu | procédure de secours auditée | T03 |
+| Compte administrateur unique perdu | procédure de secours auditée, une fois par ticket ; avertissement s'il n'y a qu'un administrateur | T03 |
+| Variable de secours oubliée en configuration | sans effet après application (ticket déjà journalisé), rappel à chaque démarrage | T03 |
+| Administrateur d'instance qui lit une organisation | non membre : 404 ; il ne voit que les métadonnées (liste, administrateurs) et chaque réinitialisation est auditée — rôle privilégié assumé | T03 |
 
 ### Serveur — API agent et ingestion
 
@@ -74,7 +81,9 @@ parades prévues, et le lot qui les porte.
 | Ligne qui référence une autre organisation | clés étrangères composites | T03 → |
 | Rôle d'exécution trop puissant | refus de démarrer si superutilisateur, `BYPASSRLS` ou propriétaire des tables | T01 |
 | Migration altérée après publication | somme SHA-256 vérifiée au démarrage | T01 |
-| Fuite de secrets stockés | AES-256-GCM, clé hors base, rotation ; données associées liant chaque chiffré à sa ligne (un chiffré recopié ailleurs ne se déchiffre plus) | T01 |
+| Fuite de secrets stockés | AES-256-GCM, clé hors base, rotation ; données associées liant chaque chiffré à sa ligne (un chiffré recopié ailleurs ne se déchiffre plus) ; secrets TOTP chiffrés (T03) | T01, T03 |
+| Lecture de la base : jetons de session | jetons en clair dans `sessions` (choix d'authx) : une lecture de la base permet de reprendre une session jusqu'à son expiration ; à faire évoluer dans open-go-base (jeton haché) | ouvert |
+| Fonction inter-organisations trop bavarde | quatre fonctions listées (ADR 0012), métadonnées seulement, toute nouvelle relue comme un changement de sécurité | T03 |
 | Fuite par les journaux | jamais de mot de passe, jeton, secret ni contenu de SBOM dans les journaux | tous |
 
 ### Base de vulnérabilités

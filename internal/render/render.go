@@ -156,7 +156,11 @@ func (r *Renderer) Render(w http.ResponseWriter, req *http.Request, status int, 
 	loc := r.localizer(req)
 	p := v.base()
 	p.Lang = loc.Lang().String()
+	p.Chrome = ChromeFrom(req.Context())
 	p.Theme = themeFrom(req)
+	if p.Theme == "" && p.Chrome != nil {
+		p.Theme = p.Chrome.Theme
+	}
 	p.CSRFToken = csrfx.Token(req)
 	p.RequestID = middleware.RequestIDFrom(req.Context())
 	p.Version = r.version
@@ -189,6 +193,8 @@ func (r *Renderer) Render(w http.ResponseWriter, req *http.Request, status int, 
 
 // errorKeys associe un statut à sa clé d'erreur (error.<clé>.title et .text).
 var errorKeys = map[int]string{
+	http.StatusBadRequest:          "error.bad_request",
+	http.StatusForbidden:           "error.forbidden",
 	http.StatusNotFound:            "error.not_found",
 	http.StatusMethodNotAllowed:    "error.method_not_allowed",
 	http.StatusTooManyRequests:     "error.too_many_requests",
@@ -220,7 +226,12 @@ type errorView struct {
 
 // Error rend la page d'erreur traduite d'un statut.
 func (r *Renderer) Error(w http.ResponseWriter, req *http.Request, status int) {
-	key := ErrorKey(status)
+	r.ErrorWithKey(w, req, status, ErrorKey(status))
+}
+
+// ErrorWithKey rend la page d'erreur d'un statut avec un message précis (clé
+// error.<nature>, qui a ses sous-clés title et text), par exemple error.csrf pour un 403.
+func (r *Renderer) ErrorWithKey(w http.ResponseWriter, req *http.Request, status int, key string) {
 	r.Render(w, req, status, ErrorPage, &errorView{
 		Page:    Page{TitleKey: key + ".title"},
 		Code:    status,

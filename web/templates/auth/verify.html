@@ -1,0 +1,27 @@
+{{define "content" -}}
+<div class="auth">
+  <section class="auth__card" aria-labelledby="verify-title">
+    <h1 class="auth__title" id="verify-title">{{T "verify.heading"}}</h1>
+    <p class="auth__lead">{{T "verify.lead"}}</p>
+    {{- with .ErrorKey}}
+    <div class="callout callout--danger" role="alert">
+      <div class="callout__body">
+        <p class="callout__title">{{T "verify.error.title"}}</p>
+        <p class="callout__text">{{T .}}</p>
+      </div>
+    </div>
+    {{- end}}
+    <form class="form" method="post" action="/login/2fa">
+      {{csrfField .Page.CSRFToken}}
+      {{- with .Next}}<input type="hidden" name="next" value="{{.}}">{{end}}
+      <div class="field">
+        <label class="field__label" for="verify-code">{{T "verify.code"}}</label>
+        <input class="input input--code" id="verify-code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required aria-describedby="verify-code-hint"{{if .ErrorKey}} aria-invalid="true"{{end}}>
+        <p class="field__hint" id="verify-code-hint">{{T "verify.code_hint"}}</p>
+      </div>
+      <p><button type="submit" class="btn btn--primary">{{T "verify.submit"}}</button></p>
+    </form>
+    <p class="muted">{{T "verify.lost"}}</p>
+  </section>
+</div>
+{{- end}}

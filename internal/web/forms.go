@@ -1,0 +1,76 @@
+package web
+
+import (
+	"errors"
+	"net/http"
+	"net/url"
+	"strconv"
+
+	"leblanc.io/open-go-sbom/internal/account"
+	"leblanc.io/open-go-sbom/internal/pagination"
+)
+
+// maxFormBytes borne le corps d'un formulaire de l'interface.
+const maxFormBytes = 64 << 10
+
+// limitBody borne le corps des requêtes de l'interface, avant que CSRF ne le lise.
+func limitBody(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxFormBytes)
+		next.ServeHTTP(w, r)
+	})
+}
+
+// flashes associe le paramètre ?done= d'une redirection à son message : seules ces
+// valeurs sont affichées, jamais un texte reçu.
+var flashes = map[string]string{
+	"settings_saved":   "flash.settings_saved",
+	"password_changed": "flash.password_changed",
+	"member_added":     "flash.member_added",
+	"member_updated":   "flash.member_updated",
+	"member_removed":   "flash.member_removed",
+	"org_saved":        "flash.org_saved",
+	"org_created":      "flash.org_created",
+	"org_archived":     "flash.org_archived",
+	"org_unarchived":   "flash.org_unarchived",
+	"account_updated":  "flash.account_updated",
+	"totp_reset":       "flash.totp_reset",
+}
+
+func flashKey(r *http.Request) string { return flashes[r.URL.Query().Get("done")] }
+
+func redirectDone(w http.ResponseWriter, r *http.Request, path, done string) {
+	http.Redirect(w, r, path+"?done="+url.QueryEscape(done), http.StatusSeeOther)
+}
+
+// formError est l'erreur d'un formulaire : clé de traduction et champ en cause.
+type formError struct {
+	Key   string
+	Field string
+}
+
+// validationOf renvoie l'erreur de saisie de err, si c'en est une.
+func validationOf(err error) (formError, bool) {
+	if v, ok := account.IsValidation(err); ok {
+		return formError{Key: v.Key, Field: v.Field}, true
+	}
+	var lim *pagination.LimitError
+	if errors.Is(err, pagination.ErrInvalidCursor) || errors.As(err, &lim) {
+		return formError{Key: "error.invalid_cursor.title", Field: "cursor"}, true
+	}
+	return formError{}, false
+}
+
+// parseForm lit le formulaire ; un corps illisible ou trop gros donne une page 400.
+func (id *identity) parseForm(w http.ResponseWriter, r *http.Request) bool {
+	if err := r.ParseForm(); err != nil {
+		id.rd.Error(w, r, http.StatusBadRequest)
+		return false
+	}
+	return true
+}
+
+func pathInt(s string) (int64, bool) {
+	n, err := strconv.ParseInt(s, 10, 64)
+	return n, err == nil && n > 0
+}

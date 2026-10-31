@@ -10,9 +10,8 @@ import (
 const EnvPrefix = "OGSBOM_"
 
 // Config est la configuration d'ogsbom-server : fragments d'appconf (Web, Logging, I18n,
-// CORS, base de données) et fragments propres au projet. Les fragments Auth et MFA
-// d'appconf arrivent avec authx et mfax (T03), Ingest, VulnDB et Bootstrap avec leurs
-// lots.
+// CORS, base de données, Auth et MFA) et fragments propres au projet. Workers arrive avec
+// la file (T02), Ingest et VulnDB avec leurs lots.
 type Config struct {
 	Web        appconf.Web     `yaml:"web"        env-prefix:"OGSBOM_"`
 	HTTP       HTTP            `yaml:"http"       env-prefix:"OGSBOM_"`
@@ -24,7 +23,27 @@ type Config struct {
 	Database   Database        `yaml:"database"   env-prefix:"OGSBOM_"`
 	Migration  Migration       `yaml:"migration"  env-prefix:"OGSBOM_"`
 	Secrets    Secrets         `yaml:"secrets"    env-prefix:"OGSBOM_"`
+	Auth       appconf.Auth    `yaml:"auth"       env-prefix:"OGSBOM_"`
+	MFA        appconf.MFA     `yaml:"mfa"        env-prefix:"OGSBOM_"`
+	Login      Login           `yaml:"login"      env-prefix:"OGSBOM_"`
+	Bootstrap  Bootstrap       `yaml:"bootstrap"  env-prefix:"OGSBOM_"`
 	Workers    Workers         `yaml:"workers"    env-prefix:"OGSBOM_"`
+}
+
+// Login borne les tentatives de connexion : requêtes POST sur /login et /login/2fa par
+// minute et par IP, en plus de la limite générale de l'interface.
+type Login struct {
+	RateLimit int `yaml:"rate_limit" env:"LOGIN_RATE_LIMIT" env-default:"10" env-description:"Login and second-factor attempts per minute and per IP"`
+}
+
+// Bootstrap crée le premier administrateur d'instance sur une base sans compte (ignoré dès
+// qu'un compte existe), et porte la procédure de secours d'un administrateur qui a perdu
+// son TOTP. Ces valeurs sont lues au démarrage, et à retirer ensuite.
+type Bootstrap struct {
+	AdminEmail    string `yaml:"admin_email"       env:"BOOTSTRAP_ADMIN_EMAIL"       env-description:"E-mail of the first instance administrator, created when no account exists"`
+	AdminPassword string `yaml:"admin_password"    env:"BOOTSTRAP_ADMIN_PASSWORD"    env-description:"Temporary password of the first administrator (12 characters at least, changed at first login)"`
+	RescueEmail   string `yaml:"rescue_totp_email" env:"BOOTSTRAP_RESCUE_TOTP_EMAIL" env-description:"Rescue: e-mail of an instance administrator whose TOTP is reset at startup (audited)"`
+	RescueTicket  string `yaml:"rescue_ticket"     env:"BOOTSTRAP_RESCUE_TICKET"     env-description:"Rescue: incident reference (8 characters at least); each ticket is applied once"`
 }
 
 // HTTP règle les délais des serveurs HTTP (public et gestion) et l'arrêt propre.
@@ -103,6 +122,8 @@ func Defaults() Config {
 	c.Database.Driver = "postgres"
 	c.I18n.DefaultLanguage = "fr"
 	c.Logging.Level = "info"
+	c.Auth.CookieName = "ogsbom_session"
+	c.MFA.Issuer = "open-go-sbom"
 	c.Workers.Enabled = true
 	return c
 }

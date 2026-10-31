@@ -8,16 +8,93 @@ layout:
 
 nav:
   label: Main navigation
+  profile: My account
+  password: Password
+  logout: Sign out
+  admin: Administration
+  org_overview: Overview
+  members: Members
+  org_settings: Settings
+  audit: Audit log
+  admin_users: Accounts
+  admin_orgs: Organizations
+
+org_switcher:
+  caption: Organization
+  choose: Choose
+
+language:
+  fr: Français
+  en: English
 
 theme:
   system: "Theme: system"
   light: "Theme: light"
   dark: "Theme: dark"
 
-footer:
-  version: "Version {{.Version}}"
-  license: Free software under the WTFPL licence
-  source: Source code
+role:
+  viewer: Viewer
+  analyst: Analyst
+  admin: Administrator
+
+status:
+  active: Active
+  inactive: Deactivated
+  archived: Archived
+  enrolled: Enrolled
+  not_enrolled: Not enrolled
+  password_pending: Password to change
+
+format:
+  utc: "{{.Time}} UTC"
+
+form:
+  error_title: The form was not accepted
+  save: Save
+
+flash:
+  title: Done
+  settings_saved: Your preferences are saved.
+  password_changed: Your password is changed; your other sessions are closed.
+  member_added: The member is added.
+  member_updated: The member's role is changed.
+  member_removed: The member is removed from the organization.
+  org_saved: The organization settings are saved.
+  org_created: The organization is created.
+  org_archived: The organization is archived; its members no longer have access.
+  org_unarchived: The organization is active again.
+  account_updated: The account is updated.
+  totp_reset: The account's TOTP is reset; a new one will be enrolled at the next sign-in.
+
+table:
+  actions: Actions
+
+pagination:
+  label: Pagination
+  next: Next page
+
+validation:
+  email_invalid: Enter a valid e-mail address, without a name or spaces.
+  email_taken: An account already uses this address.
+  password_too_short: The password must be at least 12 characters long.
+  password_too_long: The password must be at most 256 characters long.
+  password_is_email: The password cannot be your e-mail address.
+  password_unchanged: The new password must differ from the current one.
+  password_mismatch: The two entries of the new password differ.
+  password_wrong: The current password is incorrect.
+  language_invalid: Unknown language.
+  theme_invalid: Unknown theme.
+  default_org_invalid: Choose an organization you are a member of.
+  last_admin: At least one active instance administrator is required.
+  cannot_target_self: You cannot deactivate your own account.
+  rescue_ticket_too_short: The rescue ticket must be at least 8 characters long.
+  slug_invalid: "The URL identifier only contains lowercase letters, digits and hyphens (48 characters at most, no hyphen at either end)."
+  slug_taken: An organization already uses this URL identifier.
+  name_invalid: The name must be 1 to 100 characters long.
+  role_invalid: Unknown role.
+  member_exists: This account is already a member of the organization.
+  member_unknown_account: No account uses this address. An instance administrator must create it first.
+  last_org_admin: The organization must keep at least one administrator.
 
 home:
   title: Home
@@ -27,11 +104,235 @@ home:
     and analyses them every day to spot known vulnerabilities.
   status_title: Instance status
   status_text: The server is running and its database schema is up to date.
+  no_org_title: No organization
+  no_org_text: >-
+    Your account is not a member of any organization. Ask an administrator of the
+    organization to add you.
+  create_org: Create an organization
+
+login:
+  title: Sign in
+  heading: Sign in
+  lead: Sign in with your e-mail address and password. A TOTP code will then be requested.
+  email: E-mail address
+  password: Password
+  submit: Continue
+  help: Forgot your password or lost your device? Contact an instance administrator.
+  error:
+    title: Sign-in refused
+    invalid_credentials: Incorrect e-mail address or password.
+    attempts_exhausted: Too many incorrect codes. Start the sign-in again.
+
+verify:
+  title: Verification code
+  heading: Verification code
+  lead: Enter the six-digit code shown by your authenticator app.
+  code: TOTP code
+  code_hint: Six digits, renewed every thirty seconds. A code works only once.
+  submit: Verify
+  lost: Lost your device? An instance administrator can reset your TOTP.
+  error:
+    title: Code refused
+    invalid_code: This code is incorrect, expired or already used.
+
+totp_setup:
+  title: TOTP setup
+  heading: Set up your second factor
+  lead: The second factor is mandatory. Link an authenticator app to your account to continue.
+  step_app: Install an authenticator app (FreeOTP, Aegis, KeePassXC…).
+  step_scan: Scan the QR code, or type the key below.
+  step_code: Enter the six-digit code it shows.
+  qr_alt: TOTP setup QR code for your account
+  secret: Setup key
+  code: Code shown by the app
+  submit: Enable
+  error:
+    invalid_code: "This code is incorrect: a new key was generated, scan the QR code again."
+
+profile:
+  title: My account
+  heading: My account
+  lead: "Signed in as {{.Email}}."
+  preferences: Preferences
+  language: Interface language
+  language_auto: Automatic (browser, then organization)
+  theme: Theme
+  default_org: Default organization
+  default_org_first: The first one in the list
+  security: Security
+  totp_active: Second factor active
+  totp_help: To change devices, ask an instance administrator to reset your TOTP.
+  change_password: Change password
+
+password:
+  title: Password
+  heading: Change password
+  forced: Your password is temporary. Choose a new one to access the application.
+  lead: Changing it closes your other sessions.
+  form_title: New password
+  current: Current password
+  new: New password
+  rule: "At least {{.Min}} characters, no other rule: a passphrase works very well."
+  confirm: Confirm the new password
+  submit: Change password
+
+org:
+  name: Name
+  language: Default language
+  language_hint: Language of members who have not chosen one, and of the organization's notifications.
+  slug: URL identifier
+  slug_hint: "Lowercase letters, digits and hyphens; it appears in addresses (/o/identifier)."
+
+org_overview:
+  title: "{{.Name}}"
+  your_role: "Your role: {{.Role}}."
+  next_title: Getting started
+  next_text: The organization's projects, agents and dashboard arrive with the next versions.
+
+members:
+  title: Members
+  heading: Organization members
+  lead: Members see the organization's data according to their role; only its administrators manage them.
+  add_title: Add a member
+  email: E-mail address
+  role: Role
+  add: Add
+  add_hint: The account must exist; an instance administrator creates it.
+  list_title: Member list
+  status: Account status
+  you: you
+  role_of: "Role of {{.Email}}"
+  change_role: Change
+  remove: Remove
+
+org_settings:
+  title: Organization settings
+  heading: Organization settings
+  lead: The organization's name and default language.
+  form_title: Organization
+
+audit:
+  title: Audit log
+  instance_title: Instance audit log
+  lead: Every administrative action, sign-in and failed sign-in, newest first.
+  list_title: Events
+  when: Date
+  event: Event
+  actor: Author
+  ip: IP address
+  system: System (startup)
+  empty: No event yet.
+  action:
+    auth_login: "Sign-in of {{.Target}}"
+    auth_login_failed: "Failed sign-in for “{{.Target}}”"
+    auth_totp_failed: "TOTP code refused for {{.Target}}"
+    auth_totp_enrolled: "Second factor enrolled for {{.Target}}"
+    auth_logout: "Sign-out of {{.Target}}"
+    account_created: "Account {{.Target}} created"
+    account_deactivated: "Account {{.Target}} deactivated"
+    account_activated: "Account {{.Target}} reactivated"
+    account_password_reset: "Password of {{.Target}} reset"
+    account_password_changed: "Password of {{.Target}} changed"
+    account_totp_reset: "TOTP of {{.Target}} reset"
+    account_role_changed: "Instance role of {{.Target}} changed"
+    account_settings_changed: "Preferences of {{.Target}} changed"
+    account_bootstrapped: "First administrator {{.Target}} created at startup"
+    account_rescue_totp_reset: "Rescue procedure: TOTP of {{.Target}} reset (ticket {{.D_ticket}})"
+    org_created: "Organization {{.Target}} created"
+    org_renamed: "Organization renamed from “{{.D_from}}” to “{{.D_to}}”"
+    org_language_changed: "Organization default language: {{.D_from}} → {{.D_to}}"
+    org_archived: "Organization {{.Target}} archived"
+    org_unarchived: "Organization {{.Target}} reactivated"
+    member_added: "{{.Target}} added with the role {{.D_role}}"
+    member_role_changed: "Role of {{.Target}}: {{.D_from}} → {{.D_to}}"
+    member_removed: "{{.Target}} removed from the organization"
+
+admin:
+  single_admin_title: Only one instance administrator
+  single_admin_text: >-
+    If they lost access to their account, only the rescue procedure would restore it.
+    Appoint a second administrator.
+
+admin_users:
+  title: Accounts
+  heading: Accounts
+  lead: The instance's accounts. A new account gets a temporary password and enrolls its TOTP at first sign-in.
+  create_title: Create an account
+  email: E-mail address
+  make_admin: Instance administrator
+  create: Create
+  create_hint: The temporary password is shown only once; give it to its holder through a safe channel.
+  list_title: Account list
+  role: Instance role
+  status: Status
+  totp: Second factor
+  last_login: Last sign-in
+  role_admin: Administrator
+  role_user: User
+  never: Never
+
+admin_user:
+  title: "Account {{.Email}}"
+  info: Details
+  created: Created on
+  orgs: Organizations
+  no_org: None
+  actions: Actions
+  actions_hint: Every action is logged. Resets close the account's sessions.
+  reset_password: Reset password
+  reset_totp: Reset TOTP
+  demote: Remove the administrator role
+  promote: Make instance administrator
+  deactivate: Deactivate
+  activate: Reactivate
+
+admin_password:
+  title: Temporary password
+  created_heading: Account created
+  reset_heading: Password reset
+  lead: "Temporary password of {{.Email}}."
+  once_title: Shown only once
+  once_text: Write it down now and give it to its holder through a safe channel; it will never be shown again.
+  password: Temporary password
+  next_steps: At sign-in, the holder will enroll a TOTP, then choose a new password.
+  back: Back to the account
+
+admin_orgs:
+  title: Organizations
+  heading: Organizations
+  lead: The instance's organizations. An instance administrator does not see their data unless a member.
+  create_title: Create an organization
+  admin_email: Organization administrator
+  admin_hint: Address of an existing account, who will manage the members.
+  create: Create
+  list_title: Organization list
+  members: Members
+
+admin_org:
+  title: "Organization {{.Name}}"
+  admins: Organization administrators
+  no_admin: No administrator.
+  add_admin: Account address
+  add_admin_submit: Make administrator
+  admins_hint: The account becomes an administrator of the organization (added if not a member).
+  archive_title: Archiving
+  archive_hint: An archived organization disappears for its members; its data is kept.
+  archive: Archive
+  unarchive: Reactivate
 
 error:
   back_home: Back to home
   code: "Error {{.Code}}"
   reference: "Request reference: {{.RequestID}}"
+  bad_request:
+    title: Bad request
+    text: The request is unreadable or too large.
+  forbidden:
+    title: Access denied
+    text: Your role in this organization does not allow this action.
+  csrf:
+    title: Form expired
+    text: The form could not be verified. Reload the page, then submit it again.
   not_found:
     title: Page not found
     text: The requested page does not exist or has moved.
@@ -50,3 +351,8 @@ error:
   invalid_limit:
     title: Invalid page size
     text: "The page size must be between 1 and {{.Max}}."
+
+footer:
+  version: "Version {{.Version}}"
+  license: Free software under the WTFPL licence
+  source: Source code

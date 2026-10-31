@@ -1,0 +1,323 @@
+//go:build integration
+
+package web
+
+import (
+	"bytes"
+	"context"
+	"encoding/base64"
+	"html"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/cookiejar"
+	"net/http/httptest"
+	"net/url"
+	"regexp"
+	"strconv"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/pquerna/otp/totp"
+	"github.com/prometheus/client_golang/prometheus"
+
+	"leblanc.io/open-go-base/appconf"
+	"leblanc.io/open-go-base/authx"
+
+	"leblanc.io/open-go-sbom/internal/account"
+	"leblanc.io/open-go-sbom/internal/audit"
+	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/open-go-sbom/internal/db/dbtest"
+	"leblanc.io/open-go-sbom/internal/locale"
+	"leblanc.io/open-go-sbom/internal/org"
+	"leblanc.io/open-go-sbom/internal/render"
+	"leblanc.io/open-go-sbom/internal/secret"
+	"leblanc.io/open-go-sbom/internal/tenant"
+	"leblanc.io/open-go-sbom/internal/web/middleware"
+	"leblanc.io/open-go-sbom/locales"
+	"leblanc.io/open-go-sbom/web"
+)
+
+// testCost est le coût bcrypt des tests : bas pour la vitesse, mais réel (le
+// chronométrage des échecs de connexion en dépend).
+const testCost = 6
+
+// app est un serveur complet (routeur, comptes, organisations) sur une base jetable.
+type app struct {
+	t        *testing.T
+	srv      *httptest.Server
+	tdb      *dbtest.DB
+	accounts *account.Service
+	orgs     *org.Service
+	box      *secret.Box
+	handler  http.Handler
+	logs     *syncBuffer
+
+	mu    sync.Mutex
+	steps map[int64]int // pas TOTP déjà consommés par compte (anti-rejeu)
+}
+
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (s *syncBuffer) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.buf.Write(p)
+}
+
+func (s *syncBuffer) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.buf.String()
+}
+
+type appOption func(*RouterOptions)
+
+func newApp(t *testing.T, opts ...appOption) *app {
+	t.Helper()
+	tdb := dbtest.New(t)
+	box, err := secret.New(map[string][]byte{"test": bytes.Repeat([]byte{7}, 32)}, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cat, err := locale.New(locales.FS, ".", "fr")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tpl, err := web.Templates()
+	if err != nil {
+		t.Fatal(err)
+	}
+	st, err := web.Static()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assets, err := render.NewAssets(st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logs := &syncBuffer{}
+	logger := slog.New(slog.NewJSONHandler(logs, nil))
+	rd, err := render.New(render.Options{Templates: tpl, Assets: assets, Catalog: cat, Version: "test", Logger: logger})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := &app{t: t, tdb: tdb, box: box, logs: logs, steps: map[int64]int{},
+		accounts: account.NewService(tdb.App, testCost), orgs: org.NewService(tdb.App)}
+	o := RouterOptions{
+		Logger: logger, Catalog: cat, Renderer: rd, Assets: assets,
+		Metrics:    middleware.NewHTTPMetrics(prometheus.NewRegistry()),
+		RateLimit:  0,
+		CSRFSecure: "off",
+		Identity: &IdentityOptions{
+			Pool: tdb.App, Accounts: a.accounts, Orgs: a.orgs, Secrets: box,
+			Auth:           appconf.Auth{SessionTTL: time.Hour, CookieName: "ogsbom_session", CookieSecure: "off", BcryptCost: testCost},
+			MFA:            appconf.MFA{Issuer: "open-go-sbom", ChallengeTTL: time.Minute, MaxAttempts: 3},
+			LoginRateLimit: 0,
+		},
+	}
+	for _, opt := range opts {
+		opt(&o)
+	}
+	h, err := NewRouter(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.handler = h
+	a.srv = httptest.NewServer(h)
+	t.Cleanup(a.srv.Close)
+	return a
+}
+
+// browser est un client avec ses cookies, qui ne suit pas les redirections.
+type browser struct {
+	t   *testing.T
+	app *app
+	c   *http.Client
+}
+
+func (a *app) browser() *browser {
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		a.t.Fatal(err)
+	}
+	return &browser{t: a.t, app: a, c: &http.Client{
+		Jar:           jar,
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}}
+}
+
+type page struct {
+	status   int
+	location string
+	body     string
+	header   http.Header
+}
+
+func (b *browser) do(req *http.Request) page {
+	b.t.Helper()
+	resp, err := b.c.Do(req)
+	if err != nil {
+		b.t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	return page{status: resp.StatusCode, location: resp.Header.Get("Location"), body: string(body), header: resp.Header}
+}
+
+func (b *browser) get(path string) page {
+	b.t.Helper()
+	req, err := http.NewRequest(http.MethodGet, b.app.srv.URL+path, nil)
+	if err != nil {
+		b.t.Fatal(err)
+	}
+	return b.do(req)
+}
+
+func (b *browser) cookie(name string) string {
+	u, _ := url.Parse(b.app.srv.URL)
+	for _, c := range b.c.Jar.Cookies(u) {
+		if c.Name == name {
+			return c.Value
+		}
+	}
+	return ""
+}
+
+// post envoie un formulaire avec le jeton CSRF (obtenu au besoin par une page publique).
+func (b *browser) post(path string, form url.Values) page {
+	b.t.Helper()
+	if b.cookie("csrf_token") == "" {
+		b.get("/login")
+	}
+	if form == nil {
+		form = url.Values{}
+	}
+	form.Set("csrf_token", b.cookie("csrf_token"))
+	req, err := http.NewRequest(http.MethodPost, b.app.srv.URL+path, strings.NewReader(form.Encode()))
+	if err != nil {
+		b.t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return b.do(req)
+}
+
+// user crée un compte prêt à l'emploi : mot de passe connu, TOTP actif, sans changement
+// de mot de passe imposé.
+type user struct {
+	ID       int64
+	Email    string
+	Password string
+	Secret   string
+}
+
+func (a *app) user(email string, admin bool) user {
+	a.t.Helper()
+	ctx := context.Background()
+	u, _, err := a.accounts.Create(ctx, audit.System, email, admin)
+	if err != nil {
+		a.t.Fatal(err)
+	}
+	password := "phrase de passe de " + email
+	hash, err := authx.HashPassword(password, testCost)
+	if err != nil {
+		a.t.Fatal(err)
+	}
+	key, err := totp.Generate(totp.GenerateOpts{Issuer: "test", AccountName: email})
+	if err != nil {
+		a.t.Fatal(err)
+	}
+	sealed, err := seal(a.box, u.ID, key.Secret())
+	if err != nil {
+		a.t.Fatal(err)
+	}
+	if err := a.tdb.App.InTx(ctx, func(tx *db.Tx) error {
+		if _, err := tx.ExecContext(ctx, `UPDATE users SET password_hash = $1, must_change_pwd = 0 WHERE id = $2`, hash, u.ID); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `INSERT INTO mfa_totp (user_id, secret, enabled) VALUES ($1, $2, 1)`, u.ID, sealed)
+		return err
+	}); err != nil {
+		a.t.Fatal(err)
+	}
+	return user{ID: u.ID, Email: email, Password: password, Secret: key.Secret()}
+}
+
+// seal chiffre un secret TOTP comme account.SealedTOTPStore.
+func seal(box *secret.Box, userID int64, plain string) (string, error) {
+	ct, keyID, err := box.Seal([]byte(plain), []byte("mfa_totp:"+itoa(userID)))
+	if err != nil {
+		return "", err
+	}
+	return "s1:" + keyID + ":" + base64.StdEncoding.EncodeToString(ct), nil
+}
+
+func itoa(n int64) string { return strconv.FormatInt(n, 10) }
+
+// code renvoie un code TOTP d'un pas jamais consommé pour ce compte : -30 s, puis 0, puis
+// +30 s (mfax tolère un pas d'écart et refuse un pas déjà utilisé).
+func (a *app) code(userID int64, secretKey string) string {
+	a.t.Helper()
+	a.mu.Lock()
+	n := a.steps[userID]
+	a.steps[userID] = n + 1
+	a.mu.Unlock()
+	if n > 2 {
+		a.t.Fatalf("plus de trois connexions TOTP pour le compte %d dans le même test", userID)
+	}
+	c, err := totp.GenerateCode(secretKey, time.Now().Add(time.Duration(n-1)*30*time.Second))
+	if err != nil {
+		a.t.Fatal(err)
+	}
+	return c
+}
+
+// signIn connecte u par le vrai parcours (mot de passe, puis code TOTP).
+func (a *app) signIn(u user) *browser {
+	a.t.Helper()
+	b := a.browser()
+	p := b.post("/login", url.Values{"email": {u.Email}, "password": {u.Password}})
+	if p.status != http.StatusSeeOther || !strings.HasPrefix(p.location, "/login/2fa") {
+		a.t.Fatalf("mot de passe de %s : %d %q", u.Email, p.status, p.location)
+	}
+	p = b.post("/login/2fa", url.Values{"code": {a.code(u.ID, u.Secret)}})
+	if p.status != http.StatusSeeOther {
+		a.t.Fatalf("code TOTP de %s : %d\n%s", u.Email, p.status, p.body)
+	}
+	return b
+}
+
+// org crée une organisation dont admin est l'administrateur.
+func (a *app) org(slug string, admin user) org.Organization {
+	a.t.Helper()
+	o, err := a.orgs.Create(context.Background(), audit.System, slug, "Org "+slug, "fr", admin.ID)
+	if err != nil {
+		a.t.Fatal(err)
+	}
+	return o
+}
+
+func (a *app) addMember(o org.Organization, u user, role tenant.Role) {
+	a.t.Helper()
+	if err := a.orgs.AddMember(context.Background(), audit.System, o.ID, u.Email, role); err != nil {
+		a.t.Fatal(err)
+	}
+}
+
+var secretPattern = regexp.MustCompile(`<code class="auth__secret">([A-Z2-7 ]+)</code>`)
+
+func setupSecret(t *testing.T, body string) string {
+	t.Helper()
+	m := secretPattern.FindStringSubmatch(body)
+	if m == nil {
+		t.Fatalf("clé TOTP absente de la page :\n%s", body)
+	}
+	return strings.ReplaceAll(m[1], " ", "")
+}
+
+func unescape(s string) string { return html.UnescapeString(s) }

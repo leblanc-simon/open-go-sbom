@@ -1,0 +1,56 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T "admin_users.heading"}}</h1>
+    <p class="page-head__lead">{{T "admin_users.lead"}}</p>
+  </div>
+  {{template "single_admin" .SingleAdmin}}
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  <section class="panel" aria-labelledby="users-create">
+    <div class="panel__head"><h2 class="panel__title" id="users-create">{{T "admin_users.create_title"}}</h2></div>
+    <div class="panel__body">
+      <form class="form form--inline" method="post" action="/admin/users">
+        {{csrfField .Page.CSRFToken}}
+        <div class="field">
+          <label class="field__label" for="user-email">{{T "admin_users.email"}}</label>
+          <input class="input" id="user-email" name="email" type="email" required value="{{.Email}}"{{if eq .Error.Field "email"}} aria-invalid="true"{{end}}>
+        </div>
+        <label class="check"><input type="checkbox" name="admin"> {{T "admin_users.make_admin"}}</label>
+        <button type="submit" class="btn btn--primary">{{T "admin_users.create"}}</button>
+      </form>
+      <p class="field__hint">{{T "admin_users.create_hint"}}</p>
+    </div>
+  </section>
+  <section class="panel" aria-labelledby="users-list">
+    <div class="panel__head"><h2 class="panel__title" id="users-list">{{T "admin_users.list_title"}}</h2></div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "admin_users.list_title"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "admin_users.email"}}</th>
+            <th scope="col">{{T "admin_users.role"}}</th>
+            <th scope="col">{{T "admin_users.status"}}</th>
+            <th scope="col">{{T "admin_users.totp"}}</th>
+            <th scope="col">{{T "admin_users.last_login"}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{- range .Users}}
+          <tr>
+            <th scope="row"><a href="/admin/users/{{.ID}}">{{.Email}}</a></th>
+            <td>{{if .Admin}}{{T "admin_users.role_admin"}}{{else}}{{T "admin_users.role_user"}}{{end}}</td>
+            <td>{{template "account_status" .}}</td>
+            <td>{{if .TOTPEnabled}}<span class="status status--active">{{T "status.enrolled"}}</span>{{else}}<span class="status status--warning">{{T "status.not_enrolled"}}</span>{{end}}</td>
+            <td>{{with .LastLogin}}<time datetime="{{.UTC.Format "2006-01-02T15:04:05Z07:00"}}">{{T "format.utc" "Time" (.UTC.Format "2006-01-02 15:04")}}</time>{{else}}{{T "admin_users.never"}}{{end}}</td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{template "next_page" .NextCursor}}
+  </section>
+</div>
+{{- end}}
+

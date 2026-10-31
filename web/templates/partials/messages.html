@@ -1,0 +1,46 @@
+{{define "flash" -}}
+{{- with .}}
+<div class="callout callout--success" role="status">
+  <div class="callout__body">
+    <p class="callout__title">{{T "flash.title"}}</p>
+    <p class="callout__text">{{T .}}</p>
+  </div>
+</div>
+{{- end}}
+{{- end}}
+
+{{define "form_error" -}}
+{{- with .Key}}
+<div class="callout callout--danger" role="alert">
+  <div class="callout__body">
+    <p class="callout__title">{{T "form.error_title"}}</p>
+    <p class="callout__text">{{T .}}</p>
+  </div>
+</div>
+{{- end}}
+{{- end}}
+
+{{define "single_admin" -}}
+{{- if .}}
+<div class="callout callout--warning">
+  <div class="callout__body">
+    <p class="callout__title">{{T "admin.single_admin_title"}}</p>
+    <p class="callout__text">{{T "admin.single_admin_text"}}</p>
+  </div>
+</div>
+{{- end}}
+{{- end}}
+
+{{define "next_page" -}}
+{{- with .}}
+<nav class="pagination" aria-label="{{T "pagination.label"}}">
+  <a class="btn btn--sm" href="?cursor={{.}}">{{T "pagination.next"}}</a>
+</nav>
+{{- end}}
+{{- end}}
+
+{{define "account_status" -}}
+{{- if not .Active}}<span class="status status--revoked">{{T "status.inactive"}}</span>
+{{- else if .MustChangePwd}}<span class="status status--warning">{{T "status.password_pending"}}</span>
+{{- else}}<span class="status status--active">{{T "status.active"}}</span>{{end}}
+{{- end}}

@@ -1,0 +1,34 @@
+{{define "content" -}}
+<div class="auth">
+  <section class="auth__card auth__card--wide" aria-labelledby="totp-title">
+    <h1 class="auth__title" id="totp-title">{{T "totp_setup.heading"}}</h1>
+    <p class="auth__lead">{{T "totp_setup.lead"}}</p>
+    {{- with .ErrorKey}}
+    <div class="callout callout--danger" role="alert">
+      <div class="callout__body">
+        <p class="callout__title">{{T "verify.error.title"}}</p>
+        <p class="callout__text">{{T .}}</p>
+      </div>
+    </div>
+    {{- end}}
+    <ol class="auth__steps">
+      <li>{{T "totp_setup.step_app"}}</li>
+      <li>{{T "totp_setup.step_scan"}}</li>
+      <li>{{T "totp_setup.step_code"}}</li>
+    </ol>
+    <img class="auth__qr" src="{{.QR}}" alt="{{T "totp_setup.qr_alt"}}" width="192" height="192">
+    <dl class="kv">
+      <dt>{{T "totp_setup.secret"}}</dt>
+      <dd><code class="auth__secret">{{.Secret}}</code></dd>
+    </dl>
+    <form class="form" method="post" action="/account/totp/enable">
+      {{csrfField .Page.CSRFToken}}
+      <div class="field">
+        <label class="field__label" for="totp-code">{{T "totp_setup.code"}}</label>
+        <input class="input input--code" id="totp-code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required{{if .ErrorKey}} aria-invalid="true"{{end}}>
+      </div>
+      <p><button type="submit" class="btn btn--primary">{{T "totp_setup.submit"}}</button></p>
+    </form>
+  </section>
+</div>
+{{- end}}

@@ -34,6 +34,9 @@ type RouterOptions struct {
 	CORS appconf.CORS
 	// CSRFSecure pilote l'attribut Secure du cookie CSRF : auto, on, off.
 	CSRFSecure string
+	// Identity branche comptes, sessions, TOTP et organisations ; nil, l'interface n'a que
+	// sa page d'accueil publique (tests du socle).
+	Identity *IdentityOptions
 
 	// extraUI ajoute des routes à l'interface (tests du paquet).
 	extraUI func(chi.Router)
@@ -64,17 +67,35 @@ func NewRouter(o RouterOptions) (http.Handler, error) {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { o.Renderer.Error(w, r, status) })
 	}
 
+	csrfFailure := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		o.Renderer.ErrorWithKey(w, r, http.StatusForbidden, "error.csrf")
+	})
+	csrf := csrfx.New(csrfx.WithSecure(o.CSRFSecure), csrfx.WithFailureHandler(csrfFailure)).Middleware
+
+	var id *identity
+	loginLimit := func(next http.Handler) http.Handler { return next }
 	ui := chi.Chain(
 		o.Metrics.Middleware("ui"),
 		limiter.Middleware,
 		accessLog,
 		middleware.Recover(o.Logger, pageError(http.StatusInternalServerError)),
 		uiHeaders,
-		// T03 : session (authx), puis changement de mot de passe imposé.
-		csrfx.New(csrfx.WithSecure(o.CSRFSecure)).Middleware,
-		middleware.Language(o.Catalog, middleware.LanguageSources{}),
-		// T03 : organisation courante, sur les routes /o/{slug}/….
+		limitBody,
 	)
+	if o.Identity != nil {
+		if id, err = newIdentity(*o.Identity, o.Renderer, o.Catalog, o.Logger, limiter.ClientIP); err != nil {
+			return nil, err
+		}
+		login, err := ratelimit.New(o.Identity.LoginRateLimit, o.TrustedProxies, ratelimit.WithLimitHandler(tooMany))
+		if err != nil {
+			return nil, err
+		}
+		loginLimit = login.Middleware
+		// Session (authx) et visiteur, puis changement de mot de passe imposé (§ 14).
+		ui = append(ui, trustClientIP(proxies, limiter.ClientIP), id.mgr.LoadSession, id.loadViewer, mustChangePassword)
+	}
+	// La langue précède la garde d'organisation, qui la recalcule (§ 18).
+	ui = append(ui, csrf, middleware.Language(o.Catalog, middleware.LanguageSources{Account: accountLanguage}))
 	api := func(group string) chi.Middlewares {
 		return chi.Chain(
 			o.Metrics.Middleware(group),
@@ -116,7 +137,7 @@ func NewRouter(o RouterOptions) (http.Handler, error) {
 
 	r.Group(func(r chi.Router) {
 		r.Use(ui...)
-		registerUI(r, &handlers{renderer: o.Renderer})
+		registerUI(r, &handlers{renderer: o.Renderer, id: id}, loginLimit)
 		if o.extraUI != nil {
 			o.extraUI(r)
 		}

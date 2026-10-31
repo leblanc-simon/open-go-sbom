@@ -1,0 +1,59 @@
+/* Encadré d'information, de succès, d'avertissement ou d'erreur. La nature est aussi dite
+   par le titre : jamais par la seule couleur. */
+.callout {
+  --callout-bg: var(--color-surface);
+  --callout-border: var(--color-border);
+  --callout-fg: var(--color-text-2);
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--callout-bg);
+  border: 1px solid var(--callout-border);
+  border-inline-start-width: 4px;
+  border-radius: var(--radius-lg);
+
+  .callout__body {
+    display: grid;
+    flex: 1 1 20rem;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .callout__title {
+    font-weight: var(--weight-bold);
+    color: var(--callout-fg);
+  }
+
+  .callout__text {
+    font-size: var(--text-sm);
+    color: var(--color-text-2);
+  }
+
+  .callout__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-self: center;
+    gap: var(--space-2);
+  }
+
+  &.callout--success {
+    --callout-bg: var(--color-success-soft);
+    --callout-border: var(--color-success);
+    --callout-fg: var(--color-success);
+  }
+
+  &.callout--warning {
+    --callout-bg: var(--color-warning-soft);
+    --callout-border: var(--color-warning-border);
+    --callout-fg: var(--color-warning);
+  }
+
+  &.callout--danger {
+    --callout-bg: var(--color-danger-soft);
+    --callout-border: var(--color-danger-border);
+    --callout-fg: var(--color-danger);
+  }
+}

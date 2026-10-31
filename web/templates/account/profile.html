@@ -1,0 +1,51 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T "profile.heading"}}</h1>
+    <p class="page-head__lead">{{T "profile.lead" "Email" .Email}}</p>
+  </div>
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  <section class="panel" aria-labelledby="profile-prefs">
+    <div class="panel__head"><h2 class="panel__title" id="profile-prefs">{{T "profile.preferences"}}</h2></div>
+    <div class="panel__body">
+      <form class="form" method="post" action="/account">
+        {{csrfField .Page.CSRFToken}}
+        <div class="field">
+          <label class="field__label" for="profile-language">{{T "profile.language"}}</label>
+          <select class="select" id="profile-language" name="language">
+            {{- range .Languages}}
+            <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+            {{- end}}
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label" for="profile-theme">{{T "profile.theme"}}</label>
+          <select class="select" id="profile-theme" name="theme">
+            {{- range .Themes}}
+            <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+            {{- end}}
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label" for="profile-org">{{T "profile.default_org"}}</label>
+          <select class="select" id="profile-org" name="default_org"{{if eq .Error.Field "default_org"}} aria-invalid="true"{{end}}>
+            {{- range .Orgs}}
+            <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{if .LabelKey}}{{T .LabelKey}}{{else}}{{.Label}}{{end}}</option>
+            {{- end}}
+          </select>
+        </div>
+        <p><button type="submit" class="btn btn--primary">{{T "form.save"}}</button></p>
+      </form>
+    </div>
+  </section>
+  <section class="panel" aria-labelledby="profile-security">
+    <div class="panel__head"><h2 class="panel__title" id="profile-security">{{T "profile.security"}}</h2></div>
+    <div class="panel__body stack stack--sm">
+      <p><span class="status status--active">{{T "profile.totp_active"}}</span></p>
+      <p class="muted">{{T "profile.totp_help"}}</p>
+      <p><a class="btn" href="/account/password">{{T "profile.change_password"}}</a></p>
+    </div>
+  </section>
+</div>
+{{- end}}

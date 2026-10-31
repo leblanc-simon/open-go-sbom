@@ -1,0 +1,32 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T "org_settings.heading"}}</h1>
+    <p class="page-head__lead">{{T "org_settings.lead"}}</p>
+  </div>
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  <section class="panel" aria-labelledby="org-settings-form">
+    <div class="panel__head"><h2 class="panel__title" id="org-settings-form">{{T "org_settings.form_title"}}</h2></div>
+    <div class="panel__body">
+      <form class="form" method="post" action="{{.Base}}/settings">
+        {{csrfField .Page.CSRFToken}}
+        <div class="field">
+          <label class="field__label" for="org-name">{{T "org.name"}}</label>
+          <input class="input" id="org-name" name="name" type="text" maxlength="100" required value="{{.Name}}"{{if eq .Error.Field "name"}} aria-invalid="true"{{end}}>
+        </div>
+        <div class="field">
+          <label class="field__label" for="org-language">{{T "org.language"}}</label>
+          <select class="select" id="org-language" name="language" aria-describedby="org-language-hint">
+            {{- range .Languages}}
+            <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+            {{- end}}
+          </select>
+          <p class="field__hint" id="org-language-hint">{{T "org.language_hint"}}</p>
+        </div>
+        <p><button type="submit" class="btn btn--primary">{{T "form.save"}}</button></p>
+      </form>
+    </div>
+  </section>
+</div>
+{{- end}}

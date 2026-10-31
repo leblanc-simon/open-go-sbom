@@ -253,9 +253,13 @@ func TestMigrateRefusesUnprotectedOrgTable(t *testing.T) {
 		"politique restrictive en plus": {`CREATE TABLE things (org_id uuid NOT NULL, v text);
 			CALL ogsbom_enforce_org_rls('things');
 			CREATE POLICY not_empty ON things AS RESTRICTIVE USING (v <> '')`, false},
-		"organizations sans RLS": {"CREATE TABLE organizations (id uuid PRIMARY KEY)", true},
-		"organizations protégée": {`CREATE TABLE organizations (id uuid PRIMARY KEY);
-			CALL ogsbom_enforce_org_rls('organizations', 'id')`, false},
+		// La table organizations du projet existe déjà (004) : le contrôle porte sur le nom
+		// dans tout schéma utilisateur.
+		"organizations sans RLS": {`CREATE SCHEMA other;
+			CREATE TABLE other.organizations (id uuid PRIMARY KEY)`, true},
+		"organizations protégée": {`CREATE SCHEMA other;
+			CREATE TABLE other.organizations (id uuid PRIMARY KEY);
+			CALL ogsbom_enforce_org_rls('other.organizations', 'id')`, false},
 		"table globale à org_id facultatif": {"CREATE TABLE global_probe (org_id uuid, kind text)", false},
 	}
 	for name, c := range cases {
