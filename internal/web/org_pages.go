@@ -37,22 +37,6 @@ func access(r *http.Request) tenant.Access {
 	return acc
 }
 
-type orgOverviewView struct {
-	render.Page
-	Name     string
-	RoleKey  string
-	CanAdmin bool
-	Base     string
-}
-
-func (id *identity) orgOverview(w http.ResponseWriter, r *http.Request) {
-	acc := access(r)
-	id.rd.Render(w, r, http.StatusOK, "org/overview", &orgOverviewView{
-		Page: render.Page{TitleKey: "org_overview.title", TitleArgs: map[string]any{"Name": acc.Name}, Nav: orgNav(acc, "overview")},
-		Name: acc.Name, RoleKey: "role." + string(acc.Role), CanAdmin: acc.Role.AtLeast(tenant.RoleAdmin), Base: orgBase(acc),
-	})
-}
-
 type memberRow struct {
 	org.Member
 	RoleKey string

@@ -1,0 +1,8 @@
+<svg class="chart chart--high" viewBox="0 0 600 52" preserveAspectRatio="none" role="img" aria-labelledby="trend-high-title trend-high-desc" focusable="false">
+<title id="trend-high-title">High</title>
+<desc id="trend-high-desc">No data</desc>
+<line class="chart__grid" x1="0" y1="50" x2="600" y2="50"></line>
+<polyline class="chart__line" points="600,6"></polyline>
+<path class="chart__dot" d="M600,6h0"></path>
+<rect class="chart__hit" x="0" y="0" width="600" height="52"><title>2026-10-31: 3</title></rect>
+</svg>

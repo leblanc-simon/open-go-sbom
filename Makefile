@@ -98,7 +98,7 @@ test-grypedb: ## Tests avec la vraie base Grype (OGSBOM_TEST_GRYPEDB_DIR : base 
 
 .PHONY: bench
 bench: ## Mesures sur le jeu de référence (docs/benchmarks.md)
-	OGSBOM_BENCH=1 $(GO) test -count=1 -timeout 30m -tags integration -run TestReferenceDataset -v ./internal/benchdata/
+	OGSBOM_BENCH=1 $(GO) test -count=1 -timeout 30m -tags integration -run TestReferenceDataset -v ./internal/benchdata/ ./internal/web/
 
 .PHONY: bench-search
 bench-search: ## Mesures de la recherche sur le jeu de référence, RLS active (docs/benchmarks.md)

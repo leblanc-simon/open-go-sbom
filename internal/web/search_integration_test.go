@@ -78,6 +78,10 @@ func TestSearchScreenAndAPI(t *testing.T) {
 	if !strings.Contains(unescape(b.get("/o/org-a/search?q=lodash+vers%3Anpm%2F%3C1").body), "Plage sans purl") {
 		t.Error("plage sur un nom : message absent")
 	}
+	// Le tableau de bord mène des composants répandus à leur recherche.
+	if dash := b.get("/o/org-a").body; !strings.Contains(dash, "/o/org-a/search?q=pkg%3Amaven%2Forg.apache.logging.log4j%2Flog4j-core") {
+		t.Error("composant répandu sans lien vers la recherche")
+	}
 	// Les filtres sont dans l'URL : la même URL redonne la même page, filtres cochés et
 	// retirables.
 	filtered := "/o/org-a/search?q=log4j-core&kev=1&type=repo"

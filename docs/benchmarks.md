@@ -113,3 +113,21 @@ par les fonctions de recherche (ADR 0024) et leurs index GIN `components_name_tr
 `components_hashes_idx` ; l'essentiel du temps du nom large est l'agrégat par projet des
 16 675 occurrences et de leurs constats. `TestSearchPlansUseTheirIndexes` vérifie ces
 index à chaque `make ci` (jeu de 100 projets, parcours séquentiels interdits).
+
+### T10 — Tableau de bord et fiche projet (cible : 1 s au 95e centile)
+
+`TestReferenceDatasetDashboard` (`internal/web`, lancé par `make bench`) : pages HTML
+complètes par HTTP (session, garde d'organisation, lectures sous la RLS, rendu), sur le jeu
+de référence complété d'un an de statistiques quotidiennes (organisation, et 1 000 projets
+× 365 jours) et de 1 000 agents ; 50 passages par page, le premier compté comme froid.
+
+| Page | Froid | p50 | p95 | Maximum |
+| --- | --- | --- | --- | --- |
+| Tableau de bord, 90 jours | 546 ms | 511 ms | **594 ms** | 651 ms |
+| Tableau de bord, 12 mois | 552 ms | 509 ms | **603 ms** | 635 ms |
+| Fiche projet, 90 jours | 32 ms | 19 ms | **32 ms** | 37 ms |
+
+Enregistrement des statistiques du jour de l'organisation (job `dashboard.stats_org`) :
+0,34 s. Environnement de réalisation (4 cœurs, 15 Gio, partagé avec d'autres tests) ;
+cible tenue. Une première version (trois agrégats sur les constats ouverts, familles de
+composants regroupées sans réduction préalable) donnait un p95 de 1,8 s.

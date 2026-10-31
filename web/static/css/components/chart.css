@@ -1,0 +1,110 @@
+/* Graphiques SVG (partials/charts.html, internal/render/chart.go) : traits et couleurs par
+   classes, jamais par style en ligne (CSP). La couleur d'une sévérité double toujours un
+   libellé écrit. */
+.chart {
+  --chart-mark: var(--color-text);
+
+  display: block;
+  width: 100%;
+  height: 3.25rem;
+  overflow: visible;
+
+  .chart__grid {
+    stroke: var(--color-border);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .chart__line {
+    fill: none;
+    stroke: var(--chart-mark);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .chart__area {
+    fill: var(--chart-mark);
+    opacity: 0.12;
+  }
+
+  /* Tracé de longueur nulle aux extrémités rondes : un point qui ne se déforme pas avec
+     preserveAspectRatio="none". */
+  .chart__dot {
+    fill: none;
+    stroke: var(--chart-mark);
+    stroke-width: 7;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .chart__hit {
+    fill: transparent;
+
+    &:hover {
+      fill: var(--color-surface-sunken);
+      opacity: 0.6;
+    }
+  }
+
+  &.chart--critical {
+    --chart-mark: var(--sev-critical-mark);
+  }
+
+  &.chart--high {
+    --chart-mark: var(--sev-high-mark);
+  }
+
+  &.chart--medium {
+    --chart-mark: var(--sev-medium-mark);
+  }
+
+  &.chart--low {
+    --chart-mark: var(--sev-low-mark);
+  }
+}
+
+/* Barres horizontales en tableau : libellé, barre, valeur exacte. */
+.bar-chart {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 var(--space-2);
+  font-size: var(--text-sm);
+
+  th, td {
+    padding: 0;
+    text-align: start;
+    font-weight: var(--weight-regular);
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  th {
+    padding-inline-end: var(--space-3);
+  }
+
+  .bar-chart__bar {
+    width: 100%;
+    min-width: 4rem;
+  }
+
+  .bar-chart__track {
+    display: block;
+    width: 100%;
+    height: 0.625rem;
+    color: var(--color-text-2);
+    border-radius: 2px;
+  }
+
+  .bar-chart__value {
+    padding-inline-start: var(--space-3);
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+  }
+}
+
+.bar-chart__desc {
+  font-size: var(--text-xs);
+  color: var(--color-text-2);
+}

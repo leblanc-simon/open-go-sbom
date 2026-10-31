@@ -9,6 +9,7 @@ import (
 	"leblanc.io/open-go-sbom/internal/agent"
 	apiv1 "leblanc.io/open-go-sbom/internal/api"
 	"leblanc.io/open-go-sbom/internal/audit"
+	"leblanc.io/open-go-sbom/internal/dashboard"
 	"leblanc.io/open-go-sbom/internal/ingest"
 	"leblanc.io/open-go-sbom/internal/inventory"
 	"leblanc.io/open-go-sbom/internal/org"
@@ -79,6 +80,12 @@ func TestDynamicKeysExist(t *testing.T) {
 	}
 	for _, k := range agent.Kinds() {
 		want = append(want, "agent_type."+string(k))
+	}
+	for _, k := range project.Kinds() {
+		want = append(want, "dashboard.kind_"+string(k))
+	}
+	for _, p := range dashboard.Periods() {
+		want = append(want, "dashboard.period_"+strconv.Itoa(int(p)))
 	}
 	for _, s := range []agent.State{agent.StateActive, agent.StatePending, agent.StateDisabled} {
 		want = append(want, "agent_state."+string(s))

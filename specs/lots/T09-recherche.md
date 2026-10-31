@@ -114,7 +114,8 @@ Réalisé le 31 octobre 2026, branche `lot/T09-recherche`.
   `/o/{slug}/search` (barre, « Interprété comme », aide de syntaxe, filtres en formulaire
   GET, filtres actifs retirables, résultats groupés par projet, export, page suivante),
   entrée « Recherche » de la navigation d'organisation, page « Jetons d'accès » du profil.
-  Fiche composant : versions triées selon l'écosystème (`version.Sort`). Composants CSS
+  Fiche composant : versions triées selon l'écosystème (`version.Sort`). Tableau de bord :
+  lien de chaque composant répandu vers la recherche de son paquet. Composants CSS
   `chip--filter`, `chip__remove` ; écran `screens/search.css` (`search`, `qtoken`,
   `syntax-list`, `search-layout`, `facets`, `result-group`, `toolbar`).
 - **Banc d'essai** : `make bench-search` (`TestSearchBenchmark`), compléments du jeu
@@ -219,9 +220,10 @@ Réalisé le 31 octobre 2026, branche `lot/T09-recherche`.
 
 ### Pour les lots suivants
 
-- **T10 (tableau de bord)** : « composants vulnérables les plus répandus » peut s'appuyer
-  sur les mêmes jointures que `search` (`component_set_items` → `ref_current`) ; l'entrée
-  « Recherche » a été ajoutée en tête de `orgNav` (après « Vue d'ensemble »).
+- **Tableau de bord (T10)** : chaque composant répandu mène à la recherche de son paquet
+  (`/search?q=<purl_base>`) ; les tuiles ne s'y prêtent pas (une recherche exige une
+  requête : pas de liste transverse « toutes les vulnérabilités critiques »), écart de T10
+  maintenu pour elles.
 - **T11 (recette)** : vérifier `make bench-search` sur la machine de référence ; relire
   les deux fonctions de recherche comme du code de sécurité ; audit d'accessibilité de
   l'écran.

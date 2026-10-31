@@ -214,7 +214,7 @@ func TestRolesInOrganization(t *testing.T) {
 		t.Errorf("compte inconnu : %d", p.status)
 	}
 	// La langue de l'organisation s'applique à un membre sans préférence ni Accept-Language.
-	if p := ad.get("/o/org-a"); p.header.Get("Content-Language") != "en" || !strings.Contains(p.body, "Your role") {
+	if p := ad.get("/o/org-a"); p.header.Get("Content-Language") != "en" || !strings.Contains(p.body, "Open findings") {
 		t.Errorf("langue de l'organisation : %q", p.header.Get("Content-Language"))
 	}
 	auditPage := ad.get("/o/org-a/audit")

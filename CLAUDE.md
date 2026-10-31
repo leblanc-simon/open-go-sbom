@@ -66,6 +66,10 @@ de versions et plages vers (`internal/version`, `version/grypeversion`, ADR 0026
 d'accès personnels (`internal/account`, format commun `internal/token`, ADR 0025), API
 utilisateur `GET /api/v1/orgs/{org}/search` (`internal/api/gen/userapi`), écran
 `/o/{slug}/search`, guide d'utilisation `docs/utilisation.md`, `make bench-search`.
+T10 terminé : tableau de bord d'organisation et en-tête de la fiche projet
+(`internal/dashboard`, statistiques quotidiennes réécrites toutes les heures, ADR 0027),
+graphiques SVG serveur (`internal/render/chart.go`, `partials/charts.html`), agent muet
+au-delà de 7 jours (`agent.Silent`), contrôle des SVG par `webtest`.
 
 ## Règles de travail
 

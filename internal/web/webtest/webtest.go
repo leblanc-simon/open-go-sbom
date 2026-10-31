@@ -39,8 +39,10 @@ func AssertNoInlineCode(t testing.TB, page []byte) {
 
 // CheckAccessibility vérifie : langue du document, titre non vide, un seul h1, ordre des
 // titres sans saut, identifiants uniques, libellé de chaque champ, texte alternatif de
-// chaque image, nom accessible des liens et boutons, et lien d'évitement en premier
-// élément focalisable, vers une cible qui existe.
+// chaque image, nom accessible des liens et boutons, références aria-labelledby et
+// aria-describedby vers des identifiants présents, graphiques SVG décoratifs
+// (aria-hidden) ou nommés (role="img" et un nom : aria-label, aria-labelledby ou
+// <title>), et lien d'évitement en premier élément focalisable, vers une cible qui existe.
 func CheckAccessibility(page []byte) []string {
 	doc, err := html.Parse(bytes.NewReader(page))
 	if err != nil {
@@ -92,6 +94,19 @@ func CheckAccessibility(page []byte) []string {
 			if strings.TrimSpace(text(n)) == "" {
 				add("<h%d> vide", level)
 			}
+		}
+		for _, k := range []string{"aria-labelledby", "aria-describedby"} {
+			for _, ref := range strings.Fields(attr(n, k)) {
+				if !ids[ref] {
+					add("%s=%q sur <%s> : identifiant absent", k, ref, n.Data)
+				}
+			}
+		}
+		if n.Namespace == "svg" && n.Data == "svg" {
+			if p := checkSVG(n); p != "" {
+				add("%s", p)
+			}
+			return
 		}
 		switch n.DataAtom {
 		case atom.Img:
@@ -166,6 +181,40 @@ func CheckNoInlineCode(page []byte) []string {
 		}
 	})
 	return problems
+}
+
+// checkSVG vérifie un graphique SVG : décoratif (aria-hidden="true"), ou image nommée
+// (role="img" et un nom non vide). Le contenu d'un SVG décoratif n'est pas parcouru par
+// les aides techniques ; celui d'un SVG nommé est résumé par son nom et sa description.
+func checkSVG(n *html.Node) string {
+	if attr(n, "aria-hidden") == "true" {
+		return ""
+	}
+	if attr(n, "role") != "img" {
+		return "<svg> ni décoratif (aria-hidden) ni image nommée (role=img)"
+	}
+	if strings.TrimSpace(attr(n, "aria-label")) != "" {
+		return ""
+	}
+	if refs := strings.Fields(attr(n, "aria-labelledby")); len(refs) > 0 {
+		root := n
+		for root.Parent != nil {
+			root = root.Parent
+		}
+		for _, ref := range refs {
+			target := find(root, func(c *html.Node) bool { return c.Type == html.ElementNode && attr(c, "id") == ref })
+			if target != nil && strings.TrimSpace(text(target)) != "" {
+				return ""
+			}
+		}
+		return "<svg role=img> : aria-labelledby ne désigne aucun texte"
+	}
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		if c.Type == html.ElementNode && c.Data == "title" && strings.TrimSpace(text(c)) != "" {
+			return ""
+		}
+	}
+	return "<svg role=img> sans nom accessible"
 }
 
 func walk(n *html.Node, fn func(*html.Node)) {

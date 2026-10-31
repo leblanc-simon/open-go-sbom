@@ -408,3 +408,36 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   passé par une variable shell (`$D/…`), une boucle `for`, et `python3 - <<EOF` même seul.
   Règle : chemins écrits en entier, scripts d'édition dans le répertoire temporaire lancés
   par `python3 -I chemin.py`, ou `python3 -I -c "…"` court.
+
+## Tableau de bord et graphiques (T10)
+
+- **Mesurer la page entière, pas les requêtes isolées** : chaque requête du tableau de bord
+  prenait 20 à 280 ms sur le jeu de référence, mais la page complète a d'abord donné un
+  p95 de 1,8 s (machine partagée par d'autres lots). Règle : un test de mesure par page
+  (`TestReferenceDatasetDashboard`, garde, RLS et rendu compris), puis profiler requête
+  par requête ; trois agrégats qui relisent les mêmes 67 000 constats se fondent en un
+  seul passage groupé par projet et sévérité.
+- **`count(DISTINCT …)` et `array_agg(DISTINCT …)` sur toute une table** : la liste des
+  familles de composants coûtait 260 ms. Règle : réduire d'abord à des couples distincts
+  (composant, projet) dans une CTE, regrouper, limiter, et ne lire les détails (versions)
+  que pour les lignes retenues.
+- **Alias joint deux fois** : une fonction qui ajoute des jointures à un fragment commun
+  (`openWhere(joins)`) a produit « table name "p" specified more than once ». Règle : le
+  fragment fixe ses jointures pour toutes les portées, l'appelant n'ajoute que des tables
+  absentes.
+- **SVG étirés (`preserveAspectRatio="none"`)** : cercles et textes s'y déforment. Règle :
+  traits en `vector-effect: non-scaling-stroke`, point marqué par un tracé de longueur
+  nulle à bouts ronds (`d="Mx,yh0"`), libellés et valeurs en HTML (barres rendues comme
+  un tableau), jamais en `<text>`.
+- **Grille CSS repliée en mobile** : passer `.trend` de trois à deux colonnes mélangeait
+  libellé, valeur et courbe d'une ligne à l'autre. Règle : `grid-auto-flow: row dense` et
+  colonne explicite de la valeur ; vérifier la capture mobile (390 px) de chaque écran.
+- **Fusion pendant le lot : règle d'un autre lot** : T07 a refondu l'état « muet »
+  (`agent.Activity`, dernier inventaire d'un agent serveur) pendant T10. Règle : tout calcul
+  qui dépend d'une règle d'un autre paquet passe par sa fonction (`StateAt`,
+  `Activity.Since`), en un seul point (`agent.SilentSince`), pour que la fusion ne touche
+  qu'une ligne ; les jeux de test fixent `created_at` (un agent serveur sans inventaire est
+  muet depuis sa création).
+- **`webtest` et les SVG** : l'assistant ne vérifiait rien des `<svg>` ni des références
+  `aria-labelledby`. Règle : un `<svg>` est `aria-hidden="true"` ou `role="img"` nommé,
+  et toute référence ARIA vise un identifiant présent (vérifié sur toutes les pages).

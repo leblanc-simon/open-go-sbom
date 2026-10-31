@@ -14,7 +14,9 @@ const good = `<!doctype html><html lang="fr"><head><title>Accueil</title></head>
 <label>Nom <input name="n"></label><input type="hidden" name="csrf_token" value="x">
 <input name="z" aria-label="Zone"><select name="s" aria-labelledby="q"></select>
 <button type="submit">Envoyer</button></form>
-<a href="/x" aria-label="Fermer"><svg aria-hidden="true"></svg></a></main></body></html>`
+<a href="/x" aria-label="Fermer"><svg aria-hidden="true"></svg></a>
+<svg role="img" aria-labelledby="g-t g-d"><title id="g-t">Tendance</title><desc id="g-d">Six constats</desc></svg>
+<svg role="img"><title>Barres</title></svg><svg role="img" aria-label="Jauge"></svg></main></body></html>`
 
 func TestCheckAccessibilityAcceptsAGoodPage(t *testing.T) {
 	if got := CheckAccessibility([]byte(good)); len(got) != 0 {
@@ -41,6 +43,10 @@ func TestCheckAccessibilityFindsProblems(t *testing.T) {
 		"bouton sans nom":         {`<button type="submit">Envoyer</button>`, `<button type="submit"></button>`, "bouton sans nom"},
 		"pas de lien d'évitement": {`<a class="skip-link" href="#main">Aller au contenu</a>`, ``, "lien d'évitement"},
 		"évitement sans cible":    {`id="main"`, `id="contenu"`, "absent de la page"},
+		"référence absente":       {`aria-labelledby="q"`, `aria-labelledby="r"`, "identifiant absent"},
+		"svg sans rôle":           {`<svg aria-hidden="true">`, `<svg>`, "ni décoratif"},
+		"svg sans nom":            {`<svg role="img"><title>Barres</title>`, `<svg role="img"><title> </title>`, "sans nom accessible"},
+		"svg au nom vide":         {`<title id="g-t">Tendance</title><desc id="g-d">Six constats</desc>`, `<title id="g-t"></title><desc id="g-d"></desc>`, "aucun texte"},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
