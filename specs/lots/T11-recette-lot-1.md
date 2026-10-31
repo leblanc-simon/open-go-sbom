@@ -396,3 +396,66 @@ contrôle des écrans corrigés dans les deux thèmes.
 #### ADR créés
 
 Aucun.
+
+### Recette
+
+Réalisée le 31 octobre 2026, branche `lot/T11-recette`.
+
+#### Parc pilote et CVE de contrôle (fixés avant toute recherche)
+
+Fixés et commités **avant** le montage du serveur et toute recherche dans l'application.
+Les listes attendues sont établies à la main : paquets réellement installés dans chaque
+image (`dpkg-query`, `rpm -qa`, `/lib/apk/db/installed`), fichiers de dépendances de
+chaque dépôt au commit retenu (`git show <commit>:go.mod`…), confrontés aux
+enregistrements de la base Grype réelle (v6.1.10, construite le 30 octobre 2026 à
+06:23 UTC) lus directement en SQLite, sans passer par l'application.
+
+**Serveurs** (conteneurs portant l'agent serveur ; images anciennes à dessein, pour un
+parc réaliste non mis à jour) :
+
+| Projet attendu | Image | Empreinte | Paquets |
+| --- | --- | --- | --- |
+| `pilot-debian` | `debian:12.0-slim` | `sha256:9bd077d2f77c…` | 88 deb |
+| `pilot-rocky` | `rockylinux:9.2-minimal` | `sha256:594c839a772e…` | 118 rpm |
+| `pilot-alpine` | `alpine:3.18.0` | `sha256:02bb6f428431…` | 15 apk |
+
+**Dépôts** (clones de dépôts publics réels, servis par une forge simulée : voir plus
+bas) :
+
+| Projet attendu | Dépôt public | Branche, commit retenu | Contenu |
+| --- | --- | --- | --- |
+| `cobra` | GitHub `spf13/cobra` | `main`, `adbc881` (11 juillet 2026) | `go.mod` sans `golang.org/x/crypto` |
+| `sftp` | GitHub `pkg/sftp` | `master`, `5bdc2b0` (20 novembre 2023) | `go.mod` : `golang.org/x/crypto v0.1.0` |
+| `gitlab-shell` | GitLab `gitlab-org/gitlab-shell` | `main`, `09ef3a7` (18 décembre 2023) | `go.mod` : `golang.org/x/crypto v0.16.0` ; `Gemfile.lock` |
+| `jekyll` | GitLab `pages/jekyll` | `main`, `3137780` (30 avril 2025) | `Gemfile.lock` |
+
+L'agent serveur lui-même (binaire Go, `golang.org/x/crypto v0.58.0`, Go 1.26.10) est
+inventorié sur chaque hôte : il n'est touché par aucune des trois CVE.
+
+**CVE de contrôle et listes attendues :**
+
+1. **CVE-2023-4911** (glibc, « Looney Tunables », KEV) → **`pilot-debian`,
+   `pilot-rocky`**.
+   - `pilot-debian` : `libc6` et `libc-bin` 2.36-9 (source `glibc`) ; Debian 12 :
+     corrigé en 2.36-9+deb12u3.
+   - `pilot-rocky` : `glibc`, `glibc-common`, `glibc-minimal-langpack` 2.34-60.el9 ;
+     RHEL 9.2 : corrigé en 2.34-60.el9_2.7 (Rocky lu comme RHEL par Grype).
+   - Pas `pilot-alpine` (musl, pas de glibc), aucun dépôt.
+2. **CVE-2023-48795** (« Terrapin », SSH ; GHSA-45x7-px36-x8w8 pour Go) →
+   **`pilot-rocky`, `sftp`, `gitlab-shell`**.
+   - `pilot-rocky` : `libssh` et `libssh-config` 0.10.4-8.el9 ; RHEL 9.2 : corrigé en
+     0.10.4-9.el9_2.
+   - `sftp` : `golang.org/x/crypto` v0.1.0 ; `gitlab-shell` : v0.16.0 ; corrigé en
+     0.17.0 (plage GitHub `>=0.1.0,<0.17.0`).
+   - Pas `pilot-debian` ni `pilot-alpine` (ni OpenSSH, ni libssh, ni dropbear), pas
+     `cobra` (pas de `x/crypto`), pas `jekyll`.
+3. **CVE-2023-2650** (OpenSSL, `OBJ_obj2txt`) → **`pilot-rocky`, `pilot-alpine`**.
+   - `pilot-rocky` : `openssl` et `openssl-libs` 1:3.0.7-6.el9_2 ; RHEL 9.2 : corrigé en
+     1:3.0.7-16.el9_2.
+   - `pilot-alpine` : `libcrypto3` et `libssl3` 3.1.0-r4 (origine `openssl`) ; Alpine
+     3.18 : corrigé en 3.1.1-r0.
+   - Pas `pilot-debian` (`debian:12.0-slim` n'installe pas OpenSSL), aucun dépôt (aucune
+     gemme `openssl`).
+
+Contrôles négatifs implicites : `cobra` et `jekyll` n'apparaissent dans aucune liste ;
+chaque serveur manque à au moins une liste.
