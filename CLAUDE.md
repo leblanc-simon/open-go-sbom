@@ -38,8 +38,13 @@ T03 terminé : comptes (`internal/account`), TOTP obligatoire, organisations
 `crossorg` (ADR 0012, 0013), harnais d'isolement SQL et par route.
 T04 terminé : projets (`internal/project`), agents et jetons (`internal/agent`, ADR 0014),
 API des agents générée (`internal/api`, `internal/api/gen`, `internal/agentclient/gen`),
-limitation par jeton (`ratelimit.WithKeyFunc` d'open-go-base). Prochain lot :
-[T05 — Ingestion](specs/lots/T05-ingestion.md).
+limitation par jeton (`ratelimit.WithKeyFunc` d'open-go-base).
+T05 terminé : modèle SBOM, purl canoniques et empreinte (`internal/sbom`), schémas
+embarqués (`sbom/schema`), adaptateur Syft (`sbom/syft`), inventaire
+(`internal/inventory`), réception et job `ingest.decode` (`internal/ingest`, ADR 0015,
+0016), écrans des instantanés ; jeux d'essai dans `testdata/sbom/`. Prochains lots, en
+parallèle : [T06](specs/lots/T06-analyse-vulnerabilites.md),
+[T07](specs/lots/T07-agent-serveur.md) et [T08](specs/lots/T08-agent-depot.md).
 
 ## Règles de travail
 

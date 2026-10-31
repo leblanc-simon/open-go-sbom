@@ -70,7 +70,9 @@ parades prévues, et le lot qui les porte.
 | Jeton d'agent volé | jeton haché (SHA-256), révocation immédiate, date de dernier usage, projets et références confiés à l'agent seuls ; jeton d'inscription borné en durée et en usages | T04 |
 | Énumération ou force brute de jetons | secret de 256 bits, comparaison en temps constant, refus uniforme tant que le secret n'est pas vérifié, jetons refusés limités par IP | T04 |
 | Faux inventaire pour masquer une faille | un agent n'écrit que sur ses références ; instantanés historisés et attribués ; signature au lot 3 | T04, T05, T24 |
-| Déni de service par SBOM énorme ou piégé | bornes en flux (taille compressée et décompressée, profondeur JSON, nombre de composants) avant tout décodage complet ; plafond de jobs par organisation | T05 |
+| Déni de service par SBOM énorme ou piégé | corps multipart borné ; bornes en flux (taille reçue, taille décompressée — bombe gzip —, profondeur JSON, nombre de composants, clés comparées sans casse comme le décodeur) avant tout décodage complet ; validation par le schéma officiel avant les décodeurs tiers ; décodage dans un job (jamais dans la requête) borné en durée, panique d'un décodeur convertie en refus ; plafond de jobs par organisation (ADR 0015) | T05 |
+| SBOM d'une autre organisation ou d'une autre référence | référence vérifiée par `project.RefForAgent` avant la lecture du SBOM puis dans la transaction qui le stocke ; composants, blobs et ensembles propres à chaque organisation (RLS, clés composites) | T05 |
+| Contenu de SBOM dans les journaux ou les erreurs | seuls l'identifiant d'ingestion, la clé d'erreur et des compteurs sont journalisés ; le détail d'une violation de schéma est un pointeur JSON, jamais une valeur | T05 |
 | Injection SQL | requêtes paramétrées uniquement (ADR 0004) | tous |
 | Saturation de l'API par un hôte | limitation par jeton (`agent_api.rate_limit`), sans gêner les autres hôtes de la même IP | T04 |
 

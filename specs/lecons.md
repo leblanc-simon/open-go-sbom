@@ -203,3 +203,45 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   Règle : DSN sans guillemets (`OGSBOM_TEST_DATABASE_DSN=postgres://…?sslmode=disable go
   test …`), fichiers écrits par l'outil d'écriture, éditions multiples par un script
   Python du répertoire temporaire lancé seul.
+
+## Ingestion, Syft et schémas (T05)
+
+- **Énumérations figées des schémas officiels** : le `spdx.schema.json` de CycloneDX 1.6
+  ne connaît pas « Artistic-dist », que Syft v1.55.0 écrit en `license.id` ; un SBOM
+  légitime produit par Syft échouait à la validation. Règle : à la réception, ne pas
+  imposer l'énumération des licences (`schema.Validator.Validate`) ; pour ce que le
+  serveur produit, `ValidateStrict` et réécriture en `license.name`
+  (`syft.Encode(…, CycloneDXLicenseIDs("1.6"))`). Un test le prouve sur un vrai SBOM.
+- **packageurl-go canonicalise plus que prévu** : il met en minuscules les noms golang
+  (`github.com/BurntSushi/toml` → `burntsushi`) et n'encode pas « : » dans la version
+  (`1:2.36-9`), contrairement à la sortie de Syft (`1%3A…`). Règle : toute comparaison de
+  purl passe par `sbom.CanonicalPURL`/`ComponentPURL` des deux côtés, jamais par la chaîne
+  du document.
+- **Fusion de doublons et ordre** : une première version de `merge` départageait deux
+  mentions au même rang sans regarder la confiance (`nil` contre `0`) ; le résultat
+  dépendait de l'ordre du document, trouvé par `FuzzNormalize` en quelques secondes. Règle :
+  un départage par ordre total sur tous les champs non fusionnés, et un fuzz « ordre
+  inversé = même empreinte » pour toute normalisation.
+- **Les décodeurs JSON de Go ignorent la casse des clés** : `"COMPONENTS"` ou
+  `"components"` sont lus comme `components` par `encoding/json`. Règle : un
+  contrôle préalable compare les clés décodées (échappements `\u` compris) sans tenir
+  compte de la casse, sinon il se contourne.
+- **Mémoire du décodage** : le pic du tas vaut environ trente fois la taille du SBOM
+  (décodeurs de Syft + schéma JSON). Règle : dimensionner les bornes par défaut sur cette
+  mesure (64 Mio décompressés), la documenter pour l'exploitation (ADR 0015).
+- **Syft décode `metadata.component` comme un paquet** et ne garde ni les empreintes, ni la
+  portée, ni les propriétés inconnues d'un composant CycloneDX. Règle : relire le document
+  pour ces champs (index par `bom-ref`, qui devient l'identifiant du paquet Syft ; SPDXID
+  sans `SPDXRef-` pour SPDX) et exclure le composant décrit.
+- **Jeux d'essai réalistes sans Docker** : un système de fichiers factice (`/etc/os-release`
+  + base de paquets) catalogué par Syft donne de vrais SBOM d'hôte ; les bases RPM réelles
+  existent dans les jeux d'essai de `github.com/anchore/go-rpmdb` (cache des modules). Les
+  chemins absolus du répertoire temporaire se retrouvent dans les SBOM (noms de fichiers,
+  SPDXID) : les retirer avant de committer.
+- **Outil d'isolement des agents (suite)** : refusés aussi les `for` en shell, les
+  accolades `{a,b}` dans un chemin et `cd … && python3 - <<EOF`. Règle : script dans le
+  répertoire temporaire lancé seul (`python3 -I script.py`), ou `python3 -I -c "…"` sans
+  `cd` préalable, ou l'outil d'édition.
+- **`rm` d'un motif relatif après `cd`** est bloqué par la protection contre les
+  suppressions : écrire dans un nouveau dossier plutôt que vider l'ancien, et supprimer un
+  fichier par son chemin absolu.
