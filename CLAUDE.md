@@ -80,8 +80,9 @@ quatre dépôts publics, trois CVE de contrôle exactes), mesures consolidées
 (`docs/benchmarks.md`), `docs/operations.md` complet, guides de démarrage
 (`docs/demarrage.md`, `docs/getting-started.md`), préversion `v0.1.0` prête
 (`CHANGELOG.md`, `.github/workflows/release.yml`, `scripts/release.sh`, unité
-`deploy/systemd/lotor-server.service`, ADR 0032). Publication de `v0.1.0` et étiquettes
-d'open-go-base : actions de l'utilisateur ([`specs/avancement.md`](specs/avancement.md)).
+`deploy/systemd/lotor-server.service`, ADR 0032). Publication de `v0.1.0` : action de
+l'utilisateur ([`specs/avancement.md`](specs/avancement.md)) ; open-go-base suivi par
+étiquette (`v1.3.0`).
 Projet renommé **lotor** (open-go-sbom, préfixe `ogsbom`, avant le 31 octobre 2026) :
 module `leblanc.io/lotor`, commandes `lotor-*`, préfixe `LOTOR_`, objets SQL `lotor_*`,
 identité visuelle dans `docs/logo/` (ADR 0033).

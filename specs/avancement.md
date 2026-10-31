@@ -14,8 +14,8 @@ forge simulée) : chaque projet a un instantané de moins de 24 h analysé avec 
 Grype, et la recherche (écran et API) renvoie exactement les listes de projets établies à
 la main pour les trois CVE de contrôle. Toutes les cibles chiffrées sont tenues sur une
 machine moins puissante que la référence. Restent à l'utilisateur : la relecture des
-décisions ci-dessous, les étiquettes (open-go-base, puis `v0.1.0`) et l'essai de l'agent
-dépôt sur une vraie forge (voir « Actions pour l'utilisateur »).
+décisions ci-dessous, l'étiquette `v0.1.0` et l'essai de l'agent dépôt sur une vraie
+forge (voir « Actions pour l'utilisateur »).
 
 | Lot | PR | Statut | Décisions à relire |
 | --- | --- | --- | --- |
@@ -89,26 +89,25 @@ Chaque point renvoie à l'ADR ou au Journal qui le détaille.
 ### Dépendances et open-go-base
 
 - `modernc.org/sqlite` ([T00](lots/T00-fondations.md)) ; directive `go` 1.26.8 imposée par Syft ([T05](lots/T05-ingestion.md)).
-- Évolutions d'open-go-base `v1.1.0` (T03), `v1.2.0` (`ratelimit.WithKeyFunc`, T04), `v1.3.0` (verrouillage de mfax, `csrfx.WithSessionBinding`, T11), utilisées en pseudo-version.
+- Évolutions d'open-go-base `v1.1.0` (T03), `v1.2.0` (`ratelimit.WithKeyFunc`, T04), `v1.3.0` (verrouillage de mfax, `csrfx.WithSessionBinding`, T11), utilisées par l'étiquette `v1.3.0`.
 
 ## Actions pour l'utilisateur
 
-Le mandataire git de la session refuse les pushs d'étiquettes (HTTP 403) : lotor
-utilise des pseudo-versions d'open-go-base, et `v0.1.0` n'est pas posée. À faire, dans
-l'ordre :
+Le mandataire git de la session refuse les pushs d'étiquettes (HTTP 403) : `v0.1.0`
+n'est pas posée. À faire, dans l'ordre (les étapes 1 à 3 sont faites) :
 
-1. Renommer le dépôt GitHub `leblanc-simon/open-go-sbom` en `leblanc-simon/lotor`
+1. **Fait.** Renommer le dépôt GitHub `leblanc-simon/open-go-sbom` en `leblanc-simon/lotor`
    (*Settings* → *General* → *Repository name*), puis `git remote set-url origin
    https://github.com/leblanc-simon/lotor.git` dans le clone local (et renommer le
    dossier si souhaité). Si `leblanc.io` sert des métadonnées `go-import`, ajouter celle de
    `leblanc.io/lotor` ([ADR 0033](../docs/adr/0033-renommage-en-lotor.md)).
-2. Pousser les étiquettes annotées d'open-go-base créées localement :
+2. **Fait.** Pousser les étiquettes annotées d'open-go-base créées localement :
    `git -C ../open-go-base push origin v1.1.0` (commit `b9ccc67`, T03),
    `git -C ../open-go-base push origin v1.2.0` (commit `3534c14`, `ratelimit.WithKeyFunc`),
    `git -C ../open-go-base push origin v1.3.0` (commit `9a7b91f`, PR #3 : verrouillage par
    compte de mfax, `Confirm`, `WithChallengeCookieName`, `csrfx.WithSessionBinding`).
    Toutes compatibles.
-3. Dans lotor, sur une branche : `go get leblanc.io/open-go-base@v1.3.0 && go mod
+3. **Fait.** Dans lotor, sur une branche : `go get leblanc.io/open-go-base@v1.3.0 && go mod
    tidy` (même code que la pseudo-version actuelle `v1.0.2-0.20261031121913-9a7b91fdbbfe` ;
    ne pas utiliser `v1.1.0` ni `v1.2.0`), `make ci`, PR, fusion quand la CI est verte.
 4. Relire les décisions **[à relire]** ci-dessus, et confirmer (ou corriger) au cahier des
