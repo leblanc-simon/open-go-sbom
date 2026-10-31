@@ -484,3 +484,50 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   inverse sur un port fixe qui injecte les cookies de session ; Playwright navigue alors
   sur l'application réelle, CSS embarquées comprises. Une variante « avant correctif » se
   mesure en modifiant le style par le CSSOM (`element.style`), permis par la CSP.
+
+## Revue de sécurité du lot 1 (T11)
+
+- **Le plafond par défi n'est pas une borne** : mfax limitait les codes d'un défi, mais un
+  défi neuf s'obtient en rejouant le mot de passe. Règle : toute limite d'essais se compte
+  sur l'objet attaqué (le compte), jamais sur un objet que l'attaquant renouvelle à volonté
+  (défi, session, IP) ; et une IPv6 se compte par /64.
+- **Un geste de remédiation doit couper tout ce qu'une session a obtenu** : réinitialiser
+  mot de passe ou TOTP laissait vivre les jetons personnels, et réinitialiser le TOTP
+  laissait l'ancien mot de passe ouvrir l'enrôlement. Règle : pour chaque identifiant
+  dérivé d'une session (jeton, session, défi), écrire le test « il ne survit pas à la
+  réinitialisation » en même temps que la fonctionnalité ; un facteur réinitialisé ne
+  laisse jamais l'autre seul juge.
+- **Privilèges par défaut trop larges** : `ALTER DEFAULT PRIVILEGES … UPDATE, DELETE` de 001
+  donnait au rôle d'exécution le droit d'effacer le journal d'audit. Règle : toute table à
+  garantie particulière (journal, suivi) a ses `REVOKE` dans la migration qui la crée, et
+  `CheckRuntimeRole` vérifie le droit ; le harnais RLS (`TestRLSOnEveryOrgTable`) a une
+  liste `appendOnly` pour ces tables.
+- **Jeton CSRF lié à la session et assistants de test** : l'assistant `browser.post`
+  recopiait le cookie CSRF dans le champ ; avec `csrfx.WithSessionBinding`, tous les tests
+  d'écran échouaient en 403. Règle : un test calcule le jeton attendu par csrfx lui-même
+  (`browser.csrf()` fait passer une requête synthétique, cookies CSRF et de session, dans
+  un `csrfx.Protector` lié de la même façon), jamais en dupliquant l'algorithme.
+- **Cookies `Secure` et `cookiejar`** : le `cookiejar` de Go n'envoie pas un cookie `Secure`
+  à une URL `http://` ; un test des cookies `__Host-` sur `httptest.NewServer` (HTTP)
+  perdrait la session. Règle : vérifier les en-têtes `Set-Cookie` avec
+  `httptest.NewRecorder` sur le handler, cookies posés à la main.
+- **Nouvelle table d'open-go-base** : `mfa_lockouts` est créée par le `Migrate` de mfax,
+  avant les migrations du projet (piège de T03 retrouvé) : sans `GRANT` explicite dans la
+  migration du projet, le rôle d'exécution n'y a aucun droit. Règle : toute table ajoutée
+  par une montée d'open-go-base reçoit ses droits dans une migration du projet du même
+  commit que la montée.
+- **Tester avant la PR d'open-go-base** : un `replace` local temporaire
+  (`go mod edit -replace leblanc.io/open-go-base=/home/user/open-go-base`) a permis de
+  passer les tests d'intégration PostgreSQL d'open-go-sbom (store de verrouillage) avant
+  d'ouvrir et de fusionner la PR, donc une seule PR. Règle : `-dropreplace` puis
+  `go get …@<sha fusionné>` avant tout commit ; jamais de `replace` commité.
+- **Recherche d'une ancre de remplacement dans un YAML de traductions** : `expiry_365: 1 an`
+  apparaît dans deux sections ; le script d'édition a refusé (deux occurrences) avant
+  d'écrire. Règle : ancrer sur un contexte unique (clé parente) ou ajouter en fin de
+  fichier quand la section y est ; le script vérifie le nombre d'occurrences avant
+  d'enregistrer.
+- **Outil d'isolement des agents (suite)** : refusés aussi `cat >> fichier <<'EOF'` suivi de
+  `go build`, `python3 - <<'EOF'` qui touche un autre dépôt (open-go-base), et un
+  `python3 -I -c` dont le texte contient « git ». Règle : bibliothèque de remplacements
+  exacts dans le répertoire temporaire (`edlib.py`) et un script par lot d'éditions, lancé
+  seul ; commandes git par `git -C <dépôt>`, une par appel.

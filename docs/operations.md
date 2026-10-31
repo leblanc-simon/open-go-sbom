@@ -75,6 +75,12 @@ Les droits du rôle d'exécution sur les tables sont posés par les migrations (
 par défaut du propriétaire, ADR 0010) : rien d'autre à accorder. Son nom est lu dans
 `database.dsn`.
 
+Au démarrage, le serveur refuse un rôle d'exécution qui pourrait contourner l'isolement
+ou effacer ses traces : superutilisateur, `BYPASSRLS`, propriétaire (ou membre du
+propriétaire) d'une table, droit `CREATE` sur la base ou sur le schéma `public`, droit
+`UPDATE`, `DELETE` ou `TRUNCATE` sur `audit_events` ou `instance_audit_events` (journaux en
+ajout seul, migration 015).
+
 Changer de rôle d'exécution après coup (nouveau nom) : en propriétaire, accorder au
 nouveau rôle les droits sur l'existant et les privilèges par défaut, puis retirer
 l'ancien :
@@ -85,6 +91,8 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO nouveau;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO nouveau;
 REVOKE INSERT, UPDATE, DELETE ON ogsbom_schema_migrations FROM nouveau;
 REVOKE EXECUTE ON PROCEDURE ogsbom_enforce_org_rls(regclass, name) FROM nouveau;
+-- Journaux d'audit en ajout seul (ADR 0030) : sans ces retraits, le serveur refuse de démarrer.
+REVOKE UPDATE, DELETE, TRUNCATE ON audit_events, instance_audit_events FROM nouveau;
 ALTER DEFAULT PRIVILEGES GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO nouveau;
 ALTER DEFAULT PRIVILEGES GRANT USAGE, SELECT ON SEQUENCES TO nouveau;
 ALTER DEFAULT PRIVILEGES GRANT EXECUTE ON FUNCTIONS TO nouveau;
@@ -135,6 +143,18 @@ Deux modes :
 
 `Strict-Transport-Security` n'est envoyé que pour une requête arrivée en HTTPS (TLS natif
 ou mandataire de confiance).
+
+- Le mandataire doit **transmettre l'en-tête `Host`** tel quel : la protection
+  inter-origines de l'interface compare `Origin` à l'hôte pour les navigateurs qui
+  n'envoient pas `Sec-Fetch-Site` (requête mutante refusée en 403 sinon).
+- L'IP du client vient de `X-Forwarded-For`, puis à défaut de `X-Real-IP` : un mandataire
+  de confiance qui ne pose pas `X-Forwarded-For` doit **écraser** `X-Real-IP`, sinon le
+  client choisit l'IP comptée par la limitation de débit et journalisée.
+- **`auth.cookie_secure: on` en production** : cookies `Secure` et préfixés `__Host-`
+  (`__Host-ogsbom_session`, `__Host-csrf_token`, `__Host-mfa_challenge`), qu'aucun
+  sous-domaine ne peut écraser. En `auto` ou `off`, les noms restent sans préfixe et le
+  serveur l'avertit au démarrage. Passer de `auto` à `on` ferme de fait les sessions en
+  cours (nouveaux noms de cookie).
 
 ## Gestion : sondes et métriques
 
@@ -219,9 +239,12 @@ existe : les retirer ensuite (le journal le rappelle). Deux instances qui démar
 ensemble ne créent qu'un compte.
 
 **Comptes.** L'administration (`/admin`) crée les comptes avec un mot de passe temporaire
-affiché une seule fois, les désactive, réinitialise leur mot de passe ou leur TOTP
-(sessions fermées), nomme les administrateurs d'instance, crée et archive les
-organisations. Chaque action est journalisée (`/admin/audit`). Garder **deux
+affiché une seule fois, les désactive, réinitialise leur mot de passe ou leur TOTP,
+nomme les administrateurs d'instance, crée et archive les organisations. Une
+réinitialisation est un geste de remédiation : elle ferme les sessions **et révoque les
+jetons d'accès personnels** du compte ; celle du TOTP impose aussi un **mot de passe
+temporaire**, affiché une fois (à transmettre par un canal sûr), sans quoi quiconque
+connaît l'ancien mot de passe enrôlerait son propre TOTP (ADR 0029). Chaque action est journalisée (`/admin/audit`). Garder **deux
 administrateurs d'instance au moins** : l'interface avertit s'il n'y en a qu'un.
 
 **Procédure de secours** (administrateur unique qui a perdu son TOTP) :
@@ -229,12 +252,16 @@ administrateurs d'instance au moins** : l'interface avertit s'il n'y en a qu'un.
 1. Ouvrir un ticket d'incident et choisir sa référence (8 caractères au moins, par
    exemple `INC-2026-0042`).
 2. Redémarrer le serveur avec `OGSBOM_BOOTSTRAP_RESCUE_TOTP_EMAIL=<e-mail de
-   l'administrateur>` et `OGSBOM_BOOTSTRAP_RESCUE_TICKET=<référence>`. Le TOTP de ce
-   compte est retiré et ses sessions fermées ; l'événement « procédure de secours » entre
-   au journal d'audit avec la référence. Le compte doit être un administrateur d'instance
-   actif, sinon le serveur refuse de démarrer.
-3. L'administrateur se connecte avec son mot de passe et enrôle un nouveau TOTP.
-4. Retirer les deux variables. Laissées en place, elles n'ont plus d'effet (un ticket ne
+   l'administrateur>`, `OGSBOM_BOOTSTRAP_RESCUE_TICKET=<référence>` et
+   `OGSBOM_BOOTSTRAP_RESCUE_PASSWORD=<mot de passe temporaire>` (12 caractères au moins,
+   transmis à l'administrateur par un canal sûr). Le TOTP de ce compte est retiré, le mot
+   de passe temporaire imposé, ses sessions fermées et ses jetons personnels révoqués ;
+   l'événement « procédure de secours » entre au journal d'audit avec la référence. Le
+   compte doit être un administrateur d'instance actif, sinon le serveur refuse de
+   démarrer.
+3. L'administrateur se connecte avec le mot de passe temporaire, enrôle un nouveau TOTP
+   puis choisit un nouveau mot de passe. L'ancien mot de passe ne sert plus.
+4. Retirer les trois variables. Laissées en place, elles n'ont plus d'effet (un ticket ne
    s'applique qu'une fois) et le journal le signale à chaque démarrage. Un nouvel incident
    demande une nouvelle référence.
 
@@ -244,8 +271,24 @@ qui perd aussi son mot de passe relève d'une intervention en base, hors de l'ap
 (à éviter en gardant deux administrateurs).
 
 **Limitation.** `login.rate_limit` (10 par défaut) borne les `POST` de `/login` et
-`/login/2fa` par minute et par IP, en plus de `web.rate_limit`. Un défi TOTP tolère
-`mfa.max_attempts` codes faux. Les sessions et défis expirés sont purgés toutes les
+`/login/2fa` par minute et par IP, en plus de `web.rate_limit` ; une IPv6 compte pour son
+/64. Un défi TOTP tolère `mfa.max_attempts` codes faux.
+
+**Verrouillage.** Les codes TOTP faux sont aussi comptés **par compte**, tous défis et
+réauthentifications confondus : au-delà de `mfa.lockout_threshold` (10) dans
+`mfa.lockout_window` (15 min), le compte est verrouillé `mfa.lockout_duration` (15 min),
+durée doublée à chaque récidive jusqu'à `mfa.lockout_max_duration` (24 h). Le
+verrouillage est journalisé (« compte verrouillé ») : il signale que le mot de passe est
+connu d'un tiers. Le titulaire attend la fin du verrouillage ; un administrateur peut le
+lever en réinitialisant le TOTP (ce qui impose un nouveau mot de passe).
+
+**Sessions.** Une session glisse de `auth.session_ttl` (12 h) à chaque requête, dans la
+limite absolue de `login.session_max_age` (7 jours) depuis la connexion. Un jeton CSRF est
+lié à la session : un formulaire affiché avant une connexion ou une déconnexion est refusé
+(« formulaire expiré », recharger la page).
+
+**Jetons personnels.** Leur création exige un code TOTP ; changer de mot de passe propose
+(case cochée) de les révoquer tous. Les sessions et défis expirés sont purgés toutes les
 heures (job `auth.purge`, instances à workers).
 
 ## Agents et jetons
@@ -366,6 +409,18 @@ Bornes (`ingest.*`) :
 | `max_depth` | 64 | ingestion `failed` (`error.ingest.too_deep`) |
 | `max_components` | 50 000 | ingestion `failed` (`error.ingest.too_many_components`) |
 | `decode_timeout` | 5 min | job réessayé, puis `dead` |
+| `max_per_ref_per_day` | 200 | refus 429 (`error.ingest.quota`), rien n'est stocké |
+| `max_org_storage_mib` | 10 240 | refus 429 (`error.ingest.quota`), rien n'est stocké |
+| `max_reencodes` | 2 | téléchargement réencodé refusé (429) ; un seul par compte |
+
+- `decode_timeout` interrompt la lecture du document et coupe entre les étapes ; la
+  validation par schéma et le décodage de Syft, linéaires en taille, vont au bout de
+  l'étape commencée.
+- Les quotas protègent le disque commun d'un agent compromis (ADR 0030) : un envoi en
+  double (même commit, même document) ne compte pas. Relever `max_per_ref_per_day` pour
+  une branche qui reçoit plus de 200 commits analysés par jour. Surveiller le volume :
+  `SELECT org_id, pg_size_pretty(sum(compressed_size)) FROM sbom_blobs GROUP BY org_id`
+  (rôle propriétaire). La rétention des anciens instantanés arrive avec T17.
 
 - Un JSON non compressé compte tout entier dans `max_upload_mib` : les agents envoient du
   gzip (un SBOM se compresse d'environ dix fois).
@@ -524,6 +579,15 @@ commentée et unité systemd durcie : `deploy/ogsbom-repo-agent/`.
   fiche ; leur **URL de forge** (`https://github.com/acme/app`,
   `https://gitlab.example.org/groupe/sous-groupe/projet`) désigne la forge configurée dont
   l'URL web la préfixe. Un dépôt sans forge configurée est signalé au journal et ignoré.
+- **Périmètre** : `forges[].allowed_namespaces` (obligatoire) liste les propriétaires
+  GitHub ou les groupes GitLab (sous-groupes compris) dont l'agent accepte d'analyser les
+  dépôts, ou `*` pour tout ce que ses identifiants lisent. Les URL de forge viennent du
+  serveur, c'est-à-dire des administrateurs d'organisation : sans cette liste, un
+  administrateur pourrait faire inventorier n'importe quel dépôt lisible par les
+  identifiants de l'agent. Un dépôt hors périmètre est signalé au journal et ignoré.
+- **TLS du récepteur** : il écoute en HTTP par défaut (`:8080`) ; `X-Gitlab-Token` y
+  circulerait en clair. Le placer derrière un mandataire TLS, ou poser
+  `webhook.tls_cert_file` et `webhook.tls_key_file`.
 - **Webhooks** : l'URL publique de l'instance est `https://<hôte public>/webhooks/<nom de
   la forge>` (le `name` de la forge dans la configuration). Seule cette route et
   `GET /healthz` sont servies. Le récepteur borne le corps (`webhook.max_body_kib`),
@@ -584,8 +648,9 @@ commentée et unité systemd durcie : `deploy/ogsbom-repo-agent/`.
    par `installation_id` si l'application a plusieurs installations.
 
 L'agent signe un JWT RS256 de 9 minutes avec la clé, obtient un jeton d'installation
-**restreint à `contents: read`** (même si l'application a d'autres droits), le garde en
-mémoire jusqu'à cinq minutes de son expiration, et le présente à git dans un en-tête HTTP
+**restreint à `contents: read` et au seul dépôt analysé** (même si l'application a
+d'autres droits ou d'autres dépôts), le garde en mémoire, par dépôt, jusqu'à cinq minutes
+de son expiration, et le présente à git dans un en-tête HTTP
 (`x-access-token`). Vérification : un dépôt non sélectionné dans l'installation est refusé
 (`installation de l'application : … introuvable` au journal), et un push sur un dépôt
 suivi apparaît dans l'onglet *Advanced › Recent deliveries* de l'application avec une
@@ -598,7 +663,9 @@ réponse 202.
    groupes ou projets suivis. Un jeton d'accès de groupe ou de projet, au rôle Reporter,
    convient aussi.
 2. Jeton d'accès avec les **portées minimales** `read_api` (références et comparaisons) et
-   `read_repository` (clonage) ; aucune portée d'écriture. Prévoir sa rotation avant son
+   `read_repository` (clonage) ; aucune portée d'écriture. Les droits de ce compte bornent
+   ce que les organisations peuvent faire analyser : ne lui ouvrir que les groupes
+   suivis, et les reporter dans `allowed_namespaces`. Prévoir sa rotation avant son
    expiration (déposer le nouveau credential et redémarrer l'agent).
 3. Sur chaque projet (ou groupe) : *Settings › Webhooks*, URL
    `https://<hôte public>/webhooks/gitlab`, *Secret token* aléatoire, déclencheurs **Push

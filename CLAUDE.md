@@ -73,7 +73,13 @@ au-delà de 7 jours (`agent.Silent`), contrôle des SVG par `webtest`.
 T11 en cours, partie 1 livrée : écrans d'administration d'instance (traitements en échec
 `/admin/jobs`, version de la base chargée par chaque instance, import manuel d'une archive
 installée par le job `vulndb.import`, purge des archives non cibles ; ADR 0028). Partie 2 :
-revue de sécurité, audit RGAA, mesures, parc pilote, préversion.
+revue de sécurité, audit RGAA, mesures, parc pilote, préversion. Revue de sécurité
+corrigée (Journal de T11, ADR 0029 à 0031) : verrouillage par compte de mfax et
+`csrfx.WithSessionBinding` (open-go-base v1.3.0), réinitialisations qui révoquent les
+jetons et imposent un mot de passe, code TOTP pour créer un jeton, durée absolue de
+session, journal d'audit en ajout seul (migration 015), quotas d'ingestion, plafonds
+par compte, `allowed_namespaces` de l'agent dépôt. `make lint` et `make vet` couvrent
+aussi les fichiers étiquetés (`integration`, `grypedb`, `measure`).
 
 ## Règles de travail
 
@@ -128,7 +134,7 @@ make ci                 # fmt-check, generate-check, vet, lint, test-race, test-
 make test-race          # tests unitaires
 make test-integration   # tests étiquetés integration ; PostgreSQL : docker compose -f deploy/compose.yaml up -d
                         # (OGSBOM_TEST_DATABASE_DSN, par défaut postgres://postgres:postgres@localhost:5432/postgres)
-make lint               # staticcheck (go tool)
+make lint               # staticcheck (go tool), sans étiquette puis par étiquette de test
 make vuln               # govulncheck (go tool)
 make generate           # code généré depuis api/openapi.yaml (à committer avant make ci)
 make test-grypedb       # vraie base Grype (OGSBOM_TEST_GRYPEDB_DIR : base v6 installée)

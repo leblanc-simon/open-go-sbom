@@ -33,3 +33,6 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0026](0026-comparaison-de-versions.md) | Comparaison de versions par écosystème et plages vers | Accepté |
 | [0027](0027-tableau-de-bord.md) | Tableau de bord : indicateurs instantanés, statistiques quotidiennes, graphiques SVG | Accepté |
 | [0028](0028-administration-de-la-base-et-des-traitements.md) | Administration de l'instance : import d'une archive par PostgreSQL, état des instances, purge, traitements en échec | Accepté |
+| [0029](0029-remediation-des-identifiants.md) | Identifiants : verrouillage par compte, révocation d'office, réinitialisation avec mot de passe, durée absolue de session | Accepté |
+| [0030](0030-durcissement-base-et-quotas.md) | Durcissement de la base et bornes de ressources : journal en ajout seul, rôle sans DDL, quotas d'ingestion, plafonds par compte | Accepté |
+| [0031](0031-csrf-cookies-et-perimetre-de-l-agent-depot.md) | CSRF lié à la session, cookies __Host-, protection inter-origines ; périmètre de l'agent dépôt | Accepté |

@@ -35,8 +35,9 @@ documenter et publier une préversion.
 - [ ] Toutes les cibles chiffrées sont tenues au 95e centile sur la machine de référence,
       ou une nouvelle cible a été validée par l'utilisateur et reportée au cahier des
       charges.
-- [ ] Aucune faiblesse de gravité haute ou critique (OWASP Risk Rating) ouverte à l'issue de
-      la revue.
+- [x] Aucune faiblesse de gravité haute ou critique (OWASP Risk Rating) ouverte à l'issue de
+      la revue. (Aucune trouvée ; les 3 Medium et 6 des 7 Low sont corrigés, voir « Revue de
+      sécurité ».)
 - [ ] Grille RGAA remplie pour chaque écran, sans non-conformité bloquante.
 - [ ] Sur le parc pilote : tous les serveurs et dépôts prévus ont un instantané de moins de
       24 h.
@@ -183,3 +184,111 @@ Réalisée le 31 octobre 2026, branche `lot/T11-administration`.
 
 0028.
 
+### Revue de sécurité
+
+Réalisée le 31 octobre 2026, branche `lot/T11-securite`. Revue indépendante (relecteur
+distinct des auteurs, OWASP Risk Rating) de `main` à `8369ad0` (T00 à T10) ; chaque constat
+a été vérifié dans le code avant correction. Bilan de la revue : 0 Critical, 0 High,
+3 Medium, 7 Low, 4 Note ; aucune fuite entre organisations.
+
+#### Constats
+
+| Id | Titre | Gravité | Statut | Commit ou justification |
+| --- | --- | --- | --- | --- |
+| SEC-01 | TOTP forçable avec le mot de passe, seule borne par IP (IPv6 /128) | Medium | Corrigé | `9909ef9` : verrouillage par compte de mfax (open-go-base v1.3.0), IPv6 par /64 ; ADR 0029 |
+| SEC-02 | Jetons personnels qui survivent à la réinitialisation, créés sans réauthentification | Medium | Corrigé | `9909ef9` : révocation d'office (réinitialisations, changement de mot de passe), compte en attente refusé, code TOTP à la création ; ADR 0029 |
+| SEC-03 | Après réinitialisation du TOTP, le mot de passe seul enrôle un second facteur | Medium | Corrigé | `9909ef9` : mot de passe temporaire imposé (administrateur), `bootstrap.rescue_password` (secours) ; ADR 0029 |
+| SEC-04 | Journal d'audit modifiable et effaçable par le rôle d'exécution | Low | Corrigé | `ea9d307` : migration 015 (`REVOKE UPDATE, DELETE, TRUNCATE`), contrôle au démarrage ; ADR 0030 |
+| SEC-05 | Stockage sans quota : un jeton d'agent volé remplit la base | Low | Corrigé | `cd68184` : quotas par référence et par organisation (429, rien stocké) ; rétention : T17 ; ADR 0030 |
+| SEC-06 | Réencodage de SBOM synchrone, non borné, ouvert à un lecteur | Low | Corrigé | `b29dd44` : `ingest.max_reencodes` (2), un par compte, 429 ; client parti ignoré ; ADR 0030 |
+| SEC-07 | Exports : 4 places pour l'instance, monopolisables par un compte | Low | Corrigé | `b29dd44` : un export à la fois par compte ; ADR 0030 |
+| SEC-08 | CSRF non lié à la session, cookies sans `__Host-`, session sans durée absolue | Low | Corrigé | `9909ef9` : `csrfx.WithSessionBinding` (open-go-base v1.3.0), `http.CrossOriginProtection`, `__Host-` avec `cookie_secure: on`, `login.session_max_age` ; ADR 0031 |
+| SEC-09 | Un administrateur d'organisation énumère les comptes et ajoute sans consentement | Low | Accepté, reporté à T16 **[à relire]** | Une réponse uniforme sans invitation tromperait l'administrateur (« ajouté » pour un compte inexistant) ; l'invitation à accepter relève des équipes et droits (T16). Administrateurs d'organisation désignés par l'administrateur d'instance, ajouts audités ; consigné au modèle de menace |
+| SEC-10 | Agent dépôt : identifiants plus larges que nécessaire, aucun périmètre côté agent | Low | Corrigé | `9dd1f8f` : `allowed_namespaces` obligatoire, jeton GitHub restreint au dépôt ; droits du jeton GitLab documentés ; ADR 0031 |
+| SEC-11 | `decode_timeout` sans effet sur les étapes CPU | Note | Corrigé (en partie, documenté) | `efe7185` : lecture de `Precheck` interrompue, contexte vérifié entre les étapes ; validation et décodage de Syft vont au bout de l'étape (linéaires, bornés par le plafond par organisation) ; ADR 0030 |
+| SEC-12 | `CREATE` non contrôlé, fonctions `SECURITY DEFINER` sans garde SQL | Note | Corrigé | `ea9d307` : `REVOKE CREATE ON SCHEMA public FROM PUBLIC`, refus au démarrage ; absence de garde SQL de `ogsbom_list_organizations` et `ogsbom_org_id_by_slug` consignée (risque accepté, métadonnées seules) |
+| SEC-13 | Jeton d'inscription : rattachement à un projet hôte orphelin par nom déclaré | Note | Accepté | Conforme à l'hypothèse « hôtes non compromis à l'inscription » (jetons d'inscription bornés en durée et usages, inscription auditée) ; changer le rattachement modifierait le parcours de T07 (ADR 0021) ; consigné au modèle de menace |
+| SEC-14 | Divers (audit alimentable par un anonyme, `X-Real-IP`, base Grype non signée, webhook en clair, jetons d'agent sans expiration) | Note | Corrigé en partie, reste accepté | `9909ef9` (borne par /64 du journal des échecs) ; `X-Real-IP`, TLS du récepteur et droits GitLab documentés (`docs/operations.md`) ; base Grype non signée et extraction non bornée : risque amont accepté ; jetons d'agent sans expiration : ADR 0014 |
+
+#### Autres points vérifiés
+
+- **Nouvelles routes de la partie 1** (`/admin/jobs`, `POST /admin/jobs/{jobID}/{retry|discard}`,
+  `POST /admin/vulndb/import`, `POST /admin/vulndb/purge`) : groupe `/admin` sous
+  `requireInstanceAdmin` (404 sinon), CSRF sur chaque `POST` (le téléversement présente le
+  jeton de sa première partie, désormais lié à la session : rien ne change pour lui),
+  identifiants analysés avant usage, action et audit dans la même transaction, erreurs de
+  job échappées. `uploadGate` n'élargit la borne qu'à un administrateur authentifié et ne
+  lit que la première partie avant CSRF. Aucun correctif nécessaire.
+- **staticcheck et go vet** passent désormais aussi sur les étiquettes `integration`,
+  `integration,grypedb` et `measure` (`make lint`, `make vet`) ; le SA4010 de
+  `runner_integration_test.go` est corrigé (`954eaf3`).
+
+#### Livré
+
+- open-go-base **v1.3.0** (PR #3 fusionnée en « squash », commit `9a7b91f`, étiquette
+  créée localement, à pousser) : `mfax.WithLockout`, `LockoutStore` (table
+  `mfa_lockouts`, migrations SQLite et PostgreSQL), `Confirm`, `CodeLocked`,
+  `WithLockoutHook`, `WithChallengeCookieName` ; `csrfx.WithSessionBinding` ; réglages
+  `appconf.MFA.Lockout*`. Rétrocompatible. Pseudo-version utilisée ici :
+  `v1.0.2-0.20261031121913-9a7b91fdbbfe`.
+- Migration **015** (`mfa_lockouts` accordée, journaux en ajout seul, index de quota,
+  `CREATE` retiré sur `public`).
+- Réglages : `mfa.lockout_threshold`, `lockout_window`, `lockout_duration`,
+  `lockout_max_duration` ; `login.session_max_age` ; `bootstrap.rescue_password` ;
+  `ingest.max_per_ref_per_day`, `max_org_storage_mib`, `max_reencodes` ; agent dépôt :
+  `forges[].allowed_namespaces`. `config.example.yaml` passe `auth.cookie_secure` à `on`.
+- Traductions (fr, en) : `login.error.locked`, `password.revoke_tokens`,
+  `admin_password.totp_reset_heading`, `tokens.code`, `tokens.code_hint`,
+  `tokens.error.invalid_code`, `tokens.error.locked`, `audit.action.account_locked`,
+  `error.token.account_pending`, `error.ingest.quota`. Gabarits touchés (minimalement) :
+  `account/password.html` (case « révoquer aussi mes jetons »), `account/tokens.html`
+  (champ du code TOTP), `admin/temp_password.html` (titre par clé).
+- Docs : ADR 0029 à 0031, `docs/security/threat-model.md` (version 2 : les onze mises à
+  jour proposées par la revue, vérifiées), `docs/operations.md`, `specs/architecture.md`
+  (§ 5, § 10, § 11, § 14, § 19, § 23), API (`429` de `createIngestion`).
+
+#### Tests
+
+- Tests de démonstration de la revue repris en non-régression, attentes inversées
+  (`internal/web/secreview_integration_test.go`) : jeton révoqué après réinitialisation du
+  mot de passe et du TOTP ; ancien mot de passe refusé après réinitialisation du TOTP,
+  mot de passe temporaire puis changement imposé ; journal en ajout seul
+  (`internal/db/db_integration_test.go`, `TestAuditIsAppendOnly`, et la table
+  `audit_events` dans `TestRLSOnEveryOrgTable`). Le premier et le deuxième échouent sur
+  `main` (jeton accepté, enrôlement réussi), le troisième aussi (UPDATE et DELETE
+  acceptés).
+- Nouveaux : verrouillage à travers les défis (10 codes faux, défi refusé, journal,
+  levée par l'administrateur), réauthentification des jetons et verrouillage par la
+  création, CSRF forgé par cookie posé et jeton d'une autre session refusés, durée
+  absolue, cookies `__Host-`, protection inter-origines, limitation par /64,
+  `CheckRuntimeRole` (CREATE, journal), quotas d'ingestion, délai du décodage, plafonds
+  par compte (export, réencodage), périmètre de l'agent dépôt et jeton GitHub par dépôt,
+  configuration. Côté open-go-base : verrouillage (sqlstore SQLite et service),
+  `Confirm`, `DisablePOST` verrouillé, liaison CSRF, `__Host-`.
+
+#### Décisions
+
+- Verrouillage sur les seuls codes TOTP, pas sur le mot de passe (sinon verrouillage de
+  n'importe quel compte par son e-mail) ; 10 codes en 15 min, 15 min doublées, 24 h au plus
+  **[à relire]**.
+- Réinitialiser le TOTP impose un mot de passe temporaire (plutôt qu'un jeton
+  d'enrôlement) ; secours : `bootstrap.rescue_password` obligatoire **[à relire]**.
+- Création d'un jeton personnel par code TOTP ; changement de mot de passe : révocation
+  proposée cochée **[à relire]**.
+- Durée absolue de session de 7 jours, dans le projet (pas dans authx) **[à relire]**.
+- CSRF lié à la session et `http.CrossOriginProtection` ; `__Host-` seulement avec
+  `cookie_secure: on`, valeur de l'exemple, défaut du code inchangé (`auto`) **[à relire]**.
+- Quotas 200 envois par référence et par jour, 10 Gio par organisation ; 2 réencodages par
+  instance, un export et un réencodage par compte **[à relire]**.
+- `allowed_namespaces` obligatoire pour l'agent dépôt (configuration existante à
+  compléter) **[à relire]**.
+- SEC-09 et SEC-13 acceptés (voir le tableau) **[à relire]**.
+
+#### Écarts
+
+- SEC-09 (Low) n'est pas corrigé mais accepté jusqu'à T16 (voir le tableau).
+- SEC-11 : la validation et le décodage de Syft ne sont pas interrompus en cours d'étape.
+
+#### ADR créés
+
+0029, 0030, 0031.

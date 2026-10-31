@@ -19,6 +19,7 @@ marquées **[à relire]**.
 | T09 | #12 | Terminé | Recherche (ADR 0024) : deux nouvelles fonctions `crossorg` de recherche par nom et empreinte (organisation lue dans `ogsbom.org_id`, contournent la RLS pour les index GIN), sous-chaîne puis trigrammes, bornes, export en flux borné en nombre et durée ; jetons personnels en table globale valables sur les organisations du compte, expiration obligatoire, sans session dans l'API (ADR 0025) ; comparateurs de Grype corrigés et plages vers maison (ADR 0026) ; défauts `user_api` ; écarts à la maquette ; mesures sur 4 cœurs — tous **[à relire]** |
 | T10 | #11 | Terminé | Tableau de bord (ADR 0027) : constats des références actives des projets actifs ; statistiques réécrites toutes les heures sous la date du jour ; `project_daily_stats` en plus d'`org_daily_stats` ; pas de nouvelle fonction `crossorg` ; seuil « muet » de 7 jours pour toute l'interface ; périodes 30/90/365 j ; tuiles sans lien (pas de liste transverse avant T09) ; section « Alertes » et objectifs de délai renvoyés à T15 ; mesures sur 4 cœurs partagés — tous **[à relire]** |
 | T11 (1/2) | à venir | En cours | Administration de l'instance (ADR 0028) : archive téléversée rangée dans PostgreSQL puis installée par un job, jeton CSRF en tête du formulaire présenté à csrfx, archive importée cible même plus ancienne, un import à la fois, état par instance (`vulndb_instances`), purge de toutes les archives non cibles avec confirmation ; `download_timeout` borne aussi le téléversement ; abandon d'un traitement sans confirmation ; test instable corrigé dans le test (bail simulé complet) ; codes de secours de mfax absents d'open-go-base, reportés à T18 — tous **[à relire]** |
+| T11 (sécurité) | à venir | En cours | Revue de sécurité du lot 1 (14 constats, 0 haut ni critique) : 3 Medium, 7 Low et 2 Note corrigés, 2 Note acceptées, SEC-09 accepté jusqu'à T16 ; open-go-base v1.3.0 (PR #3 fusionnée, étiquette à pousser) ; verrouillage par compte sur le TOTP seul, réinitialisation du TOTP avec mot de passe temporaire, révocation d'office des jetons et code TOTP à leur création, durée absolue de session de 7 jours (ADR 0029) ; journal en ajout seul, quotas d'ingestion 200/jour/référence et 10 Gio/organisation, un export et un réencodage par compte (ADR 0030) ; CSRF lié à la session, `http.CrossOriginProtection`, cookies `__Host-` avec `cookie_secure: on` dans l'exemple, `allowed_namespaces` obligatoire pour l'agent dépôt (ADR 0031) — tous **[à relire]** |
 
 ## Actions pour l'utilisateur
 
@@ -30,10 +31,14 @@ utilise des pseudo-versions d'open-go-base. À faire, dans l'ordre :
 2. Pousser l'étiquette annotée `v1.2.0` d'open-go-base, créée localement par T04 sur le
    commit `3534c14` (`ratelimit.WithKeyFunc`, changement compatible) :
    `git -C ../open-go-base push origin v1.2.0`.
-3. Remplacer la pseudo-version par l'étiquette dans open-go-sbom :
-   `go get leblanc.io/open-go-base@v1.2.0 && go mod tidy` (même code que la
-   pseudo-version actuelle `v1.0.2-0.20261031043924-3534c1429b63`). Si seule `v1.1.0` est
-   poussée, ne pas l'utiliser : elle n'a pas `WithKeyFunc`.
+3. Pousser l'étiquette annotée `v1.3.0` d'open-go-base, créée localement par T11
+   (revue de sécurité) sur le commit `9a7b91f` (PR #3 : verrouillage par compte de mfax,
+   `Confirm`, `WithChallengeCookieName`, `csrfx.WithSessionBinding` ; changements
+   compatibles) : `git -C ../open-go-base push origin v1.3.0`.
+4. Remplacer la pseudo-version par l'étiquette dans open-go-sbom :
+   `go get leblanc.io/open-go-base@v1.3.0 && go mod tidy` (même code que la
+   pseudo-version actuelle `v1.0.2-0.20261031121913-9a7b91fdbbfe`). Ne pas utiliser
+   `v1.1.0` ni `v1.2.0` : il leur manque `WithKeyFunc` ou le verrouillage de mfax.
 
 ## Organisation
 
