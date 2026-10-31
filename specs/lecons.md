@@ -308,8 +308,8 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   générés (`grep '= "' client.gen.go`) avant de les employer ; un nouvel enum dont une
   valeur existe ailleurs renomme les deux.
 - **Scanner « / » d'une machine de développement** : le cache des modules Go
-  (380 000 fichiers sous `/root`) fait passer un scan Syft de quelques secondes à plus de
-  dix minutes et près de 2 Gio de mémoire : Syft indexe chaque fichier parcouru. Règle :
+  (380 000 fichiers sous `/root`) fait passer un scan Syft de « / » de 3 à 16 minutes et
+  de 0,9 à 3 Gio de mémoire : Syft indexe chaque fichier parcouru. Règle :
   mesurer sur une racine représentative d'un serveur (protocole de `measure_test.go`,
   exclusions explicites), et le documenter.
 - **`StateDirectory=` crée le répertoire en `0755`** : l'agent refuse un répertoire

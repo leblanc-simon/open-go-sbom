@@ -42,7 +42,7 @@ SystemCallFilter=~@privileged
 
 Nice=19
 IOSchedulingClass=idle
-MemoryMax=1G
+MemoryMax=1536M
 #CPUQuota=25%
 # Borne le cycle entier (scan.max_duration borne le scan seul).
 TimeoutStartSec=2h

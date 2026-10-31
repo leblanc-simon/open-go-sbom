@@ -25,7 +25,7 @@ contrôle mTLS côté serveur et la façon de produire les paquets.
   `RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX`, filtre `@system-service`
   sans `@privileged`, `MemoryDenyWriteExecute`, `UMask=0077`, `StateDirectory` en `0700`.
   Note `systemd-analyze security` : 1,9 (« OK »). Sobriété : `Nice=19`,
-  `IOSchedulingClass=idle`, `MemoryMax=1G` (limite dure ; la limite douce est
+  `IOSchedulingClass=idle`, `MemoryMax=1536M` (limite dure ; la limite douce est
   `GOMEMLIMIT`, `resources.memory_limit_mib`), `CPUQuota=` proposé en commentaire.
 - **Secrets** : jamais dans `config.yaml`. Jeton d'inscription : `enrollment_token_file`,
   sinon le credential systemd `enrollment-token` (`LoadCredentialEncrypted=`), sinon

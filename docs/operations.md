@@ -325,7 +325,7 @@ que lorsque l'inventaire a changé (ADR 0020, 0021).
 - **Sobriété** : `resources.max_procs` (1) borne `GOMAXPROCS` et les catalogueurs
   simultanés, `resources.memory_limit_mib` (512) la mémoire du runtime (limite douce),
   `scan.max_duration` (1 h) le scan ; l'unité ajoute `Nice=19`, `IOSchedulingClass=idle`,
-  `MemoryMax=1G`, et propose `CPUQuota=` (à décommenter, au prix d'un scan plus long).
+  `MemoryMax=1536M`, et propose `CPUQuota=` (à décommenter, au prix d'un scan plus long).
 - **Moindre privilège** : utilisateur `ogsbom-agent`, seule capacité
   `CAP_DAC_READ_SEARCH` (lecture de tout fichier), écriture limitée au répertoire d'état,
   unité durcie (`systemd-analyze security` : 1,9).

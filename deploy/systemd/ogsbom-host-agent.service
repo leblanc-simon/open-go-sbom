@@ -51,7 +51,7 @@ SystemCallFilter=~@privileged
 # doux est resources.memory_limit_mib).
 Nice=19
 IOSchedulingClass=idle
-MemoryMax=1G
+MemoryMax=1536M
 # Plafond de CPU, au prix d'un scan plus long (décommenter, ou systemctl edit) :
 #CPUQuota=25%
 
