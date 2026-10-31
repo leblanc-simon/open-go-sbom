@@ -513,8 +513,9 @@ func TestSchedulerSyncAndRun(t *testing.T) {
 	if err := s.sync(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if got := next(); !got.Equal(daily.lastPoint(clock.Now())) || got.Hour() != 3 {
-		t.Fatalf("nouvelle échéance : %s, attendu %s (due tout de suite, à 03:00)", got, daily.lastPoint(clock.Now()))
+	// La grille est en UTC ; pgx rend l'heure lue dans le fuseau local.
+	if got := next(); !got.Equal(daily.lastPoint(clock.Now())) || got.UTC().Hour() != 3 {
+		t.Fatalf("nouvelle échéance : %s, attendu %s (due tout de suite, à 03:00 UTC)", got, daily.lastPoint(clock.Now()))
 	}
 	if n, err := s.tick(ctx); err != nil || n != 1 {
 		t.Fatalf("tick : %d, %v", n, err)

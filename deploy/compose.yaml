@@ -9,6 +9,9 @@ name: lotor
 services:
   postgres:
     image: docker.io/library/postgres:16-alpine
+    # go test lance un paquet et un test parallèle par cœur, chacun avec ses pools :
+    # environ 160 connexions au pic sur 16 cœurs, au-delà des 100 par défaut.
+    command: ["postgres", "-c", "max_connections=500"]
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
