@@ -186,6 +186,12 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Logger:   logger,
 			Metrics:  jobMetrics,
 		})
+		if err := runner.Register(account.PurgeKind, accounts.PurgeHandler()); err != nil {
+			return err
+		}
+		if err := scheduler.Register(account.PurgeSchedule()); err != nil {
+			return err
+		}
 		services = append(services, runner.Run, scheduler.Run)
 	}
 	return runAll(ctx, services...)
