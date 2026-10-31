@@ -1,0 +1,60 @@
+# Intégration continue : ce qui échoue le plus vite passe en premier. Les étapes appellent
+# les cibles du Makefile, pour que `make ci` en local et la CI fassent la même chose.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      OGSBOM_TEST_DATABASE_DSN: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # git describe a besoin des étiquettes
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Format
+        run: make fmt-check
+      - name: Code généré à jour
+        run: make generate-check
+      - name: go vet
+        run: make vet
+      - name: staticcheck
+        run: make lint
+      - name: Tests unitaires
+        run: make test-race
+      - name: Tests d'intégration
+        run: make test-integration
+      - name: govulncheck
+        run: make vuln
+      - name: Construction amd64
+        run: make build GOARCH=amd64
+      - name: Construction arm64
+        run: make build GOARCH=arm64

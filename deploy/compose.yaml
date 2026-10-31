@@ -1,0 +1,25 @@
+# PostgreSQL de développement et de test : docker compose -f deploy/compose.yaml up -d
+#
+# - base « ogsbom » : rôle propriétaire ogsbom_owner (migrations) et rôle d'exécution
+#   ogsbom_app (sans BYPASSRLS), créés par initdb/01-roles.sql ;
+# - tests d'intégration : connexion d'administration « postgres », chaque test crée sa
+#   base et ses rôles jetables (données sur tmpfs, perdues à l'arrêt).
+name: ogsbom
+
+services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
