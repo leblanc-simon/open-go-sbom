@@ -144,16 +144,6 @@ func (s *fakeServer) Upload(_ context.Context, u Upload) error {
 	return nil
 }
 
-func (s *fakeServer) commits() []string {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	var out []string
-	for _, u := range s.uploads {
-		out = append(out, u.Commit)
-	}
-	return out
-}
-
 // syncBuffer est un tampon de journal partagé entre goroutines.
 type syncBuffer struct {
 	mu  sync.Mutex

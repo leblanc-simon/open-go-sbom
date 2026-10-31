@@ -419,6 +419,17 @@ func signedPush(t *testing.T, url, secret, delivery, after string) *http.Respons
 	return resp
 }
 
+// commits liste les commits envoyés au serveur simulé, dans l'ordre.
+func (s *fakeServer) commits() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var out []string
+	for _, u := range s.uploads {
+		out = append(out, u.Commit)
+	}
+	return out
+}
+
 func waitFor(t *testing.T, what string, cond func() bool) {
 	t.Helper()
 	deadline := time.Now().Add(2 * time.Minute)
@@ -465,7 +476,9 @@ func TestPipelineGitHub(t *testing.T) {
 	if got := srv.commits(); got[0] != r.commits[1] || got[1] != r.commits[2] {
 		t.Fatalf("ordre du rattrapage : %v", got)
 	}
+	srv.mu.Lock()
 	u := srv.uploads[1]
+	srv.mu.Unlock()
 	if u.ProjectID != "p1" || u.Ref != mainRef || u.AgentVersion != "test" || u.ScannedAt.IsZero() {
 		t.Fatalf("envoi %+v", u)
 	}
