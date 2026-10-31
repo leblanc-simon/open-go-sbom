@@ -146,7 +146,7 @@ relevées en T00 (une montée de version ultérieure ne demande pas de nouvelle 
 | Pilote PostgreSQL | `github.com/jackc/pgx/v5/stdlib` via `database/sql` (partagé avec les stores d'authx et mfax) | v5.12.0 | Validé (ADR 0002) |
 | Routeur HTTP | `github.com/go-chi/chi/v5` (comme open-go-canivet) | v5.5.0 | Validé (ADR 0003) |
 | SBOM, vulnérabilités, licences | `github.com/anchore/syft`, `grype`, `grant` | v1.55.0, v0.121.0, v0.6.8 | Décidé (ADR 0007) |
-| Pilote SQLite pur Go, exigé par Syft pour les bases RPM récentes | `modernc.org/sqlite` (déjà dans le graphe d'open-go-base) | celle du graphe | Validé en T00 (ADR 0007) |
+| Pilote SQLite pur Go, exigé par Syft pour les bases RPM récentes | `modernc.org/sqlite` (déjà dans le graphe d'open-go-base) | v1.60.1, import direct de `hostagent` (T07) | Validé en T00 (ADR 0007) |
 | Manipulation CycloneDX côté agents et dans l'adaptateur `sbom/syft` (réencodage) | `github.com/CycloneDX/cyclonedx-go` (déjà dans le graphe de Syft) | v0.12.0 | Validé |
 | purl | `github.com/package-url/packageurl-go` (déjà dans le graphe de Syft) | v0.1.7 | Validé |
 | UUID v7 | `github.com/google/uuid` (déjà indirect) | v1.6.0 | Validé |
@@ -156,7 +156,7 @@ relevées en T00 (une montée de version ultérieure ne demande pas de nouvelle 
 | Analyse statique | `staticcheck`, `govulncheck` en directives `tool` | v0.8.2, v1.9.0 | Validé |
 | Validation des SBOM par schéma JSON | schémas officiels embarqués, `github.com/santhosh-tekuri/jsonschema/v6` | v6.0.3 | Validé |
 | Métriques | `github.com/prometheus/client_golang` | v1.25.0 | Validé |
-| Paquets deb et rpm | `nfpm` en directive `tool` | v2.48.0 | Validé |
+| Paquets deb et rpm | `nfpm` en directive `tool` (`make packages`, T07) | v2.48.0 | Validé |
 | Fournisseur de modèle | SDK Go officiel d'Anthropic ; Ollama par son API HTTP sans SDK | — | À valider en T12 |
 | Règles de politique | `github.com/google/cel-go` | — | À valider en T15 |
 | OIDC | `oidcx` dans open-go-base, ou paquet local | — | Point ouvert, T25 |
@@ -260,7 +260,7 @@ Données **par organisation** (toutes portent `org_id`) :
 | `organizations`, `org_memberships` | organisation (slug, nom, langue par défaut) ; compte × organisation × rôle |
 | `projects` | type (`repo`, `host`, `container`), nom, slug, étiquettes, `parent_id` (T13), équipe (T16), archivage |
 | `tracked_refs` | référence suivie (branche, tag, ou l'hôte) |
-| `agents`, `agent_tokens`, `enrollment_tokens`, `personal_access_tokens` | agents et jetons hachés |
+| `agents`, `agent_tokens`, `enrollment_tokens`, `personal_access_tokens` | agents et jetons hachés ; pour un agent serveur, demande de scan en attente et dernier contexte d'hôte (T07) |
 | `components` | composant de l'organisation : purl canonique (unique par organisation), `purl_base`, type, nom, version, CPE, empreintes |
 | `component_sets`, `component_set_items` | ensemble d'inventaire adressé par son empreinte ; ses composants avec origine (`syft`, `ia`), confiance, modèle, preuve, portée, licences, identification faible |
 | `sbom_blobs` | SBOM brut compressé, dédoublonné par empreinte SHA-256 |
@@ -567,14 +567,30 @@ qu'aucune mesure ne la justifie (ADR 0015).
 
 ## 17. Agents
 
-- Client API commun `agentclient` (généré), avec réessais bornés, délai exponentiel et
-  respect de `Retry-After` ; certificat client facultatif (mTLS).
+- Client API commun `agentclient` : le client généré (`agentclient/gen`) enveloppé d'un
+  transport HTTPS (autorité privée, certificat client relu à chaud, mandataire, aucune
+  redirection suivie), de réessais bornés (erreur réseau, 429, 5xx ; délai exponentiel à
+  gigue ; `Retry-After` respecté, abandon s'il dépasse la politique), d'erreurs RFC 9457
+  exposées par leur clé (`agentclient.Error`, `IsKey`), de l'envoi multipart d'un SBOM
+  (contexte, puis SBOM en gzip, corps rejoué à chaque tentative) et du suivi d'une
+  ingestion jusqu'à son état final (T07, `doc.go`).
 - Inscription : jeton d'inscription → jeton d'agent stocké dans le répertoire d'état
   (droits `0600`).
 - Secrets des agents (jeton, clés de forge, clés d'API des modèles) : jamais dans le fichier
   de configuration. Ils sont fournis par les credentials systemd (`LoadCredentialEncrypted=`,
   chiffrés au repos) ou par des fichiers en `0600`, au choix de l'exploitant.
-- `ogsbom-host-agent` : voir T07 (hôte), T13 (conteneurs), T22 (Windows), T23 (hors ligne).
+- `ogsbom-host-agent` (T07, ADR 0020 et 0021) : configuration `OGSBOM_HOST_AGENT_*`
+  (`deploy/host-agent/config.example.yaml`), modes `daemon` et `oneshot` ; scan de `/`
+  par Syft (catalogueurs d'un système installé, sans catalogage de fichiers, systèmes
+  virtuels, stockages de conteneurs et montages réseau ou de conteneurs exclus) ;
+  empreinte d'inventaire calculée par `sbom/syft.Decode` et `sbom.Fingerprint`, comme à
+  l'ingestion ; inchangée, un signal de vie la soumet (`HeartbeatRequest.inventory`) et
+  le serveur avance la date de dernière analyse ou réclame le SBOM ; changée, le SBOM part
+  en Syft JSON. Le signal de vie remet une fois la demande « Scanner maintenant ». État
+  muet d'un agent serveur fondé sur son dernier inventaire, d'un agent dépôt sur son
+  dernier contact. Unités systemd durcies (`CAP_DAC_READ_SEARCH` seule), paquets deb et
+  rpm (nfpm, `make packages`). Avec `tls.client_ca_file`, l'API des agents exige un
+  certificat client vérifié. Suite : T13 (conteneurs), T22 (Windows), T23 (hors ligne).
 - `ogsbom-repo-agent` : service externe qui détient seul les secrets des forges. Il reçoit les
   webhooks, clone, analyse, envoie, puis attend le verdict du serveur pour publier le statut
   de commit (T15). Tout accès au contenu d'un dépôt passe par `os.Root` (aucune sortie de

@@ -1,0 +1,65 @@
+# Paquets deb et rpm d'ogsbom-host-agent (nfpm, go tool nfpm), produits par
+# `make packages` : PKG_ARCH et PKG_VERSION viennent du Makefile. Non signés (signature : T24,
+# T26).
+name: ogsbom-host-agent
+arch: ${PKG_ARCH}
+platform: linux
+version: ${PKG_VERSION}
+version_schema: none
+section: admin
+priority: optional
+maintainer: Simon Leblanc <contact@leblanc-simon.eu>
+vendor: open-go-sbom
+homepage: https://github.com/leblanc-simon/open-go-sbom
+license: WTFPL
+description: |
+  Agent serveur d'open-go-sbom : inventaire de l'hôte
+  Agent serveur d'open-go-sbom : inventorie l'hôte avec Syft (paquets du système et des
+  langages installés) et n'envoie un SBOM au serveur que lorsque l'inventaire a changé.
+  Tourne sans root (CAP_DAC_READ_SEARCH), en démon ou par timer systemd.
+
+contents:
+  # Copie du binaire de l'architecture en cours, posée par make packages.
+  - src: bin/package/ogsbom-host-agent
+    dst: /usr/bin/ogsbom-host-agent
+    file_info:
+      mode: 0755
+  - dst: /etc/ogsbom-host-agent
+    type: dir
+    file_info:
+      mode: 0750
+  - src: deploy/host-agent/config.example.yaml
+    dst: /etc/ogsbom-host-agent/config.yaml
+    type: config|noreplace
+    file_info:
+      mode: 0644
+  - src: deploy/systemd/ogsbom-host-agent.service
+    dst: /usr/lib/systemd/system/ogsbom-host-agent.service
+    file_info:
+      mode: 0644
+  - src: deploy/systemd/ogsbom-host-agent-oneshot.service
+    dst: /usr/lib/systemd/system/ogsbom-host-agent-oneshot.service
+    file_info:
+      mode: 0644
+  - src: deploy/systemd/ogsbom-host-agent-oneshot.timer
+    dst: /usr/lib/systemd/system/ogsbom-host-agent-oneshot.timer
+    file_info:
+      mode: 0644
+  - src: deploy/host-agent/sysusers.conf
+    dst: /usr/lib/sysusers.d/ogsbom-host-agent.conf
+    file_info:
+      mode: 0644
+  - src: LICENSE
+    dst: /usr/share/doc/ogsbom-host-agent/LICENSE
+    file_info:
+      mode: 0644
+
+scripts:
+  postinstall: deploy/host-agent/postinstall.sh
+  preremove: deploy/host-agent/preremove.sh
+
+overrides:
+  deb:
+    recommends: [systemd]
+  rpm:
+    recommends: [systemd]

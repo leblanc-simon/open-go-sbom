@@ -1,0 +1,13 @@
+# Un scan par jour, à une heure tirée dans la première heure de la nuit pour étaler la
+# charge d'un parc ; rattrapé au démarrage s'il a été manqué.
+[Unit]
+Description=open-go-sbom host agent, daily scan
+Conflicts=ogsbom-host-agent.service
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

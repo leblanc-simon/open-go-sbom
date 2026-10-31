@@ -171,11 +171,6 @@ Réalisé le 31 octobre 2026, branche `lot/T08-agent-depot`, en parallèle de T0
 
 ### Écarts
 
-- **Client commun** : `repoagent.APIServer` est un **adaptateur minimal sur le client
-  généré** (`internal/agentclient/gen`), sans réessai ni mTLS : le client commun
-  d'`internal/agentclient` relève de T07, non fusionné à la fin de ce lot. **À
-  remplacer** par ce client (l'interface `repoagent.Server` reste) ; le rattrapage refait
-  en attendant le travail d'une requête perdue.
 - **Clonage** : `git fetch --depth 1 --no-tags` du commit au lieu de
   `git clone --depth 1 --single-branch --no-tags` (fiche) : un clone de branche ne
   contient pas les commits anciens à rattraper (ADR 0023).
@@ -209,10 +204,11 @@ Réalisé le 31 octobre 2026, branche `lot/T08-agent-depot`, en parallèle de T0
 
 ### Pour les lots suivants
 
-- **T07** : brancher `repoagent.Server` sur le client commun d'`internal/agentclient`
-  (réessais, `Retry-After`, mTLS) et supprimer `repoagent.APIServer`, ou le faire dans le
-  lot qui fusionne en second ; un `Upload` doit envelopper `repoagent.ErrRejected` pour un
-  refus définitif (4xx hors 429).
+- Client de l'API : `repoagent.NewServer` repose depuis T07 sur le client commun
+  d'`internal/agentclient` (réessais bornés, `Retry-After`, autorité privée, mTLS par
+  `server.client_cert_file` et `server.client_key_file`, mandataire) ; un refus 4xx hors 429
+  enveloppe `repoagent.ErrRejected`. L'adaptateur provisoire `APIServer` a disparu.
+
 - **T12 (IA)** : le pipeline produit le SBOM Syft dans `scanner.scan` ; l'enrichissement
   se greffe entre le scan et l'envoi, sur l'arborescence extraite (avant sa suppression),
   et ajoute ses composants avec `ogsbom:origin=ia`. `forge.Comparison.Files` donne les

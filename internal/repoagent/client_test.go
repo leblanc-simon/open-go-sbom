@@ -77,6 +77,13 @@ func newAPITestServer(t *testing.T, uploadStatus int) (*httptest.Server, *[]map[
 			}
 		}
 		uploads = append(uploads, got)
+		if uploadStatus == http.StatusAccepted {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(uploadStatus)
+			_, _ = io.WriteString(w, `{"id":"0192f3a0-0000-7000-8000-000000000009","status":"queued","project_id":"`+projectUUID+
+				`","ref_id":"0192f3a0-0000-7000-8000-000000000002","received_at":"2026-10-31T00:00:00Z"}`)
+			return
+		}
 		w.Header().Set("Content-Type", "application/problem+json")
 		w.WriteHeader(uploadStatus)
 		_, _ = io.WriteString(w, `{"type":"error.ingest.ref_unknown","title":"x","status":404}`)
@@ -96,9 +103,9 @@ func caFile(t *testing.T, srv *httptest.Server) string {
 	return p
 }
 
-func TestAPIServerProjectsAndHeartbeat(t *testing.T) {
+func TestServerProjectsAndHeartbeat(t *testing.T) {
 	srv, _ := newAPITestServer(t, http.StatusAccepted)
-	s, err := NewAPIServer(ServerConfig{URL: srv.URL + "/", CAFile: caFile(t, srv), Timeout: 10 * time.Second}, "ogsbom_agt_x")
+	s, err := NewServer(ServerConfig{Retries: 1, URL: srv.URL + "/", CAFile: caFile(t, srv), Timeout: 10 * time.Second}, "ogsbom_agt_x", ServerOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,35 +127,35 @@ func TestAPIServerProjectsAndHeartbeat(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bad, _ := NewAPIServer(ServerConfig{URL: srv.URL, CAFile: caFile(t, srv), Timeout: 10 * time.Second}, "wrong")
+	bad, _ := NewServer(ServerConfig{Retries: 1, URL: srv.URL, CAFile: caFile(t, srv), Timeout: 10 * time.Second}, "wrong", ServerOptions{})
 	if _, err := bad.Projects(ctx); err == nil {
 		t.Fatal("jeton refusé non signalé")
 	}
 	// Sans l'autorité du serveur, le certificat est refusé.
-	untrusted, _ := NewAPIServer(ServerConfig{URL: srv.URL, Timeout: 10 * time.Second}, "ogsbom_agt_x")
+	untrusted, _ := NewServer(ServerConfig{Retries: 1, URL: srv.URL, Timeout: 10 * time.Second}, "ogsbom_agt_x", ServerOptions{})
 	if _, err := untrusted.Projects(ctx); err == nil {
 		t.Fatal("certificat inconnu accepté")
 	}
 	if err := untrusted.Heartbeat(ctx, "1"); err == nil {
 		t.Fatal("certificat inconnu accepté")
 	}
-	if _, err := NewAPIServer(ServerConfig{URL: srv.URL, CAFile: "/nonexistent"}, "x"); err == nil {
+	if _, err := NewServer(ServerConfig{Retries: 1, URL: srv.URL, CAFile: "/nonexistent"}, "x", ServerOptions{}); err == nil {
 		t.Fatal("autorité absente acceptée")
 	}
 	empty := filepath.Join(t.TempDir(), "empty.pem")
 	_ = os.WriteFile(empty, []byte("x"), 0o600)
-	if _, err := NewAPIServer(ServerConfig{URL: srv.URL, CAFile: empty}, "x"); err == nil {
+	if _, err := NewServer(ServerConfig{Retries: 1, URL: srv.URL, CAFile: empty}, "x", ServerOptions{}); err == nil {
 		t.Fatal("autorité vide acceptée")
 	}
 }
 
-func TestAPIServerUpload(t *testing.T) {
+func TestServerUpload(t *testing.T) {
 	ctx := context.Background()
 	u := Upload{ProjectID: projectUUID, Ref: mainRef, Commit: strings.Repeat("b", 40), AgentVersion: "1.0.0",
 		ScannedAt: time.Date(2026, 10, 31, 1, 2, 3, 0, time.UTC), SBOM: []byte(`{"bomFormat":"CycloneDX"}`)}
 
 	srv, uploads := newAPITestServer(t, http.StatusAccepted)
-	s, err := NewAPIServer(ServerConfig{URL: srv.URL, CAFile: caFile(t, srv), Timeout: 10 * time.Second}, "ogsbom_agt_x")
+	s, err := NewServer(ServerConfig{Retries: 1, URL: srv.URL, CAFile: caFile(t, srv), Timeout: 10 * time.Second}, "ogsbom_agt_x", ServerOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,7 +174,7 @@ func TestAPIServerUpload(t *testing.T) {
 
 	for status, rejected := range map[int]bool{http.StatusNotFound: true, http.StatusRequestEntityTooLarge: true, http.StatusTooManyRequests: false, http.StatusBadGateway: false} {
 		srv, _ := newAPITestServer(t, status)
-		s, _ := NewAPIServer(ServerConfig{URL: srv.URL, CAFile: caFile(t, srv), Timeout: 10 * time.Second}, "ogsbom_agt_x")
+		s, _ := NewServer(ServerConfig{Retries: 1, URL: srv.URL, CAFile: caFile(t, srv), Timeout: 10 * time.Second}, "ogsbom_agt_x", ServerOptions{})
 		err := s.Upload(ctx, u)
 		if err == nil || errors.Is(err, ErrRejected) != rejected {
 			t.Errorf("%d : %v", status, err)
@@ -180,5 +187,25 @@ func TestAPIServerUpload(t *testing.T) {
 	bad.ProjectID = "pas-un-uuid"
 	if err := s.Upload(ctx, bad); err == nil {
 		t.Fatal("projet invalide accepté")
+	}
+}
+
+func TestServerChecksClientKey(t *testing.T) {
+	dir := t.TempDir()
+	cert, key := filepath.Join(dir, "c.pem"), filepath.Join(dir, "c.key")
+	_ = os.WriteFile(cert, []byte("x"), 0o644)
+	_ = os.WriteFile(key, []byte("x"), 0o644)
+	cfg := ServerConfig{URL: "https://sbom.example.org", ClientCertFile: cert, ClientKeyFile: key, Retries: 1, Timeout: time.Second}
+	if _, err := NewServer(cfg, "t", ServerOptions{}); err == nil || !strings.Contains(err.Error(), "droits") {
+		t.Errorf("clé lisible par tous : %v", err)
+	}
+	_ = os.Chmod(key, 0o600)
+	if _, err := NewServer(cfg, "t", ServerOptions{}); err == nil {
+		t.Error("paire invalide acceptée")
+	}
+	cfg.URL = "http://sbom.example.org"
+	cfg.ClientCertFile, cfg.ClientKeyFile = "", ""
+	if _, err := NewServer(cfg, "t", ServerOptions{}); err == nil {
+		t.Error("adresse http acceptée")
 	}
 }

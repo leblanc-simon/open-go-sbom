@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -49,6 +50,11 @@ type AgentOptions struct {
 	// FailureRateLimit borne les jetons refusés par minute et par IP (0 : sans limite).
 	FailureRateLimit int
 	TrustedProxies   []string
+	// RequireClientCert exige un certificat client vérifié (mTLS) sur toute l'API des
+	// agents : vrai quand le TLS natif et tls.client_ca_file sont configurés. Le serveur
+	// TLS vérifie un certificat présenté ; c'est ici que son absence est refusée, l'interface
+	// web restant accessible sans certificat.
+	RequireClientCert bool
 	// ClientIP résout l'IP du client (mandataires de confiance compris).
 	ClientIP func(*http.Request) string
 }
@@ -84,6 +90,9 @@ func MountAgent(r chi.Router, o AgentOptions) error {
 	strict := gen.NewStrictHandlerWithOptions(h, []gen.StrictMiddlewareFunc{h.requireKind},
 		gen.StrictHTTPServerOptions{RequestErrorHandlerFunc: h.badRequest, ResponseErrorHandlerFunc: h.responseError})
 	r.Group(func(r chi.Router) {
+		if o.RequireClientCert {
+			r.Use(h.requireClientCert)
+		}
 		r.Use(limitBody(o.Ingest.Limits().MaxUpload+multipartOverhead), h.authenticate, perToken.Middleware)
 		gen.HandlerWithOptions(strict, gen.ChiServerOptions{BaseRouter: r, ErrorHandlerFunc: h.badRequest})
 	})
@@ -149,6 +158,23 @@ func (h *agentAPI) authenticate(next http.Handler) http.Handler {
 		// de la requête pour traduire une clé d'erreur d'ingestion.
 		ctx = locale.NewContext(ctx, middleware.Localizer(h.Catalog, r))
 		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, clientIPKey{}, h.ClientIP(r))))
+	})
+}
+
+// KeyClientCertRequired : requête de l'API des agents sans certificat client vérifié,
+// alors que le mTLS est exigé.
+const KeyClientCertRequired = "error.client_cert_required"
+
+// requireClientCert refuse, avant toute lecture du jeton, une requête dont la connexion
+// n'a pas présenté de certificat client vérifié par tls.client_ca_file. Le refus passe par
+// le limiteur des refus, par IP.
+func (h *agentAPI) requireClientCert(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.TLS == nil || len(r.TLS.VerifiedChains) == 0 {
+			h.refuse.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), refusalKey{}, KeyClientCertRequired)))
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -226,7 +252,11 @@ func (h *agentAPI) responseError(w http.ResponseWriter, r *http.Request, err err
 func (h *agentAPI) Enroll(ctx context.Context, req gen.EnrollRequestObject) (gen.EnrollResponseObject, error) {
 	p, _ := principalFrom(ctx)
 	ip, _ := ctx.Value(clientIPKey{}).(string)
-	res, err := h.Agents.Enroll(ctx, p, agent.EnrollRequest{Hostname: req.Body.Hostname, Version: req.Body.Version}, ip,
+	er := agent.EnrollRequest{Hostname: req.Body.Hostname, Version: req.Body.Version}
+	if req.Body.Labels != nil {
+		er.Labels = *req.Body.Labels
+	}
+	res, err := h.Agents.Enroll(ctx, p, er, ip,
 		middleware.RequestIDFrom(ctx))
 	if err != nil {
 		return nil, err
@@ -238,13 +268,48 @@ func (h *agentAPI) Enroll(ctx context.Context, req gen.EnrollRequestObject) (gen
 	}, nil
 }
 
-// Heartbeat enregistre le signal de vie de l'agent.
+// Heartbeat enregistre le signal de vie de l'agent, avec le compte rendu d'un scan sans
+// changement et le contexte de l'hôte s'ils sont joints.
 func (h *agentAPI) Heartbeat(ctx context.Context, req gen.HeartbeatRequestObject) (gen.HeartbeatResponseObject, error) {
 	p, _ := principalFrom(ctx)
-	if err := h.Agents.Heartbeat(ctx, p, req.Body.Version); err != nil {
+	hb := agent.HeartbeatRequest{Version: req.Body.Version, Host: hostContextOf(req.Body.Host)}
+	if r := req.Body.Inventory; r != nil {
+		fp, err := hex.DecodeString(r.Fingerprint)
+		if err != nil || len(fp) != 32 || r.Fingerprint != strings.ToLower(r.Fingerprint) {
+			return nil, &account.ValidationError{Field: "inventory", Key: agent.KeyInventoryInvalid}
+		}
+		hb.Inventory = &agent.InventoryReport{ProjectID: r.ProjectId, RefName: r.Ref.Name, ScannedAt: r.ScannedAt}
+		copy(hb.Inventory.Fingerprint[:], fp)
+	}
+	res, err := h.Agents.Heartbeat(ctx, p, hb)
+	if err != nil {
 		return nil, err
 	}
-	return gen.Heartbeat200JSONResponse{ScanRequested: false, ServerTime: h.Agents.Now()}, nil
+	out := gen.Heartbeat200JSONResponse{ScanRequested: res.ScanRequested, ServerTime: h.Agents.Now()}
+	if res.Inventory != "" {
+		st := gen.HeartbeatStatusInventory(res.Inventory)
+		out.Inventory = &st
+	}
+	return out, nil
+}
+
+// hostContextOf convertit le contexte d'hôte du contrat.
+func hostContextOf(c *gen.HostContext) *agent.HostContext {
+	if c == nil {
+		return nil
+	}
+	str := func(p *string) string {
+		if p == nil {
+			return ""
+		}
+		return *p
+	}
+	out := &agent.HostContext{Hostname: str(c.Hostname), OSID: str(c.OsId), OSVersion: str(c.OsVersion),
+		OSName: str(c.OsName), Kernel: str(c.Kernel), Arch: str(c.Arch)}
+	if c.ScanDurationMs != nil {
+		out.ScanDuration = int64(*c.ScanDurationMs)
+	}
+	return out
 }
 
 // ListAgentProjects renvoie les projets confiés à l'agent.

@@ -231,7 +231,7 @@ func TestEnrollmentTokenRefusals(t *testing.T) {
 	}
 	// Un jeton d'inscription n'est pas un jeton d'agent, et inversement.
 	if p, err := f.agents.Authenticate(ctx, expiring); err == nil {
-		if err := f.agents.Heartbeat(ctx, p, "1"); authKey(err) != agent.KeyTokenInvalid {
+		if _, err := f.agents.Heartbeat(ctx, p, agent.HeartbeatRequest{Version: "1"}); authKey(err) != agent.KeyTokenInvalid {
 			t.Errorf("signal de vie avec un jeton d'inscription : %v", err)
 		}
 	}
@@ -320,10 +320,10 @@ func TestAgentTokenLifecycle(t *testing.T) {
 	if err != nil || p.AgentKind != agent.KindRepo {
 		t.Fatalf("premier jeton : %+v %v", p, err)
 	}
-	if err := f.agents.Heartbeat(ctx, p, "0.9.2"); err != nil {
+	if _, err := f.agents.Heartbeat(ctx, p, agent.HeartbeatRequest{Version: "0.9.2"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.agents.Heartbeat(ctx, p, "avec espace"); !isKey(err, agent.KeyVersionInvalid) {
+	if _, err := f.agents.Heartbeat(ctx, p, agent.HeartbeatRequest{Version: "avec espace"}); !isKey(err, agent.KeyVersionInvalid) {
 		t.Errorf("version invalide : %v", err)
 	}
 	got, err := f.agents.Get(ctx, o, a.ID)
