@@ -116,32 +116,38 @@ Nommage : paquets courts en anglais, jamais de paquet fourre-tout (`util`, `help
   serveur (`db`, `inventory`…) : les agents restent des binaires légers.
 - Pas de variable globale mutable ; les dépendances sont injectées par constructeur.
 
-`internal/archtest` lit les imports directs de chaque paquet (`go list -json`) et échoue en
-CI au premier écart.
+`internal/archtest` lit les imports directs de chaque paquet, tests compris
+(`go list -json`), et échoue en CI au premier écart. Les listes de paquets métier, de
+présentation, d'agents et de serveur sont tenues dans `internal/archtest/rules.go` : un
+nouveau paquet y est classé dans le commit qui le crée. « `cmd` ne contient aucune
+logique » et « pas de variable globale mutable » ne se lisent pas dans les imports et
+restent vérifiés en relecture.
 
 ## 5. Socle et dépendances
 
-Versions minimales : Go 1.26, PostgreSQL 16. Validations du 31 octobre 2026.
+Versions minimales : Go 1.26, PostgreSQL 16. Validations du 31 octobre 2026 ; versions
+relevées en T00 (une montée de version ultérieure ne demande pas de nouvelle validation).
 
-| Besoin | Choix | Statut |
-| --- | --- | --- |
-| Configuration, journaux, i18n, CSRF, limitation de débit par IP, CORS, comptes, sessions, TOTP | `leblanc.io/open-go-base` | Décidé |
-| Pilote PostgreSQL | `github.com/jackc/pgx/v5/stdlib` via `database/sql` (partagé avec les stores d'authx et mfax) | Validé |
-| Routeur HTTP | `github.com/go-chi/chi/v5` (comme open-go-canivet) | Validé |
-| SBOM, vulnérabilités, licences | `github.com/anchore/syft`, `grype`, `grant` | Décidé |
-| Manipulation CycloneDX côté agents | `github.com/CycloneDX/cyclonedx-go` (déjà dans le graphe de Syft) | Validé |
-| purl | `github.com/package-url/packageurl-go` (déjà dans le graphe de Syft) | Validé |
-| UUID v7 | `github.com/google/uuid` (déjà indirect) | Validé |
-| Contrat d'API | `oapi-codegen` en directive `tool` + son paquet runtime | Validé |
-| Requêtes SQL typées | `sqlc` en directive `tool` si les tableaux passent sans lib/pq, sinon requêtes écrites à la main | Tranché par l'exploration de T00 (ADR 4) |
-| File de traitements | maison, sur PostgreSQL (§ 16) | Retenu, ADR 5 en T00 |
-| Analyse statique | `staticcheck`, `govulncheck` en directives `tool` | Validé |
-| Validation des SBOM par schéma JSON | schémas officiels embarqués, `github.com/santhosh-tekuri/jsonschema` | Validé |
-| Métriques | `github.com/prometheus/client_golang` | Validé |
-| Paquets deb et rpm | `nfpm` en directive `tool` | Validé |
-| Fournisseur de modèle | SDK Go officiel d'Anthropic ; Ollama par son API HTTP sans SDK | À valider en T12 |
-| Règles de politique | `github.com/google/cel-go` | À valider en T15 |
-| OIDC | `oidcx` dans open-go-base, ou paquet local | Point ouvert, T25 |
+| Besoin | Choix | Version (T00) | Statut |
+| --- | --- | --- | --- |
+| Configuration, journaux, i18n, CSRF, limitation de débit par IP, CORS, comptes, sessions, TOTP | `leblanc.io/open-go-base` | v1.0.1 | Décidé |
+| Pilote PostgreSQL | `github.com/jackc/pgx/v5/stdlib` via `database/sql` (partagé avec les stores d'authx et mfax) | v5.12.0 | Validé (ADR 0002) |
+| Routeur HTTP | `github.com/go-chi/chi/v5` (comme open-go-canivet) | v5.5.0 | Validé (ADR 0003) |
+| SBOM, vulnérabilités, licences | `github.com/anchore/syft`, `grype`, `grant` | v1.55.0, v0.121.0, v0.6.8 | Décidé (ADR 0007) |
+| Pilote SQLite pur Go, exigé par Syft pour les bases RPM récentes | `modernc.org/sqlite` (déjà dans le graphe d'open-go-base) | celle du graphe | Validé en T00 (ADR 0007) |
+| Manipulation CycloneDX côté agents | `github.com/CycloneDX/cyclonedx-go` (déjà dans le graphe de Syft) | v0.12.0 | Validé |
+| purl | `github.com/package-url/packageurl-go` (déjà dans le graphe de Syft) | v0.1.7 | Validé |
+| UUID v7 | `github.com/google/uuid` (déjà indirect) | v1.6.0 | Validé |
+| Contrat d'API | `oapi-codegen` en directive `tool` + `github.com/oapi-codegen/runtime` | v2.8.1, v1.8.0 | Validé (ADR 0006) |
+| Requêtes SQL | écrites à la main (sqlc impose `lib/pq` avec `database/sql`) | — | Tranché (ADR 0004) |
+| File de traitements | maison, sur PostgreSQL (§ 16) | — | Retenu (ADR 0005) |
+| Analyse statique | `staticcheck`, `govulncheck` en directives `tool` | v0.8.2, v1.9.0 | Validé |
+| Validation des SBOM par schéma JSON | schémas officiels embarqués, `github.com/santhosh-tekuri/jsonschema/v6` | v6.0.3 | Validé |
+| Métriques | `github.com/prometheus/client_golang` | v1.25.0 | Validé |
+| Paquets deb et rpm | `nfpm` en directive `tool` | v2.48.0 | Validé |
+| Fournisseur de modèle | SDK Go officiel d'Anthropic ; Ollama par son API HTTP sans SDK | — | À valider en T12 |
+| Règles de politique | `github.com/google/cel-go` | — | À valider en T15 |
+| OIDC | `oidcx` dans open-go-base, ou paquet local | — | Point ouvert, T25 |
 
 Sans dépendance : client Git (binaire `git` du système), clients des forges (HTTP + JWT
 RS256 en stdlib), client de l'API Docker (celui du graphe de stereoscope s'il y est, sinon
@@ -437,9 +443,10 @@ isolation en sous-processus est étudiée en ADR pendant T05.
 
 ## 15. API REST
 
-- `api/openapi.yaml` est la source unique ; serveur et client des agents sont générés par
-  oapi-codegen. Version d'OpenAPI : 3.1 si oapi-codegen la gère à la version retenue,
-  sinon 3.0 (vérifié en T00). Un test vérifie que le code généré est à jour.
+- `api/openapi.yaml` est la source unique, en OpenAPI 3.1.0 (ADR 0006) ; serveur et client
+  des agents sont générés par oapi-codegen dans `internal/api/gen` et
+  `internal/agentclient/gen`. `make generate-check` vérifie en CI que le code généré est à
+  jour.
 - Préfixe `/api/v1`. Routes des agents sous `/api/v1/agent/`, routes utilisateur sous
   `/api/v1/orgs/{org}/`. Le point compatible Dependency-Track (T19) vit sous `/dt/` pour ne
   pas mêler son espace d'URL au nôtre.

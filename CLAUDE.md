@@ -18,11 +18,14 @@ offre recherche transverse, triage et tableaux de bord. Multi-organisation, en G
    les noms et les conventions.
 3. [`specs/README.md`](specs/README.md) — les 27 lots techniques, leur ordre, leur statut,
    la façon de travailler et la définition de « terminé ».
-4. `specs/lots/Txx-*.md` — la fiche du lot en cours, et le Journal des lots dont il dépend.
+4. [`specs/lecons.md`](specs/lecons.md) — erreurs déjà commises et pièges connus : à lire
+   avant chaque lot, à compléter à la fin.
+5. `specs/lots/Txx-*.md` — la fiche du lot en cours, et le Journal des lots dont il dépend.
+6. [`docs/adr/`](docs/adr/) — décisions d'architecture.
 
 ## État actuel
 
-Aucun code. Prochain lot : [T00 — Fondations](specs/lots/T00-fondations.md).
+Squelette en place (T00 terminé). Prochain lot : [T01 — Socle du serveur](specs/lots/T01-socle-serveur.md).
 
 ## Règles de travail
 
@@ -71,11 +74,14 @@ Aucun code. Prochain lot : [T00 — Fondations](specs/lots/T00-fondations.md).
 
 ## Commandes
 
-Disponibles après T00 (à mettre à jour avec le `Makefile` réel) :
-
 ```bash
-make ci                 # fmt-check, vet, staticcheck, govulncheck, tests -race, intégration, archtest
-make test-integration   # nécessite PostgreSQL : docker compose -f deploy/compose.yaml up -d
+make help               # liste des cibles
+make ci                 # fmt-check, generate-check, vet, lint, test-race, test-integration, vuln, build
+make test-race          # tests unitaires
+make test-integration   # tests étiquetés integration ; PostgreSQL : docker compose -f deploy/compose.yaml up -d
+                        # (OGSBOM_TEST_DATABASE_DSN, par défaut postgres://postgres:postgres@localhost:5432/postgres)
+make lint               # staticcheck (go tool)
+make vuln               # govulncheck (go tool)
 make generate           # code généré depuis api/openapi.yaml
-make build              # bin/ogsbom-server, bin/ogsbom-host-agent, bin/ogsbom-repo-agent
+make build              # bin/ogsbom-server, bin/ogsbom-host-agent, bin/ogsbom-repo-agent (CGO_ENABLED=0)
 ```
