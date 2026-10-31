@@ -1,0 +1,40 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T .Page.TitleKey}}</h1>
+    <p class="page-head__lead">{{T "audit.lead"}}</p>
+  </div>
+  {{template "form_error" .Error}}
+  <section class="panel" aria-labelledby="audit-list">
+    <div class="panel__head"><h2 class="panel__title" id="audit-list">{{T "audit.list_title"}}</h2></div>
+    {{- if .Rows}}
+    <div class="table-wrap">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "audit.list_title"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "audit.when"}}</th>
+            <th scope="col">{{T "audit.event"}}</th>
+            <th scope="col">{{T "audit.actor"}}</th>
+            <th scope="col">{{T "audit.ip"}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{- range .Rows}}
+          <tr>
+            <td><time datetime="{{.OccurredAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}">{{T "format.utc" "Time" (.OccurredAt.UTC.Format "2006-01-02 15:04:05")}}</time></td>
+            <td class="wrap">{{T .ActionKey .Args}}</td>
+            <td>{{if .ActorEmail}}{{.ActorEmail}}{{else}}{{T "audit.system"}}{{end}}</td>
+            <td class="mono">{{.IP}}</td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{template "next_page" .NextCursor}}
+    {{- else}}
+    <div class="panel__body"><p>{{T "audit.empty"}}</p></div>
+    {{- end}}
+  </section>
+</div>
+{{- end}}

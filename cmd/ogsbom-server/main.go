@@ -18,10 +18,13 @@ import (
 
 	"leblanc.io/open-go-base/logx"
 
+	"leblanc.io/open-go-sbom/internal/account"
 	"leblanc.io/open-go-sbom/internal/config"
 	"leblanc.io/open-go-sbom/internal/db"
 	"leblanc.io/open-go-sbom/internal/locale"
+	"leblanc.io/open-go-sbom/internal/org"
 	"leblanc.io/open-go-sbom/internal/render"
+	"leblanc.io/open-go-sbom/internal/secret"
 	"leblanc.io/open-go-sbom/internal/web"
 	"leblanc.io/open-go-sbom/internal/web/middleware"
 	"leblanc.io/open-go-sbom/locales"
@@ -77,6 +80,18 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	}
 	defer pool.Close()
 
+	box, err := secret.Parse(cfg.Secrets.Keys, cfg.Secrets.ActiveKey)
+	if err != nil {
+		return fmt.Errorf("secrets.keys : %w", err)
+	}
+	accounts := account.NewService(pool, cfg.Auth.BcryptCost)
+	b := cfg.Bootstrap
+	if err := accounts.Startup(ctx, account.StartupOptions{
+		AdminEmail: b.AdminEmail, AdminPassword: b.AdminPassword, RescueEmail: b.RescueEmail, RescueTicket: b.RescueTicket,
+	}, pool, box, logger); err != nil {
+		return err
+	}
+
 	templates, err := webfs.Templates()
 	if err != nil {
 		return err
@@ -109,7 +124,16 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		RateLimit:      cfg.Web.RateLimit,
 		TrustedProxies: cfg.Web.TrustedProxies,
 		CORS:           cfg.CORS,
-		CSRFSecure:     "auto",
+		CSRFSecure:     cfg.Auth.CookieSecure,
+		Identity: &web.IdentityOptions{
+			Pool:           pool,
+			Accounts:       accounts,
+			Orgs:           org.NewService(pool),
+			Secrets:        box,
+			Auth:           cfg.Auth,
+			MFA:            cfg.MFA,
+			LoginRateLimit: cfg.Login.RateLimit,
+		},
 	})
 	if err != nil {
 		return err

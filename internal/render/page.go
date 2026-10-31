@@ -20,9 +20,10 @@ type Page struct {
 	Scripts []string
 
 	// Remplis par Render.
-	Lang      string // étiquette BCP 47 de la page
-	Theme     string // "", "light" ou "dark" (cookie de la bascule de thème)
-	CSRFToken string // à insérer dans chaque formulaire par {{csrfField .Page.CSRFToken}}
+	Chrome    *Chrome // visiteur connecté (nil : anonyme)
+	Lang      string  // étiquette BCP 47 de la page
+	Theme     string  // "", "light" ou "dark" (cookie de la bascule de thème)
+	CSRFToken string  // à insérer dans chaque formulaire par {{csrfField .Page.CSRFToken}}
 	RequestID string
 	Version   string
 }

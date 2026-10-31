@@ -1,0 +1,22 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <p class="page-head__eyebrow">{{T "org_switcher.caption"}}</p>
+    <h1 class="page-head__title">{{.Name}}</h1>
+    <p class="page-head__lead">{{T "org_overview.your_role" "Role" (T .RoleKey)}}</p>
+  </div>
+  <section class="panel" aria-labelledby="org-next">
+    <div class="panel__head"><h2 class="panel__title" id="org-next">{{T "org_overview.next_title"}}</h2></div>
+    <div class="panel__body stack stack--sm">
+      <p>{{T "org_overview.next_text"}}</p>
+      <p class="cluster">
+        <a class="btn" href="{{.Base}}/members">{{T "nav.members"}}</a>
+        {{- if .CanAdmin}}
+        <a class="btn" href="{{.Base}}/settings">{{T "nav.org_settings"}}</a>
+        <a class="btn" href="{{.Base}}/audit">{{T "nav.audit"}}</a>
+        {{- end}}
+      </p>
+    </div>
+  </section>
+</div>
+{{- end}}

@@ -1,0 +1,66 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <p class="page-head__eyebrow"><a href="/admin/orgs">{{T "admin_orgs.heading"}}</a></p>
+    <h1 class="page-head__title">{{.Org.Name}}</h1>
+    <p class="page-head__lead">{{if .Org.ArchivedAt}}<span class="status status--revoked">{{T "status.archived"}}</span>{{else}}<span class="status status--active">{{T "status.active"}}</span>{{end}} <span class="mono">{{.Org.Slug}}</span></p>
+  </div>
+  {{template "single_admin" .SingleAdmin}}
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  {{- $base := print "/admin/orgs/" .Org.Slug}}{{$csrf := .Page.CSRFToken}}
+  <section class="panel" aria-labelledby="org-edit">
+    <div class="panel__head"><h2 class="panel__title" id="org-edit">{{T "org_settings.form_title"}}</h2></div>
+    <div class="panel__body">
+      <form class="form" method="post" action="{{$base}}/update">
+        {{csrfField $csrf}}
+        <div class="field">
+          <label class="field__label" for="org-name">{{T "org.name"}}</label>
+          <input class="input" id="org-name" name="name" type="text" maxlength="100" required value="{{.Name}}"{{if eq .Error.Field "name"}} aria-invalid="true"{{end}}>
+        </div>
+        <div class="field">
+          <label class="field__label" for="org-language">{{T "org.language"}}</label>
+          <select class="select" id="org-language" name="language">
+            {{- range .Languages}}
+            <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+            {{- end}}
+          </select>
+        </div>
+        <p><button type="submit" class="btn btn--primary">{{T "form.save"}}</button></p>
+      </form>
+    </div>
+  </section>
+  <section class="panel" aria-labelledby="org-admins">
+    <div class="panel__head"><h2 class="panel__title" id="org-admins">{{T "admin_org.admins"}}</h2></div>
+    <div class="panel__body stack">
+      <ul>
+        {{- range .Admins}}
+        <li>{{.Email}}</li>
+        {{- else}}
+        <li>{{T "admin_org.no_admin"}}</li>
+        {{- end}}
+      </ul>
+      <form class="form form--inline" method="post" action="{{$base}}/admins">
+        {{csrfField $csrf}}
+        <div class="field">
+          <label class="field__label" for="org-admin-email">{{T "admin_org.add_admin"}}</label>
+          <input class="input" id="org-admin-email" name="email" type="email" required{{if eq .Error.Field "email"}} aria-invalid="true"{{end}}>
+        </div>
+        <button type="submit" class="btn">{{T "admin_org.add_admin_submit"}}</button>
+      </form>
+      <p class="field__hint">{{T "admin_org.admins_hint"}}</p>
+    </div>
+  </section>
+  <section class="panel" aria-labelledby="org-archive">
+    <div class="panel__head"><h2 class="panel__title" id="org-archive">{{T "admin_org.archive_title"}}</h2></div>
+    <div class="panel__body stack stack--sm">
+      <p class="muted">{{T "admin_org.archive_hint"}}</p>
+      {{- if .Org.ArchivedAt}}
+      <form method="post" action="{{$base}}/unarchive">{{csrfField $csrf}}<button type="submit" class="btn">{{T "admin_org.unarchive"}}</button></form>
+      {{- else}}
+      <form method="post" action="{{$base}}/archive">{{csrfField $csrf}}<button type="submit" class="btn btn--danger">{{T "admin_org.archive"}}</button></form>
+      {{- end}}
+    </div>
+  </section>
+</div>
+{{- end}}

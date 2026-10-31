@@ -20,7 +20,7 @@ func BenchmarkRenderPerLanguageSet(b *testing.B) {
 	b.ReportAllocs()
 	for b.Loop() {
 		rec := httptest.NewRecorder()
-		r.Render(rec, req, http.StatusOK, "home/index", &testView{Page{TitleKey: "home.title"}})
+		r.Render(rec, req, http.StatusOK, "home/index", &testView{Page: Page{TitleKey: "home.title"}})
 	}
 }
 
@@ -36,7 +36,7 @@ func BenchmarkRenderCloneEachRequest(b *testing.B) {
 		b.Fatal(err)
 	}
 	loc := catalog(b).Localizer(language.English)
-	v := &testView{Page{TitleKey: "home.title", Lang: "en"}}
+	v := &testView{Page: Page{TitleKey: "home.title", Lang: "en"}}
 	b.ReportAllocs()
 	for b.Loop() {
 		t, err := base.Clone()

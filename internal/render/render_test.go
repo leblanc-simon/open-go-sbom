@@ -56,8 +56,11 @@ func newRenderer(t testing.TB) *Renderer {
 	return r
 }
 
+// testView a les champs de la page d'accueil (home/index), rendue par ces tests.
 type testView struct {
 	Page
+	NoOrg bool
+	Admin bool
 }
 
 func render(t *testing.T, r *Renderer, req *http.Request, name string, v View) *httptest.ResponseRecorder {
@@ -80,7 +83,7 @@ func TestRenderHomeInEveryLanguage(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/"+c.query, nil)
 			req.Header.Set("Accept-Language", c.accept)
-			rec := render(t, r, req, "home/index", &testView{Page{TitleKey: "home.title"}})
+			rec := render(t, r, req, "home/index", &testView{Page: Page{TitleKey: "home.title"}})
 			body := rec.Body.String()
 			if rec.Code != http.StatusOK || !strings.Contains(body, `lang="`+c.lang+`"`) || !strings.Contains(body, c.heading) {
 				t.Fatalf("statut %d, corps :\n%s", rec.Code, body)
@@ -104,7 +107,7 @@ func TestRenderTheme(t *testing.T) {
 		if cookie != "" {
 			req.AddCookie(&http.Cookie{Name: ThemeCookie, Value: cookie})
 		}
-		body := render(t, r, req, "home/index", &testView{Page{TitleKey: "home.title"}}).Body.String()
+		body := render(t, r, req, "home/index", &testView{Page: Page{TitleKey: "home.title"}}).Body.String()
 		has := strings.Contains(body, "data-theme=")
 		if want == "" && has || want != "" && !strings.Contains(body, want) {
 			t.Errorf("cookie %q : data-theme incorrect", cookie)
@@ -115,7 +118,7 @@ func TestRenderTheme(t *testing.T) {
 func TestRenderNavigation(t *testing.T) {
 	r := newRenderer(t)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	v := &testView{Page{TitleKey: "home.title", Nav: []NavItem{
+	v := &testView{Page: Page{TitleKey: "home.title", Nav: []NavItem{
 		{LabelKey: "home.title", Href: "/", Current: true},
 		{LabelKey: "error.back_home", Href: "/x"},
 	}}}
@@ -126,7 +129,7 @@ func TestRenderNavigation(t *testing.T) {
 		t.Fatalf("navigation incorrecte :\n%s", body)
 	}
 	webtest.AssertAccessible(t, rec.Body.Bytes())
-	without := render(t, r, req, "home/index", &testView{Page{TitleKey: "home.title"}}).Body.String()
+	without := render(t, r, req, "home/index", &testView{Page: Page{TitleKey: "home.title"}}).Body.String()
 	if strings.Contains(without, "sidenav") {
 		t.Fatal("navigation vide affichée")
 	}
@@ -160,7 +163,7 @@ func TestRenderFailureGivesErrorPage(t *testing.T) {
 	r := newRenderer(t)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
-	r.Render(rec, req, http.StatusOK, "absente/page", &testView{Page{TitleKey: "home.title"}})
+	r.Render(rec, req, http.StatusOK, "absente/page", &testView{Page: Page{TitleKey: "home.title"}})
 	if rec.Code != http.StatusInternalServerError || !strings.Contains(rec.Body.String(), "Erreur interne") {
 		t.Fatalf("page inconnue : %d\n%s", rec.Code, rec.Body.String())
 	}
@@ -180,7 +183,7 @@ func TestRenderFailureGivesErrorPage(t *testing.T) {
 		t.Fatal(err)
 	}
 	rec = httptest.NewRecorder()
-	broken.Render(rec, req, http.StatusOK, "broken/page", &testView{Page{TitleKey: "home.title"}})
+	broken.Render(rec, req, http.StatusOK, "broken/page", &testView{Page: Page{TitleKey: "home.title"}})
 	if rec.Code != http.StatusInternalServerError || strings.Contains(rec.Body.String(), "Accueil") ||
 		!strings.Contains(rec.Body.String(), "Erreur interne") {
 		t.Fatalf("erreur d'exécution : %d\n%s", rec.Code, rec.Body.String())
@@ -372,7 +375,7 @@ func TestRendererIsSafeForConcurrentUse(t *testing.T) {
 			for _, lang := range []string{"fr", "en"} {
 				req := httptest.NewRequest(http.MethodGet, "/?lang="+lang, nil)
 				rec := httptest.NewRecorder()
-				r.Render(rec, req, http.StatusOK, "home/index", &testView{Page{TitleKey: "home.title"}})
+				r.Render(rec, req, http.StatusOK, "home/index", &testView{Page: Page{TitleKey: "home.title"}})
 				_, _ = io.Copy(io.Discard, rec.Body)
 			}
 		}()

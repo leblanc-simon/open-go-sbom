@@ -4,9 +4,43 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3 3 7.5l9 4.5 9-4.5L12 3z"></path><path d="m3 12 9 4.5 9-4.5"></path><path d="m3 16.5 9 4.5 9-4.5"></path></svg>
     <span>{{T "app.name"}}</span>
   </a>
+  {{- with .Page.Chrome}}{{if .Orgs}}
+  <details class="org-switcher">
+    <summary>
+      {{- if .Current}}
+      <span class="avatar avatar--org" aria-hidden="true">{{initials .Current.Name}}</span>
+      <span class="org-switcher__text"><span class="org-switcher__caption">{{T "org_switcher.caption"}}</span><span class="org-switcher__name">{{.Current.Name}}</span></span>
+      {{- else}}
+      <span class="org-switcher__text"><span class="org-switcher__caption">{{T "org_switcher.caption"}}</span><span class="org-switcher__name">{{T "org_switcher.choose"}}</span></span>
+      {{- end}}
+      <span class="chevron" aria-hidden="true"></span>
+    </summary>
+    <div class="org-switcher__menu">
+      <ul class="org-switcher__list">
+        {{- range .Orgs}}
+        <li><a href="/o/{{.Slug}}"{{if .Current}} aria-current="true"{{end}}><span class="avatar avatar--org" aria-hidden="true">{{initials .Name}}</span>{{.Name}}</a></li>
+        {{- end}}
+      </ul>
+    </div>
+  </details>
+  {{- end}}{{end}}
   <div class="topbar__actions">
     <button type="button" class="btn btn--ghost btn--sm" data-theme-toggle hidden
       data-label-system="{{T "theme.system"}}" data-label-light="{{T "theme.light"}}" data-label-dark="{{T "theme.dark"}}">{{T "theme.system"}}</button>
+    {{- with .Page.Chrome}}
+    {{- if .Admin}}
+    <a class="btn btn--ghost btn--sm" href="/admin">{{T "nav.admin"}}</a>
+    {{- end}}
+    <a class="topbar__user" href="/account">
+      <span class="topbar__username">{{.UserEmail}}</span>
+      <span class="avatar" aria-hidden="true">{{initials .UserEmail}}</span>
+      <span class="visually-hidden">{{T "nav.profile"}}</span>
+    </a>
+    <form method="post" action="/logout">
+      {{csrfField $.Page.CSRFToken}}
+      <button type="submit" class="btn btn--sm">{{T "nav.logout"}}</button>
+    </form>
+    {{- end}}
   </div>
 </header>
 {{- end}}

@@ -4,6 +4,19 @@
     <h1 class="page-head__title">{{T "home.heading"}}</h1>
     <p class="page-head__lead">{{T "home.lead"}}</p>
   </div>
+  {{- if .NoOrg}}
+  <section class="panel" aria-labelledby="home-no-org">
+    <div class="panel__head">
+      <h2 class="panel__title" id="home-no-org">{{T "home.no_org_title"}}</h2>
+    </div>
+    <div class="panel__body stack stack--sm">
+      <p>{{T "home.no_org_text"}}</p>
+      {{- if .Admin}}
+      <p><a class="btn btn--primary" href="/admin/orgs">{{T "home.create_org"}}</a></p>
+      {{- end}}
+    </div>
+  </section>
+  {{- else}}
   <section class="panel" aria-labelledby="home-status">
     <div class="panel__head">
       <h2 class="panel__title" id="home-status">{{T "home.status_title"}}</h2>
@@ -12,5 +25,6 @@
       <p>{{T "home.status_text"}}</p>
     </div>
   </section>
+  {{- end}}
 </div>
 {{- end}}
