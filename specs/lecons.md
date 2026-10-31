@@ -246,6 +246,45 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   suppressions : écrire dans un nouveau dossier plutôt que vider l'ancien, et supprimer un
   fichier par son chemin absolu.
 
+## Agent dépôt et forges (T08)
+
+- **Syft exécute la chaîne Go par défaut** : `golang.DefaultCatalogerConfig()` met
+  `UsePackagesLib: true`, qui lance `go list` (`golang.org/x/tools/go/packages`) sur le
+  répertoire scanné, avec téléchargements possibles (`GOTOOLCHAIN`, modules). Règle : sur
+  un contenu non fiable, partir de `pkgcataloging.DefaultConfig()` et couper
+  `Golang.UsePackagesLib`, les recherches de licences distantes et locales, le réseau de
+  Java (`repoagent.offlineCatalogers`). Chercher `os/exec` et `go/packages` dans les
+  sources de Syft à chaque montée de version.
+- **Pilote SQLite oublié** (piège déjà connu, retombé dedans) : le premier scan a échoué
+  sur « sqlite driver is required ». Règle : l'import `_ "modernc.org/sqlite"` vit dans le
+  paquet qui appelle `syft.CreateSBOM` (`repoagent/scan.go`), pas seulement dans le
+  binaire, pour qu'aucun test ni binaire ne l'oublie.
+- **SBOM de Syft non déterministe** : `serialNumber` aléatoire et `metadata.timestamp`
+  rendent chaque analyse d'un même commit différente, donc une nouvelle ingestion côté
+  serveur. Règle : les retirer (facultatifs en CycloneDX) et tester que deux analyses
+  donnent les mêmes octets. Le composant décrit porte sinon le chemin temporaire : le
+  nommer par `source.Alias`.
+- **Clone d'une branche ≠ commit à rattraper** : `clone --depth 1 --single-branch` ne
+  donne que la tête. Règle : `git init` + `git fetch --depth 1 <url> <commit>` ; un dépôt
+  nu de test doit avoir `uploadpack.allowReachableSHA1InWant=true` pour le protocole v0,
+  et l'URL locale doit être `file://` (un chemin nu ignore `--depth`).
+- **git en test par HTTP sans service externe** : `net/http/cgi` avec `git http-backend`
+  (`GIT_PROJECT_ROOT`, `GIT_HTTP_EXPORT_ALL=1`) sert un dépôt nu derrière un
+  `httptest.Server`, ce qui permet de vérifier l'en-tête d'authentification et de
+  simuler un clonage lent.
+- **Vérifier « pas dans `ps` »** : envelopper git dans un script qui note `"$*"` et le
+  passer comme binaire (`work.git`), puis chercher le jeton et sa forme base64 dans la
+  trace et dans les journaux.
+- **Réponse du client généré qui ne suit pas le contrat** : les méthodes
+  `…WithResponse` d'oapi-codegen décodent le corps selon le statut et **échouent** si le
+  JSON ne correspond pas (un faux serveur de test renvoyait un problème en 202). Règle :
+  pour un appel où seuls le statut et la clé d'erreur comptent, utiliser la méthode brute
+  et une lecture bornée.
+- **Assistant de test appelé seulement par les tests `integration`** : staticcheck (sans
+  étiquette) le signale inutilisé (U1000). Règle : le placer dans le fichier étiqueté, et
+  lancer aussi `go tool staticcheck -tags integration` sur les paquets touchés.
+- **Outil d'isolement des agents (suite)** : refusée aussi une commande qui enchaîne
+  `git add`, `git commit` et `make` ; une commande git par appel.
 ## Agent serveur, paquets et lots parallèles (T07)
 
 - **Numéros de migration attribués d'avance** : l'exécuteur exige des numéros contigus

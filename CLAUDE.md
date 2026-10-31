@@ -45,6 +45,10 @@ embarqués (`sbom/schema`), adaptateur Syft (`sbom/syft`), inventaire
 0016), écrans des instantanés ; jeux d'essai dans `testdata/sbom/`. Prochains lots, en
 parallèle : [T06](specs/lots/T06-analyse-vulnerabilites.md),
 [T07](specs/lots/T07-agent-serveur.md) et [T08](specs/lots/T08-agent-depot.md).
+T08 terminé : forges (`internal/forge` : GitHub App, GitLab par compte de service,
+webhooks vérifiés), agent dépôt (`internal/repoagent` : récepteur de webhooks,
+rattrapage, file en mémoire, git sous environnement maîtrisé, Syft hors ligne, SBOM
+déterministe), `ogsbom-repo-agent` et `deploy/ogsbom-repo-agent/` (ADR 0023).
 T07 terminé : agent serveur `ogsbom-host-agent` (`internal/hostagent`, ADR 0020, 0021),
 client commun des agents `internal/agentclient` (réessais, mTLS, envoi gzip, suivi d'une
 ingestion : voir son `doc.go`, à adopter par l'agent dépôt), compte rendu d'inventaire et

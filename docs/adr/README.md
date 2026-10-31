@@ -24,3 +24,4 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0016](0016-ingestion-et-inventaire.md) | Ingestion et inventaire : identité des composants, empreinte, règles d'instantané, validation | Accepté |
 | [0020](0020-agent-serveur-envoi-conditionnel.md) | Agent serveur : envoi conditionnel confirmé par le serveur, scan à la demande, état muet | Accepté |
 | [0021](0021-deploiement-agent-serveur.md) | Déploiement de l'agent serveur : moindre privilège, secrets, mTLS, paquets | Accepté |
+| [0023](0023-agent-depot.md) | Pipeline de l'agent dépôt et accès aux forges : webhook comme signal, extraction d'un commit précis, scan hors ligne, SBOM déterministe | Accepté |
