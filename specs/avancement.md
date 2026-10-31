@@ -5,9 +5,21 @@ Journal de bord de la réalisation autonome du lot 1 (T00 à T11), demandée le
 des décisions. Les décisions prises sans validation explicite de l'utilisateur sont
 marquées **[à relire]**.
 
+## Synthèse
+
+Le lot 1 est **réalisé** : le critère du cahier des charges, « un parc pilote inventorié
+et interrogé », est passé (recette de T11) sur trois serveurs (Debian 12, Rocky Linux 9,
+Alpine 3.18) et quatre dépôts publics réels (deux de GitHub, deux de GitLab, servis par une
+forge simulée) : chaque projet a un instantané de moins de 24 h analysé avec la vraie base
+Grype, et la recherche (écran et API) renvoie exactement les listes de projets établies à
+la main pour les trois CVE de contrôle. Toutes les cibles chiffrées sont tenues sur une
+machine moins puissante que la référence. Restent à l'utilisateur : la relecture des
+décisions ci-dessous, les étiquettes (open-go-base, puis `v0.1.0`) et l'essai de l'agent
+dépôt sur une vraie forge (voir « Actions pour l'utilisateur »).
+
 | Lot | PR | Statut | Décisions à relire |
 | --- | --- | --- | --- |
-| T00 | — | Terminé | `modernc.org/sqlite` ajouté au § 5 **[à relire]** ; OpenAPI 3.1 ; SQL à la main |
+| T00 | #1, #2 | Terminé | `modernc.org/sqlite` ajouté au § 5 **[à relire]** ; OpenAPI 3.1 ; SQL à la main |
 | T01 | #3 | Terminé | Migrations et rôles (ADR 0010) ; fragments de config au fil des lots, fragment `HTTP` ; `Seal`/`Open` avec données associées ; en-têtes de sécurité (`base-uri`, HSTS sans sous-domaines) ; thème `light-dark()` + cookie ; polices droites seulement ; pied de page hors planche — tous **[à relire]** |
 | T02 | #4 | Terminé | Conception de la file (ADR 0011 : horloge Go, `synchronous_commit = off` pour les transitions d'état, plafond strict, libération sans tentative comptée…) ; valeurs par défaut des workers ; correction de `PoolConfig.MaxIdleConns` (T01) — **[à relire]** |
 | T03 | #5 | Terminé | Propriétaire `BYPASSRLS` pour `crossorg` (ADR 0012) ; secrets TOTP chiffrés, `secrets.keys` obligatoire (ADR 0013) ; secours par ticket (deux variables) ; TOTP avant changement de mot de passe ; 404 pour l'administration, 403 dans l'organisation ; `jobs.org_id` sans clé étrangère ; open-go-base en pseudo-version, étiquette `v1.1.0` à pousser — tous **[à relire]** |
@@ -18,28 +30,102 @@ marquées **[à relire]**.
 | T08 | #8 | Terminé | Agent dépôt (ADR 0023) : webhook = signal, tête résolue auprès de la forge ; `git fetch --depth 1` du commit au lieu de `clone --single-branch` ; SBOM déterministe (ni numéro de série ni horodatage) ; Syft sans `go list` ni réseau ; échecs définitifs non retentés avant redémarrage ; secrets par `credential:<nom>` ou fichier 0600 ; jeton GitHub restreint à `contents: read` ; valeurs par défaut ; droits GitLab vérifiables seulement sur forge réelle — tous **[à relire]** |
 | T09 | #12 | Terminé | Recherche (ADR 0024) : deux nouvelles fonctions `crossorg` de recherche par nom et empreinte (organisation lue dans `ogsbom.org_id`, contournent la RLS pour les index GIN), sous-chaîne puis trigrammes, bornes, export en flux borné en nombre et durée ; jetons personnels en table globale valables sur les organisations du compte, expiration obligatoire, sans session dans l'API (ADR 0025) ; comparateurs de Grype corrigés et plages vers maison (ADR 0026) ; défauts `user_api` ; écarts à la maquette ; mesures sur 4 cœurs — tous **[à relire]** |
 | T10 | #11 | Terminé | Tableau de bord (ADR 0027) : constats des références actives des projets actifs ; statistiques réécrites toutes les heures sous la date du jour ; `project_daily_stats` en plus d'`org_daily_stats` ; pas de nouvelle fonction `crossorg` ; seuil « muet » de 7 jours pour toute l'interface ; périodes 30/90/365 j ; tuiles sans lien (pas de liste transverse avant T09) ; section « Alertes » et objectifs de délai renvoyés à T15 ; mesures sur 4 cœurs partagés — tous **[à relire]** |
-| T11 (accessibilité) | à venir | En cours | Audit RGAA : 13 NC corrigées, 100 % des critères applicables ; page de confirmation commune pour les actions irréversibles (abandon d'un traitement compris) ; plan du site plutôt que la recherche pour 12.1 ; préfixe « Erreur : » sur tout écran en 4xx ; abréviations des sévérités — tous **[à relire]** |
-| T11 (1/2) | à venir | En cours | Administration de l'instance (ADR 0028) : archive téléversée rangée dans PostgreSQL puis installée par un job, jeton CSRF en tête du formulaire présenté à csrfx, archive importée cible même plus ancienne, un import à la fois, état par instance (`vulndb_instances`), purge de toutes les archives non cibles avec confirmation ; `download_timeout` borne aussi le téléversement ; abandon d'un traitement sans confirmation ; test instable corrigé dans le test (bail simulé complet) ; codes de secours de mfax absents d'open-go-base, reportés à T18 — tous **[à relire]** |
-| T11 (sécurité) | #15 | En cours | Revue de sécurité du lot 1 (14 constats, 0 haut ni critique) : 3 Medium, 6 Low et 2 Note corrigés (SEC-11 et SEC-14 en partie), SEC-13 accepté, SEC-09 (Low) accepté jusqu’à T16 ; open-go-base v1.3.0 (PR #3 fusionnée, étiquette à pousser) ; verrouillage par compte sur le TOTP seul, réinitialisation du TOTP avec mot de passe temporaire, révocation d'office des jetons et code TOTP à leur création, durée absolue de session de 7 jours (ADR 0029) ; journal en ajout seul, quotas d'ingestion 200/jour/référence et 10 Gio/organisation, un export et un réencodage par compte (ADR 0030) ; CSRF lié à la session, `http.CrossOriginProtection`, cookies `__Host-` avec `cookie_secure: on` dans l'exemple, `allowed_namespaces` obligatoire pour l'agent dépôt (ADR 0031) — tous **[à relire]** |
+| T11 (1/2, administration) | #13 | Terminé | Administration de l'instance (ADR 0028) : archive téléversée rangée dans PostgreSQL puis installée par un job, jeton CSRF en tête du formulaire présenté à csrfx, archive importée cible même plus ancienne, un import à la fois, état par instance (`vulndb_instances`), purge de toutes les archives non cibles avec confirmation ; `download_timeout` borne aussi le téléversement ; test instable corrigé dans le test (bail simulé complet) ; codes de secours de mfax absents d'open-go-base, reportés à T18 — tous **[à relire]** |
+| T11 (accessibilité) | #14 | Terminé | Audit RGAA : 13 NC corrigées, 100 % des critères applicables ; page de confirmation commune pour les actions irréversibles (abandon d'un traitement compris) ; plan du site plutôt que la recherche pour 12.1 ; préfixe « Erreur : » sur tout écran en 4xx ; abréviations des sévérités — tous **[à relire]** |
+| T11 (sécurité) | #15 | Terminé | Revue de sécurité du lot 1 (14 constats, 0 haut ni critique) : 3 Medium, 6 Low et 2 Note corrigés (SEC-11 et SEC-14 en partie), SEC-13 accepté, SEC-09 (Low) accepté jusqu'à T16 ; open-go-base v1.3.0 (PR #3 fusionnée, étiquette à pousser) ; ADR 0029 à 0031 — tous **[à relire]** |
+| T11 (recette) | #16 | Terminé (v0.1.0 à publier par l'utilisateur) | Parc pilote en conteneurs et forge simulée ; CVE de contrôle ; cibles tenues sur 4 cœurs, valant pour la référence ; publication des versions (ADR 0032) et unité systemd du serveur ; guides de démarrage FR et EN séparés de `utilisation.md` ; outillage de recette hors dépôt — tous **[à relire]** |
+
+## Décisions à relire, par thème
+
+Chaque point renvoie à l'ADR ou au Journal qui le détaille.
+
+### Architecture, base de données et file
+
+- Migrations sous verrou, immuables, deux rôles PostgreSQL ([ADR 0010](../docs/adr/0010-migrations-et-roles-postgresql.md), [T01](lots/T01-socle-serveur.md)).
+- Conception de la file : horloge Go, `synchronous_commit = off` pour les transitions, plafond strict par organisation, libération sans tentative comptée, défauts des workers ([ADR 0011](../docs/adr/0011-conception-de-la-file.md), [T02](lots/T02-file-de-traitements.md)).
+- Isolement : propriétaire `BYPASSRLS` pour `crossorg`, `jobs.org_id` sans clé étrangère ([ADR 0012](../docs/adr/0012-isolement-des-organisations.md), [T03](lots/T03-comptes-organisations.md)) ; fonctions `crossorg` des jetons ([ADR 0014](../docs/adr/0014-jetons-et-api-des-agents.md)) et de la recherche ([ADR 0024](../docs/adr/0024-recherche-transverse.md)).
+- Journal d'audit en ajout seul, rôle d'exécution sans `CREATE`, quotas d'ingestion (200 envois par référence et par jour, 10 Gio par organisation), plafonds par compte ([ADR 0030](../docs/adr/0030-durcissement-base-et-quotas.md)).
+
+### Sécurité et identité
+
+- Secrets TOTP chiffrés, `secrets.keys` obligatoire, secours par ticket ([ADR 0013](../docs/adr/0013-comptes-et-second-facteur.md), [T03](lots/T03-comptes-organisations.md)).
+- Verrouillage par compte des codes TOTP (10 en 15 min, 15 min doublées jusqu'à 24 h), révocation d'office des jetons, réinitialisation du TOTP avec mot de passe temporaire, `bootstrap.rescue_password`, durée absolue de session de 7 jours ([ADR 0029](../docs/adr/0029-remediation-des-identifiants.md)).
+- CSRF lié à la session, `http.CrossOriginProtection`, cookies `__Host-` avec `cookie_secure: on` ([ADR 0031](../docs/adr/0031-csrf-cookies-et-perimetre-de-l-agent-depot.md)).
+- Constats acceptés : SEC-09 (énumération des comptes par un administrateur d'organisation, jusqu'à T16) et SEC-13 ([revue de sécurité](lots/T11-recette-lot-1.md#revue-de-sécurité)).
+- En-têtes de sécurité (`base-uri`, HSTS sans sous-domaines), `Seal`/`Open` avec données associées ([T01](lots/T01-socle-serveur.md)) ; 404 pour l'administration, 403 dans l'organisation ([T03](lots/T03-comptes-organisations.md)).
+- Codes de secours de mfax reportés à T18 ([T11, partie 1](lots/T11-recette-lot-1.md#partie-1--administration-de-linstance-et-corrections)).
+
+### Ingestion et inventaire
+
+- Décodage dans le worker ([ADR 0015](../docs/adr/0015-decodage-des-sbom-dans-le-worker.md)) ; règles de l'inventaire ([ADR 0016](../docs/adr/0016-ingestion-et-inventaire.md)) ; validation sans l'énumération des licences SPDX, bornes par défaut ([T05](lots/T05-ingestion.md)).
+
+### Analyse de vulnérabilités
+
+- Base Grype commune en blocs dans PostgreSQL ([ADR 0017](../docs/adr/0017-base-grype-commune.md)) ; correspondance et constats, identifiants CVE ([ADR 0018](../docs/adr/0018-analyse-et-constats.md)) ; import d'archive, cible même plus ancienne, purge ([ADR 0028](../docs/adr/0028-administration-de-la-base-et-des-traitements.md)) ; défauts `vulndb.*` ([T06](lots/T06-analyse-vulnerabilites.md)).
+
+### Agents
+
+- Agent serveur : envoi conditionnel, Syft JSON, « muet » sur le dernier inventaire ([ADR 0020](../docs/adr/0020-agent-serveur-envoi-conditionnel.md)) ; unités, mTLS par middleware, paquets nfpm ([ADR 0021](../docs/adr/0021-deploiement-agent-serveur.md)) ; cibles 5 min de CPU et 1 Gio par scan ([T07](lots/T07-agent-serveur.md)).
+- Jetons et API des agents, jeton d'agent sans expiration, hôte déjà suivi refusé ([ADR 0014](../docs/adr/0014-jetons-et-api-des-agents.md), [T04](lots/T04-projets-agents.md)).
+- Agent dépôt : webhook = signal, `git fetch --depth 1` du commit, SBOM déterministe, Syft sans `go list` ni réseau, jeton GitHub restreint ([ADR 0023](../docs/adr/0023-agent-depot.md)) ; `allowed_namespaces` obligatoire ([ADR 0031](../docs/adr/0031-csrf-cookies-et-perimetre-de-l-agent-depot.md)).
+
+### Recherche et tableau de bord
+
+- Recherche : sous-chaîne puis trigrammes, bornes, export en flux ([ADR 0024](../docs/adr/0024-recherche-transverse.md)) ; jetons personnels ([ADR 0025](../docs/adr/0025-jetons-d-acces-personnels.md)) ; comparaison de versions et plages `vers` ([ADR 0026](../docs/adr/0026-comparaison-de-versions.md)).
+- Tableau de bord : statistiques horaires sous la date du jour, seuil « muet » de 7 jours, périodes, renvois à T15 ([ADR 0027](../docs/adr/0027-tableau-de-bord.md)).
+
+### Interface et accessibilité
+
+- Thème `light-dark()` et cookie, polices droites, pied de page ([T01](lots/T01-socle-serveur.md)) ; écarts à la maquette ([T09](lots/T09-recherche.md)).
+- Page de confirmation commune, plan du site, préfixe « Erreur : », abréviations des sévérités ([audit RGAA](lots/T11-recette-lot-1.md#audit-rgaa)).
+
+### Exploitation, mesures et publication
+
+- Cibles chiffrées tenues sur 4 cœurs (machine moins puissante que la référence), cibles du cahier des charges encore « proposées » à confirmer ([mesures de T11](lots/T11-recette-lot-1.md#mesures-consolidées), [`benchmarks.md`](../docs/benchmarks.md)).
+- Publication des versions : étiquette sur `main`, préversions seulement, archives et paquets, unité systemd du serveur ([ADR 0032](../docs/adr/0032-publication-des-versions.md)).
+- Recette : parc pilote en conteneurs, forge simulée, outillage gardé hors dépôt ([recette de T11](lots/T11-recette-lot-1.md#recette)).
+
+### Dépendances et open-go-base
+
+- `modernc.org/sqlite` ([T00](lots/T00-fondations.md)) ; directive `go` 1.26.8 imposée par Syft ([T05](lots/T05-ingestion.md)).
+- Évolutions d'open-go-base `v1.1.0` (T03), `v1.2.0` (`ratelimit.WithKeyFunc`, T04), `v1.3.0` (verrouillage de mfax, `csrfx.WithSessionBinding`, T11), utilisées en pseudo-version.
 
 ## Actions pour l'utilisateur
 
 Le mandataire git de la session refuse les pushs d'étiquettes (HTTP 403) : open-go-sbom
-utilise des pseudo-versions d'open-go-base. À faire, dans l'ordre :
+utilise des pseudo-versions d'open-go-base, et `v0.1.0` n'est pas posée. À faire, dans
+l'ordre :
 
-1. Pousser l'étiquette annotée `v1.1.0` d'open-go-base, créée localement par T03 sur le
-   commit `b9ccc67` : `git -C ../open-go-base push origin v1.1.0`.
-2. Pousser l'étiquette annotée `v1.2.0` d'open-go-base, créée localement par T04 sur le
-   commit `3534c14` (`ratelimit.WithKeyFunc`, changement compatible) :
-   `git -C ../open-go-base push origin v1.2.0`.
-3. Pousser l'étiquette annotée `v1.3.0` d'open-go-base, créée localement par T11
-   (revue de sécurité) sur le commit `9a7b91f` (PR #3 : verrouillage par compte de mfax,
-   `Confirm`, `WithChallengeCookieName`, `csrfx.WithSessionBinding` ; changements
-   compatibles) : `git -C ../open-go-base push origin v1.3.0`.
-4. Remplacer la pseudo-version par l'étiquette dans open-go-sbom :
-   `go get leblanc.io/open-go-base@v1.3.0 && go mod tidy` (même code que la
-   pseudo-version actuelle `v1.0.2-0.20261031121913-9a7b91fdbbfe`). Ne pas utiliser
-   `v1.1.0` ni `v1.2.0` : il leur manque `WithKeyFunc` ou le verrouillage de mfax.
+1. Pousser les étiquettes annotées d'open-go-base créées localement :
+   `git -C ../open-go-base push origin v1.1.0` (commit `b9ccc67`, T03),
+   `git -C ../open-go-base push origin v1.2.0` (commit `3534c14`, `ratelimit.WithKeyFunc`),
+   `git -C ../open-go-base push origin v1.3.0` (commit `9a7b91f`, PR #3 : verrouillage par
+   compte de mfax, `Confirm`, `WithChallengeCookieName`, `csrfx.WithSessionBinding`).
+   Toutes compatibles.
+2. Dans open-go-sbom, sur une branche : `go get leblanc.io/open-go-base@v1.3.0 && go mod
+   tidy` (même code que la pseudo-version actuelle `v1.0.2-0.20261031121913-9a7b91fdbbfe` ;
+   ne pas utiliser `v1.1.0` ni `v1.2.0`), `make ci`, PR, fusion quand la CI est verte.
+3. Relire les décisions **[à relire]** ci-dessus, et confirmer (ou corriger) au cahier des
+   charges les cibles de performance encore « proposées » (§ objectifs et § volumétrie ;
+   mesures : Journal de T11). Une cible changée se reporte dans `docs/benchmarks.md`.
+4. Essayer l'agent dépôt sur une vraie GitHub App et un vrai projet GitLab : procédure pas
+   à pas dans [`docs/operations.md`](../docs/operations.md#recette-sur-une-vraie-forge)
+   (une demi-heure). La recette n'a pu l'exercer que contre une forge simulée.
+5. Publier la préversion **v0.1.0**, une fois les étapes 1 et 2 sur `main` :
+   1. vérifier que la section `## [0.1.0] - 2026-10-31` de `CHANGELOG.md` est à jour (date
+      du jour de la pose, ajouts éventuels) et que la CI de `main` est verte ;
+   2. `git fetch origin && git tag -a v0.1.0 origin/main -m "open-go-sbom 0.1.0 — préversion du lot 1"` ;
+   3. `git push origin v0.1.0` ;
+   4. suivre le workflow **release** (onglet *Actions*) ; vérifier sur la page *Releases*
+      une **préversion** `v0.1.0` portant six archives `.tar.gz` (trois rôles × amd64,
+      arm64), quatre paquets (`.deb`, `.rpm` × amd64, arm64) et `SHA256SUMS` ; contrôler
+      un téléchargement par `sha256sum -c --ignore-missing SHA256SUMS` ;
+   5. cocher le critère « `v0.1.0` publiée » de [T11](lots/T11-recette-lot-1.md).
+   En cas d'échec du workflow : corriger par un commit sur `main` et poser `v0.1.1` (ne
+   jamais déplacer une étiquette poussée).
+6. Facultatif : rejouer les mesures sur la machine de référence (16 cœurs) par les
+   commandes de [`docs/benchmarks.md`](../docs/benchmarks.md) ; elles tiennent déjà sur
+   4 cœurs.
 
 ## Organisation
 

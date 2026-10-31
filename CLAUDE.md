@@ -70,20 +70,19 @@ T10 terminé : tableau de bord d'organisation et en-tête de la fiche projet
 (`internal/dashboard`, statistiques quotidiennes réécrites toutes les heures, ADR 0027),
 graphiques SVG serveur (`internal/render/chart.go`, `partials/charts.html`), agent muet
 au-delà de 7 jours (`agent.Silent`), contrôle des SVG par `webtest`.
-T11 en cours, partie 1 livrée : écrans d'administration d'instance (traitements en échec
-`/admin/jobs`, version de la base chargée par chaque instance, import manuel d'une archive
-installée par le job `vulndb.import`, purge des archives non cibles ; ADR 0028). Partie 2 :
-revue de sécurité, audit RGAA, mesures, parc pilote, préversion. Revue de sécurité
-corrigée (Journal de T11, ADR 0029 à 0031) : verrouillage par compte de mfax et
-`csrfx.WithSessionBinding` (open-go-base v1.3.0), réinitialisations qui révoquent les
-jetons et imposent un mot de passe, code TOTP pour créer un jeton, durée absolue de
-session, journal d'audit en ajout seul (migration 015), quotas d'ingestion, plafonds
-par compte, `allowed_namespaces` de l'agent dépôt. `make lint` et `make vet` couvrent
-aussi les fichiers étiquetés (`integration`, `grypedb`, `measure`).
-Audit RGAA fait : grille [`docs/accessibilite/grille-rgaa-lot1.md`](docs/accessibilite/grille-rgaa-lot1.md),
-conventions d'interface au § 14 de l'architecture (action irréversible = page de
-confirmation commune `confirm/action`, titre « écran — organisation », plan du site
-`/sitemap`).
+T11 terminé, **lot 1 terminé** : administration de l'instance (traitements en échec,
+version de la base par instance, import d'une archive, purge ; ADR 0028), revue de
+sécurité corrigée (ADR 0029 à 0031 ; open-go-base v1.3.0 : verrouillage par compte de
+mfax, `csrfx.WithSessionBinding`), audit RGAA (grille
+[`docs/accessibilite/grille-rgaa-lot1.md`](docs/accessibilite/grille-rgaa-lot1.md),
+conventions au § 14 de l'architecture), recette sur un parc pilote (trois conteneurs et
+quatre dépôts publics, trois CVE de contrôle exactes), mesures consolidées
+(`docs/benchmarks.md`), `docs/operations.md` complet, guides de démarrage
+(`docs/demarrage.md`, `docs/getting-started.md`), préversion `v0.1.0` prête
+(`CHANGELOG.md`, `.github/workflows/release.yml`, `scripts/release.sh`, unité
+`deploy/systemd/ogsbom-server.service`, ADR 0032). Publication de `v0.1.0` et étiquettes
+d'open-go-base : actions de l'utilisateur ([`specs/avancement.md`](specs/avancement.md)).
+Prochain lot : [T16 — Équipes et droits](specs/lots/T16-equipes-droits.md) (lot 2).
 
 ## Règles de travail
 
@@ -144,8 +143,10 @@ make generate           # code généré depuis api/openapi.yaml (à committer a
 make test-grypedb       # vraie base Grype (OGSBOM_TEST_GRYPEDB_DIR : base v6 installée)
 make bench              # mesures sur le jeu de référence (docs/benchmarks.md)
 make bench-search       # mesures de la recherche sur le jeu de référence, RLS active
+make bench-ingest       # ingestion et analyse de 5 000 composants, vraie base Grype
 make selfscan           # SBOM des binaires (Syft) et analyse (Grype) ; échec sur une KEV
 make build              # bin/ogsbom-server, bin/ogsbom-host-agent, bin/ogsbom-repo-agent (CGO_ENABLED=0)
+make release VERSION=v0.1.0 RELEASE_DIR=/chemin/vide  # archives, paquets, SHA256SUMS (ADR 0032)
 make packages           # ogsbom-host-agent amd64 et arm64, paquets deb et rpm dans dist/ (nfpm)
 make run                # serveur avec config.yaml (cp config.example.yaml config.yaml)
 ```

@@ -573,3 +573,52 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   intervalles de lignes (`sed -n "$a,$b p"` calculé) et `node` lancé par un chemin en
   variable. Accepté : `python3 -I /dev/stdin <<'EOF' … EOF` seul dans sa commande, et
   `node scripts/x.js $PWD` après un `cd` littéral.
+
+## Recette du lot 1 (T11)
+
+- **Listes attendues fixées avant la recherche** : les trois CVE de contrôle et leurs
+  projets attendus ont été établis à la main (paquets installés, fichiers de dépendances au
+  commit, enregistrements de la base Grype lus en SQLite) et commités avant le montage du
+  serveur. Règle : toute recette « la recherche renvoie la liste attendue » commence par
+  ce commit, sinon la liste attendue se recopie sur le résultat.
+- **Règles de correspondance de Grype à connaître pour prévoir un résultat** : Rocky (et
+  Alma, CentOS) est lu comme RHEL de même version (`operating_system_specifier_overrides`) ;
+  un paquet binaire Debian ou RPM est rapproché par son paquet source (`libc6` → `glibc`) ;
+  les états `wont-fix` et `not-fixed` restent des constats (`zlib` sur Debian 12 pour
+  CVE-2023-45853) ; Alpine ne publie que des correctifs (`< 0` = non affecté) ; une plage
+  GitHub de module Go peut coexister avec une plage en pseudo-version. Règle : établir une
+  attente sur les enregistrements de la base (`vulnerability_handles`,
+  `affected_package_handles`, `blobs`), jamais de mémoire.
+- **Parc réaliste sans hôtes** : des images de conteneurs anciennes et épinglées
+  (`debian:12.0-slim`, `rockylinux:9.2-minimal`, `alpine:3.18.0`) donnent des CVE connues
+  et corrigées depuis ; l'agent installé par ses vrais paquets s'y lance sans systemd par
+  `setpriv … --ambient-caps +dac_read_search`, à condition de `--cap-add DAC_READ_SEARCH`
+  sur le conteneur. Ne pas monter de répertoire de travail dans un conteneur inventorié
+  (un montage hors overlay est scanné) : `docker cp` puis suppression.
+- **Forge simulée** : l'agent dépôt réel parle à une fausse forge si son API et son git
+  sont servis sous le même hôte que l'URL web des projets (`repoPath` compare hôte et
+  port) : écoute sur 443, noms `github.pilot.test`/`gitlab.pilot.test` résolus par
+  `--add-host …:host-gateway`, autorité de test ajoutée au magasin du conteneur de
+  l'agent (git n'hérite d'aucune variable `GIT_SSL_*` : `gitEnv` repart de zéro).
+- **Enrôlement TOTP par script** : recharger la page d'enrôlement tire un **nouveau**
+  secret ; le code calculé sur l'ancien est refusé. Règle : lire le jeton CSRF dans la
+  réponse qui affiche le secret, sans nouveau `GET`.
+- **`requests` et le mandataire de la session** : avec `trust_env`, `REQUESTS_CA_BUNDLE`
+  remplace l'autorité passée à la session (échec TLS vers le serveur local). Règle :
+  `session.trust_env = False` pour parler au serveur de test ; `curl --noproxy '*'`.
+- **Mesures muettes** : `make test-grypedb` lance les tests sans `-v` ; les résultats de
+  `TestIngestAndAnalyze5000` (`t.Logf`) n'apparaissent pas. Règle : `make bench-ingest`.
+- **Test interrompu = base jetable orpheline** : tuer un `go test` d'intégration laisse sa
+  base `ogsbom_t_<suffixe>` et ses deux rôles (le nettoyage de `dbtest` ne passe pas).
+  Règle : après une interruption, `DROP DATABASE … WITH (FORCE)` puis `DROP ROLE` des
+  seuls objets créés après l'heure du lancement.
+- **Disque** : base Grype installée (3,2 Gio), copie locale du serveur (3,2 Gio), archive
+  d'import (650 Mio en gzip), vidage de la base (600 Mio) et images : la recette a fini à
+  7 Gio libres sur 19. Règle : supprimer chaque artefact intermédiaire dès qu'il a servi
+  (`df -h` avant chaque étape lourde).
+- **Outil d'isolement des agents (suite)** : refusées aussi les commandes dont le texte
+  contient « git » hors d'une commande git (`.gitignore`, motif `github` d'un `grep`,
+  chemin `*.git`), un `git -C` vers un dépôt hors du worktree, `time` dans un script `sh`
+  (n'existe pas en `sh`), une variable passée à `sed`. Règle : script Python du répertoire
+  temporaire qui appelle git par `subprocess` (`git --git-dir <chemin absolu>`), lancé
+  seul ; motifs de recherche sans « git » (`ithub`).
