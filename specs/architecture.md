@@ -169,7 +169,8 @@ confinement des fichiers (`os.Root`).
 démarrage), `Auth` et `MFA` (avec authx et mfax, T03), `CORS` (API utilisateur). Fragments
 propres au projet : `HTTP` (délais des serveurs, délai d'arrêt propre),
 `TLS` (certificat, clé, autorité des certificats clients pour le mTLS des agents),
-`Management` (écoute séparée métriques et sondes), `Workers`, `Ingest` (bornes),
+`Management` (écoute séparée métriques et sondes), `Workers` (activation, nombre de
+workers, scrutation, bail, réessais, rétention, planificateur, délai d'arrêt), `Ingest` (bornes),
 `VulnDB` (URL de la liste, répertoire local, fréquence, mode hors ligne), `Secrets` (clés
 de chiffrement versionnées), `Bootstrap` (premier administrateur), `Migration`
 (`migration_dsn` : connexion du rôle propriétaire, utilisée uniquement pour migrer).
@@ -503,6 +504,15 @@ isolation en sous-processus est étudiée en ADR pendant T05.
   `UPDATE schedules SET next_run_at = … WHERE name = … AND next_run_at <= now() RETURNING …`
   et seule celle qui obtient la ligne met le travail en file. Pas de verrou de session :
   robuste aux coupures de connexion et à pgbouncer.
+- Détails (ADR 0011) : dates calculées par une horloge Go injectable (`jobs.Clock`),
+  jamais par `now()` de PostgreSQL, d'où des instances synchronisées par NTP ; prise des
+  jobs au bail expiré d'abord, puis des jobs en attente par l'index partiel ; plafond tenu
+  strictement par un verrou consultatif de transaction par (type, organisation) ;
+  `lease_token` pour ignorer le résultat d'un bail perdu ; transitions d'état du runner
+  validées en `synchronous_commit = off` ; `Stop` remet en attente, sans compter la
+  tentative, les jobs encore en cours à l'approche de son délai ; échéances sur une grille
+  UTC fixe ; purge des jobs terminés et passage en `dead` des jobs épuisés au bail expiré
+  par une maintenance sur chaque instance.
 
 ## 17. Agents
 
