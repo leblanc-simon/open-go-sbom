@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -38,6 +39,38 @@ type deadKey struct {
 	ID         uuid.UUID `json:"i"`
 }
 
+const deadColumns = `id, kind, org_id, unique_key, attempts, max_attempts, COALESCE(last_error, ''), created_at, finished_at`
+
+type rowScanner interface{ Scan(dest ...any) error }
+
+func scanDead(row rowScanner) (DeadJob, error) {
+	var d DeadJob
+	var org uuid.NullUUID
+	var key sql.NullString
+	if err := row.Scan(&d.ID, &d.Kind, &org, &key, &d.Attempts, &d.MaxAttempts, &d.LastError, &d.CreatedAt, &d.FinishedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return DeadJob{}, ErrNotFound
+		}
+		return DeadJob{}, fmt.Errorf("jobs: lecture d'un job mort : %w", err)
+	}
+	if org.Valid {
+		var err error
+		if d.OrgID, err = tenant.FromUUID(org.UUID); err != nil {
+			return DeadJob{}, err
+		}
+	}
+	d.UniqueKey = key.String
+	d.CreatedAt, d.FinishedAt = d.CreatedAt.UTC(), d.FinishedAt.UTC()
+	return d, nil
+}
+
+// GetDead lit le job mort id et le verrouille jusqu'à la fin de la transaction de
+// l'appelant (relance ou suppression qui suit). ErrNotFound si id ne désigne pas un job
+// mort.
+func GetDead(ctx context.Context, q db.Querier, id uuid.UUID) (DeadJob, error) {
+	return scanDead(q.QueryRowContext(ctx, `SELECT `+deadColumns+` FROM jobs WHERE id = $1 AND status = 'dead' FOR UPDATE`, id))
+}
+
 // ListDead liste les jobs morts, du plus récent au plus ancien. cursor vient de la page
 // précédente (vide pour la première) ; limit est dans [1, MaxListLimit].
 func ListDead(ctx context.Context, q db.Querier, cursor string, limit int) (pagination.Page[DeadJob], error) {
@@ -52,9 +85,7 @@ func ListDead(ctx context.Context, q db.Querier, cursor string, limit int) (pagi
 			return none, err
 		}
 	}
-	query := `
-		SELECT id, kind, org_id, unique_key, attempts, max_attempts, COALESCE(last_error, ''), created_at, finished_at
-		FROM jobs WHERE status = 'dead'`
+	query := `SELECT ` + deadColumns + ` FROM jobs WHERE status = 'dead'`
 	args := []any{limit + 1}
 	if after != nil {
 		query += ` AND (finished_at, id) < ($2, $3)`
@@ -68,18 +99,10 @@ func ListDead(ctx context.Context, q db.Querier, cursor string, limit int) (pagi
 	defer rows.Close()
 	var out []DeadJob
 	for rows.Next() {
-		var d DeadJob
-		var org uuid.NullUUID
-		var key sql.NullString
-		if err := rows.Scan(&d.ID, &d.Kind, &org, &key, &d.Attempts, &d.MaxAttempts, &d.LastError, &d.CreatedAt, &d.FinishedAt); err != nil {
-			return none, fmt.Errorf("jobs: lecture d'un job mort : %w", err)
+		d, err := scanDead(rows)
+		if err != nil {
+			return none, err
 		}
-		if org.Valid {
-			if d.OrgID, err = tenant.FromUUID(org.UUID); err != nil {
-				return none, err
-			}
-		}
-		d.UniqueKey = key.String
 		out = append(out, d)
 	}
 	if err := rows.Err(); err != nil {
@@ -124,6 +147,37 @@ func Discard(ctx context.Context, q db.Querier, id uuid.UUID) error {
 		return fmt.Errorf("jobs: suppression : %w", err)
 	}
 	return oneRow(res)
+}
+
+// Counts compte les jobs qui ne sont pas terminés.
+type Counts struct {
+	Pending, Running, Dead int
+}
+
+// CountJobs compte les jobs en attente, en cours et morts (écran d'administration) ;
+// chaque compte passe par l'index partiel de son statut.
+func CountJobs(ctx context.Context, q db.Querier) (Counts, error) {
+	var c Counts
+	err := q.QueryRowContext(ctx, `SELECT
+		(SELECT count(*) FROM jobs WHERE status = 'pending'),
+		(SELECT count(*) FROM jobs WHERE status = 'running'),
+		(SELECT count(*) FROM jobs WHERE status = 'dead')`).Scan(&c.Pending, &c.Running, &c.Dead)
+	if err != nil {
+		return Counts{}, fmt.Errorf("jobs: comptage : %w", err)
+	}
+	return c, nil
+}
+
+// Active indique si un job de type kind et de clé d'unicité key est en attente ou en
+// cours.
+func Active(ctx context.Context, q db.Querier, kind, key string) (bool, error) {
+	var ok bool
+	err := q.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM jobs
+		WHERE kind = $1 AND unique_key = $2 AND status IN ('pending', 'running'))`, kind, key).Scan(&ok)
+	if err != nil {
+		return false, fmt.Errorf("jobs: recherche d'un job actif : %w", err)
+	}
+	return ok, nil
 }
 
 func oneRow(res sql.Result) error {

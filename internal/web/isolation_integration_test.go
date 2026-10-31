@@ -138,7 +138,8 @@ func TestAdminRoutesAnswer404ToNonAdmins(t *testing.T) {
 			continue
 		}
 		n++
-		path := fill(r.pattern, map[string]string{"userID": itoa(admin.ID), "slug": "org-a", "action": "deactivate"})
+		path := fill(r.pattern, map[string]string{"userID": itoa(admin.ID), "slug": "org-a", "action": "deactivate",
+			"jobID": "0192d6a4-0000-7000-8000-000000000005"})
 		var p page
 		if r.method == http.MethodGet {
 			p = b.get(path)

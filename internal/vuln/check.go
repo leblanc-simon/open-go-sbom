@@ -176,7 +176,7 @@ func (c *Checker) Import(ctx context.Context, path string) (Archive, error) {
 		return Archive{}, ErrTooLarge
 	}
 	if size == 0 {
-		return Archive{}, fmt.Errorf("vuln: import : archive vide")
+		return Archive{}, fmt.Errorf("%w : archive vide", ErrInvalidArchive)
 	}
 	sum := h.Sum(nil)
 	if a, err := archiveBySHA(ctx, c.o.Pool.DB(), sum); err == nil {
@@ -203,7 +203,7 @@ func (c *Checker) store(ctx context.Context, path string, sum []byte, size int64
 	dbDir := filepath.Join(staging, "db")
 	desc, err := c.o.Engine.Install(ctx, path, dbDir)
 	if err != nil {
-		return Archive{}, err
+		return Archive{}, fmt.Errorf("%w : %w", ErrInvalidArchive, err)
 	}
 	f, err := os.Open(path)
 	if err != nil {

@@ -87,9 +87,10 @@ func NewRouter(o RouterOptions) (http.Handler, error) {
 		accessLog,
 		middleware.Recover(o.Logger, pageError(http.StatusInternalServerError)),
 		uiHeaders,
-		limitBody,
 	)
-	if o.Identity != nil {
+	if o.Identity == nil {
+		ui = append(ui, limitBody(nil))
+	} else {
 		if id, err = newIdentity(*o.Identity, o.Renderer, o.Catalog, o.Logger, limiter.ClientIP); err != nil {
 			return nil, err
 		}
@@ -98,8 +99,10 @@ func NewRouter(o RouterOptions) (http.Handler, error) {
 			return nil, err
 		}
 		loginLimit = login.Middleware
-		// Session (authx) et visiteur, puis changement de mot de passe imposé (§ 14).
-		ui = append(ui, trustClientIP(proxies, limiter.ClientIP), id.mgr.LoadSession, id.loadViewer, mustChangePassword)
+		// Session (authx) et visiteur, puis changement de mot de passe imposé (§ 14). Le
+		// téléversement est borné par uploadGate, qui a besoin du visiteur.
+		ui = append(ui, limitBody(isUpload), trustClientIP(proxies, limiter.ClientIP), id.mgr.LoadSession, id.loadViewer,
+			mustChangePassword, id.uploadGate)
 	}
 	// La langue précède la garde d'organisation, qui la recalcule (§ 18).
 	ui = append(ui, csrf, middleware.Language(o.Catalog, middleware.LanguageSources{Account: accountLanguage}))

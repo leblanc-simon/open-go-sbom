@@ -13,12 +13,18 @@ import (
 // maxFormBytes borne le corps d'un formulaire de l'interface.
 const maxFormBytes = 64 << 10
 
-// limitBody borne le corps des requêtes de l'interface, avant que CSRF ne le lise.
-func limitBody(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, maxFormBytes)
-		next.ServeHTTP(w, r)
-	})
+// limitBody borne le corps des requêtes de l'interface, avant que CSRF ne le lise, sauf
+// celui des requêtes que defer désigne : un middleware placé avant CSRF le borne alors
+// lui-même (uploadGate).
+func limitBody(deferred func(*http.Request) bool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if deferred == nil || !deferred(r) {
+				r.Body = http.MaxBytesReader(w, r.Body, maxFormBytes)
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // flashes associe le paramètre ?done= d'une redirection à son message : seules ces
@@ -47,6 +53,11 @@ var flashes = map[string]string{
 	"enrollment_revoked":  "flash.enrollment_revoked",
 
 	"personal_token_revoked": "flash.personal_token_revoked",
+
+	"job_retried":          "flash.job_retried",
+	"job_discarded":        "flash.job_discarded",
+	"vulndb_import_queued": "flash.vulndb_import_queued",
+	"vulndb_purged":        "flash.vulndb_purged",
 }
 
 func flashKey(r *http.Request) string { return flashes[r.URL.Query().Get("done")] }

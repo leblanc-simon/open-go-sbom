@@ -15,6 +15,10 @@ var ErrNoDatabase = errors.New("vuln: aucune base de vulnérabilités")
 // n'est jamais activée.
 var ErrChecksum = errors.New("vuln: somme de contrôle de l'archive incorrecte")
 
+// ErrInvalidArchive : l'archive est vide, illisible, d'un schéma non pris en charge, ou
+// sa base ne s'ouvre pas. La réessayer ne changerait rien.
+var ErrInvalidArchive = errors.New("vuln: archive de base invalide")
+
 // Description décrit une base installée.
 type Description struct {
 	Built  time.Time

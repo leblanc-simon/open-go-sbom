@@ -44,7 +44,7 @@ type VulnDB struct {
 	CheckInterval   time.Duration `yaml:"check_interval"   env:"VULNDB_CHECK_INTERVAL"   env-default:"6h"    env-description:"How often one instance queries the listing for a newer database"`
 	SyncInterval    time.Duration `yaml:"sync_interval"    env:"VULNDB_SYNC_INTERVAL"    env-default:"1m"    env-description:"How often a worker instance checks that its local copy is the shared target"`
 	MaxAge          time.Duration `yaml:"max_age"          env:"VULNDB_MAX_AGE"          env-default:"120h"  env-description:"Age beyond which the target database raises an administration alert"`
-	DownloadTimeout time.Duration `yaml:"download_timeout" env:"VULNDB_DOWNLOAD_TIMEOUT" env-default:"30m"   env-description:"Maximum duration of one listing query or archive download"`
+	DownloadTimeout time.Duration `yaml:"download_timeout" env:"VULNDB_DOWNLOAD_TIMEOUT" env-default:"30m"   env-description:"Maximum duration of one listing query, archive download or archive upload"`
 	MaxArchiveMiB   int           `yaml:"max_archive_mib"  env:"VULNDB_MAX_ARCHIVE_MIB"  env-default:"2048"  env-description:"Maximum size of a database archive, downloaded or imported, in MiB"`
 	AnalysisTimeout time.Duration `yaml:"analysis_timeout" env:"VULNDB_ANALYSIS_TIMEOUT" env-default:"10m"   env-description:"Maximum duration of one analysis job, local database synchronisation included"`
 }

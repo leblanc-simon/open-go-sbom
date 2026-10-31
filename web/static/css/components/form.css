@@ -66,6 +66,10 @@
     font-size: var(--text-sm);
   }
 
+  &.input--file {
+    padding-block: var(--space-2);
+  }
+
   &.input--code {
     max-width: 10rem;
     font-family: var(--font-mono);

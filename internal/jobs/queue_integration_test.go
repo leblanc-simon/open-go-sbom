@@ -396,6 +396,49 @@ func TestAdminDeadJobs(t *testing.T) {
 	}
 }
 
+// CountJobs, GetDead et Active servent l'écran d'administration et l'import de la base.
+func TestAdminCountsAndLookups(t *testing.T) {
+	t.Parallel()
+	tdb := dbtest.New(t)
+	ctx := context.Background()
+	q := tdb.App.DB()
+	enqueue(t, tdb.App, Job{Kind: "test.a", UniqueKey: "x"})
+	running := enqueue(t, tdb.App, Job{Kind: "test.a", UniqueKey: "y"})
+	execSQL(t, tdb.App, `UPDATE jobs SET status = 'running', lease_token = $2, locked_until = now() + interval '1 hour' WHERE id = $1`,
+		running, uuid.New())
+	dead := enqueue(t, tdb.App, Job{Kind: "test.a", UniqueKey: "z"})
+	execSQL(t, tdb.App, `UPDATE jobs SET status = 'dead', attempts = 3, last_error = 'raté', finished_at = now() WHERE id = $1`, dead)
+	done := enqueue(t, tdb.App, Job{Kind: "test.a"})
+	execSQL(t, tdb.App, `UPDATE jobs SET status = 'done', finished_at = now() WHERE id = $1`, done)
+
+	if c, err := CountJobs(ctx, q); err != nil || c != (Counts{Pending: 1, Running: 1, Dead: 1}) {
+		t.Fatalf("comptes : %+v, %v", c, err)
+	}
+	for key, want := range map[string]bool{"x": true, "y": true, "z": false, "absente": false} {
+		if got, err := Active(ctx, q, "test.a", key); err != nil || got != want {
+			t.Errorf("Active(%s) = %v, %v ; attendu %v", key, got, err, want)
+		}
+	}
+	if ok, err := Active(ctx, q, "test.b", "x"); err != nil || ok {
+		t.Errorf("Active d'un autre type : %v, %v", ok, err)
+	}
+	err := tdb.App.InTx(ctx, func(tx *db.Tx) error {
+		d, err := GetDead(ctx, tx, dead)
+		if err != nil || d.ID != dead || d.Kind != "test.a" || d.UniqueKey != "z" || d.Attempts != 3 || d.LastError != "raté" {
+			t.Errorf("GetDead : %+v, %v", d, err)
+		}
+		for _, id := range []uuid.UUID{running, done, uuid.New()} {
+			if _, err := GetDead(ctx, tx, id); !errors.Is(err, ErrNotFound) {
+				t.Errorf("GetDead(%s) : %v, attendu ErrNotFound", id, err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestMetrics(t *testing.T) {
 	t.Parallel()
 	tdb := dbtest.New(t)

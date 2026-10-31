@@ -8,6 +8,10 @@
 //   - Manager tient la copie locale d'une instance worker : synchronisation sur la cible
 //     depuis PostgreSQL, bascule atomique, une seule base ouverte derrière un verrou
 //     lecture/écriture ; Ensure avant chaque analyse, Ready pour /readyz.
+//   - Manager rapporte la version chargée de son instance (vulndb_instances, ListInstances).
+//   - Upload range une archive téléversée par blocs (vulndb_imports) et met en file le job
+//     vulndb.import, dont Checker.ImportHandler fait un Import sur une instance worker
+//     (ADR 0028) ; PurgeArchives supprime les archives qui ne sont pas la cible.
 //   - UpsertCatalog et GetVulnerability tiennent le catalogue vulnerabilities.
 //
 // Le format de la base n'est connu que de l'adaptateur vuln/grype (Engine, Source) ;

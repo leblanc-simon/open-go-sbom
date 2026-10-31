@@ -152,6 +152,9 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	}
 	searcher := search.NewService(pool, grypeversion.New())
 	exports := search.NewExportLimiter(cfg.UserAPI.MaxExports, cfg.UserAPI.ExportTimeout)
+	vulndbScreen := web.VulnDBOptions{MaxAge: cfg.VulnDB.MaxAge, Offline: cfg.VulnDB.Offline, ListingURL: cfg.VulnDB.ListingURL,
+		SyncInterval: cfg.VulnDB.SyncInterval, MaxArchive: config.MiB(cfg.VulnDB.MaxArchiveMiB),
+		UploadTimeout: cfg.VulnDB.DownloadTimeout}
 	router, err := web.NewRouter(web.RouterOptions{
 		Logger:         logger,
 		Catalog:        catalog,
@@ -174,7 +177,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Search:         searcher,
 			Exports:        exports,
 			Dashboard:      dash,
-			VulnDB:         web.VulnDBOptions{MaxAge: cfg.VulnDB.MaxAge, Offline: cfg.VulnDB.Offline, ListingURL: cfg.VulnDB.ListingURL},
+			VulnDB:         vulndbScreen,
 			Secrets:        box,
 			Auth:           cfg.Auth,
 			MFA:            cfg.MFA,
@@ -306,6 +309,8 @@ func registerAnalysis(cfg config.Config, runner *jobs.Runner, scheduler *jobs.Sc
 		{finding.RescanOrgKind, analyzer.RescanOrgHandler(), nil},
 		// Téléchargement, puis installation complète pour valider l'archive.
 		{vuln.CheckKind, check, []jobs.KindOption{jobs.WithTimeout(2 * cfg.VulnDB.DownloadTimeout)}},
+		// Archive téléversée depuis l'administration : même validation, même en mode hors ligne.
+		{vuln.ImportKind, checker.ImportHandler(), []jobs.KindOption{jobs.WithTimeout(2 * cfg.VulnDB.DownloadTimeout)}},
 	} {
 		if err := runner.Register(r.kind, r.h, r.opts...); err != nil {
 			return err

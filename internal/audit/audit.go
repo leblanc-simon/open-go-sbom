@@ -60,6 +60,12 @@ const (
 	EnrollmentTokenRevoked Action = "enrollment_token.revoked"
 	PersonalTokenCreated   Action = "personal_token.created"
 	PersonalTokenRevoked   Action = "personal_token.revoked"
+	JobRetried             Action = "job.retried"
+	JobDiscarded           Action = "job.discarded"
+	VulnDBImportRequested  Action = "vulndb.import_requested"
+	VulnDBImported         Action = "vulndb.imported"
+	VulnDBImportFailed     Action = "vulndb.import_failed"
+	VulnDBArchivesPurged   Action = "vulndb.archives_purged"
 )
 
 // Actions renvoie toutes les actions connues (tests de traduction).
@@ -74,6 +80,7 @@ func Actions() []Action {
 		ProjectCreated, ProjectUpdated, ProjectArchived, ProjectUnarchived, ProjectAgentChanged,
 		AgentCreated, AgentEnrolled, AgentDisabled, AgentScanRequested, AgentTokenCreated, AgentTokenRevoked,
 		EnrollmentTokenCreated, EnrollmentTokenRevoked, PersonalTokenCreated, PersonalTokenRevoked,
+		JobRetried, JobDiscarded, VulnDBImportRequested, VulnDBImported, VulnDBImportFailed, VulnDBArchivesPurged,
 	}
 }
 
