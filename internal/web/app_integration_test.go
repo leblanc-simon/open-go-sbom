@@ -153,7 +153,7 @@ func newApp(t *testing.T, opts ...appOption) *app {
 		Identity: &IdentityOptions{
 			Pool: tdb.App, Accounts: a.accounts, Orgs: a.orgs, Projects: a.projects, Agents: a.agents, Secrets: box,
 			Inventory: a.inv, Ingest: a.ingest, Findings: finding.NewService(tdb.App),
-			VulnDB: VulnDBOptions{MaxAge: 120 * time.Hour, ListingURL: "https://grype.anchore.io/databases/v6/latest.json"},
+			VulnDB:         VulnDBOptions{MaxAge: 120 * time.Hour, ListingURL: "https://grype.anchore.io/databases/v6/latest.json"},
 			Auth:           appconf.Auth{SessionTTL: time.Hour, CookieName: "ogsbom_session", CookieSecure: "off", BcryptCost: testCost},
 			MFA:            appconf.MFA{Issuer: "open-go-sbom", ChallengeTTL: time.Minute, MaxAttempts: 3},
 			LoginRateLimit: 0,
