@@ -81,7 +81,22 @@
           <dt>{{T "agents.col_state"}}</dt><dd>{{template "agent_status" $p.AgentStatus}}</dd>
           <dt>{{T "agents.col_version"}}</dt><dd>{{with .Version}}<span class="version">{{.}}</span>{{else}}<span class="muted">{{T "agents.version_unknown"}}</span>{{end}}</dd>
           <dt>{{T "agents.col_last_contact"}}</dt><dd>{{template "stamp" $p.LastSeen}}</dd>
+          {{- with $.Host}}
+          <dt>{{T "host_agent.last_inventory"}}</dt><dd>{{template "stamp" .LastInventory}}</dd>
+          {{- end}}
         </dl>
+        {{- with $.Host}}
+        {{template "host_context" .}}
+        {{- if .ScanRequested}}
+        <p class="muted" role="status">{{T "host_agent.scan_pending"}} {{template "stamp" .ScanRequested}}</p>
+        {{- else if .CanScan}}
+        <form method="post" action="{{$.Base}}/projects/{{$p.Slug}}/scan">
+          {{csrfField $.Page.CSRFToken}}
+          <button type="submit" class="btn">{{T "host_agent.scan_now"}}</button>
+          <p class="field__hint">{{T "host_agent.scan_now_hint"}}</p>
+        </form>
+        {{- end}}
+        {{- end}}
         {{- else}}
         <p class="muted">{{T "project.no_agent_text"}}</p>
         {{- end}}

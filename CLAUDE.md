@@ -55,6 +55,11 @@ workers), analyse et constats (`internal/finding`, ADR 0018), téléchargements 
 `internal/download`, écrans des constats, des vulnérabilités et des composants, jeu de
 mesure `internal/benchdata` et `docs/benchmarks.md` (ADR 0019), autoanalyse des binaires
 en CI (`make selfscan`).
+T07 terminé : agent serveur `ogsbom-host-agent` (`internal/hostagent`, ADR 0020, 0021),
+client commun des agents `internal/agentclient` (réessais, mTLS, envoi gzip, suivi d'une
+ingestion : voir son `doc.go`, à adopter par l'agent dépôt), compte rendu d'inventaire et
+demande de scan par le signal de vie, mTLS exigé sur l'API des agents avec
+`tls.client_ca_file`, unités systemd et paquets deb et rpm (`make packages`).
 
 ## Règles de travail
 
@@ -105,7 +110,7 @@ en CI (`make selfscan`).
 
 ```bash
 make help               # liste des cibles
-make ci                 # fmt-check, generate-check, vet, lint, test-race, test-integration, vuln, build
+make ci                 # fmt-check, generate-check, vet, lint, test-race, test-integration, vuln, build, packages
 make test-race          # tests unitaires
 make test-integration   # tests étiquetés integration ; PostgreSQL : docker compose -f deploy/compose.yaml up -d
                         # (OGSBOM_TEST_DATABASE_DSN, par défaut postgres://postgres:postgres@localhost:5432/postgres)
@@ -116,6 +121,7 @@ make test-grypedb       # vraie base Grype (OGSBOM_TEST_GRYPEDB_DIR : base v6 in
 make bench              # mesures sur le jeu de référence (docs/benchmarks.md)
 make selfscan           # SBOM des binaires (Syft) et analyse (Grype) ; échec sur une KEV
 make build              # bin/ogsbom-server, bin/ogsbom-host-agent, bin/ogsbom-repo-agent (CGO_ENABLED=0)
+make packages           # ogsbom-host-agent amd64 et arm64, paquets deb et rpm dans dist/ (nfpm)
 make run                # serveur avec config.yaml (cp config.example.yaml config.yaml)
 ```
 

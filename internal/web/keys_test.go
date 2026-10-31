@@ -7,6 +7,7 @@ import (
 
 	"leblanc.io/open-go-sbom/internal/account"
 	"leblanc.io/open-go-sbom/internal/agent"
+	apiv1 "leblanc.io/open-go-sbom/internal/api"
 	"leblanc.io/open-go-sbom/internal/audit"
 	"leblanc.io/open-go-sbom/internal/ingest"
 	"leblanc.io/open-go-sbom/internal/inventory"
@@ -87,6 +88,13 @@ func TestDynamicKeysExist(t *testing.T) {
 	}
 	for _, h := range agent.EnrollmentLifetimes {
 		want = append(want, "enrollment.expiry_"+strconv.Itoa(h))
+	}
+	want = append(want, apiv1.KeyClientCertRequired+".title", apiv1.KeyClientCertRequired+".text")
+	for _, st := range hostAgentInstall("https://sbom.example.org", "t") {
+		want = append(want, st.TitleKey)
+		if st.HintKey != "" {
+			want = append(want, st.HintKey)
+		}
 	}
 	for _, k := range want {
 		if !slices.Contains(keys, k) {

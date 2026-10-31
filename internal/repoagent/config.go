@@ -38,6 +38,12 @@ type ServerConfig struct {
 	TokenFile string        `yaml:"token_file" env:"SERVER_TOKEN_FILE" env-default:"credential:agent-token" env-description:"Agent token: credential:<name> (systemd credential) or absolute path of a 0600 file"`
 	CAFile    string        `yaml:"ca_file"    env:"SERVER_CA_FILE"    env-description:"PEM file of the authority that signed the server certificate (system roots if empty)"`
 	Timeout   time.Duration `yaml:"timeout"    env:"SERVER_TIMEOUT"    env-default:"2m"  env-description:"Maximum duration of one request to the server (SBOM upload included)"`
+	// ClientCertFile et ClientKeyFile : certificat client du mTLS (la clé est un secret :
+	// credential:<nom> ou fichier en 0600).
+	ClientCertFile string `yaml:"client_cert_file" env:"SERVER_CLIENT_CERT_FILE" env-description:"Client certificate (PEM) for mTLS"`
+	ClientKeyFile  string `yaml:"client_key_file"  env:"SERVER_CLIENT_KEY_FILE"  env-description:"Client certificate key for mTLS: credential:<name> or absolute path of a 0600 file"`
+	Proxy          string `yaml:"proxy"            env:"SERVER_PROXY"            env-description:"HTTP(S) proxy URL (default: HTTPS_PROXY and NO_PROXY)"`
+	Retries        int    `yaml:"retries"          env:"SERVER_RETRIES"          env-default:"5" env-description:"Attempts of one request (network errors, 429, 5xx; Retry-After honoured)"`
 }
 
 // WebhookConfig décrit le récepteur de webhooks, exposé aux forges.
@@ -119,6 +125,12 @@ func (c Config) Validate() error {
 	if c.Server.TokenFile == "" {
 		errs = append(errs, errors.New("server.token_file obligatoire"))
 	}
+	if (c.Server.ClientCertFile == "") != (c.Server.ClientKeyFile == "") {
+		errs = append(errs, errors.New("server.client_cert_file et server.client_key_file vont ensemble"))
+	}
+	if c.Server.Retries < 1 || c.Server.Retries > 20 {
+		errs = append(errs, errors.New("server.retries : entre 1 et 20"))
+	}
 	if c.Server.Timeout <= 0 {
 		errs = append(errs, errors.New("server.timeout doit être positif"))
 	}
@@ -178,8 +190,8 @@ func (c Config) Validate() error {
 
 func validServerURL(s string) error {
 	u, err := url.Parse(s)
-	if s == "" || err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" || u.User != nil {
-		return errors.New("server.url : URL http(s) absolue sans identifiants attendue")
+	if s == "" || err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil {
+		return errors.New("server.url : URL https absolue sans identifiants attendue (l'agent ne parle qu'en HTTPS)")
 	}
 	return nil
 }

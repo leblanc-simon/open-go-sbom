@@ -69,10 +69,15 @@ type Ref struct {
 // AgentRef résume l'agent auquel un projet est confié.
 type AgentRef struct {
 	ID         uuid.UUID
+	Kind       Kind
 	Name       string
 	Version    string
 	LastSeenAt *time.Time
+	CreatedAt  time.Time
 	Disabled   bool
+	// LastInventoryAt est la date de dernière analyse la plus récente des projets de
+	// l'agent : l'état « muet » d'un agent serveur en dépend.
+	LastInventoryAt *time.Time
 }
 
 // Project est un projet : un dépôt ou un serveur.
@@ -385,7 +390,12 @@ func newIDs(n int) []string {
 }
 
 const columns = `lower(p.name), p.id, p.kind, p.slug, p.name, p.description, p.labels, p.forge_url, p.archived_at,
-	p.created_at, p.updated_at, a.id, coalesce(a.name, ''), coalesce(a.version, ''), a.last_seen_at, a.disabled_at IS NOT NULL`
+	p.created_at, p.updated_at, a.id, coalesce(a.name, ''), coalesce(a.version, ''), a.last_seen_at, a.disabled_at IS NOT NULL,
+	coalesce(a.kind, ''), a.created_at,
+	(SELECT max(s.last_scanned_at) FROM projects ap
+	   JOIN ref_current rc ON rc.org_id = ap.org_id AND rc.project_id = ap.id
+	   JOIN snapshots s ON s.org_id = rc.org_id AND s.id = rc.snapshot_id
+	  WHERE ap.org_id = a.org_id AND ap.agent_id = a.id)`
 
 const from = ` FROM projects p LEFT JOIN agents a ON a.org_id = p.org_id AND a.id = p.agent_id`
 
@@ -393,12 +403,13 @@ func scan(row interface{ Scan(...any) error }) (Project, error) {
 	var p Project
 	var kind string
 	var labels []byte
-	var archived, lastSeen sql.NullTime
+	var archived, lastSeen, agentCreated, inventoried sql.NullTime
 	var agentID uuid.NullUUID
-	var agentName, agentVersion string
+	var agentName, agentVersion, agentKind string
 	var disabled sql.NullBool
 	if err := row.Scan(&p.sortName, &p.ID, &kind, &p.Slug, &p.Name, &p.Description, &labels, &p.ForgeURL, &archived,
-		&p.CreatedAt, &p.UpdatedAt, &agentID, &agentName, &agentVersion, &lastSeen, &disabled); err != nil {
+		&p.CreatedAt, &p.UpdatedAt, &agentID, &agentName, &agentVersion, &lastSeen, &disabled, &agentKind, &agentCreated,
+		&inventoried); err != nil {
 		return Project{}, err
 	}
 	p.Kind = Kind(kind)
@@ -410,10 +421,15 @@ func scan(row interface{ Scan(...any) error }) (Project, error) {
 		p.ArchivedAt = &t
 	}
 	if agentID.Valid {
-		p.Agent = &AgentRef{ID: agentID.UUID, Name: agentName, Version: agentVersion, Disabled: disabled.Bool}
+		p.Agent = &AgentRef{ID: agentID.UUID, Kind: Kind(agentKind), Name: agentName, Version: agentVersion,
+			Disabled: disabled.Bool, CreatedAt: agentCreated.Time}
 		if lastSeen.Valid {
 			t := lastSeen.Time
 			p.Agent.LastSeenAt = &t
+		}
+		if inventoried.Valid {
+			t := inventoried.Time
+			p.Agent.LastInventoryAt = &t
 		}
 	}
 	return p, nil

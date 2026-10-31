@@ -1,0 +1,7 @@
+Package: docker-image-only
+Status: install ok installed
+Priority: optional
+Section: misc
+Architecture: amd64
+Version: 9.9.9
+Description: Package of a container image: never part of the host SBOM

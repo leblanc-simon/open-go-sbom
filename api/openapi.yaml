@@ -31,7 +31,8 @@ paths:
         projet de son hôte (étiquettes du jeton), ou le rattache au projet de serveur que
         désigne le jeton, ou au projet qui suit déjà cet hôte s'il n'a pas d'agent actif.
         Le jeton d'agent n'est renvoyé qu'ici : l'agent le conserve dans son répertoire
-        d'état.
+        d'état. Les étiquettes de l'agent (`labels`) complètent celles du jeton sur un
+        projet créé par l'inscription ; en cas de conflit, celles du jeton l'emportent.
       security:
         - enrollmentToken: []
       requestBody:
@@ -62,7 +63,14 @@ paths:
       summary: Signal de vie d'un agent
       description: |
         Enregistre le dernier contact et la version de l'agent. La réponse indique si un
-        scan est demandé depuis l'interface (`scan_requested`, T07).
+        scan est demandé depuis l'interface (`scan_requested`) ; la demande est remise une
+        seule fois.
+
+        Après un scan dont l'empreinte d'inventaire n'a pas changé, l'agent serveur joint
+        `inventory` (empreinte calculée comme le serveur, `sbom.Fingerprint`) au lieu
+        d'envoyer son SBOM : si elle est celle de l'ensemble courant de la référence d'hôte,
+        seule la date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+        envoyer son SBOM (`inventory: outdated`). `host` met à jour le contexte de l'hôte.
       security:
         - agentToken: []
       requestBody:
@@ -297,6 +305,13 @@ components:
           description: Version de l'agent.
           maxLength: 64
           examples: [1.4.0]
+        labels:
+          type: object
+          description: Étiquettes de la configuration de l'agent (32 au plus).
+          maxProperties: 32
+          additionalProperties:
+            type: string
+            maxLength: 100
     EnrollmentResult:
       type: object
       required: [agent_id, token, project]
@@ -327,17 +342,89 @@ components:
           type: string
           description: Version de l'agent.
           maxLength: 64
+        inventory:
+          $ref: "#/components/schemas/InventoryReport"
+        host:
+          $ref: "#/components/schemas/HostContext"
+    InventoryReport:
+      type: object
+      description: Scan d'un hôte sans changement d'inventaire depuis le dernier envoi.
+      additionalProperties: false
+      required: [project_id, ref, fingerprint, scanned_at]
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        ref:
+          type: object
+          additionalProperties: false
+          required: [kind, name]
+          properties:
+            kind:
+              type: string
+              enum: [host]
+            name:
+              type: string
+              minLength: 1
+              maxLength: 255
+        fingerprint:
+          type: string
+          description: Empreinte d'inventaire (SHA-256 en hexadécimal minuscule).
+          pattern: "^[0-9a-f]{64}$"
+        scanned_at:
+          type: string
+          format: date-time
+          description: Date du scan (au plus une heure d'avance sur l'horloge du serveur).
+    HostContext:
+      type: object
+      description: Contexte de l'hôte au moment du scan.
+      additionalProperties: false
+      properties:
+        hostname:
+          type: string
+          maxLength: 255
+        os_id:
+          type: string
+          description: ID de /etc/os-release (debian, rhel, alpine…).
+          maxLength: 64
+        os_version:
+          type: string
+          description: VERSION_ID de /etc/os-release.
+          maxLength: 64
+        os_name:
+          type: string
+          description: PRETTY_NAME de /etc/os-release.
+          maxLength: 128
+        kernel:
+          type: string
+          description: Version du noyau (uname -r).
+          maxLength: 128
+        arch:
+          type: string
+          description: Architecture (uname -m).
+          maxLength: 32
+        scan_duration_ms:
+          type: integer
+          description: Durée du scan, en millisecondes.
+          minimum: 0
+          maximum: 86400000
     HeartbeatStatus:
       type: object
       required: [scan_requested, server_time]
       properties:
         scan_requested:
           type: boolean
-          description: Un scan est demandé depuis l'interface (toujours faux avant T07).
+          description: Un scan est demandé depuis l'interface ; remis une seule fois.
         server_time:
           type: string
           format: date-time
           description: Heure du serveur, pour détecter une horloge d'agent décalée.
+        inventory:
+          type: string
+          enum: [current, outdated]
+          description: |
+            Réponse à `inventory` : `current`, l'inventaire du serveur est à jour et sa
+            date de dernière analyse a avancé ; `outdated`, l'agent doit envoyer son SBOM.
     AgentProjectList:
       type: object
       required: [projects, page]
@@ -435,6 +522,8 @@ components:
           type: string
           format: date-time
           description: Date du scan (au plus une heure d'avance sur l'horloge du serveur).
+        host:
+          $ref: "#/components/schemas/HostContext"
     Ingestion:
       type: object
       required: [id, status, project_id, ref_id, received_at]

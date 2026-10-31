@@ -58,6 +58,8 @@ jobs:
         run: make build GOARCH=amd64
       - name: Construction arm64
         run: make build GOARCH=arm64
+      - name: Paquets de l'agent serveur
+        run: make packages
 
   # Autoanalyse : SBOM des trois binaires par Syft, analyse par Grype (base téléchargée à
   # chaque passage) ; échec sur une vulnérabilité activement exploitée (KEV).

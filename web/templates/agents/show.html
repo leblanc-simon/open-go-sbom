@@ -39,6 +39,18 @@
           {{- end}}
         </div>
       </section>
+      {{- with .Host}}
+      <section class="panel" aria-labelledby="agent-host">
+        <div class="panel__head"><h2 class="panel__title" id="agent-host">{{T "host_agent.context_title"}}</h2></div>
+        <div class="panel__body stack stack--sm">
+          <dl class="kv">
+            <dt>{{T "host_agent.last_inventory"}}</dt><dd>{{template "stamp" .LastInventory}}</dd>
+            {{- with .ScanRequested}}<dt>{{T "host_agent.scan_pending"}}</dt><dd>{{template "stamp" .}}</dd>{{end}}
+          </dl>
+          {{template "host_context" .}}
+        </div>
+      </section>
+      {{- end}}
       <section class="panel" aria-labelledby="agent-tokens">
         <div class="panel__head">
           <h2 class="panel__title" id="agent-tokens">{{T "agent.tokens_title" "Name" $a.Name}}</h2>

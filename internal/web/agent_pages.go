@@ -48,7 +48,7 @@ type agentRow struct {
 }
 
 func agentRowOf(a agent.Agent, now time.Time) agentRow {
-	return agentRow{Agent: a, Status: statusOf(a.LastSeenAt, a.DisabledAt != nil, now), LastSeen: stampOf(a.LastSeenAt)}
+	return agentRow{Agent: a, Status: statusOf(a.Activity(), now), LastSeen: stampOf(a.LastSeenAt)}
 }
 
 type enrollmentRow struct {
@@ -155,6 +155,8 @@ type secretView struct {
 	TokenName  string
 	Plaintext  string
 	Expires    *stamp
+	// Install : étapes d'installation de l'agent serveur (jeton d'inscription).
+	Install []installStep
 }
 
 func (id *identity) showSecret(w http.ResponseWriter, r *http.Request, v *secretView) {
@@ -207,6 +209,8 @@ type agentView struct {
 	TokenName string
 	FlashKey  string
 	Error     formError
+	// Host : contexte de l'hôte d'un agent serveur.
+	Host *hostAgentView
 }
 
 func (id *identity) agentFromPath(w http.ResponseWriter, r *http.Request) (agent.Agent, bool) {
@@ -242,6 +246,9 @@ func (id *identity) renderAgent(w http.ResponseWriter, r *http.Request, status i
 		Page: render.Page{TitleKey: "agent.title", TitleArgs: map[string]any{"Name": a.Name}, Nav: orgNav(acc, "agents")},
 		Base: orgBase(acc), CanAdmin: acc.Role.AtLeast(tenant.RoleAdmin), Agent: agentRowOf(a, now),
 		Lifetimes: lifetimeOptions(days), TokenName: tokenName, FlashKey: flashKey(r), Error: fe,
+	}
+	if a.Kind == agent.KindHost {
+		view.Host = newHostAgentView(a, false)
 	}
 	for _, t := range a.Tokens {
 		view.Tokens = append(view.Tokens, tokenRow{Token: t, Active: t.ActiveAt(now) && a.DisabledAt == nil,
@@ -369,7 +376,8 @@ func (id *identity) createEnrollment(w http.ResponseWriter, r *http.Request) {
 		id.serverError(w, r, err)
 		return
 	}
-	id.showSecret(w, r, &secretView{Enrollment: true, Name: t.Name, Plaintext: issued.Plaintext, Expires: stampAt(t.ExpiresAt)})
+	id.showSecret(w, r, &secretView{Enrollment: true, Name: t.Name, Plaintext: issued.Plaintext, Expires: stampAt(t.ExpiresAt),
+		Install: hostAgentInstall(serverURL(r), issued.Plaintext)})
 }
 
 func (id *identity) revokeEnrollment(w http.ResponseWriter, r *http.Request) {
