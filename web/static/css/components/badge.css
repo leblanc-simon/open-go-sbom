@@ -43,6 +43,18 @@
     }
   }
 
+  &.status--danger {
+    --_fg: var(--color-danger);
+    --_bg: var(--color-danger-soft);
+
+    &::before {
+      border-radius: 0;
+      border: 0;
+      background: currentColor;
+      clip-path: polygon(50% 0, 100% 100%, 0 100%);
+    }
+  }
+
   &.status--warning {
     --_fg: var(--color-warning);
     --_bg: var(--color-warning-soft);

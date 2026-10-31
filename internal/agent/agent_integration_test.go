@@ -616,6 +616,18 @@ func TestListsAndValidation(t *testing.T) {
 	if _, _, err := f.agents.AssignedProjects(ctx, enrPrincipal, "", 10); authKey(err) != agent.KeyTokenInvalid {
 		t.Errorf("projets avec un jeton d'inscription : %v", err)
 	}
+	// Instantanés courants : aucun avant le premier envoi (T05), refus d'un jeton
+	// d'inscription.
+	projects, _, err := f.agents.AssignedProjects(ctx, tok, "", 10)
+	if err != nil || len(projects) != 1 || len(projects[0].Refs) != 1 {
+		t.Fatalf("projets %+v, %v", projects, err)
+	}
+	if cur, err := f.agents.CurrentSnapshots(ctx, tok, []uuid.UUID{projects[0].Refs[0].ID}); err != nil || len(cur) != 0 {
+		t.Errorf("instantanés courants %v, %v", cur, err)
+	}
+	if _, err := f.agents.CurrentSnapshots(ctx, enrPrincipal, nil); authKey(err) != agent.KeyTokenInvalid {
+		t.Errorf("instantanés avec un jeton d'inscription : %v", err)
+	}
 	if _, err := f.agents.Enroll(ctx, tok, agent.EnrollRequest{Hostname: "h", Version: "1"}, "", ""); authKey(err) != agent.KeyTokenInvalid {
 		t.Errorf("inscription avec un jeton d'agent : %v", err)
 	}

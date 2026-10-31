@@ -20,6 +20,8 @@ import (
 	"leblanc.io/open-go-sbom/internal/audit"
 	"leblanc.io/open-go-sbom/internal/db"
 	"leblanc.io/open-go-sbom/internal/db/crossorg"
+	"leblanc.io/open-go-sbom/internal/ingest"
+	"leblanc.io/open-go-sbom/internal/inventory"
 	"leblanc.io/open-go-sbom/internal/locale"
 	"leblanc.io/open-go-sbom/internal/org"
 	"leblanc.io/open-go-sbom/internal/project"
@@ -48,6 +50,9 @@ type IdentityOptions struct {
 	Orgs     *org.Service
 	Projects *project.Service
 	Agents   *agent.Service
+	// Inventory et Ingest servent les écrans des instantanés (T05).
+	Inventory *inventory.Service
+	Ingest    *ingest.Service
 	// Secrets chiffre les secrets TOTP en base.
 	Secrets *secret.Box
 	Auth    appconf.Auth
@@ -71,7 +76,7 @@ type identity struct {
 }
 
 func newIdentity(o IdentityOptions, rd *render.Renderer, cat *locale.Catalog, logger *slog.Logger, clientIP func(*http.Request) string) (*identity, error) {
-	if o.Pool == nil || o.Accounts == nil || o.Orgs == nil || o.Projects == nil || o.Agents == nil || o.Secrets == nil {
+	if o.Pool == nil || o.Accounts == nil || o.Orgs == nil || o.Projects == nil || o.Agents == nil || o.Inventory == nil || o.Ingest == nil || o.Secrets == nil {
 		return nil, errors.New("web: dépendances de l'identité incomplètes")
 	}
 	id := &identity{IdentityOptions: o, rd: rd, cat: cat, logger: logger, clientIP: clientIP}

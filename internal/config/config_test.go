@@ -43,7 +43,8 @@ func valid() Config {
 	c.AgentAPI = AgentAPI{RateLimit: 120, FailureRateLimit: 30}
 	c.Workers = Workers{Enabled: true, Concurrency: 4, PollInterval: time.Second, Lease: 30 * time.Second,
 		RetryBase: 10 * time.Second, RetryMax: 30 * time.Minute, Retention: time.Hour,
-		ScheduleInterval: 10 * time.Second, ShutdownTimeout: 30 * time.Second}
+		ScheduleInterval: 10 * time.Second, ShutdownTimeout: 30 * time.Second, OrgLimit: 2}
+	c.Ingest = Ingest{MaxUploadMiB: 32, MaxDecompressedMiB: 128, MaxDepth: 64, MaxComponents: 100000, DecodeTimeout: 5 * time.Minute}
 	return c
 }
 
@@ -66,8 +67,12 @@ func TestLoadFromEnvironmentWithDefaults(t *testing.T) {
 	if cfg.Database.MaxIdleConns != 10 || cfg.HTTP.ShutdownTimeout != 30*time.Second || cfg.Migration.MaxConns != 2 || cfg.Management.Port != 8081 {
 		t.Errorf("défauts env-default non appliqués : %+v", cfg)
 	}
-	if !cfg.Workers.Enabled || cfg.Workers.Concurrency != 4 || cfg.Workers.Retention != 168*time.Hour {
+	if !cfg.Workers.Enabled || cfg.Workers.Concurrency != 4 || cfg.Workers.Retention != 168*time.Hour || cfg.Workers.OrgLimit != 2 {
 		t.Errorf("défauts des workers : %+v", cfg.Workers)
+	}
+	if cfg.Ingest != (Ingest{MaxUploadMiB: 32, MaxDecompressedMiB: 128, MaxDepth: 64, MaxComponents: 100000, DecodeTimeout: 5 * time.Minute}) ||
+		MiB(cfg.Ingest.MaxUploadMiB) != 32<<20 {
+		t.Errorf("défauts de l'ingestion : %+v", cfg.Ingest)
 	}
 	if cfg.Secrets.Keys["k1"] == "" {
 		t.Errorf("clés de secrets non lues : %v", cfg.Secrets.Keys)
@@ -197,6 +202,13 @@ func TestValidate(t *testing.T) {
 		{"rétention", "workers.retention", func(c *Config) { c.Workers.Retention = 0 }},
 		{"planificateur", "workers.schedule_interval", func(c *Config) { c.Workers.ScheduleInterval = 0 }},
 		{"arrêt des workers", "workers.shutdown_timeout", func(c *Config) { c.Workers.ShutdownTimeout = 0 }},
+		{"plafond par organisation", "workers.org_limit", func(c *Config) { c.Workers.OrgLimit = 0 }},
+		{"envoi nul", "ingest.max_upload_mib", func(c *Config) { c.Ingest.MaxUploadMiB = 0 }},
+		{"envoi démesuré", "ingest.max_upload_mib", func(c *Config) { c.Ingest.MaxUploadMiB, c.Ingest.MaxDecompressedMiB = 5000, 5000 }},
+		{"décompressé plus petit que l'envoi", "ingest.max_decompressed_mib", func(c *Config) { c.Ingest.MaxDecompressedMiB = 16 }},
+		{"profondeur", "ingest.max_depth", func(c *Config) { c.Ingest.MaxDepth = 4 }},
+		{"composants", "ingest.max_components", func(c *Config) { c.Ingest.MaxComponents = 0 }},
+		{"délai de décodage", "ingest.decode_timeout", func(c *Config) { c.Ingest.DecodeTimeout = 0 }},
 		{"clé trop courte", "secrets.keys", func(c *Config) {
 			c.Secrets = Secrets{Keys: map[string]string{"k1": "c2hvcnQ="}, ActiveKey: "k1"}
 		}},

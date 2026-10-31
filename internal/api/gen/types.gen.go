@@ -27,6 +27,93 @@ func (e AgentProjectKind) Valid() bool {
 	}
 }
 
+// Defines values for IngestionFormat.
+const (
+	Cyclonedx IngestionFormat = "cyclonedx"
+	Spdx      IngestionFormat = "spdx"
+	Syft      IngestionFormat = "syft"
+)
+
+// Valid indicates whether the value is a known member of the IngestionFormat enum.
+func (e IngestionFormat) Valid() bool {
+	switch e {
+	case Cyclonedx:
+		return true
+	case Spdx:
+		return true
+	case Syft:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IngestionOutcome.
+const (
+	Created   IngestionOutcome = "created"
+	Replaced  IngestionOutcome = "replaced"
+	Unchanged IngestionOutcome = "unchanged"
+)
+
+// Valid indicates whether the value is a known member of the IngestionOutcome enum.
+func (e IngestionOutcome) Valid() bool {
+	switch e {
+	case Created:
+		return true
+	case Replaced:
+		return true
+	case Unchanged:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IngestionStatus.
+const (
+	Done       IngestionStatus = "done"
+	Failed     IngestionStatus = "failed"
+	Processing IngestionStatus = "processing"
+	Queued     IngestionStatus = "queued"
+)
+
+// Valid indicates whether the value is a known member of the IngestionStatus enum.
+func (e IngestionStatus) Valid() bool {
+	switch e {
+	case Done:
+		return true
+	case Failed:
+		return true
+	case Processing:
+		return true
+	case Queued:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IngestionContextRefKind.
+const (
+	IngestionContextRefKindBranch IngestionContextRefKind = "branch"
+	IngestionContextRefKindHost   IngestionContextRefKind = "host"
+	IngestionContextRefKindTag    IngestionContextRefKind = "tag"
+)
+
+// Valid indicates whether the value is a known member of the IngestionContextRefKind enum.
+func (e IngestionContextRefKind) Valid() bool {
+	switch e {
+	case IngestionContextRefKindBranch:
+		return true
+	case IngestionContextRefKindHost:
+		return true
+	case IngestionContextRefKindTag:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TrackedRefKind.
 const (
 	TrackedRefKindBranch TrackedRefKind = "branch"
@@ -107,6 +194,81 @@ type HeartbeatStatus struct {
 	ServerTime time.Time `json:"server_time"`
 }
 
+// Ingestion defines model for Ingestion.
+type Ingestion struct {
+	Commit *string `json:"commit,omitempty"`
+
+	// ComponentCount Composants de l'inventaire rangé.
+	ComponentCount *int               `json:"component_count,omitempty"`
+	Error          *IngestionError    `json:"error,omitempty"`
+	FinishedAt     *time.Time         `json:"finished_at,omitempty"`
+	Format         *IngestionFormat   `json:"format,omitempty"`
+	Id             openapi_types.UUID `json:"id"`
+
+	// Outcome `created` : nouvel instantané ; `replaced` : nouvel inventaire pour un commit
+	// déjà reçu ; `unchanged` : inventaire identique, seule la date de dernière
+	// analyse avance.
+	Outcome    *IngestionOutcome  `json:"outcome,omitempty"`
+	ProjectId  openapi_types.UUID `json:"project_id"`
+	ReceivedAt time.Time          `json:"received_at"`
+	RefId      openapi_types.UUID `json:"ref_id"`
+
+	// SkippedCount Composants écartés (sans nom ni purl, ou champ hors bornes).
+	SkippedCount *int `json:"skipped_count,omitempty"`
+
+	// SnapshotId Instantané produit (statut `done`).
+	SnapshotId  *openapi_types.UUID `json:"snapshot_id,omitempty"`
+	SpecVersion *string             `json:"spec_version,omitempty"`
+	Status      IngestionStatus     `json:"status"`
+}
+
+// IngestionFormat defines model for Ingestion.Format.
+type IngestionFormat string
+
+// IngestionOutcome `created` : nouvel instantané ; `replaced` : nouvel inventaire pour un commit
+// déjà reçu ; `unchanged` : inventaire identique, seule la date de dernière
+// analyse avance.
+type IngestionOutcome string
+
+// IngestionStatus defines model for Ingestion.Status.
+type IngestionStatus string
+
+// IngestionContext defines model for IngestionContext.
+type IngestionContext struct {
+	AgentVersion string `json:"agent_version"`
+
+	// Commit Commit analysé (SHA-1 ou SHA-256 en hexadécimal) ; exigé pour une branche ou une étiquette, interdit pour un hôte.
+	Commit *string `json:"commit,omitempty"`
+
+	// ProjectId Projet confié à l'agent (`listAgentProjects`).
+	ProjectId openapi_types.UUID `json:"project_id"`
+	Ref       struct {
+		Kind IngestionContextRefKind `json:"kind"`
+		Name string                  `json:"name"`
+	} `json:"ref"`
+
+	// ScannedAt Date du scan (au plus une heure d'avance sur l'horloge du serveur).
+	ScannedAt time.Time `json:"scanned_at"`
+}
+
+// IngestionContextRefKind defines model for IngestionContext.Ref.Kind.
+type IngestionContextRefKind string
+
+// IngestionError defines model for IngestionError.
+type IngestionError struct {
+	// Detail Explication traduite.
+	Detail string `json:"detail"`
+
+	// Key Clé stable, par exemple `error.ingest.too_many_components`.
+	Key string `json:"key"`
+
+	// Pointer Pointeur JSON de la violation, pour `error.ingest.schema_invalid`.
+	Pointer *string `json:"pointer,omitempty"`
+
+	// Title Résumé traduit selon `Accept-Language`.
+	Title string `json:"title"`
+}
+
 // PageInfo Pagination d'une liste.
 type PageInfo struct {
 	// NextCursor Curseur de la page suivante ; null sur la dernière page.
@@ -142,11 +304,24 @@ type ProjectRef struct {
 	Slug string             `json:"slug"`
 }
 
+// SnapshotRef Instantané courant d'une référence (le plus récent par date de scan) ; absent tant
+// qu'aucun SBOM n'a été rangé. L'agent dépôt s'en sert pour son rattrapage.
+type SnapshotRef struct {
+	// Commit Commit de l'instantané (dépôts seulement).
+	Commit    *string            `json:"commit,omitempty"`
+	Id        openapi_types.UUID `json:"id"`
+	ScannedAt time.Time          `json:"scanned_at"`
+}
+
 // TrackedRef defines model for TrackedRef.
 type TrackedRef struct {
 	Id   openapi_types.UUID `json:"id"`
 	Kind TrackedRefKind     `json:"kind"`
-	Name string             `json:"name"`
+
+	// LastSnapshot Instantané courant d'une référence (le plus récent par date de scan) ; absent tant
+	// qu'aucun SBOM n'a été rangé. L'agent dépôt s'en sert pour son rattrapage.
+	LastSnapshot *SnapshotRef `json:"last_snapshot,omitempty"`
+	Name         string       `json:"name"`
 }
 
 // TrackedRefKind defines model for TrackedRef.Kind.
@@ -157,6 +332,14 @@ type Cursor = string
 
 // Limit defines model for Limit.
 type Limit = int
+
+// CreateIngestionMultipartBody defines parameters for CreateIngestion.
+type CreateIngestionMultipartBody struct {
+	Context IngestionContext `json:"context"`
+
+	// Sbom Le SBOM (JSON, ou JSON compressé en gzip).
+	Sbom openapi_types.File `json:"sbom"`
+}
 
 // ListAgentProjectsParams defines parameters for ListAgentProjects.
 type ListAgentProjectsParams struct {
@@ -172,3 +355,6 @@ type EnrollJSONRequestBody = EnrollRequest
 
 // HeartbeatJSONRequestBody defines body for Heartbeat for application/json ContentType.
 type HeartbeatJSONRequestBody = HeartbeatRequest
+
+// CreateIngestionMultipartRequestBody defines body for CreateIngestion for multipart/form-data ContentType.
+type CreateIngestionMultipartRequestBody CreateIngestionMultipartBody

@@ -32,16 +32,36 @@ import (
 	"leblanc.io/open-go-sbom/internal/audit"
 	"leblanc.io/open-go-sbom/internal/db"
 	"leblanc.io/open-go-sbom/internal/db/dbtest"
+	"leblanc.io/open-go-sbom/internal/ingest"
+	"leblanc.io/open-go-sbom/internal/inventory"
 	"leblanc.io/open-go-sbom/internal/locale"
 	"leblanc.io/open-go-sbom/internal/org"
 	"leblanc.io/open-go-sbom/internal/project"
 	"leblanc.io/open-go-sbom/internal/render"
+	"leblanc.io/open-go-sbom/internal/sbom"
+	"leblanc.io/open-go-sbom/internal/sbom/schema"
 	"leblanc.io/open-go-sbom/internal/secret"
 	"leblanc.io/open-go-sbom/internal/tenant"
 	"leblanc.io/open-go-sbom/internal/web/middleware"
 	"leblanc.io/open-go-sbom/locales"
 	"leblanc.io/open-go-sbom/web"
 )
+
+var (
+	validatorOnce sync.Once
+	validator     *schema.Validator
+	validatorErr  error
+)
+
+// testValidator compile une fois les schémas JSON des SBOM pour tous les tests.
+func testValidator(t testing.TB) *schema.Validator {
+	t.Helper()
+	validatorOnce.Do(func() { validator, validatorErr = schema.New() })
+	if validatorErr != nil {
+		t.Fatal(validatorErr)
+	}
+	return validator
+}
 
 // testCost est le coût bcrypt des tests : bas pour la vitesse, mais réel (le
 // chronométrage des échecs de connexion en dépend).
@@ -56,6 +76,8 @@ type app struct {
 	orgs     *org.Service
 	projects *project.Service
 	agents   *agent.Service
+	ingest   *ingest.Service
+	inv      *inventory.Service
 	clock    *testClock
 	box      *secret.Box
 	handler  http.Handler
@@ -116,7 +138,12 @@ func newApp(t *testing.T, opts ...appOption) *app {
 	clock := &testClock{now: time.Now().UTC()}
 	a := &app{t: t, tdb: tdb, box: box, logs: logs, steps: map[int64]int{}, clock: clock,
 		accounts: account.NewService(tdb.App, testCost), orgs: org.NewService(tdb.App),
-		projects: project.NewService(tdb.App), agents: agent.NewService(tdb.App, agent.WithClock(clock.Now))}
+		projects: project.NewService(tdb.App), agents: agent.NewService(tdb.App, agent.WithClock(clock.Now)),
+		inv: inventory.NewService(tdb.App)}
+	if a.ingest, err = ingest.NewService(ingest.Options{Pool: tdb.App, Validator: testValidator(t), Logger: logger,
+		Limits: ingest.Limits{MaxUpload: 8 << 20, SBOM: sbom.Limits{MaxBytes: 32 << 20, MaxDepth: 64, MaxComponents: 20_000}}}); err != nil {
+		t.Fatal(err)
+	}
 	o := RouterOptions{
 		Logger: logger, Catalog: cat, Renderer: rd, Assets: assets,
 		Metrics:    middleware.NewHTTPMetrics(prometheus.NewRegistry()),
@@ -124,11 +151,12 @@ func newApp(t *testing.T, opts ...appOption) *app {
 		CSRFSecure: "off",
 		Identity: &IdentityOptions{
 			Pool: tdb.App, Accounts: a.accounts, Orgs: a.orgs, Projects: a.projects, Agents: a.agents, Secrets: box,
+			Inventory: a.inv, Ingest: a.ingest,
 			Auth:           appconf.Auth{SessionTTL: time.Hour, CookieName: "ogsbom_session", CookieSecure: "off", BcryptCost: testCost},
 			MFA:            appconf.MFA{Issuer: "open-go-sbom", ChallengeTTL: time.Minute, MaxAttempts: 3},
 			LoginRateLimit: 0,
 		},
-		AgentAPI: &apiv1.AgentOptions{Agents: a.agents},
+		AgentAPI: &apiv1.AgentOptions{Agents: a.agents, Ingest: a.ingest},
 	}
 	for _, opt := range opts {
 		opt(&o)

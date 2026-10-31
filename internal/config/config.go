@@ -29,7 +29,21 @@ type Config struct {
 	AgentAPI   AgentAPI        `yaml:"agent_api"  env-prefix:"OGSBOM_"`
 	Bootstrap  Bootstrap       `yaml:"bootstrap"  env-prefix:"OGSBOM_"`
 	Workers    Workers         `yaml:"workers"    env-prefix:"OGSBOM_"`
+	Ingest     Ingest          `yaml:"ingest"     env-prefix:"OGSBOM_"`
 }
+
+// Ingest borne la réception et le décodage des SBOM (§ 11 de l'architecture). Les tailles
+// sont en Mio.
+type Ingest struct {
+	MaxUploadMiB       int           `yaml:"max_upload_mib"       env:"INGEST_MAX_UPLOAD_MIB"       env-default:"32"     env-description:"Maximum size of an uploaded SBOM as sent (gzip or raw JSON), in MiB"`
+	MaxDecompressedMiB int           `yaml:"max_decompressed_mib" env:"INGEST_MAX_DECOMPRESSED_MIB" env-default:"128"    env-description:"Maximum size of an SBOM once decompressed, in MiB"`
+	MaxDepth           int           `yaml:"max_depth"            env:"INGEST_MAX_DEPTH"            env-default:"64"     env-description:"Maximum JSON nesting depth of an SBOM"`
+	MaxComponents      int           `yaml:"max_components"       env:"INGEST_MAX_COMPONENTS"       env-default:"100000" env-description:"Maximum number of components (CycloneDX components, SPDX packages, Syft artifacts)"`
+	DecodeTimeout      time.Duration `yaml:"decode_timeout"       env:"INGEST_DECODE_TIMEOUT"       env-default:"5m"     env-description:"Maximum duration of one SBOM decoding job"`
+}
+
+// MiB convertit une taille de la configuration, en Mio, en octets.
+func MiB(n int) int64 { return int64(n) << 20 }
 
 // Login borne les tentatives de connexion : requêtes POST sur /login et /login/2fa par
 // minute et par IP, en plus de la limite générale de l'interface.
@@ -121,6 +135,7 @@ type Workers struct {
 	Retention        time.Duration `yaml:"retention"         env:"WORKERS_RETENTION"         env-default:"168h" env-description:"How long finished jobs are kept"`
 	ScheduleInterval time.Duration `yaml:"schedule_interval" env:"WORKERS_SCHEDULE_INTERVAL" env-default:"10s"  env-description:"How often the scheduler looks for due schedules"`
 	ShutdownTimeout  time.Duration `yaml:"shutdown_timeout"  env:"WORKERS_SHUTDOWN_TIMEOUT"  env-default:"30s"  env-description:"Grace period for running jobs on SIGTERM, after which they are released"`
+	OrgLimit         int           `yaml:"org_limit"         env:"WORKERS_ORG_LIMIT"         env-default:"2"    env-description:"Heavy jobs (SBOM decoding, analysis) running at the same time per organization, across all instances"`
 }
 
 // Defaults renvoie les valeurs qui diffèrent des défauts d'appconf : appconf ne pose un

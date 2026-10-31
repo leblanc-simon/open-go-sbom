@@ -12,6 +12,8 @@ import (
 	"github.com/google/uuid"
 
 	"leblanc.io/open-go-sbom/internal/db"
+	"leblanc.io/open-go-sbom/internal/sbom"
+	"leblanc.io/open-go-sbom/internal/sbom/syft"
 	"leblanc.io/open-go-sbom/internal/tenant"
 )
 
@@ -57,6 +59,21 @@ func (s *Service) Recent(ctx context.Context, org tenant.OrgID, projectID uuid.U
 		return rows.Err()
 	}, db.ReadOnly())
 	return out, wrap("ingestions récentes", err)
+}
+
+// Export renvoie le SBOM blobID (format d'origine format) réencodé en target. Le
+// réencodage passe par Syft (sbom/syft.Encode) ; un identifiant de licence plus récent que
+// le schéma de CycloneDX 1.6 y est écrit en nom, pour que le document reste valide.
+func (s *Service) Export(ctx context.Context, org tenant.OrgID, blobID uuid.UUID, format sbom.Format, target syft.Target) ([]byte, error) {
+	data, err := s.Blob(ctx, org, blobID)
+	if err != nil {
+		return nil, err
+	}
+	var buf bytes.Buffer
+	if err := syft.Encode(&buf, format, data, target, s.validator.CycloneDXLicenseIDs("1.6")); err != nil {
+		return nil, fmt.Errorf("ingest: réencodage en %s : %w", target, err)
+	}
+	return buf.Bytes(), nil
 }
 
 // Blob renvoie le SBOM blobID décompressé (le JSON tel que reçu).

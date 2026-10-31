@@ -125,3 +125,16 @@ workers:
   retention: 168h        # conservation des jobs terminés
   schedule_interval: 10s # fréquence de recherche des échéances dues
   shutdown_timeout: 30s  # délai laissé aux jobs en cours sur SIGTERM, avant leur libération
+  org_limit: 2           # jobs lourds (décodage, analyse) simultanés par organisation, toutes instances
+
+# Ingestion des SBOM (docs/operations.md, « Ingestion ») : bornes vérifiées à la réception
+# (taille reçue, taille décompressée d'un envoi gzip) puis en flux avant tout décodage
+# (taille, profondeur JSON, nombre de composants). Un job de décodage garde le SBOM
+# décompressé en mémoire : prévoir quelques fois max_decompressed_mib par job simultané
+# (workers.concurrency).
+ingest:
+  max_upload_mib: 32         # envoi tel que reçu (gzip ou JSON brut) ; au-delà : 413
+  max_decompressed_mib: 128  # JSON décompressé ; au-delà : ingestion en échec
+  max_depth: 64              # profondeur d'imbrication du JSON
+  max_components: 100000     # composants CycloneDX, paquets SPDX, artefacts Syft
+  decode_timeout: 5m         # durée maximale d'un job de décodage

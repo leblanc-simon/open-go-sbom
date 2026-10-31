@@ -72,6 +72,8 @@ type projectRow struct {
 	Labels      []string
 	AgentStatus *agentStatus
 	LastSeen    *stamp
+	// LastSnapshot est la date du dernier instantané (liste des projets).
+	LastSnapshot *stamp
 }
 
 func (id *identity) projectRow(p project.Project, now time.Time) projectRow {
@@ -123,9 +125,18 @@ func (id *identity) projects(w http.ResponseWriter, r *http.Request) {
 		}
 		view.Error, status = fe, http.StatusBadRequest
 	}
+	last, err := id.lastSnapshots(r, acc.Org, page.Items)
+	if err != nil {
+		id.serverError(w, r, err)
+		return
+	}
 	now := id.Agents.Now()
 	for _, p := range page.Items {
-		view.Rows = append(view.Rows, id.projectRow(p, now))
+		row := id.projectRow(p, now)
+		if t, ok := last[p.ID]; ok {
+			row.LastSnapshot = stampAt(t)
+		}
+		view.Rows = append(view.Rows, row)
 	}
 	if page.NextCursor != "" {
 		next := url.Values{}
@@ -264,8 +275,8 @@ func (id *identity) loadProject(w http.ResponseWriter, r *http.Request) (project
 	return p, true
 }
 
-// projectTab est un onglet de la fiche projet. Les instantanés (T05) et les constats
-// (T06) s'ajoutent à projectTabs.
+// projectTab est un onglet de la fiche projet. Les constats (T06) s'ajoutent à
+// projectTabs.
 type projectTab struct {
 	LabelKey string
 	Href     string
@@ -274,7 +285,10 @@ type projectTab struct {
 
 func projectTabs(acc tenant.Access, p project.Project, current string) []projectTab {
 	base := orgBase(acc) + "/projects/" + p.Slug
-	tabs := []projectTab{{LabelKey: "project.tab_overview", Href: base, Current: current == "overview"}}
+	tabs := []projectTab{
+		{LabelKey: "project.tab_overview", Href: base, Current: current == "overview"},
+		{LabelKey: "project.tab_snapshots", Href: base + "/snapshots", Current: current == "snapshots"},
+	}
 	if acc.Role.AtLeast(tenant.RoleAdmin) {
 		tabs = append(tabs, projectTab{LabelKey: "project.tab_settings", Href: base + "/settings", Current: current == "settings"})
 	}

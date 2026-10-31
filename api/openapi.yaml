@@ -116,6 +116,100 @@ paths:
           $ref: "#/components/responses/Problem"
         "429":
           $ref: "#/components/responses/Problem"
+  /agent/ingestions:
+    post:
+      operationId: createIngestion
+      tags: [agent]
+      summary: Envoie un SBOM
+      description: |
+        Envoi d'un SBOM pour une référence confiée à l'agent, en deux parties dans cet
+        ordre : `context` (JSON, `IngestionContext`) puis `sbom` (le document JSON,
+        compressé en gzip de préférence). Formats acceptés : CycloneDX JSON 1.5 à 1.7, SPDX
+        JSON 2.3, Syft JSON ; pas de XML.
+
+        La référence est vérifiée avant la lecture du SBOM. Le serveur stocke le document et
+        met son décodage en file : la réponse `202` porte l'ingestion en attente, à suivre
+        par `getIngestion`. Un document qui ne peut pas être stocké (trop gros une fois
+        décompressé, gzip corrompu) donne une ingestion `failed` avec sa clé d'erreur. Un
+        envoi identique pour la même référence et le même commit renvoie l'ingestion
+        existante (`200`), sans rien créer. Un envoi qui dépasse la taille admise est refusé
+        (`413`).
+      security:
+        - agentToken: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [context, sbom]
+              properties:
+                context:
+                  $ref: "#/components/schemas/IngestionContext"
+                sbom:
+                  type: string
+                  format: binary
+                  description: Le SBOM (JSON, ou JSON compressé en gzip).
+            encoding:
+              context:
+                contentType: application/json
+              sbom:
+                contentType: application/json, application/gzip
+      responses:
+        "200":
+          description: Envoi identique à une ingestion existante, renvoyée telle quelle.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ingestion"
+        "202":
+          description: SBOM reçu ; décodage en file (ou ingestion en échec si le document n'a pu être stocké).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ingestion"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+  /agent/ingestions/{id}:
+    get:
+      operationId: getIngestion
+      tags: [agent]
+      summary: État d'une ingestion
+      description: |
+        L'état d'une ingestion envoyée par cet agent : `queued`, `processing`, `done` (avec
+        l'instantané produit) ou `failed` (avec une clé d'erreur traduisible).
+      security:
+        - agentToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: L'ingestion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ingestion"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
 components:
   securitySchemes:
     enrollmentToken:
@@ -291,3 +385,117 @@ components:
           enum: [branch, tag, host]
         name:
           type: string
+        last_snapshot:
+          $ref: "#/components/schemas/SnapshotRef"
+    SnapshotRef:
+      type: object
+      description: |
+        Instantané courant d'une référence (le plus récent par date de scan) ; absent tant
+        qu'aucun SBOM n'a été rangé. L'agent dépôt s'en sert pour son rattrapage.
+      required: [id, scanned_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        commit:
+          type: string
+          description: Commit de l'instantané (dépôts seulement).
+        scanned_at:
+          type: string
+          format: date-time
+    IngestionContext:
+      type: object
+      additionalProperties: false
+      required: [project_id, ref, agent_version, scanned_at]
+      properties:
+        project_id:
+          type: string
+          format: uuid
+          description: Projet confié à l'agent (`listAgentProjects`).
+        ref:
+          type: object
+          additionalProperties: false
+          required: [kind, name]
+          properties:
+            kind:
+              type: string
+              enum: [branch, tag, host]
+            name:
+              type: string
+              minLength: 1
+              maxLength: 255
+        commit:
+          type: string
+          description: Commit analysé (SHA-1 ou SHA-256 en hexadécimal) ; exigé pour une branche ou une étiquette, interdit pour un hôte.
+          pattern: "^[0-9a-fA-F]{40}([0-9a-fA-F]{24})?$"
+        agent_version:
+          type: string
+          maxLength: 64
+        scanned_at:
+          type: string
+          format: date-time
+          description: Date du scan (au plus une heure d'avance sur l'horloge du serveur).
+    Ingestion:
+      type: object
+      required: [id, status, project_id, ref_id, received_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued, processing, done, failed]
+        project_id:
+          type: string
+          format: uuid
+        ref_id:
+          type: string
+          format: uuid
+        commit:
+          type: string
+        error:
+          $ref: "#/components/schemas/IngestionError"
+        format:
+          type: string
+          enum: [cyclonedx, spdx, syft]
+        spec_version:
+          type: string
+        component_count:
+          type: integer
+          description: Composants de l'inventaire rangé.
+        skipped_count:
+          type: integer
+          description: Composants écartés (sans nom ni purl, ou champ hors bornes).
+        snapshot_id:
+          type: string
+          format: uuid
+          description: Instantané produit (statut `done`).
+        outcome:
+          type: string
+          enum: [created, replaced, unchanged]
+          description: |
+            `created` : nouvel instantané ; `replaced` : nouvel inventaire pour un commit
+            déjà reçu ; `unchanged` : inventaire identique, seule la date de dernière
+            analyse avance.
+        received_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+    IngestionError:
+      type: object
+      required: [key, title, detail]
+      properties:
+        key:
+          type: string
+          description: Clé stable, par exemple `error.ingest.too_many_components`.
+        title:
+          type: string
+          description: Résumé traduit selon `Accept-Language`.
+        detail:
+          type: string
+          description: Explication traduite.
+        pointer:
+          type: string
+          description: Pointeur JSON de la violation, pour `error.ingest.schema_invalid`.

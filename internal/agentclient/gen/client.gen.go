@@ -36,6 +36,93 @@ func (e AgentProjectKind) Valid() bool {
 	}
 }
 
+// Defines values for IngestionFormat.
+const (
+	Cyclonedx IngestionFormat = "cyclonedx"
+	Spdx      IngestionFormat = "spdx"
+	Syft      IngestionFormat = "syft"
+)
+
+// Valid indicates whether the value is a known member of the IngestionFormat enum.
+func (e IngestionFormat) Valid() bool {
+	switch e {
+	case Cyclonedx:
+		return true
+	case Spdx:
+		return true
+	case Syft:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IngestionOutcome.
+const (
+	Created   IngestionOutcome = "created"
+	Replaced  IngestionOutcome = "replaced"
+	Unchanged IngestionOutcome = "unchanged"
+)
+
+// Valid indicates whether the value is a known member of the IngestionOutcome enum.
+func (e IngestionOutcome) Valid() bool {
+	switch e {
+	case Created:
+		return true
+	case Replaced:
+		return true
+	case Unchanged:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IngestionStatus.
+const (
+	Done       IngestionStatus = "done"
+	Failed     IngestionStatus = "failed"
+	Processing IngestionStatus = "processing"
+	Queued     IngestionStatus = "queued"
+)
+
+// Valid indicates whether the value is a known member of the IngestionStatus enum.
+func (e IngestionStatus) Valid() bool {
+	switch e {
+	case Done:
+		return true
+	case Failed:
+		return true
+	case Processing:
+		return true
+	case Queued:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IngestionContextRefKind.
+const (
+	IngestionContextRefKindBranch IngestionContextRefKind = "branch"
+	IngestionContextRefKindHost   IngestionContextRefKind = "host"
+	IngestionContextRefKindTag    IngestionContextRefKind = "tag"
+)
+
+// Valid indicates whether the value is a known member of the IngestionContextRefKind enum.
+func (e IngestionContextRefKind) Valid() bool {
+	switch e {
+	case IngestionContextRefKindBranch:
+		return true
+	case IngestionContextRefKindHost:
+		return true
+	case IngestionContextRefKindTag:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TrackedRefKind.
 const (
 	TrackedRefKindBranch TrackedRefKind = "branch"
@@ -116,6 +203,81 @@ type HeartbeatStatus struct {
 	ServerTime time.Time `json:"server_time"`
 }
 
+// Ingestion defines model for Ingestion.
+type Ingestion struct {
+	Commit *string `json:"commit,omitempty"`
+
+	// ComponentCount Composants de l'inventaire rangé.
+	ComponentCount *int               `json:"component_count,omitempty"`
+	Error          *IngestionError    `json:"error,omitempty"`
+	FinishedAt     *time.Time         `json:"finished_at,omitempty"`
+	Format         *IngestionFormat   `json:"format,omitempty"`
+	Id             openapi_types.UUID `json:"id"`
+
+	// Outcome `created` : nouvel instantané ; `replaced` : nouvel inventaire pour un commit
+	// déjà reçu ; `unchanged` : inventaire identique, seule la date de dernière
+	// analyse avance.
+	Outcome    *IngestionOutcome  `json:"outcome,omitempty"`
+	ProjectId  openapi_types.UUID `json:"project_id"`
+	ReceivedAt time.Time          `json:"received_at"`
+	RefId      openapi_types.UUID `json:"ref_id"`
+
+	// SkippedCount Composants écartés (sans nom ni purl, ou champ hors bornes).
+	SkippedCount *int `json:"skipped_count,omitempty"`
+
+	// SnapshotId Instantané produit (statut `done`).
+	SnapshotId  *openapi_types.UUID `json:"snapshot_id,omitempty"`
+	SpecVersion *string             `json:"spec_version,omitempty"`
+	Status      IngestionStatus     `json:"status"`
+}
+
+// IngestionFormat defines model for Ingestion.Format.
+type IngestionFormat string
+
+// IngestionOutcome `created` : nouvel instantané ; `replaced` : nouvel inventaire pour un commit
+// déjà reçu ; `unchanged` : inventaire identique, seule la date de dernière
+// analyse avance.
+type IngestionOutcome string
+
+// IngestionStatus defines model for Ingestion.Status.
+type IngestionStatus string
+
+// IngestionContext defines model for IngestionContext.
+type IngestionContext struct {
+	AgentVersion string `json:"agent_version"`
+
+	// Commit Commit analysé (SHA-1 ou SHA-256 en hexadécimal) ; exigé pour une branche ou une étiquette, interdit pour un hôte.
+	Commit *string `json:"commit,omitempty"`
+
+	// ProjectId Projet confié à l'agent (`listAgentProjects`).
+	ProjectId openapi_types.UUID `json:"project_id"`
+	Ref       struct {
+		Kind IngestionContextRefKind `json:"kind"`
+		Name string                  `json:"name"`
+	} `json:"ref"`
+
+	// ScannedAt Date du scan (au plus une heure d'avance sur l'horloge du serveur).
+	ScannedAt time.Time `json:"scanned_at"`
+}
+
+// IngestionContextRefKind defines model for IngestionContext.Ref.Kind.
+type IngestionContextRefKind string
+
+// IngestionError defines model for IngestionError.
+type IngestionError struct {
+	// Detail Explication traduite.
+	Detail string `json:"detail"`
+
+	// Key Clé stable, par exemple `error.ingest.too_many_components`.
+	Key string `json:"key"`
+
+	// Pointer Pointeur JSON de la violation, pour `error.ingest.schema_invalid`.
+	Pointer *string `json:"pointer,omitempty"`
+
+	// Title Résumé traduit selon `Accept-Language`.
+	Title string `json:"title"`
+}
+
 // PageInfo Pagination d'une liste.
 type PageInfo struct {
 	// NextCursor Curseur de la page suivante ; null sur la dernière page.
@@ -151,11 +313,24 @@ type ProjectRef struct {
 	Slug string             `json:"slug"`
 }
 
+// SnapshotRef Instantané courant d'une référence (le plus récent par date de scan) ; absent tant
+// qu'aucun SBOM n'a été rangé. L'agent dépôt s'en sert pour son rattrapage.
+type SnapshotRef struct {
+	// Commit Commit de l'instantané (dépôts seulement).
+	Commit    *string            `json:"commit,omitempty"`
+	Id        openapi_types.UUID `json:"id"`
+	ScannedAt time.Time          `json:"scanned_at"`
+}
+
 // TrackedRef defines model for TrackedRef.
 type TrackedRef struct {
 	Id   openapi_types.UUID `json:"id"`
 	Kind TrackedRefKind     `json:"kind"`
-	Name string             `json:"name"`
+
+	// LastSnapshot Instantané courant d'une référence (le plus récent par date de scan) ; absent tant
+	// qu'aucun SBOM n'a été rangé. L'agent dépôt s'en sert pour son rattrapage.
+	LastSnapshot *SnapshotRef `json:"last_snapshot,omitempty"`
+	Name         string       `json:"name"`
 }
 
 // TrackedRefKind defines model for TrackedRef.Kind.
@@ -163,6 +338,14 @@ type TrackedRefKind string
 
 // Cursor defines model for Cursor.
 type Cursor = string
+
+// CreateIngestionMultipartBody defines parameters for CreateIngestion.
+type CreateIngestionMultipartBody struct {
+	Context IngestionContext `json:"context"`
+
+	// Sbom Le SBOM (JSON, ou JSON compressé en gzip).
+	Sbom openapi_types.File `json:"sbom"`
+}
 
 // ListAgentProjectsParams defines parameters for ListAgentProjects.
 type ListAgentProjectsParams struct {
@@ -178,6 +361,9 @@ type EnrollJSONRequestBody = EnrollRequest
 
 // HeartbeatJSONRequestBody defines body for Heartbeat for application/json ContentType.
 type HeartbeatJSONRequestBody = HeartbeatRequest
+
+// CreateIngestionMultipartRequestBody defines body for CreateIngestion for multipart/form-data ContentType.
+type CreateIngestionMultipartRequestBody CreateIngestionMultipartBody
 
 // RequestEditorFn is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -299,6 +485,34 @@ type ClientInterface interface {
 	// Corresponds with POST /agent/heartbeat (the `Heartbeat` operationId).
 	Heartbeat(ctx context.Context, body HeartbeatJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CreateIngestionWithBody Envoie un SBOM
+	//
+	// Envoi d'un SBOM pour une référence confiée à l'agent, en deux parties dans cet
+	// ordre : `context` (JSON, `IngestionContext`) puis `sbom` (le document JSON,
+	// compressé en gzip de préférence). Formats acceptés : CycloneDX JSON 1.5 à 1.7, SPDX
+	// JSON 2.3, Syft JSON ; pas de XML.
+	//
+	// La référence est vérifiée avant la lecture du SBOM. Le serveur stocke le document et
+	// met son décodage en file : la réponse `202` porte l'ingestion en attente, à suivre
+	// par `getIngestion`. Un document qui ne peut pas être stocké (trop gros une fois
+	// décompressé, gzip corrompu) donne une ingestion `failed` avec sa clé d'erreur. Un
+	// envoi identique pour la même référence et le même commit renvoie l'ingestion
+	// existante (`200`), sans rien créer. Un envoi qui dépasse la taille admise est refusé
+	// (`413`).
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /agent/ingestions (the `CreateIngestion` operationId).
+	CreateIngestionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetIngestion État d'une ingestion
+	//
+	// L'état d'une ingestion envoyée par cet agent : `queued`, `processing`, `done` (avec
+	// l'instantané produit) ou `failed` (avec une clé d'erreur traduisible).
+	//
+	// Corresponds with GET /agent/ingestions/{id} (the `GetIngestion` operationId).
+	GetIngestion(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListAgentProjects Projets confiés à l'agent
 	//
 	// Les projets actifs confiés à l'agent et leurs références suivies, par ordre de
@@ -384,6 +598,54 @@ func (c *Client) HeartbeatWithBody(ctx context.Context, contentType string, body
 // Corresponds with POST /agent/heartbeat (the `Heartbeat` operationId).
 func (c *Client) Heartbeat(ctx context.Context, body HeartbeatJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewHeartbeatRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateIngestionWithBody Envoie un SBOM
+//
+// Envoi d'un SBOM pour une référence confiée à l'agent, en deux parties dans cet
+// ordre : `context` (JSON, `IngestionContext`) puis `sbom` (le document JSON,
+// compressé en gzip de préférence). Formats acceptés : CycloneDX JSON 1.5 à 1.7, SPDX
+// JSON 2.3, Syft JSON ; pas de XML.
+//
+// La référence est vérifiée avant la lecture du SBOM. Le serveur stocke le document et
+// met son décodage en file : la réponse `202` porte l'ingestion en attente, à suivre
+// par `getIngestion`. Un document qui ne peut pas être stocké (trop gros une fois
+// décompressé, gzip corrompu) donne une ingestion `failed` avec sa clé d'erreur. Un
+// envoi identique pour la même référence et le même commit renvoie l'ingestion
+// existante (`200`), sans rien créer. Un envoi qui dépasse la taille admise est refusé
+// (`413`).
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /agent/ingestions (the `CreateIngestion` operationId).
+func (c *Client) CreateIngestionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateIngestionRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetIngestion État d'une ingestion
+//
+// L'état d'une ingestion envoyée par cet agent : `queued`, `processing`, `done` (avec
+// l'instantané produit) ou `failed` (avec une clé d'erreur traduisible).
+//
+// Corresponds with GET /agent/ingestions/{id} (the `GetIngestion` operationId).
+func (c *Client) GetIngestion(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetIngestionRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -488,6 +750,69 @@ func NewHeartbeatRequestWithBody(server string, contentType string, body io.Read
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewCreateIngestionRequestWithBody constructs an http.Request for the CreateIngestion method, with any body, and a specified content type
+func NewCreateIngestionRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/agent/ingestions")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetIngestionRequest constructs an http.Request for the GetIngestion method
+func NewGetIngestionRequest(server string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/agent/ingestions/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -648,6 +973,36 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /agent/heartbeat (the `Heartbeat` operationId).
 	HeartbeatWithResponse(ctx context.Context, body HeartbeatJSONRequestBody, reqEditors ...RequestEditorFn) (*HeartbeatResponse, error)
 
+	// CreateIngestionWithBodyWithResponse Envoie un SBOM
+	//
+	// Envoi d'un SBOM pour une référence confiée à l'agent, en deux parties dans cet
+	// ordre : `context` (JSON, `IngestionContext`) puis `sbom` (le document JSON,
+	// compressé en gzip de préférence). Formats acceptés : CycloneDX JSON 1.5 à 1.7, SPDX
+	// JSON 2.3, Syft JSON ; pas de XML.
+	//
+	// La référence est vérifiée avant la lecture du SBOM. Le serveur stocke le document et
+	// met son décodage en file : la réponse `202` porte l'ingestion en attente, à suivre
+	// par `getIngestion`. Un document qui ne peut pas être stocké (trop gros une fois
+	// décompressé, gzip corrompu) donne une ingestion `failed` avec sa clé d'erreur. Un
+	// envoi identique pour la même référence et le même commit renvoie l'ingestion
+	// existante (`200`), sans rien créer. Un envoi qui dépasse la taille admise est refusé
+	// (`413`).
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /agent/ingestions (the `CreateIngestion` operationId).
+	CreateIngestionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateIngestionResponse, error)
+
+	// GetIngestionWithResponse État d'une ingestion
+	//
+	// L'état d'une ingestion envoyée par cet agent : `queued`, `processing`, `done` (avec
+	// l'instantané produit) ou `failed` (avec une clé d'erreur traduisible).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /agent/ingestions/{id} (the `GetIngestion` operationId).
+	GetIngestionWithResponse(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetIngestionResponse, error)
+
 	// ListAgentProjectsWithResponse Projets confiés à l'agent
 	//
 	// Les projets actifs confiés à l'agent et leurs références suivies, par ordre de
@@ -790,6 +1145,158 @@ func (r HeartbeatResponse) ContentType() string {
 	return ""
 }
 
+type CreateIngestionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Ingestion
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *Ingestion
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON413 the response for an HTTP 413 `application/problem+json` response
+	ApplicationproblemJSON413 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CreateIngestionResponse) GetJSON200() *Ingestion {
+	return r.JSON200
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r CreateIngestionResponse) GetJSON202() *Ingestion {
+	return r.JSON202
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CreateIngestionResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CreateIngestionResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CreateIngestionResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON413 returns the response for an HTTP 413 `application/problem+json` response
+func (r CreateIngestionResponse) GetApplicationproblemJSON413() *Problem {
+	return r.ApplicationproblemJSON413
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r CreateIngestionResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateIngestionResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateIngestionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateIngestionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateIngestionResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetIngestionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Ingestion
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetIngestionResponse) GetJSON200() *Ingestion {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetIngestionResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetIngestionResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetIngestionResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r GetIngestionResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetBody returns the raw response body bytes
+func (r GetIngestionResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetIngestionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetIngestionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetIngestionResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ListAgentProjectsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -922,6 +1429,48 @@ func (c *ClientWithResponses) HeartbeatWithResponse(ctx context.Context, body He
 	return ParseHeartbeatResponse(rsp)
 }
 
+// CreateIngestionWithBodyWithResponse Envoie un SBOM
+//
+// Envoi d'un SBOM pour une référence confiée à l'agent, en deux parties dans cet
+// ordre : `context` (JSON, `IngestionContext`) puis `sbom` (le document JSON,
+// compressé en gzip de préférence). Formats acceptés : CycloneDX JSON 1.5 à 1.7, SPDX
+// JSON 2.3, Syft JSON ; pas de XML.
+//
+// La référence est vérifiée avant la lecture du SBOM. Le serveur stocke le document et
+// met son décodage en file : la réponse `202` porte l'ingestion en attente, à suivre
+// par `getIngestion`. Un document qui ne peut pas être stocké (trop gros une fois
+// décompressé, gzip corrompu) donne une ingestion `failed` avec sa clé d'erreur. Un
+// envoi identique pour la même référence et le même commit renvoie l'ingestion
+// existante (`200`), sans rien créer. Un envoi qui dépasse la taille admise est refusé
+// (`413`).
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /agent/ingestions (the `CreateIngestion` operationId).
+func (c *ClientWithResponses) CreateIngestionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateIngestionResponse, error) {
+	rsp, err := c.CreateIngestionWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateIngestionResponse(rsp)
+}
+
+// GetIngestionWithResponse État d'une ingestion
+//
+// L'état d'une ingestion envoyée par cet agent : `queued`, `processing`, `done` (avec
+// l'instantané produit) ou `failed` (avec une clé d'erreur traduisible).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /agent/ingestions/{id} (the `GetIngestion` operationId).
+func (c *ClientWithResponses) GetIngestionWithResponse(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetIngestionResponse, error) {
+	rsp, err := c.GetIngestion(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetIngestionResponse(rsp)
+}
+
 // ListAgentProjectsWithResponse Projets confiés à l'agent
 //
 // Les projets actifs confiés à l'agent et leurs références suivies, par ordre de
@@ -1026,6 +1575,128 @@ func ParseHeartbeatResponse(rsp *http.Response) (*HeartbeatResponse, error) {
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateIngestionResponse parses an HTTP response from a CreateIngestionWithResponse call
+func ParseCreateIngestionResponse(rsp *http.Response) (*CreateIngestionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateIngestionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Ingestion
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest Ingestion
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON413 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetIngestionResponse parses an HTTP response from a GetIngestionWithResponse call
+func ParseGetIngestionResponse(rsp *http.Response) (*GetIngestionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetIngestionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Ingestion
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest Problem

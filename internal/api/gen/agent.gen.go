@@ -9,10 +9,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // ServerInterface represents all server handlers.
@@ -23,6 +25,12 @@ type ServerInterface interface {
 	// Heartbeat Signal de vie d'un agent
 	// (POST /agent/heartbeat)
 	Heartbeat(w http.ResponseWriter, r *http.Request)
+	// CreateIngestion Envoie un SBOM
+	// (POST /agent/ingestions)
+	CreateIngestion(w http.ResponseWriter, r *http.Request)
+	// GetIngestion État d'une ingestion
+	// (GET /agent/ingestions/{id})
+	GetIngestion(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
 	// ListAgentProjects Projets confiés à l'agent
 	// (GET /agent/projects)
 	ListAgentProjects(w http.ResponseWriter, r *http.Request, params ListAgentProjectsParams)
@@ -41,6 +49,18 @@ func (_ Unimplemented) Enroll(w http.ResponseWriter, r *http.Request) {
 // Heartbeat Signal de vie d'un agent
 // (POST /agent/heartbeat)
 func (_ Unimplemented) Heartbeat(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateIngestion Envoie un SBOM
+// (POST /agent/ingestions)
+func (_ Unimplemented) CreateIngestion(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetIngestion État d'une ingestion
+// (GET /agent/ingestions/{id})
+func (_ Unimplemented) GetIngestion(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -78,6 +98,46 @@ func (siw *ServerInterfaceWrapper) Heartbeat(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Heartbeat(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateIngestion operation middleware
+func (siw *ServerInterfaceWrapper) CreateIngestion(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateIngestion(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetIngestion operation middleware
+func (siw *ServerInterfaceWrapper) GetIngestion(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetIngestion(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -255,6 +315,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/agent/projects", wrapper.ListAgentProjects)
 	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/agent/ingestions", wrapper.CreateIngestion)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/agent/ingestions/{id}", wrapper.GetIngestion)
+	})
 
 	return r
 }
@@ -407,6 +473,194 @@ func (response Heartbeat429ApplicationProblemPlusJSONResponse) VisitHeartbeatRes
 	return err
 }
 
+type CreateIngestionRequestObject struct {
+	Body *multipart.Reader
+}
+
+type CreateIngestionResponseObject interface {
+	VisitCreateIngestionResponse(w http.ResponseWriter) error
+}
+
+type CreateIngestion200JSONResponse Ingestion
+
+func (response CreateIngestion200JSONResponse) VisitCreateIngestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateIngestion202JSONResponse Ingestion
+
+func (response CreateIngestion202JSONResponse) VisitCreateIngestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateIngestion400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CreateIngestion400ApplicationProblemPlusJSONResponse) VisitCreateIngestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateIngestion401ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateIngestion401ApplicationProblemPlusJSONResponse) VisitCreateIngestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateIngestion404ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateIngestion404ApplicationProblemPlusJSONResponse) VisitCreateIngestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateIngestion413ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateIngestion413ApplicationProblemPlusJSONResponse) VisitCreateIngestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateIngestion429ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateIngestion429ApplicationProblemPlusJSONResponse) VisitCreateIngestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIngestionRequestObject struct {
+	Id openapi_types.UUID `json:"id"`
+}
+
+type GetIngestionResponseObject interface {
+	VisitGetIngestionResponse(w http.ResponseWriter) error
+}
+
+type GetIngestion200JSONResponse Ingestion
+
+func (response GetIngestion200JSONResponse) VisitGetIngestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIngestion400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetIngestion400ApplicationProblemPlusJSONResponse) VisitGetIngestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIngestion401ApplicationProblemPlusJSONResponse Problem
+
+func (response GetIngestion401ApplicationProblemPlusJSONResponse) VisitGetIngestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIngestion404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetIngestion404ApplicationProblemPlusJSONResponse) VisitGetIngestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIngestion429ApplicationProblemPlusJSONResponse Problem
+
+func (response GetIngestion429ApplicationProblemPlusJSONResponse) VisitGetIngestionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListAgentProjectsRequestObject struct {
 	Params ListAgentProjectsParams
 }
@@ -481,6 +735,12 @@ type StrictServerInterface interface {
 	// Heartbeat Signal de vie d'un agent
 	// (POST /agent/heartbeat)
 	Heartbeat(ctx context.Context, request HeartbeatRequestObject) (HeartbeatResponseObject, error)
+	// CreateIngestion Envoie un SBOM
+	// (POST /agent/ingestions)
+	CreateIngestion(ctx context.Context, request CreateIngestionRequestObject) (CreateIngestionResponseObject, error)
+	// GetIngestion État d'une ingestion
+	// (GET /agent/ingestions/{id})
+	GetIngestion(ctx context.Context, request GetIngestionRequestObject) (GetIngestionResponseObject, error)
 	// ListAgentProjects Projets confiés à l'agent
 	// (GET /agent/projects)
 	ListAgentProjects(ctx context.Context, request ListAgentProjectsRequestObject) (ListAgentProjectsResponseObject, error)
@@ -580,6 +840,63 @@ func (sh *strictHandler) Heartbeat(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(HeartbeatResponseObject); ok {
 		if err := validResponse.VisitHeartbeatResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateIngestion operation middleware
+func (sh *strictHandler) CreateIngestion(w http.ResponseWriter, r *http.Request) {
+	var request CreateIngestionRequestObject
+
+	if reader, err := r.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateIngestion(ctx, request.(CreateIngestionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateIngestion")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateIngestionResponseObject); ok {
+		if err := validResponse.VisitCreateIngestionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetIngestion operation middleware
+func (sh *strictHandler) GetIngestion(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	var request GetIngestionRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetIngestion(ctx, request.(GetIngestionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetIngestion")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetIngestionResponseObject); ok {
+		if err := validResponse.VisitGetIngestionResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
