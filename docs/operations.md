@@ -268,7 +268,7 @@ Les écrans **Projets** et **Agents** d'une organisation (`/o/<slug>/projects`,
 - **Limitation** : `agent_api.rate_limit` (120 par défaut) borne les requêtes par minute et
   **par jeton**, `agent_api.failure_rate_limit` (30) les jetons refusés par minute et par
   IP. Au-delà : 429 avec `Retry-After`. Ces compteurs sont propres à chaque instance.
-- Un agent est dit **muet** après 3 jours : sans inventaire de son hôte pour un agent
+- Un agent est dit **muet** après 7 jours (décision de T10, ADR 0027) : sans inventaire de son hôte pour un agent
   serveur (même s'il répond encore : envois refusés, scans en échec), sans contact pour un
   agent dépôt.
 
@@ -440,6 +440,27 @@ vaut 1 : à surveiller (alerte Prometheus conseillée sur `ogsbom_vulndb_stale =
   ailleurs (`vulnerability-db_v6.*.tar.zst`, liste d'Anchore), par l'écran d'import
   d'administration (T11). L'archive importée passe les mêmes contrôles d'installation.
 - Rien du contenu des SBOM n'est journalisé par l'analyse.
+
+## Tableau de bord
+
+La page d'accueil d'une organisation (`/o/<slug>`) et l'en-tête de chaque fiche projet
+montrent les constats ouverts par sévérité, les KEV, la tendance, le délai médian de
+correction, les agents muets, les projets les plus exposés et les composants vulnérables
+les plus répandus (ADR 0027).
+
+- Les chiffres du moment se calculent à chaque affichage ; les courbes lisent les
+  statistiques quotidiennes (`org_daily_stats`, `project_daily_stats`). L'échéance
+  `dashboard.stats_all` passe **toutes les heures** sur une instance à workers et met en
+  file un `dashboard.stats_org` par organisation active, qui réécrit la ligne du jour
+  (UTC) : la ligne d'un jour écoulé est l'état de sa fin de journée.
+- Sur une installation neuve ou après la mise à jour qui apporte T10, l'historique
+  commence au premier passage : la courbe n'a d'abord qu'un point, puis s'allonge d'un
+  point par jour. Aucun historique n'est reconstitué.
+- L'historique par projet est purgé au-delà de 400 jours ; celui de l'organisation est
+  conservé (une ligne par jour).
+- Sans instance à workers, les courbes ne s'allongent plus (les chiffres du moment restent
+  justes) : `ogsbom_job_schedule_fires_total{schedule="dashboard.stats_all"}` doit
+  progresser d'une unité par heure sur l'ensemble des instances.
 
 ## Agent dépôt
 
