@@ -208,7 +208,7 @@ func TestRetryScheduleFollowsBackoffThenDead(t *testing.T) {
 func TestUniqueKeyRaisesPriorityOfPendingJob(t *testing.T) {
 	t.Parallel()
 	tdb := dbtest.New(t)
-	org := newOrg(t)
+	org := newOrg(t, tdb.App)
 	later := time.Now().Add(time.Hour)
 	low := enqueue(t, tdb.App, Job{Kind: "test.ref", OrgID: org, UniqueKey: "ref:1", Priority: PriorityLow, RunAt: later})
 	other := enqueue(t, tdb.App, Job{Kind: "test.ref", OrgID: org, Priority: PriorityNormal})
@@ -231,7 +231,7 @@ func TestUniqueKeyRaisesPriorityOfPendingJob(t *testing.T) {
 	}
 	// Jamais de fusion entre organisations.
 	err := tdb.App.InTx(context.Background(), func(tx *db.Tx) error {
-		_, err := Enqueue(context.Background(), tx, Job{Kind: "test.ref", OrgID: newOrg(t), UniqueKey: "ref:1"})
+		_, err := Enqueue(context.Background(), tx, Job{Kind: "test.ref", OrgID: newOrg(t, tdb.App), UniqueKey: "ref:1"})
 		return err
 	})
 	if !errors.Is(err, ErrUniqueKeyConflict) {
@@ -296,7 +296,7 @@ func TestUniqueKeyWhileRunningCreatesNewJob(t *testing.T) {
 func TestOrgLimitDoesNotStarveOtherOrgs(t *testing.T) {
 	t.Parallel()
 	tdb := dbtest.New(t)
-	orgA, orgB := newOrg(t), newOrg(t)
+	orgA, orgB := newOrg(t, tdb.App), newOrg(t, tdb.App)
 	release := make(chan struct{})
 	var mu sync.Mutex
 	running := map[tenant.OrgID]int{}
