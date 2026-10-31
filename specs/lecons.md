@@ -361,3 +361,50 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
 - **mTLS et interface sur la même écoute** : `RequireAndVerifyClientCert` refuserait les
   navigateurs. Règle : `VerifyClientCertIfGiven` au niveau TLS, refus de l'absence de
   chaîne vérifiée dans un middleware de l'API des agents.
+
+## Recherche transverse et jetons personnels (T09)
+
+- **RLS et index de recherche** : sous la RLS, un opérateur non `LEAKPROOF` ne peut pas
+  servir de condition d'index ; `ILIKE`, `%` (pg_trgm), `@>`, `&&` et `lower()` ne le
+  sont pas (`SELECT proname, proleakproof FROM pg_proc`), l'égalité de texte et d'uuid
+  et `= ANY` le sont. Un index GIN `(org_id, name gin_trgm_ops)` est donc ignoré par une
+  requête du rôle d'exécution. Règle : vérifier `proleakproof` avant de compter sur un
+  index sous la RLS ; sinon une fonction `SECURITY DEFINER` qui lit l'organisation dans
+  `ogsbom.org_id` (jamais en paramètre), dans `crossorg`, testée pour ne pas sortir de
+  l'organisation (ADR 0024).
+- **GIN composite `btree_gin`** : la clé `org_id` lit toute la liste de l'organisation ; sur
+  une petite table, le planificateur lui préfère la clé primaire, même parcours
+  séquentiels interdits. Règle : un test de plan d'un index GIN se fait sur un jeu assez
+  gros (40 000 composants) et une valeur sélective, jamais sur quelques milliers de lignes.
+- **Comparateurs de Grype** : faits pour la correspondance, pas pour trier. dpkg renvoie
+  une différence (−9) au lieu d'un signe ; PEP 440 n'est pas antisymétrique sur les
+  versions locales (`0+00` contre `0`, trouvé par `FuzzCompare` en cinq secondes) ; rpm
+  ignore une époque présente d'un seul côté (`2.0-1` > `1:1.0-1`), même avec
+  `MissingEpochStrategyZero` qui ne corrige que le côté gauche. Règle : combiner les deux
+  sens de comparaison, écrire l'époque `0:` des deux côtés, et un fuzz d'antisymétrie
+  pour tout comparateur.
+- **Maven lit toute chaîne** : « latest » est un qualificatif, pas une version illisible.
+  Règle : choisir les exemples de versions illisibles par écosystème (npm, PEP 440, Go,
+  Debian), pas pour Maven.
+- **Serveur généré et sous-routeur** : oapi-codegen enregistre les chemins complets du
+  contrat ; monter l'API utilisateur dans un groupe de `/api/v1` fait perdre la chaîne
+  CORS aux requêtes préliminaires (`OPTIONS` routé avant les middlewares d'un groupe).
+  Règle : garder `r.With(cors, …).Route("/orgs/{org}", …)` et y monter chaque opération
+  par `userapi.ServerInterfaceWrapper` (le test `TestUserAPICORS` l'a montré).
+- **Deux serveurs générés dans un même paquet** : les noms (`ServerInterface`,
+  `HandlerWithOptions`…) entrent en collision. Règle : un paquet par serveur généré
+  (`internal/api/gen/userapi`), avec ses propres types.
+- **`number` d'OpenAPI** devient `float32` chez oapi-codegen. Règle : `format: double`
+  pour tout nombre relu en `float64`.
+- **Paramètre de curseur inutilisé** : ajouter une valeur à la liste des arguments sans
+  l'employer dans la requête donne « could not determine data type of parameter $n ».
+  Règle : n'ajouter un argument qu'au moment où son texte est écrit, et typer les clés de
+  curseur (`::float8`, `::timestamptz`, `::uuid`).
+- **Export en flux et délai d'écriture** : `http.write_timeout` (60 s) coupe un export
+  long. Règle : `http.NewResponseController(w).SetWriteDeadline` pour la durée de l'export
+  (les enveloppes de la réponse exposent `Unwrap`), et un nombre d'exports simultanés
+  borné, car chacun tient une connexion.
+- **Outil d'isolement des agents (suite)** : refusés aussi `sed` ou `cat` sur un chemin
+  passé par une variable shell (`$D/…`), une boucle `for`, et `python3 - <<EOF` même seul.
+  Règle : chemins écrits en entier, scripts d'édition dans le répertoire temporaire lancés
+  par `python3 -I chemin.py`, ou `python3 -I -c "…"` court.
