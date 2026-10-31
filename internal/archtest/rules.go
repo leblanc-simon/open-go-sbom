@@ -39,7 +39,7 @@ var domainPackages = []string{
 	"internal/db", "internal/finding", "internal/ingest", "internal/inventory",
 	"internal/jobs", "internal/license", "internal/locale", "internal/notify", "internal/org",
 	"internal/pagination", "internal/policy", "internal/project", "internal/sbom", "internal/search",
-	"internal/secret", "internal/team", "internal/tenant", "internal/triage",
+	"internal/secret", "internal/team", "internal/tenant", "internal/token", "internal/triage",
 	"internal/version", "internal/vuln",
 }
 
@@ -58,8 +58,8 @@ var serverPackages = []string{
 	"internal/dashboard", "internal/db", "internal/download", "internal/finding", "internal/ingest",
 	"internal/inventory", "internal/jobs", "internal/locale", "internal/notify", "internal/org",
 	"internal/pagination", "internal/policy", "internal/project", "internal/render",
-	"internal/search", "internal/secret", "internal/team", "internal/tenant",
-	"internal/triage", "internal/vuln", "internal/web", "web",
+	"internal/search", "internal/secret", "internal/team", "internal/tenant", "internal/token",
+	"internal/triage", "internal/version", "internal/vuln", "internal/web", "web",
 }
 
 // forbiddenInDomain sont les paquets de la bibliothèque standard interdits au métier.
