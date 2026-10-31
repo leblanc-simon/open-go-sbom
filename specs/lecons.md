@@ -441,3 +441,46 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
 - **`webtest` et les SVG** : l'assistant ne vérifiait rien des `<svg>` ni des références
   `aria-labelledby`. Règle : un `<svg>` est `aria-hidden="true"` ou `role="img"` nommé,
   et toute référence ARIA vise un identifiant présent (vérifié sur toutes les pages).
+
+## Administration de l'instance et recette, partie 1 (T11)
+
+- **Test de bail perdu qui ne simule qu'à moitié** : `TestLostLeaseCancelsHandler`
+  changeait le seul `lease_token` ; `locked_until` expirait 300 ms plus tard et, sous
+  charge, le même runner reprenait le job (seconde exécution du handler) avant une
+  vérification faite après `time.Sleep(50 ms)`. Règle : une simulation d'un autre worker
+  pose son jeton **et** son bail ; un test attend un événement observable (métrique
+  `ogsbom_job_runs_total{outcome="lost"}`, canal) au lieu de dormir ; un bail de test se
+  dimensionne pour qu'un renouvellement retardé de plusieurs centaines de millisecondes ne
+  le perde pas (3 s). `TestLeaseIsRenewedWhileHandlerRuns` (bail de 300 ms) reste à
+  surveiller.
+- **Reproduire une instabilité de charge** : `GOMAXPROCS=1 taskset -c 0` seul ne suffit
+  pas (50 passages verts) ; il faut partager le cœur avec des boucles actives
+  (`taskset -c 0 sh -c 'while :; do :; done'` ×40) : 3 échecs sur 30. Un test de
+  10 000 jobs en `-race` sur un cœur ne finit pas en un quart d'heure : cibler le test.
+- **csrfx et formulaire multipart** : `PostFormValue` analyse le corps entier
+  (`ParseMultipartForm`) et écrit tout fichier de plus de 32 Mio sur le disque **avant**
+  la vérification du jeton et avant la garde d'administration ; le serveur ne supprime
+  ensuite que les fichiers du formulaire de la requête d'origine, pas ceux d'une copie
+  (`WithContext`). Règle : un téléversement passe par un middleware avant CSRF qui borne le
+  corps selon le visiteur, lit le jeton en première partie et le présente à csrfx par son
+  en-tête ; le handler lit le fichier en flux (`uploadGate`, ADR 0028).
+- **Délais de connexion et téléversement long** : `http.write_timeout` court dès la fin
+  des en-têtes de la requête ; un téléversement de plusieurs minutes perd sa réponse même
+  si la lecture est prolongée. Règle : repousser **les deux** délais
+  (`http.NewResponseController(w).SetReadDeadline` et `SetWriteDeadline`).
+- **Fichier temporaire passé à un job** : l'instance qui reçoit un fichier n'est pas celle
+  qui exécute le job (`workers.enabled`). Règle : toute donnée remise à un job passe par
+  PostgreSQL (blocs bornés, un par transaction), jamais par un chemin local.
+- **Écart d'horloge dans les tests d'écran** : les écrans datent avec l'horloge de test
+  figée à la création de l'application ; une base « construite il y a 2 h » au moment de
+  la publication n'a qu'1 h 59 pour l'écran (« 1 heure »). Règle : des âges de test au
+  milieu de l'intervalle affiché (2 h 30, 5 h 30, 3 j + 1 h).
+- **Outil d'isolement des agents (suite)** : refusés aussi `cat >> fichier <<EOF` suivi d'une
+  autre commande, un `NODE_PATH=…` en tête de commande et `cd … && cat > … <<EOF && node …`. Règle : script
+  écrit par l'outil d'écriture, module chargé par chemin absolu
+  (`require('/opt/node22/lib/node_modules/playwright')`), commande lancée seule.
+- **Capturer un écran qui exige une session** : un test temporaire (étiquette dédiée, non
+  commité) démarre l'application de test, connecte un compte et sert un mandataire
+  inverse sur un port fixe qui injecte les cookies de session ; Playwright navigue alors
+  sur l'application réelle, CSS embarquées comprises. Une variante « avant correctif » se
+  mesure en modifiant le style par le CSSOM (`element.style`), permis par la CSP.

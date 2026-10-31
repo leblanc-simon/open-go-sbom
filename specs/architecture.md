@@ -251,6 +251,8 @@ Données **globales** (publiques ou propres à l'instance, jamais des données d
 | --- | --- |
 | `vulnerabilities` | identifiant (CVE, GHSA…), alias, sévérité, CVSS, description, références, EPSS, KEV |
 | `vulndb_state`, `vulndb_archives`, `vulndb_archive_chunks` | version cible de la base Grype, archives vérifiées (téléchargées ou importées) stockées par blocs |
+| `vulndb_instances` | version de la base chargée par chaque instance worker, rapportée à chaque synchronisation (T11) |
+| `vulndb_imports`, `vulndb_import_chunks` | imports manuels d'une archive : état, demandeur, blocs téléversés jusqu'à l'installation (T11, ADR 0028) |
 | `jobs`, `schedules` | file de traitements et échéances du planificateur |
 | `users`, `sessions`, `mfa_*` | tables d'open-go-base ; `users` est écrit par `account` (§ 10) |
 | `account_settings`, `session_auth` | préférences du compte ; méthode d'authentification de chaque session |
@@ -457,9 +459,13 @@ qu'aucune mesure ne la justifie (ADR 0015).
     distribution, télécharge, vérifie la somme de contrôle, valide l'ouverture par une
     installation complète, stocke l'archive par blocs dans `vulndb_archives` et fixe la
     nouvelle cible dans `vulndb_state` (ADR 0017) ;
-  - hors ligne, l'archive est importée depuis l'écran d'administration vers la même table ;
+  - hors ligne, l'archive est téléversée depuis l'écran d'administration : lue en flux,
+    rangée par blocs dans PostgreSQL (`vulndb_imports`), puis installée par un job
+    `vulndb.import` sur une instance worker, avec les mêmes contrôles, et elle devient la
+    cible (ADR 0028) ; la purge supprime les archives qui ne sont pas la cible ;
   - chaque instance worker synchronise sa copie locale sur la cible, bascule atomiquement et
-    garde une seule base ouverte, derrière un verrou lecture/écriture ;
+    garde une seule base ouverte, derrière un verrou lecture/écriture ; elle rapporte la
+    version chargée dans `vulndb_instances`, affichée par l'écran d'administration ;
   - un job d'analyse exige la version cible : un worker en retard se synchronise avant de
     le traiter. Chaque constat note la version de base qui l'a produit.
 - Changement de cible → `analysis.rescan_all` met en file un `analysis.rescan_org` par
@@ -512,6 +518,10 @@ qu'aucune mesure ne la justifie (ADR 0015).
     d'organisation à chaque requête (404 hors des organisations du compte), limitation par
     jeton ; la session avec en-tête CSRF viendra avec le premier écran qui appelle l'API
     en JavaScript (ADR 0025).
+- Corps des requêtes de l'interface bornés à 64 Kio avant CSRF ; seule exception, le
+  téléversement d'une archive de la base (`POST /admin/vulndb/import`), borné à
+  `vulndb.max_archive_mib` pour un administrateur d'instance seulement, lu en flux, jeton
+  CSRF exigé en première partie du formulaire (ADR 0028).
 - CSP : `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;
   frame-ancestors 'none'; form-action 'self'; base-uri 'none'`. Aucun script ni style en
   ligne. Réponses d'API : `default-src 'none'; frame-ancestors 'none'; base-uri 'none'`.
@@ -715,5 +725,5 @@ dupliquer.
 | Erreurs d'authx, mfax et csrfx exposées comme clés plutôt qu'en texte français | Messages traduits (« Identifiants invalides », « Code invalide », « Accès interdit », réponse 403 de csrfx) | Fait en T03 (PR #1 d'open-go-base) |
 | Gestionnaire d'échec configurable dans csrfx | Page 403 traduite et au format du projet | Fait en T03 (PR #1 d'open-go-base) |
 | Clé de limitation configurable dans `ratelimit` (par jeton) | Évite le limiteur maison de `internal/ratelimit` | Fait en T04 (`WithKeyFunc`, PR #2 d'open-go-base) |
-| Codes de secours dans mfax | Récupération sans administrateur d'instance | T11 |
+| Codes de secours dans mfax | Récupération sans administrateur d'instance | Absent d'open-go-base au 31 octobre 2026 (constaté en T11) ; non nécessaire au lot 1 (réinitialisation par un administrateur, procédure de secours) : reporté à T18 **[à relire]** |
 | Composant `oidcx` | SSO réutilisable par les projets open-go | T25 |

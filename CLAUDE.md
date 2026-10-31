@@ -70,6 +70,10 @@ T10 terminé : tableau de bord d'organisation et en-tête de la fiche projet
 (`internal/dashboard`, statistiques quotidiennes réécrites toutes les heures, ADR 0027),
 graphiques SVG serveur (`internal/render/chart.go`, `partials/charts.html`), agent muet
 au-delà de 7 jours (`agent.Silent`), contrôle des SVG par `webtest`.
+T11 en cours, partie 1 livrée : écrans d'administration d'instance (traitements en échec
+`/admin/jobs`, version de la base chargée par chaque instance, import manuel d'une archive
+installée par le job `vulndb.import`, purge des archives non cibles ; ADR 0028). Partie 2 :
+revue de sécurité, audit RGAA, mesures, parc pilote, préversion.
 
 ## Règles de travail
 

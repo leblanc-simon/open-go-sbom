@@ -32,3 +32,4 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0025](0025-jetons-d-acces-personnels.md) | Jetons d'accès personnels : donnée du compte, lecture seule, appartenance vérifiée à chaque requête | Accepté |
 | [0026](0026-comparaison-de-versions.md) | Comparaison de versions par écosystème et plages vers | Accepté |
 | [0027](0027-tableau-de-bord.md) | Tableau de bord : indicateurs instantanés, statistiques quotidiennes, graphiques SVG | Accepté |
+| [0028](0028-administration-de-la-base-et-des-traitements.md) | Administration de l'instance : import d'une archive par PostgreSQL, état des instances, purge, traitements en échec | Accepté |
