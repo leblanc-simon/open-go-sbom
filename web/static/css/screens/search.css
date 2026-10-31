@@ -232,4 +232,13 @@
     border: 0;
     border-radius: 0;
   }
+
+  .purl {
+    max-width: 32rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-regular);
+    color: var(--color-text-2);
+    overflow-wrap: anywhere;
+  }
 }
