@@ -1,0 +1,54 @@
+# Unité systemd d'ogsbom-repo-agent. Les secrets sont des credentials chiffrés au repos
+# (systemd-creds encrypt), déchiffrés par systemd dans $CREDENTIALS_DIRECTORY, lisibles
+# du seul service : voir docs/operations.md, « Agent dépôt ».
+[Unit]
+Description=open-go-sbom repository agent
+Documentation=https://github.com/leblanc-simon/open-go-sbom/blob/main/docs/operations.md
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/ogsbom-repo-agent -c /etc/ogsbom-repo-agent/config.yaml
+Restart=on-failure
+RestartSec=5s
+
+DynamicUser=yes
+StateDirectory=ogsbom-repo-agent
+StateDirectoryMode=0700
+
+LoadCredentialEncrypted=agent-token:/etc/ogsbom-repo-agent/agent-token.cred
+LoadCredentialEncrypted=github-app-key:/etc/ogsbom-repo-agent/github-app-key.cred
+LoadCredentialEncrypted=github-webhook-secret:/etc/ogsbom-repo-agent/github-webhook-secret.cred
+LoadCredentialEncrypted=gitlab-token:/etc/ogsbom-repo-agent/gitlab-token.cred
+LoadCredentialEncrypted=gitlab-webhook-secret:/etc/ogsbom-repo-agent/gitlab-webhook-secret.cred
+
+# Durcissement : l'agent n'écrit que dans son répertoire d'état et ne lance que git.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

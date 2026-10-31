@@ -561,6 +561,18 @@ qu'aucune mesure ne la justifie (ADR 0015).
   webhooks, clone, analyse, envoie, puis attend le verdict du serveur pour publier le statut
   de commit (T15). Tout accès au contenu d'un dépôt passe par `os.Root` (aucune sortie de
   l'arborescence, aucun lien symbolique suivi hors d'elle). Voir T08 et T12.
+  Détails (ADR 0023) : un webhook vérifié n'est qu'un signal, l'agent résout lui-même la
+  tête de la référence ; rattrapage au démarrage et à intervalle depuis le commit du
+  dernier instantané, commits manqués du plus ancien au plus récent ; file en mémoire
+  bornée, une référence jamais traitée deux fois à la fois ; extraction du commit exact
+  par `git fetch --depth 1 <url> <commit>` sous environnement maîtrisé
+  (`core.symlinks=false` : aucun lien symbolique sur disque, ce qu'un parcours par
+  `os.Root` vérifie ; crochets et LFS inertes ; identifiants par `GIT_CONFIG_*`), taille
+  mesurée pendant le clonage ; Syft, qui lit l'arborescence par son propre résolveur
+  borné à sa racine, hors ligne et sans exécution (`golang.UsePackagesLib=false`) ; SBOM
+  CycloneDX 1.6 déterministe (ni numéro de série ni horodatage) ; secrets désignés par
+  `credential:<nom>` ou par un fichier `0600`. Configuration (`OGSBOM_REPO_*`) et unité
+  systemd : `deploy/ogsbom-repo-agent/`.
 
 ## 18. Internationalisation
 
