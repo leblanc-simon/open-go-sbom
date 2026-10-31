@@ -526,6 +526,11 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   d'écrire. Règle : ancrer sur un contexte unique (clé parente) ou ajouter en fin de
   fichier quand la section y est ; le script vérifie le nombre d'occurrences avant
   d'enregistrer.
+- **Code TOTP du pas précédent en test** : `TestRevokedAgentTokenRefusedAtNextRequest` a
+  échoué en CI (401 sur le premier code, de -30 s) : un changement de pas entre la
+  génération et la vérification sort le code de la tolérance de ±1 pas. Règle : l'assistant
+  `app.code` attend le pas suivant quand il reste moins de 5 s au pas courant avant de
+  générer le premier code.
 - **Outil d'isolement des agents (suite)** : refusés aussi `cat >> fichier <<'EOF'` suivi de
   `go build`, `python3 - <<'EOF'` qui touche un autre dépôt (open-go-base), et un
   `python3 -I -c` dont le texte contient « git ». Règle : bibliothèque de remplacements

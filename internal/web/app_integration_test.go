@@ -365,6 +365,14 @@ func (a *app) code(userID int64, secretKey string) string {
 	if n > 2 {
 		a.t.Fatalf("plus de trois connexions TOTP pour le compte %d dans le même test", userID)
 	}
+	// Le code du pas précédent n'est plus accepté si un changement de pas survient entre
+	// sa génération et sa vérification (instabilité vue en CI chargée) : près de la fin
+	// d'un pas, attendre le suivant.
+	if n == 0 {
+		if left := 30*time.Second - time.Duration(time.Now().UnixNano()%int64(30*time.Second)); left < 5*time.Second {
+			time.Sleep(left + 100*time.Millisecond)
+		}
+	}
 	c, err := totp.GenerateCode(secretKey, time.Now().Add(time.Duration(n-1)*30*time.Second))
 	if err != nil {
 		a.t.Fatal(err)
