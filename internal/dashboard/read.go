@@ -1,10 +1,13 @@
 package dashboard
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
 	"math"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -52,7 +55,7 @@ type scope struct{ project uuid.UUID }
 func (s scope) org() bool { return s.project == uuid.Nil }
 
 // openWhere sélectionne les constats ouverts des références actives : des projets actifs
-// pour l'organisation, du projet demandé sinon. Le paramètre $1 porte la portée dans les
+// pour l'organisation, du projet demandé sinon (projets joints en p dans les deux cas). Le paramètre $1 porte la portée dans les
 // deux cas (NULL pour l'organisation), pour que les requêtes numérotent leurs paramètres
 // de la même façon. joins s'ajoute aux jointures (composants…).
 func (s scope) openWhere(joins string) string {
@@ -63,7 +66,8 @@ func (s scope) openWhere(joins string) string {
 		 WHERE f.status = 'open' AND r.removed_at IS NULL AND p.archived_at IS NULL AND $1::uuid IS NULL`
 	}
 	return ` FROM findings f
-	  JOIN tracked_refs r ON r.org_id = f.org_id AND r.id = f.ref_id` + joins + `
+	  JOIN tracked_refs r ON r.org_id = f.org_id AND r.id = f.ref_id
+	  JOIN projects p ON p.org_id = f.org_id AND p.id = f.project_id` + joins + `
 	 WHERE f.status = 'open' AND r.removed_at IS NULL AND f.project_id = $1`
 }
 
@@ -82,32 +86,75 @@ func wrap(what string, err error) error {
 	return fmt.Errorf("dashboard: %s : %w", what, err)
 }
 
-// openCounts décompte les constats ouverts de la portée, par sévérité.
-func openCounts(ctx context.Context, tx *db.OrgTx, sc scope) (Counts, error) {
-	rows, err := tx.QueryContext(ctx, `SELECT f.severity, count(*), count(*) FILTER (WHERE f.kev)`+sc.openWhere("")+
-		` GROUP BY f.severity`, sc.arg())
+// openState lit en un seul passage les constats ouverts de la portée, par projet et par
+// sévérité : décomptes de la portée, projets exposés (tous, par risque maximal décroissant,
+// puis nombre de constats, puis slug) et nombre de projets qui portent une KEV.
+func openState(ctx context.Context, tx *db.OrgTx, sc scope) (Counts, []ExposedProject, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT f.project_id, max(p.slug), max(p.name), max(p.kind), f.severity, count(*),
+		count(*) FILTER (WHERE f.kev), max(f.risk)`+sc.openWhere("")+`
+		 GROUP BY f.project_id, f.severity`, sc.arg())
 	if err != nil {
-		return Counts{}, wrap("constats ouverts", err)
+		return Counts{}, nil, wrap("constats ouverts", err)
 	}
 	defer rows.Close()
-	c := newCounts()
+	total := newCounts()
+	byID := map[uuid.UUID]*ExposedProject{}
+	var order []uuid.UUID
 	for rows.Next() {
-		var sev string
+		var id uuid.UUID
+		var slug, name, kind, sev string
 		var n, kev int
-		if err := rows.Scan(&sev, &n, &kev); err != nil {
-			return Counts{}, wrap("constats ouverts", err)
+		var risk float64
+		if err := rows.Scan(&id, &slug, &name, &kind, &sev, &n, &kev, &risk); err != nil {
+			return Counts{}, nil, wrap("constats ouverts", err)
 		}
-		c.BySeverity[vuln.ParseSeverity(sev)] += n
-		c.KEV += kev
+		e, ok := byID[id]
+		if !ok {
+			e = &ExposedProject{ID: id, Slug: slug, Name: name, Kind: project.Kind(kind), Open: newCounts()}
+			byID[id] = e
+			order = append(order, id)
+		}
+		s := vuln.ParseSeverity(sev)
+		e.Open.BySeverity[s] += n
+		e.Open.KEV += kev
+		e.MaxRisk = math.Max(e.MaxRisk, risk)
+		total.BySeverity[s] += n
+		total.KEV += kev
 	}
-	return c, wrap("constats ouverts", rows.Err())
+	if err := rows.Err(); err != nil {
+		return Counts{}, nil, wrap("constats ouverts", err)
+	}
+	projects := make([]ExposedProject, 0, len(order))
+	for _, id := range order {
+		projects = append(projects, *byID[id])
+	}
+	slices.SortFunc(projects, func(a, b ExposedProject) int {
+		if c := cmp.Compare(b.MaxRisk, a.MaxRisk); c != 0 {
+			return c
+		}
+		if c := cmp.Compare(b.Open.Total(), a.Open.Total()); c != 0 {
+			return c
+		}
+		return strings.Compare(a.Slug, b.Slug)
+	})
+	return total, projects, nil
 }
 
-// kevSpread compte les vulnérabilités KEV distinctes ouvertes et les projets qui en portent.
-func kevSpread(ctx context.Context, tx *db.OrgTx, sc scope) (vulns, projects int, err error) {
-	err = tx.QueryRowContext(ctx, `SELECT count(DISTINCT f.vuln_id), count(DISTINCT f.project_id)`+sc.openWhere("")+` AND f.kev`,
-		sc.arg()).Scan(&vulns, &projects)
-	return vulns, projects, wrap("KEV ouvertes", err)
+// kevVulns compte les vulnérabilités KEV distinctes des constats ouverts de la portée.
+func kevVulns(ctx context.Context, tx *db.OrgTx, sc scope) (int, error) {
+	var n int
+	err := tx.QueryRowContext(ctx, `SELECT count(DISTINCT f.vuln_id)`+sc.openWhere("")+` AND f.kev`, sc.arg()).Scan(&n)
+	return n, wrap("KEV ouvertes", err)
+}
+
+func kevProjects(projects []ExposedProject) int {
+	n := 0
+	for _, p := range projects {
+		if p.Open.KEV > 0 {
+			n++
+		}
+	}
+	return n
 }
 
 // fixTimes renvoie le délai médian de correction par sévérité des constats résolus dans
@@ -193,33 +240,36 @@ func lastAnalysis(ctx context.Context, tx *db.OrgTx, sc scope) (*time.Time, erro
 	return &u, nil
 }
 
-// summary lit les indicateurs communs de la portée à l'instant now.
-func summary(ctx context.Context, tx *db.OrgTx, sc scope, now time.Time, period Period) (Summary, error) {
+// summary lit les indicateurs communs de la portée à l'instant now, et renvoie aussi les
+// projets aux constats ouverts (openState).
+func summary(ctx context.Context, tx *db.OrgTx, sc scope, now time.Time, period Period) (Summary, []ExposedProject, error) {
 	today := day(now)
 	s := Summary{At: now, Period: period}
+	var projects []ExposedProject
 	var err error
-	if s.Open, err = openCounts(ctx, tx, sc); err != nil {
-		return Summary{}, err
+	if s.Open, projects, err = openState(ctx, tx, sc); err != nil {
+		return Summary{}, nil, err
 	}
-	if s.KEVVulns, s.KEVProjects, err = kevSpread(ctx, tx, sc); err != nil {
-		return Summary{}, err
+	s.KEVProjects = kevProjects(projects)
+	if s.KEVVulns, err = kevVulns(ctx, tx, sc); err != nil {
+		return Summary{}, nil, err
 	}
 	if s.FixTimes, err = fixTimes(ctx, tx, sc, now.AddDate(0, 0, -int(period)), now); err != nil {
-		return Summary{}, err
+		return Summary{}, nil, err
 	}
 	if s.Trend, err = series(ctx, tx, sc, today.AddDate(0, 0, -int(period)), today, period.Step()); err != nil {
-		return Summary{}, err
+		return Summary{}, nil, err
 	}
 	week, err := series(ctx, tx, sc, today.AddDate(0, 0, -WeekAgo), today.AddDate(0, 0, -WeekAgo+1), 1)
 	if err != nil {
-		return Summary{}, err
+		return Summary{}, nil, err
 	}
 	if len(week) == 1 {
 		s.WeekAgo = &week[0].Open
 	}
 	s.Trend = append(s.Trend, Point{Day: today, Open: s.Open})
 	s.LastAnalysis, err = lastAnalysis(ctx, tx, sc)
-	return s, err
+	return s, projects, err
 }
 
 // read ouvre la transaction des lectures : lecture seule, un seul état pour toute la page.
@@ -232,7 +282,7 @@ func (s *Service) Project(ctx context.Context, org tenant.OrgID, projectID uuid.
 	var out Summary
 	err := s.read(ctx, org, func(tx *db.OrgTx) error {
 		var err error
-		out, err = summary(ctx, tx, scope{project: projectID}, s.Now(), period)
+		out, _, err = summary(ctx, tx, scope{project: projectID}, s.Now(), period)
 		return err
 	})
 	return out, err
@@ -244,13 +294,12 @@ func (s *Service) Org(ctx context.Context, org tenant.OrgID, period Period) (Org
 	err := s.read(ctx, org, func(tx *db.OrgTx) error {
 		now := s.Now()
 		var err error
-		if out.Summary, err = summary(ctx, tx, scope{}, now, period); err != nil {
+		var projects []ExposedProject
+		if out.Summary, projects, err = summary(ctx, tx, scope{}, now, period); err != nil {
 			return err
 		}
+		out.Exposed = projects[:min(len(projects), TopN)]
 		if out.Projects, err = projectKinds(ctx, tx); err != nil {
-			return err
-		}
-		if out.Exposed, err = exposed(ctx, tx); err != nil {
 			return err
 		}
 		if out.Widespread, err = widespread(ctx, tx); err != nil {
@@ -294,48 +343,34 @@ func rankSeverity(rank int) vuln.Severity {
 	return all[i]
 }
 
-// exposed renvoie les TopN projets actifs au risque ouvert le plus élevé.
-func exposed(ctx context.Context, tx *db.OrgTx) ([]ExposedProject, error) {
-	rows, err := tx.QueryContext(ctx, `SELECT p.id, p.slug, p.name, p.kind, max(f.risk),
-		count(*) FILTER (WHERE f.severity = 'critical'), count(*) FILTER (WHERE f.severity = 'high'),
-		count(*) FILTER (WHERE f.severity = 'medium'), count(*) FILTER (WHERE f.severity = 'low'),
-		count(*) FILTER (WHERE f.severity = 'negligible'), count(*) FILTER (WHERE f.severity = 'unknown'),
-		count(*) FILTER (WHERE f.kev)`+scope{}.openWhere("")+`
-		 GROUP BY p.id, p.slug, p.name, p.kind
-		 ORDER BY max(f.risk) DESC, count(*) DESC, p.slug LIMIT $2`, nil, TopN)
-	if err != nil {
-		return nil, wrap("projets exposés", err)
-	}
-	defer rows.Close()
-	var out []ExposedProject
-	for rows.Next() {
-		e := ExposedProject{Open: newCounts()}
-		var kind string
-		var crit, high, med, low, negl, unk int
-		if err := rows.Scan(&e.ID, &e.Slug, &e.Name, &kind, &e.MaxRisk, &crit, &high, &med, &low, &negl, &unk, &e.Open.KEV); err != nil {
-			return nil, wrap("projets exposés", err)
-		}
-		e.Kind = project.Kind(kind)
-		for s, n := range map[vuln.Severity]int{vuln.SeverityCritical: crit, vuln.SeverityHigh: high, vuln.SeverityMedium: med,
-			vuln.SeverityLow: low, vuln.SeverityNegligible: negl, vuln.SeverityUnknown: unk} {
-			if n > 0 {
-				e.Open.BySeverity[s] = n
-			}
-		}
-		out = append(out, e)
-	}
-	return out, wrap("projets exposés", rows.Err())
-}
-
 // widespread renvoie les TopN familles de composants (purl_base) aux constats ouverts qui
-// touchent le plus de projets actifs.
+// touchent le plus de projets actifs. Les constats sont d'abord réduits à un couple
+// (composant, projet), puis regroupés par famille ; les versions ne se lisent que pour
+// les familles retenues.
 func widespread(ctx context.Context, tx *db.OrgTx) ([]Component, error) {
-	rows, err := tx.QueryContext(ctx, `SELECT c.purl_base, min(c.name), count(DISTINCT f.project_id),
-		(array_agg(DISTINCT c.version ORDER BY c.version))[1:`+fmt.Sprint(VersionsShown)+`], count(DISTINCT c.version),
-		max(`+severityRank+`), bool_or(f.kev), (array_agg(c.id ORDER BY c.version DESC, c.id))[1]`+
-		scope{}.openWhere(` JOIN components c ON c.org_id = f.org_id AND c.id = f.component_id`)+`
-		 GROUP BY c.purl_base
-		 ORDER BY count(DISTINCT f.project_id) DESC, max(`+severityRank+`) DESC, c.purl_base LIMIT $2`, nil, TopN)
+	rows, err := tx.QueryContext(ctx, `
+		WITH open AS (
+			SELECT f.component_id, f.project_id, max(`+severityRank+`) AS rank, bool_or(f.kev) AS kev`+
+		scope{}.openWhere("")+`
+			 GROUP BY f.component_id, f.project_id),
+		families AS (
+			SELECT c.purl_base, min(c.name) AS name, count(DISTINCT o.project_id) AS projects, max(o.rank) AS rank,
+			       bool_or(o.kev) AS kev
+			  FROM open o JOIN components c ON c.org_id = current_setting('ogsbom.org_id')::uuid AND c.id = o.component_id
+			 GROUP BY c.purl_base
+			 ORDER BY count(DISTINCT o.project_id) DESC, max(o.rank) DESC, c.purl_base LIMIT $2),
+		versions AS (
+			SELECT DISTINCT c.purl_base, c.version, c.id
+			  FROM open o JOIN components c ON c.org_id = current_setting('ogsbom.org_id')::uuid AND c.id = o.component_id
+			 WHERE c.purl_base IN (SELECT purl_base FROM families))
+		SELECT fa.purl_base, fa.name, fa.projects,
+		       (SELECT array_agg(v ORDER BY v) FROM (SELECT DISTINCT version AS v FROM versions WHERE purl_base = fa.purl_base
+		                                              ORDER BY v LIMIT `+fmt.Sprint(VersionsShown)+`) top),
+		       (SELECT count(DISTINCT version) FROM versions WHERE purl_base = fa.purl_base),
+		       fa.rank, fa.kev,
+		       (SELECT id FROM versions WHERE purl_base = fa.purl_base ORDER BY version DESC, id LIMIT 1)
+		  FROM families fa
+		 ORDER BY fa.projects DESC, fa.rank DESC, fa.purl_base`, nil, TopN)
 	if err != nil {
 		return nil, wrap("composants répandus", err)
 	}

@@ -108,10 +108,10 @@ func (s *Service) Record(ctx context.Context, org tenant.OrgID) (Day, error) {
 	d := Day{Day: day(now)}
 	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
 		var err error
-		if d.Open, err = openCounts(ctx, tx, scope{}); err != nil {
+		if d.Open, _, err = openState(ctx, tx, scope{}); err != nil {
 			return err
 		}
-		if d.KEVVulns, _, err = kevSpread(ctx, tx, scope{}); err != nil {
+		if d.KEVVulns, err = kevVulns(ctx, tx, scope{}); err != nil {
 			return err
 		}
 		kinds, err := projectKinds(ctx, tx)
