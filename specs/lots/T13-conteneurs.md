@@ -202,6 +202,16 @@ pendant le lot, toutes **[à relire]** :
 - Purge des projets de conteneurs archivés depuis longtemps : non traitée (à décider avec
   la rétention, T18) ; la fiche d'un hôte en montre 500 au plus, actifs d'abord.
 
+### Fusion avec T17, T14 et T12
+
+Après la fusion de T17 (017), T14 (018) et T12 (019) sur `main`, la migration est
+devenue **020**. Cohérence vérifiée : les références `container` suivent la règle d'un
+hôte pour les différences et la rétention de T17 (chemin commun `inventory.Store`) ; le
+triage de T14 s'applique aux constats d'un conteneur comme à tout projet, et
+`dashboard.Family` écarte désormais les constats triés « non affecté » ou « faux
+positif », comme le tableau de bord (testé) ; l'enrichissement IA de T12 reste propre aux
+dépôts (réglage et panneau absents pour un conteneur).
+
 ### Mesures
 
 Docker Engine 29.9.2 (API 1.56, magasin d'images containerd), quatre conteneurs : deux

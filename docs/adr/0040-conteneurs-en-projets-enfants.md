@@ -81,7 +81,8 @@ L'inventaire côté agent fait l'objet de l'ADR 0041.
   type `container` n'est pas une valeur de `type`, réservé aux natures de premier niveau.
 - Fiche d'un hôte : tableau « Conteneurs et constats par périmètre » (hôte, chaque
   conteneur, total). Chaque projet compte ses **vulnérabilités ouvertes distinctes**, à la
-  plus haute sévérité de leurs constats ; le total additionne ces couples (projet,
+  plus haute sévérité de leurs constats, hors constats triés « non affecté » ou « faux
+  positif » comme le reste du tableau de bord (T14) ; le total additionne ces couples (projet,
   vulnérabilité) pour l'hôte et ses conteneurs actifs (`dashboard.Family`). Un conteneur
   archivé garde sa ligne, hors du total.
 - Tableau de bord de l'organisation : les conteneurs actifs comptent comme des projets
