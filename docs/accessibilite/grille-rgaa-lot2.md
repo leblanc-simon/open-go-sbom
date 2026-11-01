@@ -37,6 +37,14 @@ Aucune non-conformité bloquante ni majeure, ni avant ni après corrections.
 
 ## 2. Méthode et échantillon
 
+Après la fusion de la revue de sécurité (PR #28 : deux champs « nouveau mot de passe » sur
+la reconfiguration du second facteur), la page **Mon compte › Second facteur** a été
+auditée de nouveau sur l'état fusionné : axe-core sans écart (fr, en, clair, sombre),
+aucun débordement à 320 et 390 px, parcours au clavier sans piège, et trois soumissions
+fautives (code faux, confirmation différente, mot de passe trop court) : « Erreur : » dans
+le titre, message en `role="alert"`, `aria-invalid` sur le champ fautif, étiquettes et
+aide de longueur visibles et liées, `autocomplete="new-password"`.
+
 - **Instance** : test d'intégration jetable (étiquette `rgaaserve`, hors dépôt) qui peuple
   une base PostgreSQL éphémère sur le PostgreSQL local puis sert l'application réelle
   (routeur complet, CSS embarquées) sur un port fixe ; Playwright y navigue avec les
@@ -136,7 +144,7 @@ sur l'écran ; « Tableaux » et « Formulaire » : état des thématiques 5 et 
 | Connexion (après reconfiguration du second facteur) | `/login?done=totp_reconfigured` | — | NA | C |
 | Second facteur, code de secours (vierge, erreur) | `/login/2fa` | — | NA | C |
 | Codes de secours montrés après l'enrôlement | `POST /account/totp/enable` | — | NA | NA |
-| Mon compte › Second facteur (codes restants, aucun code, codes montrés, erreurs) | `/account/security` | — | NA | C |
+| Mon compte › Second facteur (codes restants, aucun code, codes montrés, erreurs ; nouveau mot de passe de la reconfiguration, revu après la revue de sécurité) | `/account/security` | — | NA | C |
 | Invitations reçues, confirmation du refus | `/account/invitations`, `…/{id}/decline` | — | C | C |
 | Membres : invitations en attente, confirmation de révocation | `/o/{slug}/members`, `…/invitations/{id}/revoke` | — | C | C |
 | Équipes (liste, création, erreur) | `/o/{slug}/teams` | — | C | C |
@@ -177,8 +185,9 @@ changer un rôle d'équipe, renommer une équipe, essayer un canal, rattacher un
 **Régénérer les codes de secours** (l'ancien jeu devient caduc) et **changer
 d'application d'authentification** (secret TOTP retiré, sessions fermées) n'ont pas de
 page de confirmation : chacun exige la saisie d'un code (TOTP, ou code de secours pour le
-changement d'application) dans un formulaire qui décrit les conséquences, le bouton du
-second est marqué comme dangereux ; une erreur de saisie est signalée et corrigeable.
+changement d'application, qui exige aussi un nouveau mot de passe saisi deux fois depuis
+la revue de sécurité, ADR 0051) dans un formulaire qui décrit les conséquences, le bouton
+du second est marqué comme dangereux ; une erreur de saisie est signalée et corrigeable.
 Ce code saisi tient lieu de confirmation au sens de 11.12 (décision de la partie 1,
 ADR 0048) **[à relire]**.
 

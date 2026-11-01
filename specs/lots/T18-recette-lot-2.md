@@ -299,6 +299,8 @@ focus visible dans les deux thèmes ; captures de contrôle à 1 280 et 390 px.
   `TestPolicyScreens` le décompte des alertes.
 - `architecture.md` § 14 : conventions « une étiquette, un champ », « valeurs
   traduites », titre d'une fiche rattachée à un projet ; référence à la grille du lot 2.
+- Après la fusion de la partie 2 (PR #28) : page du second facteur auditée de nouveau
+  (deux champs « nouveau mot de passe ») : conforme, sans correction.
 
 #### Décisions
 
