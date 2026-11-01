@@ -9,8 +9,9 @@ et l'exploitation du serveur sont dans [`operations.md`](operations.md) ; les pr
 
 L'écran **Recherche** d'une organisation (`/o/<organisation>/search`) répond à « qui
 utilise ce composant, cette version, cette plage de versions ? » et « qui est touché par
-cette vulnérabilité ? », dans l'inventaire courant de tous les projets de l'organisation
-(projets archivés et références retirées exclus). Il ne sort jamais de l'organisation.
+cette vulnérabilité ? », dans l'inventaire courant des projets de l'organisation que vous
+voyez (ceux de vos équipes, ou tous si vous administrez l'organisation ; projets archivés
+et références retirées exclus). Il ne sort jamais de l'organisation.
 
 ### Ce qu'on peut chercher
 
@@ -85,3 +86,36 @@ d'accès » : il expire (7 jours à 1 an), il est affiché une seule fois, il se
 tout moment, et il ne donne que la lecture de ce que votre compte voit, dans les
 organisations dont vous êtes membre au moment de chaque requête. Le contrat de l'API est
 dans `api/openapi.yaml` (opérations `searchOrganization` et `exportSearch`).
+
+## Équipes, rôles et invitations
+
+Chaque projet appartient à une **équipe**. Vous voyez les projets de vos équipes — dans
+les listes, la recherche, le tableau de bord, les fiches des vulnérabilités et des
+composants, les exports et l'API —, et vous y agissez selon votre **rôle d'équipe** :
+
+| Rôle d'équipe | Ce qu'il permet sur les projets de l'équipe |
+| --- | --- |
+| Lecteur | Consulter les projets, leurs constats, instantanés et SBOM, et les agents de l'équipe |
+| Analyste | En plus : demander un scan à un agent serveur, trier les constats (lot de triage) |
+| Administrateur d'équipe | En plus : créer, modifier, archiver un projet de l'équipe, le confier à un agent, le rattacher à une autre équipe qu'il administre aussi ; gérer les agents et jetons d'inscription de l'équipe ; ajouter et retirer les membres de l'équipe |
+
+Un **administrateur de l'organisation** voit et gère tout : il crée, renomme et supprime
+les équipes, invite et retire les membres, règle l'organisation et lit son journal. Un
+membre qui n'est dans aucune équipe ne voit aucun projet. La matrice complète est dans
+[`security/permissions.md`](security/permissions.md).
+
+**Équipes.** La page **Équipes** liste vos équipes (toutes pour un administrateur de
+l'organisation). La page d'une équipe montre ses membres et mène à ses projets ; son
+administrateur y ajoute un membre de l'organisation par son adresse, change son rôle ou le
+retire. Une équipe ne se supprime qu'une fois tous ses projets rattachés à une autre.
+
+**Agents.** Un agent d'équipe ne sert que les projets de son équipe et se gère par ses
+administrateurs ; un agent d'organisation (sans équipe) sert toutes les équipes et ne se
+gère que par les administrateurs de l'organisation. Un jeton d'inscription appartient à
+une équipe : les serveurs qu'il inscrit, et leurs agents, entrent dans cette équipe.
+
+**Invitations.** Pour rejoindre une organisation, un compte doit être **invité** par un de
+ses administrateurs, puis **accepter** l'invitation depuis « Mon compte » → « Invitations »
+(elle vaut 30 jours ; la décliner la supprime). L'administrateur ne sait pas, en invitant,
+si l'adresse a déjà un compte : un compte créé plus tard par l'administration de
+l'instance peut encore accepter l'invitation tant qu'elle court.

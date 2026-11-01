@@ -8,6 +8,30 @@ appliquées automatiquement, sans retour arrière.
 
 ## [Non publié]
 
+### Ajouté
+
+- Équipes et droits (T16, ADR 0034) : chaque projet appartient à une équipe ; un membre ne
+  voit que les projets de ses équipes, sur toutes les surfaces (listes, fiches, recherche
+  et exports, API utilisateur, tableau de bord, vulnérabilités, composants, agents), et y
+  agit selon son rôle d'équipe (lecteur, analyste, administrateur d'équipe) ; écrans des
+  équipes et de leurs membres, rattachement d'un projet à une autre équipe, agents et
+  jetons d'inscription rattachés à une équipe ; matrice des droits
+  [`docs/security/permissions.md`](docs/security/permissions.md), générée depuis le code.
+- Invitations : un administrateur d'organisation invite une adresse, le compte accepte ou
+  décline depuis « Mon compte » → « Invitations ».
+
+### Modifié
+
+- Le rôle d'organisation vaut désormais « membre » ou « administrateur » (les rôles
+  `viewer` et `analyst` disparaissent). La migration 016 crée une équipe « Général » par
+  organisation, y rattache projets, jetons d'inscription et agents serveur, et y fait
+  entrer chaque membre avec son ancien rôle : aucun accès n'est perdu.
+
+### Sécurité
+
+- SEC-09 corrigé : l'ajout d'un membre passe par une invitation à accepter, avec une
+  réponse identique que le compte existe ou non.
+
 ## [0.1.0] - 2026-11-01
 
 Préversion du **lot 1 · MVP inventaire** : un parc de serveurs et de dépôts inventorié,

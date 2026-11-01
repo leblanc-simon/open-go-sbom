@@ -37,6 +37,15 @@
 // un appel réseau. Querier est l'interface commune, pour travailler dans la transaction
 // de l'appelant. Pour relire un tableau PostgreSQL, Array.
 //
+// # Équipes visibles
+//
+// Une lecture faite pour un compte ajoute l'option Visible(acc.Visibility()) : InOrg
+// déclare alors les équipes visibles (set_config('lotor.teams', …, true)), et la requête
+// filtre ses projets par la fonction SQL lotor_team_visible(team_id). Sans cette option,
+// lotor_team_visible échoue : un filtre d'équipe oublié par l'appelant ne renvoie jamais
+// tous les projets (ADR 0034). Ce filtre s'ajoute à la RLS, à l'intérieur de
+// l'organisation déclarée ; il ne la remplace pas.
+//
 // # Migrations
 //
 // Migrate applique les fichiers de internal/db/migrations sous un verrou (LOCK TABLE

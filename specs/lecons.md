@@ -650,3 +650,38 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   `TZ=Europe/Paris` et `TZ=UTC`.
 - Un échec de `make ci` juste après une montée d'open-go-base n'en vient pas forcément :
   comparer d'abord les commits (`go mod download -json …@vX` donne `Origin.Hash`).
+
+## Équipes et droits (T16)
+
+- **Champ ajouté à une saisie, perdu par sa normalisation** : `project.clean` reconstruit un
+  `Input` neuf ; le nouveau `TeamID` disparaissait avant l'insertion (« équipe invalide »
+  pour chaque création). Règle : à l'ajout d'un champ à une structure de saisie, relire
+  toute fonction qui la reconstruit (`clean`, `normalize`…) et tester le cas nominal par le
+  service, pas seulement la validation.
+- **Ordre d'évaluation en SQL** : `current_setting(x) = '*' OR id = ANY(current_setting(x)::uuid[])`
+  n'assure pas que la conversion n'est jamais tentée sur « * ». Règle : `CASE WHEN … THEN
+  … ELSE … END` fixe l'ordre ; une fonction SQL simple `STABLE` reste incorporée à la
+  requête.
+- **Filtre « fermé par défaut »** : un paramètre oublié renvoie tout en silence ; un réglage
+  de transaction lu par `current_setting` sans `missing_ok` échoue (connexion neuve :
+  paramètre inconnu ; connexion réutilisée : `''`). Règle : pour un filtre de visibilité,
+  préférer un réglage déclaré par l'option de transaction et une fonction qui échoue sans
+  lui, et tester les deux connexions (pool d'une connexion).
+- **Changer une signature appelée par des dizaines de tests** : `go vet` s'arrête à la
+  première erreur d'un paquet et `go test -run NONE` à dix. Règle : un script relance la
+  compilation, lit les erreurs « not enough arguments … want (…) » et insère l'argument à
+  la position indiquée, jusqu'à stabilité ; les imports manquants (`undefined: tenant`)
+  se traitent avant, sinon le typage s'arrête.
+- **Test dérivé d'une source qui passe du premier coup** : il peut ne rien vérifier.
+  Règle : casser volontairement le code (garde qui autorise tout, filtre retiré) et
+  constater l'échec avant de committer ; noter le résultat dans le Journal.
+- **Test de migration de données** : repérer la migration par son sujet (`*_teams.sql`),
+  jamais par son numéro (renumérotation possible avant la fusion) ; migrer jusqu'à la
+  précédente avec `db.Migrate(…, Migrations: fstest.MapFS)`, peupler en propriétaire,
+  puis migrer jusqu'au bout.
+- **Tester une garde sans effet de bord** : rejouer chaque route (POST compris) pour
+  chaque rôle modifierait les données d'un cas à l'autre. Règle : un point d'essai non
+  exporté remplace les gestionnaires derrière leur garde (`routeStub`) ; un test à part
+  vérifie que la table des droits est exactement celle du routeur réel (`chi.Walk`).
+- **Outil d'isolement des agents (suite)** : `sleep N` suivi d'une autre commande est
+  refusé. Règle : `run_in_background` pour une commande longue, puis lecture de sa sortie.

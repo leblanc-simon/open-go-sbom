@@ -488,3 +488,111 @@ func (f fixture) defaultTeam(t *testing.T, org tenant.OrgID) uuid.UUID {
 	}
 	return teams[0].ID
 }
+
+// TestTeamVisibilityAndMove : Get et List ne montrent que les projets des équipes
+// visibles ; SetTeam rattache un projet, journalisé, et retire au dépôt l'agent d'une
+// autre équipe ; un agent d'équipe ne se confie qu'aux projets de son équipe.
+func TestTeamVisibilityAndMove(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	f := setup(t)
+	o := f.org(t, "a")
+	general := f.defaultTeam(t, o)
+	web, err := f.orgs.CreateTeam(ctx, f.actor, o, "Web")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, repo("api", "main")))
+	if err != nil || p.TeamID != general || p.TeamName != "Général" {
+		t.Fatalf("création : %+v, %v", p, err)
+	}
+	if _, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindRepo, Name: "x", Branches: []string{"main"}}); !isKey(err, project.KeyTeamInvalid) {
+		t.Fatalf("projet sans équipe : %v", err)
+	}
+	if _, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindRepo, Name: "x", Branches: []string{"main"},
+		TeamID: uuid.Must(uuid.NewV7())}); !isKey(err, project.KeyTeamInvalid) {
+		t.Fatalf("équipe inconnue : %v", err)
+	}
+	if _, err := f.projects.Get(ctx, o, tenant.OnlyTeams(web.ID), "api"); !errors.Is(err, project.ErrNotFound) {
+		t.Fatalf("projet d'une équipe invisible : %v", err)
+	}
+	if _, err := f.projects.Get(ctx, o, tenant.Visibility{}, "api"); !errors.Is(err, project.ErrNotFound) {
+		t.Fatalf("visibilité nulle : %v", err)
+	}
+	if page, err := f.projects.List(ctx, o, tenant.OnlyTeams(web.ID), project.Filter{}, "", 50); err != nil || len(page.Items) != 0 {
+		t.Fatalf("liste d'une autre équipe : %+v, %v", page.Items, err)
+	}
+	// Agent de l'équipe Web : refusé pour un projet de « Général », accepté une fois le
+	// projet rattaché à Web, perdu au retour dans « Général ».
+	a, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, &web.ID, "ci-web", "initial", 90)
+	if err != nil || a.TeamID == nil || *a.TeamID != web.ID || a.TeamName != "Web" {
+		t.Fatalf("agent d'équipe : %+v, %v", a, err)
+	}
+	if err := f.projects.AssignAgent(ctx, f.actor, o, "api", &a.ID); !isKey(err, project.KeyAgentInvalid) {
+		t.Fatalf("agent d'une autre équipe : %v", err)
+	}
+	if err := f.projects.SetTeam(ctx, f.actor, o, "api", uuid.Must(uuid.NewV7())); !isKey(err, project.KeyTeamInvalid) {
+		t.Fatalf("équipe inconnue : %v", err)
+	}
+	if err := f.projects.SetTeam(ctx, f.actor, o, "api", web.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.projects.AssignAgent(ctx, f.actor, o, "api", &a.ID); err != nil {
+		t.Fatal(err)
+	}
+	got, err := f.projects.Get(ctx, o, tenant.OnlyTeams(web.ID), "api")
+	if err != nil || got.TeamID != web.ID || got.Agent == nil {
+		t.Fatalf("projet rattaché : %+v, %v", got, err)
+	}
+	if page, err := f.projects.List(ctx, o, tenant.AllTeams(), project.Filter{Team: web.ID}, "", 50); err != nil || len(page.Items) != 1 {
+		t.Fatalf("filtre d'équipe : %+v, %v", page.Items, err)
+	}
+	if err := f.projects.SetTeam(ctx, f.actor, o, "api", general); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ = f.projects.Get(ctx, o, tenant.AllTeams(), "api"); got.Agent != nil {
+		t.Fatalf("agent d'une autre équipe gardé : %+v", got.Agent)
+	}
+	// Un agent d'organisation sert toutes les équipes.
+	orgAgent, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, nil, "ci-org", "initial", 90)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.projects.AssignAgent(ctx, f.actor, o, "api", &orgAgent.ID); err != nil {
+		t.Fatal(err)
+	}
+	if n := countOf(f.actions(t, o), audit.ProjectTeamChanged); n != 2 {
+		t.Fatalf("%d rattachements journalisés", n)
+	}
+}
+
+// TestMovingAHostTakesItsAgent : un serveur rattaché à une autre équipe emmène son agent.
+func TestMovingAHostTakesItsAgent(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	f := setup(t)
+	o := f.org(t, "a")
+	web, err := f.orgs.CreateTeam(ctx, f.actor, o, "Web")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var hostAgent uuid.UUID
+	err = f.tdb.App.InOrg(ctx, o, func(tx *db.OrgTx) error {
+		hostAgent = uuid.Must(uuid.NewV7())
+		if _, err := tx.ExecContext(ctx, `INSERT INTO agents (org_id, id, kind, name) VALUES ($1, $2, 'host', 'srv')`, tx.OrgID(), hostAgent); err != nil {
+			return err
+		}
+		_, err := project.CreateHost(ctx, tx, "srv", nil, hostAgent, f.defaultTeam(t, o))
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.projects.SetTeam(ctx, f.actor, o, "srv", web.ID); err != nil {
+		t.Fatal(err)
+	}
+	team, err := f.agents.Team(ctx, o, tenant.OnlyTeams(web.ID), hostAgent)
+	if err != nil || team == nil || *team != web.ID {
+		t.Fatalf("équipe de l'agent : %v, %v", team, err)
+	}
+}

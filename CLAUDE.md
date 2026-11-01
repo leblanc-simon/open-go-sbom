@@ -86,7 +86,18 @@ l'utilisateur ([`specs/avancement.md`](specs/avancement.md)) ; open-go-base suiv
 Projet renommé **lotor** (open-go-sbom, préfixe `ogsbom`, avant le 31 octobre 2026) :
 module `leblanc.io/lotor`, commandes `lotor-*`, préfixe `LOTOR_`, objets SQL `lotor_*`,
 identité visuelle dans `docs/logo/` (ADR 0033).
-Prochain lot : [T16 — Équipes et droits](specs/lots/T16-equipes-droits.md) (lot 2).
+T16 terminé, premier lot du lot 2 : équipes et droits (ADR 0034). Rôle d'organisation
+`member` ou `admin`, droits par rôle d'équipe (`reader`, `analyst`, `admin`) selon la
+matrice de `internal/tenant` (`Matrix`, `Allowed`, `Access.Can`), dont dérivent
+`docs/security/permissions.md` et la table des routes `orgRoutes` (`internal/web/guard.go`,
+404 ressource invisible, 403 droit manquant) ; **toute lecture pour un compte** passe
+`db.Visible(acc.Visibility())` et filtre par `lotor_team_visible(team_id)` (échec sans
+déclaration) ; tout projet a une équipe, agent sans équipe = agent d'organisation ;
+invitations (`/account/invitations`, SEC-09 corrigé, `crossorg` `lotor_user_invitations`).
+Tests de référence : `TestRoutePermissionsFollowMatrix`, `TestTeamFilterOnEverySurface`.
+Prochains lots, en parallèle : [T12](specs/lots/T12-enrichissement-ia.md),
+[T13](specs/lots/T13-conteneurs.md), [T14](specs/lots/T14-triage-vex.md) et
+[T17](specs/lots/T17-differences-instantanes.md).
 
 ## Règles de travail
 

@@ -5,7 +5,12 @@
 // prend un OrgID en premier paramètre métier, et db.InOrg le déclare à PostgreSQL (RLS).
 // La valeur zéro n'est jamais une organisation valide.
 //
-// Le middleware qui résout /o/{slug} et vérifie l'appartenance arrive en T03 ; il place
-// l'organisation dans le contexte avec NewContext, que les handlers relisent avec
-// FromContext.
+// La garde d'organisation place l'accès de la requête (Access : organisation, rôle
+// d'organisation, rôles d'équipe) dans le contexte avec WithAccess.
+//
+// Droits (ADR 0034) : Matrix est la source unique de la matrice des droits — permission,
+// portée (organisation ou équipe), rôle minimal ; Allowed l'applique, Access.Can
+// l'interroge pour une ressource d'une équipe, et PermissionsDocument en écrit le
+// document docs/security/permissions.md. Visibility désigne les équipes dont un compte
+// voit les projets ; sa valeur zéro ne voit rien.
 package tenant

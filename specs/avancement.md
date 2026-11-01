@@ -1,11 +1,72 @@
-# Avancement du lot 1
+# Avancement
+
+Journal de bord de la réalisation autonome des lots. Chaque entrée renvoie au Journal de la
+fiche, qui fait foi pour le détail des décisions. Les décisions prises sans validation
+explicite de l'utilisateur sont marquées **[à relire]**.
+
+## Lot 2
+
+Réalisation autonome du lot 2 (T16, puis T12, T13, T14, T17, T15 et la recette T18),
+demandée le 1er novembre 2026 : enchaîner jusqu'à la recette sans attendre les réponses de
+l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
+
+| Lot | PR | Statut | Décisions à relire |
+| --- | --- | --- | --- |
+| T16 | à ouvrir | Terminé (PR à fusionner) | Filtre d'équipe déclaré à la transaction, fermé par défaut ; matrice des droits (administrateur d'équipe sans gestion des équipes ni des membres de l'organisation, rattachement avec droit dans les deux équipes) ; 404 pour une équipe invisible ; agents sans équipe = agents d'organisation, agents dépôt existants d'organisation ; équipe « Général » aussi pour une nouvelle organisation, « General » en anglais ; invitations de 30 jours, sans équipe, bornées, nouvelle fonction `crossorg` ; tendance d'un membre additionnée par projet ; point d'essai `routeStub` — tous **[à relire]** |
+
+### Décisions à relire, par thème
+
+#### Équipes, droits et isolement
+
+- Filtre d'équipe par réglage de transaction (`db.Visible`, `lotor.teams`) et fonction
+  `lotor_team_visible`, qui échoue sans déclaration ; politiques RLS par équipe écartées
+  ([ADR 0034](../docs/adr/0034-equipes-et-droits.md), [T16](lots/T16-equipes-droits.md#décisions)).
+- Matrice des droits ([`permissions.md`](../docs/security/permissions.md)) : rôles
+  minimaux de chaque permission, liste des membres visible de tout membre,
+  `finding.triage` déclaré pour T14 ([ADR 0034](../docs/adr/0034-equipes-et-droits.md)).
+- 404 pour une ressource d'une équipe invisible, 403 pour un droit manquant
+  ([ADR 0034](../docs/adr/0034-equipes-et-droits.md)).
+- Agents : équipe facultative, agents dépôt existants d'organisation, agents serveur dans
+  « Général » ; équipe supprimée : agents rendus à l'organisation, jetons d'inscription
+  supprimés ; rattachement d'un dépôt qui perd un agent d'équipe, d'un serveur qui emmène
+  le sien ([ADR 0034](../docs/adr/0034-equipes-et-droits.md)).
+- Équipe « Général » créée aussi avec chaque nouvelle organisation ; « General » pour une
+  organisation en anglais ([T16](lots/T16-equipes-droits.md#décisions)).
+- Tableau de bord d'un membre : tendance additionnée par projet ; fiche composant en 404
+  hors des équipes visibles ([ADR 0034](../docs/adr/0034-equipes-et-droits.md)).
+- Point d'essai `routeStub` pour le test des droits dérivé de la matrice
+  ([T16](lots/T16-equipes-droits.md#décisions)).
+
+#### Sécurité et identité
+
+- SEC-09 corrigé par des invitations : 30 jours, 200 en attente par organisation, une par
+  adresse, sans équipe, adresse déjà membre non invitée ; ajout direct gardé pour
+  l'administration de l'instance ; nouvelle fonction `crossorg`
+  `lotor_user_invitations` ([ADR 0034](../docs/adr/0034-equipes-et-droits.md),
+  [modèle de menace](../docs/security/threat-model.md)).
+
+#### Écarts
+
+- T16 : captures d'écran clair et sombre non faites (aucune CSS nouvelle ; audit RGAA du
+  lot 2 en T18) ; filtre « équipe » de la recherche non livré (recherche filtrée par les
+  équipes visibles) ([T16](lots/T16-equipes-droits.md#écarts)).
+
+### Actions pour l'utilisateur
+
+1. Relire les décisions **[à relire]** ci-dessus (ADR 0034, matrice
+   [`docs/security/permissions.md`](../docs/security/permissions.md)).
+2. Après la publication d'une version contenant T16 : vérifier sur une instance réelle
+   que la migration 016 a placé chaque membre dans l'équipe « Général » avec son ancien
+   rôle (page **Équipes** de chaque organisation).
+
+## Lot 1
 
 Journal de bord de la réalisation autonome du lot 1 (T00 à T11), demandée le
 31 octobre 2026. Chaque entrée renvoie au Journal de la fiche, qui fait foi pour le détail
 des décisions. Les décisions prises sans validation explicite de l'utilisateur sont
 marquées **[à relire]**.
 
-## Synthèse
+### Synthèse
 
 Le lot 1 est **réalisé** : le critère du cahier des charges, « un parc pilote inventorié
 et interrogé », est passé (recette de T11) sur trois serveurs (Debian 12, Rocky Linux 9,
@@ -36,18 +97,18 @@ forge (voir « Actions pour l'utilisateur »).
 | T11 (recette) | #16 | Terminé (v0.1.0 à publier par l'utilisateur) | Parc pilote en conteneurs et forge simulée ; CVE de contrôle ; cibles tenues sur 4 cœurs, valant pour la référence ; publication des versions (ADR 0032) et unité systemd du serveur ; guides de démarrage FR et EN séparés de `utilisation.md` ; outillage de recette hors dépôt — tous **[à relire]** |
 | Renommage en lotor | — | Terminé | Correspondance unique `open-go-sbom`/`ogsbom` → `lotor` partout, migrations réécrites en place avant toute publication, identité visuelle dans `docs/logo/` et l'interface (ADR 0033) — **[à relire]** |
 
-## Décisions à relire, par thème
+### Décisions à relire, par thème
 
 Chaque point renvoie à l'ADR ou au Journal qui le détaille.
 
-### Architecture, base de données et file
+#### Architecture, base de données et file
 
 - Migrations sous verrou, immuables, deux rôles PostgreSQL ([ADR 0010](../docs/adr/0010-migrations-et-roles-postgresql.md), [T01](lots/T01-socle-serveur.md)).
 - Conception de la file : horloge Go, `synchronous_commit = off` pour les transitions, plafond strict par organisation, libération sans tentative comptée, défauts des workers ([ADR 0011](../docs/adr/0011-conception-de-la-file.md), [T02](lots/T02-file-de-traitements.md)).
 - Isolement : propriétaire `BYPASSRLS` pour `crossorg`, `jobs.org_id` sans clé étrangère ([ADR 0012](../docs/adr/0012-isolement-des-organisations.md), [T03](lots/T03-comptes-organisations.md)) ; fonctions `crossorg` des jetons ([ADR 0014](../docs/adr/0014-jetons-et-api-des-agents.md)) et de la recherche ([ADR 0024](../docs/adr/0024-recherche-transverse.md)).
 - Journal d'audit en ajout seul, rôle d'exécution sans `CREATE`, quotas d'ingestion (200 envois par référence et par jour, 10 Gio par organisation), plafonds par compte ([ADR 0030](../docs/adr/0030-durcissement-base-et-quotas.md)).
 
-### Sécurité et identité
+#### Sécurité et identité
 
 - Secrets TOTP chiffrés, `secrets.keys` obligatoire, secours par ticket ([ADR 0013](../docs/adr/0013-comptes-et-second-facteur.md), [T03](lots/T03-comptes-organisations.md)).
 - Verrouillage par compte des codes TOTP (10 en 15 min, 15 min doublées jusqu'à 24 h), révocation d'office des jetons, réinitialisation du TOTP avec mot de passe temporaire, `bootstrap.rescue_password`, durée absolue de session de 7 jours ([ADR 0029](../docs/adr/0029-remediation-des-identifiants.md)).
@@ -56,42 +117,42 @@ Chaque point renvoie à l'ADR ou au Journal qui le détaille.
 - En-têtes de sécurité (`base-uri`, HSTS sans sous-domaines), `Seal`/`Open` avec données associées ([T01](lots/T01-socle-serveur.md)) ; 404 pour l'administration, 403 dans l'organisation ([T03](lots/T03-comptes-organisations.md)).
 - Codes de secours de mfax reportés à T18 ([T11, partie 1](lots/T11-recette-lot-1.md#partie-1--administration-de-linstance-et-corrections)).
 
-### Ingestion et inventaire
+#### Ingestion et inventaire
 
 - Décodage dans le worker ([ADR 0015](../docs/adr/0015-decodage-des-sbom-dans-le-worker.md)) ; règles de l'inventaire ([ADR 0016](../docs/adr/0016-ingestion-et-inventaire.md)) ; validation sans l'énumération des licences SPDX, bornes par défaut ([T05](lots/T05-ingestion.md)).
 
-### Analyse de vulnérabilités
+#### Analyse de vulnérabilités
 
 - Base Grype commune en blocs dans PostgreSQL ([ADR 0017](../docs/adr/0017-base-grype-commune.md)) ; correspondance et constats, identifiants CVE ([ADR 0018](../docs/adr/0018-analyse-et-constats.md)) ; import d'archive, cible même plus ancienne, purge ([ADR 0028](../docs/adr/0028-administration-de-la-base-et-des-traitements.md)) ; défauts `vulndb.*` ([T06](lots/T06-analyse-vulnerabilites.md)).
 
-### Agents
+#### Agents
 
 - Agent serveur : envoi conditionnel, Syft JSON, « muet » sur le dernier inventaire ([ADR 0020](../docs/adr/0020-agent-serveur-envoi-conditionnel.md)) ; unités, mTLS par middleware, paquets nfpm ([ADR 0021](../docs/adr/0021-deploiement-agent-serveur.md)) ; cibles 5 min de CPU et 1 Gio par scan ([T07](lots/T07-agent-serveur.md)).
 - Jetons et API des agents, jeton d'agent sans expiration, hôte déjà suivi refusé ([ADR 0014](../docs/adr/0014-jetons-et-api-des-agents.md), [T04](lots/T04-projets-agents.md)).
 - Agent dépôt : webhook = signal, `git fetch --depth 1` du commit, SBOM déterministe, Syft sans `go list` ni réseau, jeton GitHub restreint ([ADR 0023](../docs/adr/0023-agent-depot.md)) ; `allowed_namespaces` obligatoire ([ADR 0031](../docs/adr/0031-csrf-cookies-et-perimetre-de-l-agent-depot.md)).
 
-### Recherche et tableau de bord
+#### Recherche et tableau de bord
 
 - Recherche : sous-chaîne puis trigrammes, bornes, export en flux ([ADR 0024](../docs/adr/0024-recherche-transverse.md)) ; jetons personnels ([ADR 0025](../docs/adr/0025-jetons-d-acces-personnels.md)) ; comparaison de versions et plages `vers` ([ADR 0026](../docs/adr/0026-comparaison-de-versions.md)).
 - Tableau de bord : statistiques horaires sous la date du jour, seuil « muet » de 7 jours, périodes, renvois à T15 ([ADR 0027](../docs/adr/0027-tableau-de-bord.md)).
 
-### Interface et accessibilité
+#### Interface et accessibilité
 
 - Thème `light-dark()` et cookie, polices droites, pied de page ([T01](lots/T01-socle-serveur.md)) ; écarts à la maquette ([T09](lots/T09-recherche.md)).
 - Page de confirmation commune, plan du site, préfixe « Erreur : », abréviations des sévérités ([audit RGAA](lots/T11-recette-lot-1.md#audit-rgaa)).
 
-### Exploitation, mesures et publication
+#### Exploitation, mesures et publication
 
 - Cibles chiffrées tenues sur 4 cœurs (machine moins puissante que la référence), cibles du cahier des charges encore « proposées » à confirmer ([mesures de T11](lots/T11-recette-lot-1.md#mesures-consolidées), [`benchmarks.md`](../docs/benchmarks.md)).
 - Publication des versions : étiquette sur `main`, préversions seulement, archives et paquets, unité systemd du serveur ([ADR 0032](../docs/adr/0032-publication-des-versions.md)).
 - Recette : parc pilote en conteneurs, forge simulée, outillage gardé hors dépôt ([recette de T11](lots/T11-recette-lot-1.md#recette)).
 
-### Dépendances et open-go-base
+#### Dépendances et open-go-base
 
 - `modernc.org/sqlite` ([T00](lots/T00-fondations.md)) ; directive `go` 1.26.8 imposée par Syft ([T05](lots/T05-ingestion.md)).
 - Évolutions d'open-go-base `v1.1.0` (T03), `v1.2.0` (`ratelimit.WithKeyFunc`, T04), `v1.3.0` (verrouillage de mfax, `csrfx.WithSessionBinding`, T11), utilisées par l'étiquette `v1.3.0`.
 
-## Actions pour l'utilisateur
+### Actions pour l'utilisateur
 
 Le mandataire git de la session refuse les pushs d'étiquettes (HTTP 403) : `v0.1.0`
 n'est pas posée. À faire, dans l'ordre (les étapes 1 à 3 sont faites) :
@@ -132,7 +193,7 @@ n'est pas posée. À faire, dans l'ordre (les étapes 1 à 3 sont faites) :
    commandes de [`docs/benchmarks.md`](../docs/benchmarks.md) ; elles tiennent déjà sur
    4 cœurs.
 
-## Organisation
+### Organisation
 
 - Chaque lot est réalisé par un agent au contexte neuf, qui lit `CLAUDE.md`,
   l'architecture, `specs/lecons.md`, sa fiche et le Journal des lots dont il dépend.

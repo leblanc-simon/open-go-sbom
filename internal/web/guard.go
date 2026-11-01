@@ -109,7 +109,11 @@ func orgRoutes(id *identity) []orgRoute {
 // mountOrgRoutes monte la table des routes, chacune derrière sa garde de droit.
 func mountOrgRoutes(r chi.Router, id *identity) {
 	for _, rt := range orgRoutes(id) {
-		r.With(id.require(rt.perm, rt.target)).Method(rt.method, rt.pattern, rt.handler)
+		h := rt.handler
+		if id.routeStub != nil {
+			h = id.routeStub
+		}
+		r.With(id.require(rt.perm, rt.target)).Method(rt.method, rt.pattern, h)
 	}
 }
 

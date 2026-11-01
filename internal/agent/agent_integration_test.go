@@ -673,3 +673,99 @@ func (f fixture) defaultTeam(t *testing.T, org tenant.OrgID) uuid.UUID {
 	}
 	return teams[0].ID
 }
+
+// TestEnrollmentInheritsTheTokenTeam : le projet créé et l'agent inscrit prennent l'équipe
+// du jeton d'inscription ; rattaché à un projet existant, l'agent prend l'équipe du
+// projet, qui doit être celle du jeton. Les listes et fiches ne montrent que les agents
+// et jetons des équipes visibles ; un agent d'organisation n'est visible que de toutes
+// les équipes.
+func TestEnrollmentInheritsTheTokenTeam(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	f := setup(t)
+	o := f.org(t, "a")
+	general := f.defaultTeam(t, o)
+	web, err := f.orgs.CreateTeam(ctx, f.actor, o, "Web")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := f.agents.CreateEnrollment(ctx, f.actor, o, agent.EnrollmentInput{Name: "x", LifetimeHours: 24, MaxUses: 1}); !isKey(err, agent.KeyTeamInvalid) {
+		t.Fatalf("jeton sans équipe : %v", err)
+	}
+	if _, _, err := f.agents.CreateEnrollment(ctx, f.actor, o, agent.EnrollmentInput{Name: "x", LifetimeHours: 24, MaxUses: 1,
+		TeamID: uuid.Must(uuid.NewV7())}); !isKey(err, agent.KeyTeamInvalid) {
+		t.Fatalf("équipe inconnue : %v", err)
+	}
+	enr, err := f.enroll(t, f.enrollment(t, o, agent.EnrollmentInput{TeamID: web.ID}), "srv-web")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !enr.Created || enr.Agent.TeamID == nil || *enr.Agent.TeamID != web.ID {
+		t.Fatalf("inscription : %+v", enr)
+	}
+	p, err := f.projects.Get(ctx, o, tenant.OnlyTeams(web.ID), enr.Project.Slug)
+	if err != nil || p.TeamID != web.ID {
+		t.Fatalf("projet de l'hôte : %+v, %v", p, err)
+	}
+	// Projet existant d'une autre équipe : le jeton doit être de la même équipe.
+	h, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindHost, Name: "db", HostRef: "db", TeamID: general})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := f.agents.CreateEnrollment(ctx, f.actor, o, agent.EnrollmentInput{Name: "x", LifetimeHours: 24, MaxUses: 1,
+		ProjectSlug: h.Slug, TeamID: web.ID}); !isKey(err, agent.KeyTeamMismatch) {
+		t.Fatalf("projet d'une autre équipe : %v", err)
+	}
+	attached, err := f.enroll(t, f.enrollment(t, o, agent.EnrollmentInput{TeamID: general, ProjectSlug: h.Slug}), "db")
+	if err != nil || attached.Created || attached.Agent.TeamID == nil || *attached.Agent.TeamID != general {
+		t.Fatalf("rattachement : %+v, %v", attached, err)
+	}
+	orgAgent, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, nil, "ci", "initial", 90)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Visibilité : un membre de Web voit son agent et son jeton, pas les autres.
+	vis := tenant.OnlyTeams(web.ID)
+	page, err := f.agents.List(ctx, o, vis, agent.Filter{}, "", 50)
+	if err != nil || len(page.Items) != 1 || page.Items[0].ID != enr.Agent.ID || page.Items[0].TeamName != "Web" {
+		t.Fatalf("agents visibles : %+v, %v", page.Items, err)
+	}
+	if all, _ := f.agents.List(ctx, o, tenant.AllTeams(), agent.Filter{}, "", 50); len(all.Items) != 3 {
+		t.Fatalf("agents de l'administrateur : %d", len(all.Items))
+	}
+	if _, err := f.agents.Get(ctx, o, vis, orgAgent.ID); !errors.Is(err, agent.ErrNotFound) {
+		t.Fatalf("agent d'organisation vu d'une équipe : %v", err)
+	}
+	if _, err := f.agents.Team(ctx, o, vis, attached.Agent.ID); !errors.Is(err, agent.ErrNotFound) {
+		t.Fatalf("agent d'une autre équipe : %v", err)
+	}
+	if team, err := f.agents.Team(ctx, o, tenant.AllTeams(), orgAgent.ID); err != nil || team != nil {
+		t.Fatalf("équipe d'un agent d'organisation : %v, %v", team, err)
+	}
+	tokens, err := f.agents.Enrollments(ctx, o, vis)
+	if err != nil || len(tokens) != 1 || tokens[0].TeamID != web.ID {
+		t.Fatalf("jetons visibles : %+v, %v", tokens, err)
+	}
+	if team, err := f.agents.EnrollmentTeam(ctx, o, tokens[0].ID); err != nil || team != web.ID {
+		t.Fatalf("équipe du jeton : %v, %v", team, err)
+	}
+	if repos, err := f.agents.RepoAgents(ctx, o, web.ID); err != nil || len(repos) != 1 || repos[0].ID != orgAgent.ID {
+		t.Fatalf("agents dépôt utilisables par Web : %+v, %v", repos, err)
+	}
+	// Une équipe supprimée rend ses agents à l'organisation et emporte ses jetons.
+	empty, _ := f.orgs.CreateTeam(ctx, f.actor, o, "Vide")
+	teamAgent, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, &empty.ID, "ci-vide", "initial", 90)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.enrollment(t, o, agent.EnrollmentInput{TeamID: empty.ID})
+	if err := f.orgs.DeleteTeam(ctx, f.actor, o, empty.ID); err != nil {
+		t.Fatal(err)
+	}
+	if team, err := f.agents.Team(ctx, o, tenant.AllTeams(), teamAgent.ID); err != nil || team != nil {
+		t.Fatalf("agent après suppression de son équipe : %v, %v", team, err)
+	}
+	if all, _ := f.agents.Enrollments(ctx, o, tenant.AllTeams()); len(all) != 2 {
+		t.Fatalf("jetons après suppression d'une équipe : %d", len(all))
+	}
+}

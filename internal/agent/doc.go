@@ -15,4 +15,10 @@
 // Côté interface : CreateRepoAgent, CreateToken, RevokeToken, Disable, CreateEnrollment,
 // RevokeEnrollment, chacun journalisé dans la même transaction. Un secret n'est renvoyé
 // qu'à sa création (IssuedToken.Plaintext) ; il n'est jamais stocké ni journalisé.
+//
+// Équipes (ADR 0034) : un agent appartient à une équipe, ou à aucune (agent
+// d'organisation, géré par ses seuls administrateurs, qui peut servir toutes les équipes).
+// Un jeton d'inscription appartient toujours à une équipe : le projet créé et l'agent
+// inscrit en héritent. Les lectures pour un compte (List, Get, Team, Enrollments) ne
+// voient que les agents et jetons des équipes visibles.
 package agent

@@ -80,6 +80,12 @@ type IdentityOptions struct {
 	// SessionMaxAge est la durée absolue d'une session authentifiée, comptée depuis la
 	// connexion, quelle que soit son activité (0 : sans).
 	SessionMaxAge time.Duration
+
+	// routeStub, s'il est posé (tests seulement, depuis le paquet), remplace le
+	// gestionnaire de chaque route de l'organisation derrière sa garde de droit : le test
+	// dérivé de la matrice éprouve ainsi toute la chaîne (session, CSRF, garde
+	// d'organisation, droit de la route) sans effet de bord.
+	routeStub http.HandlerFunc
 }
 
 // identity porte authx, mfax et ce que l'interface en tire : visiteur, gardes, rendu des

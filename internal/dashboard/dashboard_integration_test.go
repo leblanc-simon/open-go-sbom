@@ -362,3 +362,57 @@ func TestReadsNeedTheOrganization(t *testing.T) {
 		t.Fatalf("organisation nulle : %v", err)
 	}
 }
+
+// TestOrgIndicatorsFollowTeams : le tableau de bord d'un membre ne compte que les projets
+// et agents de ses équipes ; sa tendance additionne les statistiques quotidiennes de ces
+// projets ; sans équipe, il est vide.
+func TestOrgIndicatorsFollowTeams(t *testing.T) {
+	t.Parallel()
+	pool, _, s := newDB(t)
+	f := reference(t, pool, "atelier")
+	ops := newID()
+	f.exec(`INSERT INTO teams (org_id, id, name) VALUES ($1, $2, 'Exploitation')`, f.org, ops)
+	f.exec(`UPDATE projects SET team_id = $2 WHERE id = $1`, f.id("srv"), ops)
+	f.exec(`UPDATE agents SET team_id = $2 WHERE id = $1`, f.id("srv-agent"), ops)
+	yesterday := day(now).AddDate(0, 0, -1)
+	f.exec(`INSERT INTO project_daily_stats (org_id, project_id, day, open_critical, open_high, open_medium, open_low,
+		open_negligible, open_unknown, open_kev, recorded_at) VALUES
+		($1, $2, $4, 0, 0, 3, 0, 0, 0, 0, now()), ($1, $3, $4, 7, 0, 0, 0, 0, 0, 7, now())`, f.org, f.id("srv"), f.id("api"), yesterday)
+
+	o, err := s.Org(context.Background(), f.org, tenant.OnlyTeams(ops), Period30)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantCounts(t, "ouverts de l'équipe", o.Open, 0, 0, 1, 1, 0)
+	if len(o.Exposed) != 1 || o.Exposed[0].Slug != "srv" || o.ProjectCount() != 1 || o.KEVVulns != 0 {
+		t.Errorf("équipe : exposés %+v, %d projets, %d KEV", o.Exposed, o.ProjectCount(), o.KEVVulns)
+	}
+	if o.SilentAgents != 1 || len(o.Silent) != 1 || o.Silent[0].Name != "srv-agent" {
+		t.Errorf("agents muets de l'équipe : %d %+v", o.SilentAgents, o.Silent)
+	}
+	if len(o.Widespread) != 2 {
+		t.Errorf("composants répandus de l'équipe : %+v", o.Widespread)
+	}
+	var past *Point
+	for i := range o.Trend {
+		if o.Trend[i].Day.Equal(yesterday) {
+			past = &o.Trend[i]
+		}
+	}
+	if past == nil || past.Open.Of(vuln.SeverityMedium) != 3 || past.Open.Of(vuln.SeverityCritical) != 0 {
+		t.Errorf("tendance de l'équipe : %+v", o.Trend)
+	}
+
+	none, err := s.Org(context.Background(), f.org, tenant.OnlyTeams(), Period30)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if none.Open.Total() != 0 || len(none.Exposed) != 0 || none.ProjectCount() != 0 || none.SilentAgents != 0 || len(none.Widespread) != 0 {
+		t.Errorf("membre sans équipe : %+v", none)
+	}
+	all, err := s.Org(context.Background(), f.org, tenant.AllTeams(), Period30)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantCounts(t, "administrateur", all.Open, 1, 1, 2, 1, 1)
+}
