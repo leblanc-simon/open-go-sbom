@@ -204,8 +204,9 @@ func (e *enricher) enrich(ctx context.Context, in enrichInput) enrichResult {
 	out, err := llm.Run(ctx, llm.Session{
 		Provider: p, System: systemPrompt, Prompt: userPrompt(in), Tools: aiTools, Handlers: tb.handlers(),
 		MaxTokens: e.cfg.ResponseTokens,
-		Budget:    llm.Budget{MaxTurns: e.cfg.MaxTurns, MaxInputTokens: e.cfg.MaxInputTokens, MaxOutputTokens: e.cfg.MaxOutputTokens},
-		Reminder:  "Call submit_candidates now with the candidates found so far (an empty list is valid).",
+		Budget: llm.Budget{MaxTurns: e.cfg.MaxTurns, MaxInputTokens: e.cfg.MaxInputTokens, MaxOutputTokens: e.cfg.MaxOutputTokens,
+			MaxCallsPerTurn: maxToolCallsPerTurn},
+		Reminder: "Call submit_candidates now with the candidates found so far (an empty list is valid).",
 	})
 	res.Usage, res.Turns = out.Usage, out.Turns
 	if err == nil && !tb.done {

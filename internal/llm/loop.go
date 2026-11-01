@@ -25,6 +25,10 @@ type Budget struct {
 	MaxTurns        int
 	MaxInputTokens  int64
 	MaxOutputTokens int64
+	// MaxCallsPerTurn borne les appels d'outils exécutés pour une réponse du modèle ; les
+	// suivants reçoivent une erreur sans être exécutés (SEC2-09 : une réponse ne fait pas
+	// tourner une centaine d'outils).
+	MaxCallsPerTurn int
 }
 
 // Session décrit une conversation avec outils.
@@ -96,7 +100,16 @@ func Run(ctx context.Context, s Session) (Outcome, error) {
 			continue
 		}
 		results := make([]Block, 0, len(uses))
-		for _, u := range uses {
+		for i, u := range uses {
+			// Le délai est vérifié entre deux outils, pas seulement entre deux tours.
+			if err := ctx.Err(); err != nil {
+				return out, err
+			}
+			if s.Budget.MaxCallsPerTurn > 0 && i >= s.Budget.MaxCallsPerTurn {
+				results = append(results, Block{Kind: BlockToolResult, ToolResult: ToolResult{ID: u.ID, Name: u.Name,
+					Content: fmt.Sprintf("not executed: at most %d tool calls per turn", s.Budget.MaxCallsPerTurn), IsError: true}})
+				continue
+			}
 			r, err := s.call(ctx, u)
 			if err != nil {
 				return out, err

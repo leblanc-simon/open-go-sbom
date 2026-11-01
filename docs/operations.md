@@ -1170,7 +1170,9 @@ configuration de l'agent fixe l'adresse (`ai.external.base_url`, https) et la cl
 
 **Budget et repli.** Une analyse s'arrête au-delà de `ai.max_turns` (40),
 `ai.max_input_tokens` (600 000, cache compris), `ai.max_output_tokens` (40 000),
-`ai.max_read_kib` (1 Mio) ou `ai.timeout` (20 min) ; une erreur ou un refus du fournisseur
+`ai.max_read_kib` (1 Mio ; chaque recherche y coûte 2 Kio en plus de ses résultats) ou
+`ai.timeout` (20 min, vérifié aussi entre deux outils et pendant une recherche) ; une
+réponse du modèle n'exécute que 20 appels d'outils au plus ; une erreur ou un refus du fournisseur
 a le même effet : le SBOM part avec les seuls composants de Syft, marqué « enrichissement
 incomplet » (fiche de l'instantané). L'analyse est incrémentale (fichiers modifiés depuis
 le dernier commit analysé par le modèle, selon la forge, et fichiers des composants IA

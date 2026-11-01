@@ -3,6 +3,7 @@ package repoagent
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -118,6 +119,11 @@ const (
 	// dans les fichiers de cette taille au plus (une clé tient en quelques Kio) ; au-delà,
 	// le fichier est listé, puis refusé à la lecture s'il en contient une.
 	maxKeySniff = 64 << 10
+	// searchCost est décompté du budget de lecture à chaque recherche, en plus des
+	// résultats : une recherche sans résultat n'est pas gratuite (SEC2-09).
+	searchCost = 2 << 10
+	// maxToolCallsPerTurn borne les outils exécutés pour une réponse du modèle.
+	maxToolCallsPerTurn = 20
 )
 
 func openWorkspace(dir string, excl exclusions, maxRead int64) (*workspace, error) {
@@ -346,13 +352,20 @@ type searchHit struct {
 
 // search cherche re dans les fichiers texte non exclus dont le chemin correspond à glob
 // (motif path.Match sur le chemin, ou sur le nom s'il n'a pas de « / » ; vide : tous),
-// au plus max résultats, dans l'ordre des chemins.
-func (w *workspace) search(re *regexp.Regexp, glob string, max int) ([]searchHit, bool, error) {
+// au plus max résultats, dans l'ordre des chemins. Chaque recherche coûte searchCost au
+// budget de lecture, en plus de ses résultats ; ctx est vérifié entre deux fichiers.
+func (w *workspace) search(ctx context.Context, re *regexp.Regexp, glob string, max int) ([]searchHit, bool, error) {
 	if max < 1 || max > maxSearchHits {
 		max = maxSearchHits
 	}
+	if err := w.charge(searchCost); err != nil {
+		return nil, false, err
+	}
 	var paths []string
 	err := fs.WalkDir(w.root.FS(), ".", func(p string, d fs.DirEntry, err error) error {
+		if cerr := ctx.Err(); cerr != nil {
+			return cerr
+		}
 		if err != nil {
 			return nil
 		}
@@ -387,6 +400,9 @@ func (w *workspace) search(re *regexp.Regexp, glob string, max int) ([]searchHit
 	var hits []searchHit
 	size := 0
 	for _, p := range paths {
+		if err := ctx.Err(); err != nil {
+			return nil, false, err
+		}
 		data, err := w.content(p)
 		if err != nil {
 			continue
