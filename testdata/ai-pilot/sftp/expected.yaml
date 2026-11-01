@@ -1,0 +1,18 @@
+description: >-
+  Bibliothèque Go (GitHub pkg/sftp), commit qui porte golang.org/x/crypto v0.1.0 (CVE de
+  contrôle CVE-2023-48795 du lot 1) : tout est déclaré dans go.mod et les flux GitHub
+  Actions ; aucun composant à trouver par l'IA.
+source:
+  url: https://github.com/pkg/sftp.git
+  commit: 5bdc2b0e679d0d8336dc63f8b790108667ea4280
+components: []
+forbidden:
+  - purl: pkg:golang/golang.org/x/crypto@v0.1.0
+    why: déclaré dans go.mod (Syft)
+ignored:
+  - purl: pkg:github/actions/checkout@v3
+    why: action GitHub cataloguée par Syft (.github/workflows/CI.yml), écartée par la fusion
+  - purl: pkg:github/actions/setup-go@v3
+    why: action GitHub cataloguée par Syft
+  - purl: pkg:github/actions/upload-artifact@v3
+    why: action GitHub cataloguée par Syft

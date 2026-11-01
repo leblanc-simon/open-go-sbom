@@ -27,6 +27,8 @@ de `components` est un faux positif, un composant de `components` non accepté u
 | `cdn-scripts` | Feuille et scripts chargés depuis un CDN dans un gabarit |
 | `curl-install` | Outils installés par `curl … \| sh` et binaire d'une version GitHub |
 | `vendored-c` | Bibliothèque C recopiée (en-tête de SQLite) |
+| `vendored-python` | Bibliothèque Python recopiée (`__version__.py` de requests) ; version de l'application, mise à jour citée en commentaire |
+| `ci-makefile-vars` | Version d'un outil dans une variable du Makefile, images de l'intégration continue (dont une par variable) ; images à « latest » ou sans étiquette, version du dépôt (calqué sur l'échantillon pilote, T18) |
 | `trap-comment` | Versions citées dans des commentaires et un journal des modifications |
 | `trap-homonym` | Module interne homonyme d'un paquet npm, version du dépôt lui-même |
 | `hostile-readme` | Instructions malveillantes dans un README ; `.env`, clé privée, clé PEM dans un YAML au nom anodin, identifiants AWS |
@@ -34,5 +36,9 @@ de `components` est un faux positif, un composant de `components` non accepté u
 
 Les secrets du corpus sont factices (témoins `LOTOR-CANARY-*`, clés sans matériau
 valide). `.gitignore` de ce dossier réintègre les `.env` que celui de la racine ignore.
+Champ facultatif `ignored` : composants ni justes ni faux (déjà vus par Syft et écartés par
+la fusion, ou discutables), reconnus au nom et à la version quel que soit le type purl ;
+il sert surtout à l'échantillon pilote ([`../ai-pilot/`](../ai-pilot/README.md)).
+
 Ajouter un cas : un dossier, son `repo/` et son `expected.yaml` ; les tests le prennent
 d'eux-mêmes et vérifient que chaque composant annoté est prouvable.

@@ -1,0 +1,40 @@
+description: >-
+  Service Go et Ruby (GitLab gitlab-org/gitlab-shell) : outils téléchargés par curl dont la
+  version est dans une variable du Makefile, images de l'intégration continue (dont une par
+  variable), image distroless sans étiquette, version du dépôt, gemmes et modules déclarés.
+source:
+  url: https://gitlab.com/gitlab-org/gitlab-shell.git
+  commit: 09ef3a73fcb889fcf53f35cadd100cf184c6a296
+components:
+  - purl: pkg:github/gotestyourself/gotestsum@v1.10.0
+    file: Makefile
+    line: 12
+    excerpt: "GOTESTSUM_VERSION := 1.10.0"
+  - purl: pkg:github/golangci/golangci-lint@v1.55.2
+    file: Makefile
+    line: 16
+    excerpt: "GOLANGCI_LINT_VERSION := 1.55.2"
+  - purl: pkg:docker/library/docker@20.10.15
+    file: .gitlab-ci.yml
+    line: 17
+    excerpt: 'DOCKER_VERSION: "20.10.15"'
+  - purl: pkg:docker/sourcegraph/lsif-go@v1.9
+    file: .gitlab-ci.yml
+    line: 160
+    excerpt: "image: sourcegraph/lsif-go:v1.9"
+forbidden:
+  - purl: pkg:generic/gitlab-shell@14.32.0
+    why: version du dépôt lui-même (fichier VERSION)
+  - purl: pkg:gem/danger@9.3.2
+    why: déclarée dans Gemfile.lock (Syft)
+  - purl: pkg:golang/go.uber.org/nilaway/cmd/nilaway@latest
+    why: installé à « latest », sans version
+ignored:
+  - purl: pkg:docker/library/docker@20.10.15-dind
+    why: service docker:${DOCKER_VERSION}-dind, version reconstituée d'une variable, sur aucune ligne
+  - purl: pkg:docker/gitlab-org/gitlab-build-images/debian-bullseye-ruby-3.2-golang-1.21-rust-1.65@rubygems-3.4-git-2.36-exiftool-12.60
+    why: image de construction au nom formé de variables, étiquette composite
+  - purl: pkg:generic/ruby@3.2.2
+    why: chaîne d'outils déclarée (.tool-versions, .ruby-version), discutable
+  - purl: pkg:generic/golang@1.21.5
+    why: chaîne d'outils déclarée (.tool-versions), discutable

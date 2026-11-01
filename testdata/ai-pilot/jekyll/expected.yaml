@@ -1,0 +1,13 @@
+description: >-
+  Site Jekyll (GitLab pages/jekyll) : gemmes déclarées dans Gemfile.lock, image de
+  l'intégration continue à « latest », gabarits sans ressource de CDN ; aucun composant à
+  trouver par l'IA.
+source:
+  url: https://gitlab.com/pages/jekyll.git
+  commit: 3137780c311e304a6823eefca2a8c8f1fa5b51ec
+components: []
+forbidden:
+  - purl: pkg:docker/library/ruby@latest
+    why: image à « latest », sans version
+  - purl: pkg:gem/jekyll@4.4.1
+    why: déclarée dans Gemfile et Gemfile.lock (Syft)

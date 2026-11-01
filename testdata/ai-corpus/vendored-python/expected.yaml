@@ -1,0 +1,13 @@
+description: >-
+  Bibliothèque Python recopiée dans third_party (requests, version dans __version__.py) ;
+  pièges : version de l'application elle-même, mise à jour envisagée citée en commentaire.
+components:
+  - purl: pkg:pypi/requests@2.31.0
+    file: third_party/requests/__version__.py
+    line: 8
+    excerpt: '__version__ = "2.31.0"'
+forbidden:
+  - purl: pkg:generic/myapp@0.4.0
+    why: version de l'application elle-même
+  - purl: pkg:pypi/urllib3@2.2.1
+    why: mise à jour envisagée, citée dans un commentaire
