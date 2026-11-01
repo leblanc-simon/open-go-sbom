@@ -1,4 +1,4 @@
--- 017_ai_enrichment : enrichissement IA de l'agent dépôt (T12, ADR 0043).
+-- 018_ai_enrichment : enrichissement IA de l'agent dépôt (T12, ADR 0043).
 --
 -- Chaque projet porte son réglage d'enrichissement : « disabled » (défaut : aucun modèle
 -- appelé), « local » (modèle local seulement) ou « external » (fournisseur externe

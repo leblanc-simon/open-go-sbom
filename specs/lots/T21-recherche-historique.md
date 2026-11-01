@@ -26,6 +26,15 @@ conservée).
 - Index sur (référence, date de réception) ; la requête « dernier instantané avant la date »
   ne parcourt pas l'historique complet.
 - Les résultats indiquent la date de l'instantané retenu pour chaque projet.
+- S'appuie sur la rétention de T17 ([ADR 0039](../../docs/adr/0039-retention-des-instantanes.md)) :
+  pour toute date postérieure ou égale à l'**horizon** de l'organisation
+  (`inventory.ReadRetention`, table `snapshot_retention` : la plus récente coupure
+  appliquée), l'instantané en vigueur de chaque référence existe encore et la recherche
+  est exacte ; pour une date antérieure, il ne reste que le dernier instantané de chaque
+  mois (l'état retenu est celui de la fin du mois précédent ou plus ancien) : c'est le
+  cas de l'avertissement. Sans ligne, la rétention n'est jamais passée et l'historique
+  est complet. Les instantanés sont ordonnés par date de scan puis identifiant
+  (`snapshots_ref_idx`), comme `ref_current`.
 
 ## Critères d'acceptation
 

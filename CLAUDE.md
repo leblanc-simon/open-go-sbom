@@ -106,6 +106,13 @@ vérificateur seul juge, fusion, statut `lotor:enrichment`, analyse incrémental
 `ai.external`, audité ; `ai.forbid_external`), route agent `refs/{id}/ai-components`, bloc
 « preuve » de la fiche composant. Corpus annoté `testdata/ai-corpus`, `make eval-ai`
 (vrai modèle, hors CI : mesure à faire par l'utilisateur).
+T17 terminé : différences d'instantanés (`internal/inventory` : `History`, job
+`inventory.diff`, tables `set_diffs`/`set_diff_items` par couple d'ensembles consécutifs,
+montée ou descente par `purl_base` ; ADR 0038), effet sur la sécurité calculé à la lecture
+(`finding.SnapshotEffect`), frise et écran `/projects/{project}/compare`, API
+`…/projects/{project}/snapshots` et `…/compare` ; rétention quotidienne (`retention.*` :
+90 jours puis le dernier instantané de chaque mois, jamais le dernier d'une référence ;
+orphelins supprimés ; horizon `snapshot_retention` pour T21 ; ADR 0039).
 
 ## Règles de travail
 

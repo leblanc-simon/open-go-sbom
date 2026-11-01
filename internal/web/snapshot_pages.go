@@ -64,12 +64,21 @@ type snapshotRow struct {
 	// Enrichment et EnrichmentModel : enrichissement IA déclaré par le SBOM (vide sans).
 	Enrichment      string
 	EnrichmentModel string
+	// Changes résume la différence avec l'instantané précédent ; nil pour le premier ou
+	// tant qu'elle n'est pas calculée (ChangesPending). CompareHref ouvre la comparaison.
+	Changes        *changeCounts
+	ChangesPending bool
+	CompareHref    string
 }
 
 func (id *identity) snapshotRow(base string, s inventory.Snapshot) snapshotRow {
 	row := snapshotRow{ID: s.ID, Href: base + "/snapshots/" + s.ID.String(), Scanned: stampAt(s.ScannedAt),
 		Commit: s.Commit, CommitShort: shortCommit(s.Commit), AgentName: s.AgentName, AgentVer: s.AgentVersion,
-		Counts: s.Counts, Current: s.Current, Enrichment: string(s.Enrichment), EnrichmentModel: s.EnrichmentModel}
+		Counts: s.Counts, Current: s.Current, Changes: changeCountsOf(s.Changes), ChangesPending: s.ChangesPending,
+		Enrichment: string(s.Enrichment), EnrichmentModel: s.EnrichmentModel}
+	if s.PreviousID != nil {
+		row.CompareHref = base + "/compare?to=" + s.ID.String()
+	}
 	if s.LastScannedAt.After(s.ScannedAt) {
 		row.LastScanned = stampAt(s.LastScannedAt)
 	}
@@ -107,6 +116,8 @@ type snapshotsView struct {
 	Snapshots  []snapshotRow
 	NextHref   template.URL
 	Ingestions []ingestionRow
+	Compare    *compareForm
+	Retention  inventory.RetentionPolicy
 }
 
 func (id *identity) snapshots(w http.ResponseWriter, r *http.Request) {
@@ -125,6 +136,7 @@ func (id *identity) snapshots(w http.ResponseWriter, r *http.Request) {
 	view := &snapshotsView{
 		Page: render.Page{TitleKey: "snapshots.title", TitleArgs: map[string]any{"Name": p.Name}, Nav: orgNav(acc, "projects")},
 		Base: orgBase(acc), Project: id.projectRow(p, id.Agents.Now()), Tabs: projectTabs(acc, p, "snapshots"),
+		Retention: id.History.Policy(),
 	}
 	selected := selectedRef(states, r.URL.Query().Get("ref"))
 	names := map[uuid.UUID]string{}
@@ -158,6 +170,12 @@ func (id *identity) snapshots(w http.ResponseWriter, r *http.Request) {
 			view.NextHref = template.URL("?" + q.Encode())
 		}
 	}
+	choices, err := id.History.Choices(ctx, acc.Org, p.ID, compareChoices)
+	if err != nil {
+		id.serverError(w, r, err)
+		return
+	}
+	view.Compare = compareFormOf(base+"/compare", choices, uuid.Nil, uuid.Nil)
 	recent, err := id.Ingest.Recent(ctx, acc.Org, p.ID, ingestionListSize)
 	if err != nil {
 		id.serverError(w, r, err)

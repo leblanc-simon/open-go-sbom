@@ -195,3 +195,15 @@ vulndb:
   download_timeout: 30m       # durée maximale d'une interrogation, d'un téléchargement ou d'un import téléversé
   max_archive_mib: 2048       # taille maximale d'une archive
   analysis_timeout: 10m       # durée maximale d'un job d'analyse, synchronisation comprise
+
+# Rétention des instantanés (docs/operations.md, « Rétention des instantanés » ; ADR 0039),
+# appliquée chaque nuit à 02:30 UTC par une instance worker. Tout instantané de moins de
+# `days` jours est gardé ; au-delà, le dernier de chaque mois (UTC), sans limite de durée.
+# Ne sont jamais supprimés le dernier instantané d'une référence ni celui en vigueur au
+# début de la fenêtre. Les ensembles d'inventaire et SBOM que plus rien ne référence sont
+# ensuite supprimés, ainsi que les réceptions terminées plus anciennes que la fenêtre.
+retention:
+  enabled: true   # false : aucun instantané ni aucune réception supprimé (orphelins supprimés quand même)
+  days: 90        # fenêtre où tout est gardé, en jours (1 à 36500)
+  count: 0        # derniers instantanés de chaque référence gardés quel que soit leur âge
+  monthly: true   # au-delà de la fenêtre, garder le dernier instantané de chaque mois

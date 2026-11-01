@@ -1,0 +1,41 @@
+{{define "change_counts" -}}
+<ul class="changes">
+  {{- if .Added}}<li class="change change--added"><span class="change__mark" aria-hidden="true">{{T "changes.mark_added"}}</span><span>{{Tn "changes.added" .Added}}</span></li>{{end}}
+  {{- if .Removed}}<li class="change change--removed"><span class="change__mark" aria-hidden="true">{{T "changes.mark_removed"}}</span><span>{{Tn "changes.removed" .Removed}}</span></li>{{end}}
+  {{- if .Upgraded}}<li class="change change--upgraded"><span class="change__mark" aria-hidden="true">{{T "changes.mark_upgraded"}}</span><span>{{Tn "changes.upgraded" .Upgraded}}</span></li>{{end}}
+  {{- if .Downgraded}}<li class="change change--downgraded"><span class="change__mark" aria-hidden="true">{{T "changes.mark_downgraded"}}</span><span>{{Tn "changes.downgraded" .Downgraded}}</span></li>{{end}}
+</ul>
+{{- end}}
+
+{{define "change_kind" -}}
+<span class="change change--{{.}}"><span class="change__mark" aria-hidden="true">{{T (print "changes.mark_" .)}}</span><span>{{T (print "compare.kind_" .)}}</span></span>
+{{- end}}
+
+{{define "compare_options" -}}
+{{- range .}}
+{{- if .Label}}<optgroup label="{{.Label}}">{{end}}
+{{- range .Options}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{if .LabelKey}}{{T .LabelKey}}{{else}}{{.Label}}{{end}}</option>{{end}}
+{{- if .Label}}</optgroup>{{end}}
+{{- end}}
+{{- end}}
+
+{{define "compare_form" -}}
+{{- with .}}
+<section class="panel" aria-labelledby="compare-form-title">
+  <div class="panel__head"><h2 class="panel__title" id="compare-form-title">{{T "compare.form_title"}}</h2></div>
+  <div class="panel__body">
+    <form class="form-row" method="get" action="{{.Action}}">
+      <div class="field">
+        <label class="field__label" for="compare-from">{{T "compare.from"}}</label>
+        <select class="select" id="compare-from" name="from">{{template "compare_options" .From}}</select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="compare-to">{{T "compare.to"}}</label>
+        <select class="select" id="compare-to" name="to">{{template "compare_options" .To}}</select>
+      </div>
+      <button class="btn" type="submit">{{T "compare.submit"}}</button>
+    </form>
+  </div>
+</section>
+{{- end}}
+{{- end}}

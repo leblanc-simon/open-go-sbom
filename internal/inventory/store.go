@@ -124,6 +124,12 @@ func Store(ctx context.Context, tx *db.OrgTx, r Record, now time.Time) (Result, 
 	if res.CurrentChanged, err = updateCurrent(ctx, tx, r, cur, res, now); err != nil {
 		return Result{}, wrap("état courant", err)
 	}
+	if res.Outcome != OutcomeUnchanged {
+		// Un instantané créé ou remplacé change les couples d'instantanés consécutifs.
+		if err := enqueueDiff(ctx, tx, r.RefID); err != nil {
+			return Result{}, wrap("mise en file des différences", err)
+		}
+	}
 	if res.CurrentChanged {
 		if _, err := jobs.Enqueue(ctx, tx, jobs.Job{Kind: AnalysisKind, Payload: AnalysisPayload{RefID: r.RefID},
 			Priority: jobs.PriorityHigh, UniqueKey: AnalysisUniqueKey(r.RefID)}); err != nil {
@@ -209,33 +215,41 @@ func upsertComponents(ctx context.Context, tx *db.OrgTx, cs []sbom.Component) (m
 // éléments. Deux ingestions qui créent le même ensemble en même temps : la seconde attend
 // la première (contrainte unique) puis relit son ensemble, complet puisqu'écrit dans la
 // même transaction que lui.
+//
+// Un ensemble existant est verrouillé (FOR KEY SHARE) avant d'être référencé : la
+// rétention, qui supprime les ensembles orphelins en sautant ceux qui sont verrouillés,
+// ne peut pas le supprimer entre sa lecture et l'insertion de l'instantané. Supprimé
+// juste avant la lecture, il est recréé.
 func ensureSet(ctx context.Context, tx *db.OrgTx, cs []sbom.Component, ids map[string]uuid.UUID) (uuid.UUID, bool, error) {
 	fp := sbom.Fingerprint(cs)
-	var id uuid.UUID
-	err := tx.QueryRowContext(ctx, `SELECT id FROM component_sets WHERE fingerprint = $1`, fp[:]).Scan(&id)
-	if err == nil {
-		return id, false, nil
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		return uuid.Nil, false, err
-	}
-	if id, err = uuid.NewV7(); err != nil {
-		return uuid.Nil, false, err
-	}
 	counts := sbom.CountsOf(cs)
-	var created uuid.UUID
-	err = tx.QueryRowContext(ctx, `
-		INSERT INTO component_sets (org_id, id, fingerprint, component_count, syft_count, ia_count, weak_count)
-		VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (org_id, fingerprint) DO NOTHING RETURNING id`,
-		tx.OrgID(), id, fp[:], counts.Total, counts.Syft, counts.IA, counts.Weak).Scan(&created)
-	if errors.Is(err, sql.ErrNoRows) {
-		err = tx.QueryRowContext(ctx, `SELECT id FROM component_sets WHERE fingerprint = $1`, fp[:]).Scan(&id)
-		return id, false, err
+	for range 3 {
+		var id uuid.UUID
+		err := tx.QueryRowContext(ctx, `SELECT id FROM component_sets WHERE fingerprint = $1 FOR KEY SHARE`, fp[:]).Scan(&id)
+		if err == nil {
+			return id, false, nil
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return uuid.Nil, false, err
+		}
+		if id, err = uuid.NewV7(); err != nil {
+			return uuid.Nil, false, err
+		}
+		var created uuid.UUID
+		err = tx.QueryRowContext(ctx, `
+			INSERT INTO component_sets (org_id, id, fingerprint, component_count, syft_count, ia_count, weak_count)
+			VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (org_id, fingerprint) DO NOTHING RETURNING id`,
+			tx.OrgID(), id, fp[:], counts.Total, counts.Syft, counts.IA, counts.Weak).Scan(&created)
+		if errors.Is(err, sql.ErrNoRows) {
+			// Créé par une ingestion concurrente : relu au tour suivant.
+			continue
+		}
+		if err != nil {
+			return uuid.Nil, false, err
+		}
+		return created, true, insertItems(ctx, tx, created, cs, ids)
 	}
-	if err != nil {
-		return uuid.Nil, false, err
-	}
-	return created, true, insertItems(ctx, tx, created, cs, ids)
+	return uuid.Nil, false, errors.New("ensemble d'inventaire introuvable après trois essais")
 }
 
 func insertItems(ctx context.Context, tx *db.OrgTx, setID uuid.UUID, cs []sbom.Component, ids map[string]uuid.UUID) error {

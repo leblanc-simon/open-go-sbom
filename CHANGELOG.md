@@ -30,6 +30,15 @@ appliquées automatiquement, sans retour arrière.
   « preuve » sur la fiche composant, inventaire par origine sur la fiche projet, statut
   d'enrichissement des instantanés. Corpus d'évaluation annoté (`testdata/ai-corpus`) et
   cible `make eval-ai`. Nouvelle dépendance : SDK Go officiel d'Anthropic (v2.4.0).
+- Différences d'instantanés (T17, ADR 0038) : la frise des instantanés d'une référence
+  indique les composants ajoutés, retirés, montés ou descendus de version depuis le
+  précédent ; écran de comparaison de deux instantanés quelconques d'un projet, avec
+  l'effet sur la sécurité (constats introduits et résolus) ; routes d'API
+  `GET /api/v1/orgs/{org}/projects/{project}/snapshots` et `…/compare`.
+- Rétention des instantanés (T17, ADR 0039) : tout est gardé 90 jours, puis le dernier
+  instantané de chaque mois, sans limite de durée ; le dernier instantané d'une référence
+  n'est jamais supprimé ; les réceptions hors fenêtre, puis les ensembles d'inventaire et
+  SBOM devenus orphelins sont supprimés chaque nuit. Réglages `retention.*`.
 
 ### Modifié
 
@@ -37,6 +46,8 @@ appliquées automatiquement, sans retour arrière.
   `viewer` et `analyst` disparaissent). La migration 016 crée une équipe « Général » par
   organisation, y rattache projets, jetons d'inscription et agents serveur, et y fait
   entrer chaque membre avec son ancien rôle : aucun accès n'est perdu.
+- La migration 017 rend facultatif l'instantané d'un constat et de son historique : un
+  constat dont la rétention supprime le dernier instantané reste, sans lien vers lui.
 
 ### Sécurité
 

@@ -49,6 +49,7 @@ func valid() Config {
 	c.Ingest = Ingest{MaxUploadMiB: 32, MaxDecompressedMiB: 64, MaxDepth: 64, MaxComponents: 50000, DecodeTimeout: 5 * time.Minute,
 		MaxPerRefPerDay: 200, MaxOrgStorageMiB: 10240, MaxReencodes: 2}
 	c.VulnDB = defaultVulnDB
+	c.Retention.Days = 90
 	return c
 }
 
@@ -115,6 +116,8 @@ secrets:
   active_key: k1
 workers:
   enabled: false
+retention:
+  monthly: false
 `
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatal(err)
@@ -133,6 +136,9 @@ workers:
 	// Un false écrit dans le fichier n'est pas écrasé par un défaut.
 	if cfg.Workers.Enabled {
 		t.Error("workers.enabled: false ignoré")
+	}
+	if cfg.Retention.Monthly || !cfg.Retention.Enabled || cfg.Retention.Days != 90 {
+		t.Errorf("rétention mal lue : %+v", cfg.Retention)
 	}
 	if cfg.Database.MaxIdleConns != 3 {
 		t.Errorf("la variable d'environnement ne l'emporte pas : %d", cfg.Database.MaxIdleConns)
@@ -237,6 +243,8 @@ func TestValidate(t *testing.T) {
 		{"planificateur", "workers.schedule_interval", func(c *Config) { c.Workers.ScheduleInterval = 0 }},
 		{"arrêt des workers", "workers.shutdown_timeout", func(c *Config) { c.Workers.ShutdownTimeout = 0 }},
 		{"plafond par organisation", "workers.org_limit", func(c *Config) { c.Workers.OrgLimit = 0 }},
+		{"durée de rétention", "retention.days", func(c *Config) { c.Retention.Days = 0 }},
+		{"nombre gardé", "retention.count", func(c *Config) { c.Retention.Count = -1 }},
 		{"envoi nul", "ingest.max_upload_mib", func(c *Config) { c.Ingest.MaxUploadMiB = 0 }},
 		{"envoi démesuré", "ingest.max_upload_mib", func(c *Config) { c.Ingest.MaxUploadMiB, c.Ingest.MaxDecompressedMiB = 5000, 5000 }},
 		{"décompressé plus petit que l'envoi", "ingest.max_decompressed_mib", func(c *Config) { c.Ingest.MaxDecompressedMiB = 16 }},

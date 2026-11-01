@@ -33,6 +33,17 @@ type Config struct {
 	Workers    Workers         `yaml:"workers"    env-prefix:"LOTOR_"`
 	Ingest     Ingest          `yaml:"ingest"     env-prefix:"LOTOR_"`
 	VulnDB     VulnDB          `yaml:"vulndb"     env-prefix:"LOTOR_"`
+	Retention  Retention       `yaml:"retention"  env-prefix:"LOTOR_"`
+}
+
+// Retention règle la rétention des instantanés (T17, ADR 0039), appliquée chaque nuit
+// par les workers. Enabled et Monthly, vrais par défaut, n'ont pas d'env-default (un
+// false écrit dans le fichier serait écrasé) : Defaults les pose.
+type Retention struct {
+	Enabled bool `yaml:"enabled" env:"RETENTION_ENABLED" env-description:"Delete old snapshots according to the retention policy (default true); orphan inventory sets and SBOMs are always deleted"`
+	Days    int  `yaml:"days"    env:"RETENTION_DAYS"    env-default:"90" env-description:"Every snapshot younger than this many days is kept (1 to 36500)"`
+	Count   int  `yaml:"count"   env:"RETENTION_COUNT"   env-default:"0"  env-description:"The latest snapshots of each reference kept whatever their age (0: none beyond the window)"`
+	Monthly bool `yaml:"monthly" env:"RETENTION_MONTHLY" env-description:"Beyond the window, keep the last snapshot of each month, without time limit (default true)"`
 }
 
 // VulnDB règle la base de vulnérabilités (§ 12 de l'architecture, ADR 0017) : liste de
@@ -193,6 +204,7 @@ func Defaults() Config {
 	c.Auth.CookieName = "lotor_session"
 	c.MFA.Issuer = "lotor"
 	c.Workers.Enabled = true
+	c.Retention.Enabled, c.Retention.Monthly = true, true
 	return c
 }
 
