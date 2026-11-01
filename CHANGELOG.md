@@ -10,6 +10,18 @@ appliquées automatiquement, sans retour arrière.
 
 ### Ajouté
 
+- Politiques, alertes et statuts de commit (T15, ADR 0045 à 0047) : règles en CEL sur les
+  constats ou les agents, vérifiées avant l'enregistrement (position de l'erreur, coût
+  borné) avec un aperçu du nombre de violations ; modèles fournis (KEV sur un projet de
+  production, critique avec correctif depuis plus de 30 jours, agent muet depuis 7 jours) ;
+  violations datées, écran des violations et section « Alertes » du tableau de bord ;
+  canaux par organisation (e-mail par SMTP, webhook générique signé en HMAC avec
+  horodatage, Matrix, Mattermost, Slack), secrets chiffrés, envoi immédiat ou résumé
+  quotidien, sans doublon et réessayé, bouton « Envoyer un test » ; verdict d'un
+  instantané `GET /api/v1/agent/snapshots/{id}/verdict` ; l'agent dépôt peut publier le
+  verdict comme statut de commit sur GitHub et GitLab (`status.enabled`). Réglages
+  `notify.*` et `smtp.*` ; format du webhook : [`docs/notifications.md`](docs/notifications.md).
+
 - Équipes et droits (T16, ADR 0034) : chaque projet appartient à une équipe ; un membre ne
   voit que les projets de ses équipes, sur toutes les surfaces (listes, fiches, recherche
   et exports, API utilisateur, tableau de bord, vulnérabilités, composants, agents), et y

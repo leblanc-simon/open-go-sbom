@@ -42,3 +42,6 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0035](0035-decisions-de-triage.md) | Décisions de triage appliquées aux constats, statut effectif rangé sur chaque constat, journal en ajout seul | Accepté |
 | [0036](0036-echanges-vex.md) | Échanges VEX : OpenVEX 0.2.0 et CycloneDX 1.6, correspondance des statuts et des justifications, marques de lotor | Accepté |
 | [0037](0037-ecrans-du-triage.md) | Écrans du triage : fiche du constat au lieu du tiroir, constats masqués par défaut, page VEX, décisions de l'organisation | Accepté |
+| [0045](0045-politiques-cel-et-verdicts.md) | Politiques en CEL (contexte typé, coût borné), violations datées et dédoublonnées, verdict d'un instantané | Accepté |
+| [0046](0046-notifications.md) | Notifications : canaux et secrets chiffrés, envois uniques par canal et violation, réessais, webhook signé, garde SSRF, SMTP | Accepté |
+| [0047](0047-statut-de-commit.md) | Statut de commit publié par l'agent dépôt après une attente bornée du verdict | Accepté |

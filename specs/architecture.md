@@ -75,13 +75,15 @@ internal/
     grype/               # correspondance et cycle de vie de la base via Grype
     vulntest/            # fausse base (Engine, Source) pour les tests
   download/              # téléchargements HTTP(S) du serveur (vuln.Fetcher), hors métier
+  delivery/              # envois des notifications (HTTP gardé contre la SSRF, SMTP), hors métier
   finding/               # cycle de vie des constats, analyse des références
   benchdata/             # jeu synthétique et SBOM des mesures (docs/benchmarks.md)
   search/                # analyse de requête, plan, exécution, export
   dashboard/             # agrégats et statistiques quotidiennes
   triage/                # décisions de triage, statut effectif des constats, échéances (T14)
     vex/                 # OpenVEX et CycloneDX VEX : écriture, lecture, schéma OpenVEX embarqué
-  policy/ notify/        # lot 2
+  policy/                # règles CEL, évaluation, violations, verdict d'un instantané (T15)
+  notify/                # canaux de notification, envois, messages traduits (T15)
   license/
     grant/               # lot 3
   web/                   # routeur chi, handlers HTML par écran, gestion, serveurs
@@ -127,7 +129,8 @@ Nommage : paquets courts en anglais, jamais de paquet fourre-tout (`util`, `help
   - `github.com/anchore/grant/...` : `license/grant`.
 - Les types d'Anchore ne traversent jamais la frontière d'un adaptateur.
 - Le métier n'ouvre aucune connexion : un téléchargement passe par une interface injectée
-  (`vuln.Fetcher`), implémentée par `download`, paquet serveur hors métier (ADR 0017).
+  (`vuln.Fetcher`), implémentée par `download`, paquet serveur hors métier (ADR 0017) ; de
+  même, les notifications passent par `notify.Sender`, implémenté par `delivery` (ADR 0046).
 - `agentclient`, `hostagent`, `repoagent`, `forge`, `llm` ne dépendent d'aucun paquet
   serveur (`db`, `inventory`…) : les agents restent des binaires légers.
 - Pas de variable globale mutable ; les dépendances sont injectées par constructeur.
@@ -162,7 +165,7 @@ relevées en T00 (une montée de version ultérieure ne demande pas de nouvelle 
 | Métriques | `github.com/prometheus/client_golang` | v1.25.0 | Validé |
 | Paquets deb et rpm | `nfpm` en directive `tool` (`make packages`, T07) | v2.48.0 | Validé |
 | Fournisseur de modèle | SDK Go officiel d'Anthropic ; Ollama par son API HTTP sans SDK | — | À valider en T12 (modèle par défaut `claude-sonnet-5-5`, IA désactivée par défaut) |
-| Règles de politique | `github.com/google/cel-go` | — | Validé le 1er novembre 2026 (T15) |
+| Règles de politique | `github.com/google/cel-go`, sous son nouveau chemin de module `cel.dev/cel-go` (dépendance transitive nouvelle : `github.com/antlr4-go/antlr/v4` v4.13.1) | v0.32.0 | Validé le 1er novembre 2026 (T15, ADR 0045) |
 | OIDC | `oidcx` dans open-go-base, ou paquet local | — | Point ouvert, T25 |
 
 Sans dépendance : client Git (binaire `git` du système), clients des forges (HTTP + JWT
@@ -189,7 +192,10 @@ tentatives de connexion, T03), `AgentAPI` (débit de l'API des agents par jeton 
 jetons refusés par IP, T04), `UserAPI` (débit de l'API utilisateur par jeton personnel,
 jetons refusés par IP, durée et nombre simultané des exports de la recherche, T09),
 `Retention` (rétention des instantanés : fenêtre en jours, nombre gardé, dernier
-instantané de chaque mois au-delà, T17, ADR 0039), `Migration`
+instantané de chaque mois au-delà, T17, ADR 0039), `Notify` (URL publique des liens, délai
+d'un envoi, adresses privées autorisées, heure du résumé quotidien, T15, ADR 0046), `SMTP`
+(serveur d'envoi des courriels : hôte, port, `starttls`/`tls`/`none`, identifiants,
+expéditeur, T15), `Migration`
 (`migration_dsn` : connexion du rôle propriétaire, utilisée uniquement pour migrer).
 `Database.DSN` est la connexion du rôle d'exécution. `--help` liste toutes les variables
 d'environnement. Un `config.example.yaml` commenté accompagne chaque binaire. Un fragment
@@ -284,7 +290,9 @@ Données **par organisation** (toutes portent `org_id`) :
 | `ref_analyses` | dernière analyse de chaque référence : ensemble et base analysés |
 | `audit_events`, `org_daily_stats`, `project_daily_stats` | journal d'audit ; statistiques quotidiennes de l'organisation et de chaque projet actif (une ligne par jour UTC, réécrite à chaque passage horaire, ADR 0027) |
 | `triage_decisions` | journal des décisions de triage, en ajout seul : portée (projet et purl, ou organisation et `purl_base` avec plage `vers`), statut, justification VEX d'origine, commentaire, échéance d'un risque accepté, auteur (T14, ADR 0035) |
-| `policies`, `notification_channels`… | lots 2 et 3 |
+| `policies`, `policy_channels` | politiques : règle CEL, sujet (constat ou agent), active, bloquante, mode d'envoi, dernière erreur d'évaluation ; canaux de chaque politique (T15, ADR 0045) |
+| `policy_violations`, `policy_evaluations` | violation d'une politique par un sujet (constat avec son projet et sa référence, ou agent), ouverte, prolongée, résolue, une seule ouverte par couple ; dernière évaluation de chaque référence, pour le verdict d'un instantané (T15) |
+| `notification_channels`, `notification_deliveries` | canaux (e-mail, webhook, Matrix, Mattermost, Slack ; réglages en `jsonb`, secret chiffré par `internal/secret`, derniers envois) ; un envoi par couple (canal, violation), immédiat ou de résumé, en attente, envoyé ou écarté (T15, ADR 0046) |
 
 Les **ensembles d'inventaire** sont adressés par contenu : deux instantanés au même
 inventaire partagent le même ensemble. Un nouveau commit sans changement de dépendances
@@ -415,7 +423,8 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
   `auth.cookie_secure` vaut `on` (ADR 0031).
 - Secrets TOTP chiffrés en base par `internal/secret` (enveloppe du store de mfax),
   rechiffrés par la clé active au démarrage (ADR 0013).
-- Pas d'envoi de courriel avant T15 : les comptes sont créés avec un mot de passe temporaire.
+- Les comptes sont créés avec un mot de passe temporaire ; le courriel (T15) ne sert
+  qu'aux notifications des politiques (réinitialisation par courriel hors cahier des charges).
 - Rôles (T16, décision du 1er novembre 2026, ADR 0034) : le rôle d'organisation vaut
   `member` ou `admin` (qui voit et gère tout) ; les droits sur un projet, un agent ou une
   équipe viennent du rôle dans l'équipe de la ressource : `reader` (consulte), `analyst`
@@ -545,6 +554,17 @@ qu'aucune mesure ne la justifie (ADR 0015).
   mis en file pour le lendemain de sa date à minuit UTC. Échanges VEX : OpenVEX 0.2.0 et
   CycloneDX 1.6 (ADR 0036).
 
+- **Politiques** (T15, ADR 0045) : règles CEL sur un contexte typé (`project`, `component`,
+  `finding`, `triage`, `ref` ou `agent`, et `now`), compilées et dont le coût estimé est
+  borné à l'enregistrement, le coût réel à chaque évaluation. `analysis.ref` met en file
+  `policy.evaluate_project` dans sa transaction (`finding.Options.OnAnalyzed`), comme un
+  changement de statut de triage (`triage.Options.OnChange`) ; `policy.evaluate_all`
+  (chaque jour) puis `policy.evaluate_org` évaluent les agents et chaque projet. Une
+  violation par couple (règle, sujet), résolue dès que la règle cesse d'être vraie ;
+  à son ouverture, `notify.Queue` crée ses envois. Le verdict d'un instantané est en
+  attente tant que son ensemble n'est pas l'ensemble analysé et évalué de sa référence,
+  non conforme s'il reste une violation ouverte d'une règle bloquante.
+
 ## 13. Recherche
 
 - Une barre unique ; le type de requête est déduit : `pkg:` → purl, `CVE-`/`GHSA-` →
@@ -645,7 +665,8 @@ qu'aucune mesure ne la justifie (ADR 0015).
   `internal/agentclient/gen`, le serveur de l'API utilisateur (non strict : l'export écrit
   en flux) dans `internal/api/gen/userapi`. `make generate-check` vérifie en CI que le code généré est à
   jour.
-- Préfixe `/api/v1`. Routes des agents sous `/api/v1/agent/`, routes utilisateur sous
+- Préfixe `/api/v1`. Routes des agents sous `/api/v1/agent/` (dont le verdict des
+  politiques sur un instantané, `GET /api/v1/agent/snapshots/{id}/verdict`, T15), routes utilisateur sous
   `/api/v1/orgs/{org}/`. Le point compatible Dependency-Track (T19) vit sous `/dt/` pour ne
   pas mêler son espace d'URL au nôtre. L'API utilisateur exporte le VEX d'un projet
   (`GET /api/v1/orgs/{org}/projects/{project}/vex`, T14).
@@ -715,7 +736,9 @@ qu'aucune mesure ne la justifie (ADR 0015).
   certificat client vérifié. Suite : T13 (conteneurs), T22 (Windows), T23 (hors ligne).
 - `lotor-repo-agent` : service externe qui détient seul les secrets des forges. Il reçoit les
   webhooks, clone, analyse, envoie, puis attend le verdict du serveur pour publier le statut
-  de commit (T15). Tout accès au contenu d'un dépôt passe par `os.Root` (aucune sortie de
+  de commit (T15, ADR 0047 : attente bornée par `status.timeout`, statut « en attente »
+  puis verdict, désactivé par défaut ; jeton GitHub séparé limité à `statuses: write`).
+  Tout accès au contenu d'un dépôt passe par `os.Root` (aucune sortie de
   l'arborescence, aucun lien symbolique suivi hors d'elle). Voir T08 et T12.
   Détails (ADR 0023) : un webhook vérifié n'est qu'un signal, l'agent résout lui-même la
   tête de la référence ; rattrapage au démarrage et à intervalle depuis le commit du
@@ -754,6 +777,11 @@ qu'aucune mesure ne la justifie (ADR 0015).
   identifiant de clé stocké avec le chiffré pour permettre la rotation. Les secrets des
   forges ne sont jamais en base : ils restent dans l'agent dépôt.
 - Aucune donnée sensible dans les journaux (mots de passe, jetons, contenu de SBOM).
+- Requêtes sortantes vers une URL saisie par une organisation (canaux de notification) :
+  adresses de bouclage, privées, de lien local, partagées et de multidiffusion refusées à
+  la connexion, après résolution DNS (`notify.allow_private_networks` pour un relais
+  interne), aucune redirection ni mandataire, durée et réponse bornées (`internal/delivery`,
+  ADR 0046).
 - Entrées bornées partout : taille de requête, taille décompressée, profondeur JSON, nombre
   de composants.
 - Contenu des dépôts et des SBOM traité comme non fiable, y compris par l'agent IA
