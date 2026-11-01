@@ -117,7 +117,7 @@ n'est pas posée. À faire, dans l'ordre (les étapes 1 à 3 sont faites) :
    à pas dans [`docs/operations.md`](../docs/operations.md#recette-sur-une-vraie-forge)
    (une demi-heure). La recette n'a pu l'exercer que contre une forge simulée.
 6. Publier la préversion **v0.1.0**, une fois les étapes 1 à 3 sur `main` :
-   1. vérifier que la section `## [0.1.0] - 2026-10-31` de `CHANGELOG.md` est à jour (date
+   1. vérifier que la section `## [0.1.0] - 2026-11-01` de `CHANGELOG.md` est à jour (date
       du jour de la pose, ajouts éventuels) et que la CI de `main` est verte ;
    2. `git fetch origin && git tag -a v0.1.0 origin/main -m "lotor 0.1.0 — préversion du lot 1"` ;
    3. `git push origin v0.1.0` ;

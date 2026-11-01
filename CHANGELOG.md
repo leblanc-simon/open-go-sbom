@@ -8,7 +8,7 @@ appliquées automatiquement, sans retour arrière.
 
 ## [Non publié]
 
-## [0.1.0] - 2026-10-31
+## [0.1.0] - 2026-11-01
 
 Préversion du **lot 1 · MVP inventaire** : un parc de serveurs et de dépôts inventorié,
 analysé chaque jour avec Grype et interrogé. Binaires des trois rôles (linux amd64 et
