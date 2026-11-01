@@ -71,15 +71,48 @@ func (s *apiServer) Projects(ctx context.Context) ([]Project, error) {
 		if p.Kind != gen.AgentProjectKindRepo || p.ForgeUrl == nil {
 			continue
 		}
-		proj := Project{ID: p.Id.String(), Slug: p.Slug, ForgeURL: *p.ForgeUrl}
+		proj := Project{ID: p.Id.String(), Slug: p.Slug, ForgeURL: *p.ForgeUrl, AIMode: aiModeOf(p.AiMode)}
 		for _, r := range p.Refs {
-			tr := TrackedRef{Ref: forge.Ref{Kind: forge.RefKind(r.Kind), Name: r.Name}}
+			tr := TrackedRef{ID: r.Id.String(), Ref: forge.Ref{Kind: forge.RefKind(r.Kind), Name: r.Name}}
 			if r.LastSnapshot != nil && r.LastSnapshot.Commit != nil {
 				tr.LastCommit = strings.ToLower(*r.LastSnapshot.Commit)
 			}
 			proj.Refs = append(proj.Refs, tr)
 		}
 		out = append(out, proj)
+	}
+	return out, nil
+}
+
+// aiModeOf lit le réglage d'enrichissement ; une valeur inconnue vaut « désactivé ».
+func aiModeOf(m gen.AgentProjectAiMode) AIMode {
+	switch AIMode(m) {
+	case AILocal, AIExternal:
+		return AIMode(m)
+	}
+	return AIDisabled
+}
+
+// AIComponents lit les composants IA de l'instantané courant d'une référence.
+func (s *apiServer) AIComponents(ctx context.Context, refID string) ([]PreviousComponent, error) {
+	id, err := uuid.Parse(refID)
+	if err != nil {
+		return nil, fmt.Errorf("repoagent: référence %q : %w", refID, err)
+	}
+	comps, err := s.client.AIComponents(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("repoagent: composants IA : %w", err)
+	}
+	out := make([]PreviousComponent, 0, len(comps))
+	for _, c := range comps {
+		pc := PreviousComponent{PURL: c.Purl, Name: c.Name, Version: c.Version, File: c.File, Line: c.Line, Excerpt: c.Excerpt}
+		if c.Confidence != nil {
+			pc.Confidence = *c.Confidence
+		}
+		if c.Model != nil {
+			pc.Model = *c.Model
+		}
+		out = append(out, pc)
 	}
 	return out, nil
 }
@@ -113,31 +146,31 @@ func (s *apiServer) Upload(ctx context.Context, u Upload) (Receipt, error) {
 	return Receipt{IngestionID: in.Id.String()}, nil
 }
 
-// Verdict suit l'ingestion d'un envoi puis lit le verdict de son instantané.
-func (s *apiServer) Verdict(ctx context.Context, r Receipt) (Verdict, error) {
+// PolicyVerdict suit l'ingestion d'un envoi puis lit le verdict de son instantané.
+func (s *apiServer) Verdict(ctx context.Context, r Receipt) (PolicyVerdict, error) {
 	id, err := uuid.Parse(r.IngestionID)
 	if err != nil {
-		return Verdict{}, fmt.Errorf("repoagent: ingestion %q : %w", r.IngestionID, err)
+		return PolicyVerdict{}, fmt.Errorf("repoagent: ingestion %q : %w", r.IngestionID, err)
 	}
 	in, err := s.client.Ingestion(ctx, id)
 	if err != nil {
-		return Verdict{}, fmt.Errorf("repoagent: ingestion : %w", err)
+		return PolicyVerdict{}, fmt.Errorf("repoagent: ingestion : %w", err)
 	}
 	switch {
 	case in.Status == gen.Failed:
-		v := Verdict{State: VerdictError}
+		v := PolicyVerdict{State: VerdictError}
 		if in.Error != nil {
 			v.Summary = in.Error.Title
 		}
 		return v, nil
 	case !agentclient.Final(in) || in.SnapshotId == nil:
-		return Verdict{State: VerdictPending}, nil
+		return PolicyVerdict{State: VerdictPending}, nil
 	}
 	got, err := s.client.Verdict(ctx, *in.SnapshotId)
 	if err != nil {
-		return Verdict{}, fmt.Errorf("repoagent: verdict : %w", err)
+		return PolicyVerdict{}, fmt.Errorf("repoagent: verdict : %w", err)
 	}
-	v := Verdict{State: got.State, Summary: got.Summary}
+	v := PolicyVerdict{State: got.State, Summary: got.Summary}
 	if got.Url != nil {
 		v.URL = *got.Url
 	}

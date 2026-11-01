@@ -53,6 +53,7 @@
             <dt>{{T "project.team"}}</dt><dd><a href="{{$.Base}}/teams/{{$p.TeamID}}">{{$p.TeamName}}</a></dd>
             {{- if eq (print $p.Kind) "repo"}}
             <dt>{{T "project_form.forge_url"}}</dt><dd>{{with $p.ForgeURL}}<a href="{{.}}" rel="noopener noreferrer">{{.}}</a>{{else}}<span class="muted">{{T "project.no_forge"}}</span>{{end}}</dd>
+            <dt>{{T "project_ai.title"}}</dt><dd>{{T $.AIModeKey}}</dd>
             {{- end}}
             <dt>{{T "project.created"}}</dt><dd>{{template "stamp" .Created}}</dd>
           </dl>
@@ -75,6 +76,24 @@
             <dt>{{T "project.tags"}}</dt>
             <dd>{{if .Tags}}<span class="cluster">{{range .Tags}}<span class="chip mono">{{.}}</span>{{end}}</span>{{else}}<span class="muted">{{T "project.none"}}</span>{{end}}</dd>
           </dl>
+          {{- end}}
+        </div>
+      </section>
+      <section class="panel" aria-labelledby="project-inventory">
+        <div class="panel__head">
+          <h2 class="panel__title" id="project-inventory">{{T "project.inventory_title"}}</h2>
+          <span class="panel__meta">{{T "project.inventory_meta"}}</span>
+        </div>
+        <div class="panel__body">
+          {{- if .Inventories}}
+          <dl class="kv">
+            {{- range .Inventories}}
+            <dt><span class="mono">{{.Name}}</span> <span class="muted">{{T (print "ref_kind." .Kind)}}</span></dt>
+            <dd><a href="{{.Href}}"><span class="cluster"><span class="origin"><span>{{T "origin.syft"}}</span><span class="origin__conf">{{.Counts.Syft}}</span></span><span class="origin origin--ai"><span>{{T "origin.ia"}}</span><span class="origin__conf">{{.Counts.IA}}</span></span></span></a>{{with .Enrichment}} <span class="muted">{{T (print "enrichment." .)}}</span>{{end}}</dd>
+            {{- end}}
+          </dl>
+          {{- else}}
+          <p class="muted">{{T "project.inventory_none"}}</p>
           {{- end}}
         </div>
       </section>

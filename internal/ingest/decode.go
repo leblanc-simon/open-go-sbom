@@ -184,6 +184,7 @@ func (s *Service) finish(ctx context.Context, org tenant.OrgID, id uuid.UUID, in
 		res, err = inventory.Store(ctx, tx, inventory.Record{
 			ProjectID: in.projectID, RefID: in.refID, Commit: in.commit, AgentID: in.agentID, AgentVersion: in.agentVersion,
 			ScannedAt: in.scannedAt, BlobID: in.blobID, Format: doc.Format, SpecVersion: doc.SpecVersion, Components: doc.Components,
+			Enrichment: doc.Enrichment, EnrichmentModel: doc.EnrichmentModel,
 		}, now)
 		if err != nil {
 			return err

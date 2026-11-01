@@ -126,6 +126,14 @@ user_api:
   export_timeout: 5m
   max_exports: 4
 
+# Enrichissement IA des agents dépôt (T12). Chaque dépôt est réglé dans ses paramètres :
+# IA désactivée (défaut), modèle local uniquement, ou fournisseur externe (autorisé par un
+# administrateur d'organisation, audité). forbid_external: true interdit tout fournisseur
+# externe sur l'instance : un projet réglé « fournisseur externe » est alors traité comme
+# « modèle local uniquement ».
+ai:
+  forbid_external: false
+
 # Premier démarrage et secours, lus au démarrage puis à retirer (docs/operations.md).
 bootstrap:
   # Premier administrateur d'instance, créé seulement si aucun compte n'existe. Mot de

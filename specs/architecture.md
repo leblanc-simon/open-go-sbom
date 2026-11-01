@@ -97,7 +97,8 @@ internal/
   hostagent/             # pipeline de l'agent serveur
   repoagent/             # pipeline de l'agent dépôt
   forge/                 # GitHub App, GitLab (Forgejo plus tard)
-  llm/                   # fournisseurs de modèles (lot 2)
+  llm/                   # fournisseurs de modèles, boucle d'outils (T12, ADR 0042)
+    llmtest/             # faux fournisseur scénarisé et enregistreur des échanges
   archtest/              # tests d'architecture (§ 4)
 api/openapi.yaml         # contrat de l'API, source unique
 web/                     # paquet Go qui embarque gabarits et fichiers statiques
@@ -164,7 +165,7 @@ relevées en T00 (une montée de version ultérieure ne demande pas de nouvelle 
 | Validation des SBOM par schéma JSON | schémas officiels embarqués, `github.com/santhosh-tekuri/jsonschema/v6` | v6.0.3 | Validé |
 | Métriques | `github.com/prometheus/client_golang` | v1.25.0 | Validé |
 | Paquets deb et rpm | `nfpm` en directive `tool` (`make packages`, T07) | v2.48.0 | Validé |
-| Fournisseur de modèle | SDK Go officiel d'Anthropic ; Ollama par son API HTTP sans SDK | — | À valider en T12 (modèle par défaut `claude-sonnet-5-5`, IA désactivée par défaut) |
+| Fournisseur de modèle | `github.com/anthropics/anthropic-sdk-go/v2`, construit sans aucune valeur lue dans l'environnement ; Ollama par son API HTTP sans SDK | v2.4.0 | Validé en T12 (ADR 0042 ; modèle par défaut `claude-sonnet-5-5`, IA désactivée par défaut) |
 | Règles de politique | `github.com/google/cel-go`, sous son nouveau chemin de module `cel.dev/cel-go` (dépendance transitive nouvelle : `github.com/antlr4-go/antlr/v4` v4.13.1) | v0.32.0 | Validé le 1er novembre 2026 (T15, ADR 0045) |
 | OIDC | `oidcx` dans open-go-base, ou paquet local | — | Point ouvert, T25 |
 
@@ -191,6 +192,8 @@ de chiffrement versionnées, obligatoires depuis T03 : les secrets TOTP sont chi
 tentatives de connexion, T03), `AgentAPI` (débit de l'API des agents par jeton et des
 jetons refusés par IP, T04), `UserAPI` (débit de l'API utilisateur par jeton personnel,
 jetons refusés par IP, durée et nombre simultané des exports de la recherche, T09),
+`AI` (`forbid_external` : interdire tout fournisseur de modèle externe aux agents dépôt,
+T12, ADR 0043),
 `Retention` (rétention des instantanés : fenêtre en jours, nombre gardé, dernier
 instantané de chaque mois au-delà, T17, ADR 0039), `Notify` (URL publique des liens, délai
 d'un envoi, adresses privées autorisées, heure du résumé quotidien, T15, ADR 0046), `SMTP`
@@ -275,14 +278,14 @@ Données **par organisation** (toutes portent `org_id`) :
 | --- | --- |
 | `organizations`, `org_memberships` | organisation (slug, nom, langue par défaut) ; compte × organisation × rôle (`member`, `admin`) |
 | `teams`, `team_members`, `org_invitations` | équipes ; membre de l'organisation × équipe × rôle d'équipe (`reader`, `analyst`, `admin`) ; invitations à rejoindre l'organisation (T16, ADR 0034) |
-| `projects` | type (`repo`, `host`, `container`), nom, slug, étiquettes, `parent_id` (T13), équipe (obligatoire, T16), archivage |
+| `projects` | type (`repo`, `host`, `container`), nom, slug, étiquettes, `parent_id` (T13), équipe (obligatoire, T16), archivage, réglage de l'enrichissement IA `ai_mode` (`disabled` par défaut, `local`, `external` ; T12, ADR 0043) |
 | `tracked_refs` | référence suivie (branche, tag, ou l'hôte) |
 | `agents`, `agent_tokens`, `enrollment_tokens` | agents (équipe facultative : sans équipe, agent d'organisation) et jetons hachés ; jeton d'inscription rattaché à une équipe, dont héritent projet et agent inscrits ; pour un agent serveur, demande de scan en attente et dernier contexte d'hôte (T07) |
 | `components` | composant de l'organisation : purl canonique (unique par organisation), `purl_base`, type, nom, version, CPE, empreintes |
 | `component_sets`, `component_set_items` | ensemble d'inventaire adressé par son empreinte ; ses composants avec origine (`syft`, `ia`), confiance, modèle, preuve, portée, licences, identification faible |
 | `sbom_blobs` | SBOM brut compressé, dédoublonné par empreinte SHA-256 |
 | `ingestions` | réception d'un SBOM : statut, erreurs, instantané produit |
-| `snapshots` | instantané d'une référence : commit, date, agent, version d'agent, blob, ensemble d'inventaire |
+| `snapshots` | instantané d'une référence : commit, date, agent, version d'agent, blob, ensemble d'inventaire, statut et modèle de l'enrichissement IA déclarés par le SBOM (T12) |
 | `ref_current` | instantané et ensemble courants de chaque référence (lecture rapide) |
 | `set_diffs`, `set_diff_items` | différence entre deux ensembles d'inventaire d'instantanés consécutifs : décomptes, puis changements (ajout, retrait, montée, descente de version) (T17, ADR 0038) |
 | `snapshot_retention` | dernier passage de la rétention : horizon (plus récente coupure appliquée), bilan (T17, ADR 0039) |
@@ -435,6 +438,9 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
   ses administrateurs. La matrice est la source unique des contrôles, du document
   `docs/security/permissions.md` et des tests par route (`tenant.Matrix`, table
   `orgRoutes` de `internal/web`). L'existant est passé dans une équipe « Général ».
+- Envoi du code d'un dépôt à un fournisseur de modèle externe : permission d'organisation
+  `ai.external` (administrateur d'organisation), chaque changement de réglage audité ;
+  `ai.forbid_external` l'interdit sur toute l'instance (T12, ADR 0043).
 - Un compte devient membre d'une organisation en **acceptant une invitation** (30 jours ;
   réponse identique que le compte existe ou non, SEC-09) ; seul l'administrateur de
   l'instance ajoute directement un membre.
@@ -500,7 +506,10 @@ d'identité (`distro`, `arch`, `epoch`, `upstream`…) sont conservés**, car Gr
 besoin. Un composant sans purl utilisable reçoit `pkg:generic/<nom>@<version>` et
 l'« identification faible ». Les CPE sont conservés. Propriétés CycloneDX propres
 au projet, espace de noms `lotor:` : `lotor:origin` (`syft` ou `ia`), `lotor:confidence` (0 à 1),
-`lotor:model` ; la preuve IA utilise le champ standard `evidence`.
+`lotor:model` ; la preuve IA utilise le champ standard `evidence` (occurrence : fichier,
+ligne, extrait). Dans les métadonnées du document, `lotor:enrichment` (`complete`,
+`incomplete`, `carried`), `lotor:enrichment-model` et `lotor:enrichment-prompt` décrivent
+l'enrichissement IA ; le serveur range statut et modèle avec l'instantané (ADR 0043).
 
 Le décodage s'exécute dans le processus worker ; les bornes préalables, le délai du job
 et le plafond de jobs simultanés par organisation (`workers.org_limit`) empêchent un seul
@@ -752,6 +761,18 @@ qu'aucune mesure ne la justifie (ADR 0015).
   CycloneDX 1.6 déterministe (ni numéro de série ni horodatage) ; secrets désignés par
   `credential:<nom>` ou par un fichier `0600`. Configuration (`LOTOR_REPO_*`) et unité
   systemd : `deploy/lotor-repo-agent/`.
+  Enrichissement IA (T12, ADR 0042 à 0044) : si le réglage effectif du projet transmis
+  par le serveur le permet et qu'un modèle est configuré (`ai.local` Ollama,
+  `ai.external` Anthropic), un modèle explore l'arborescence par `list_dir`, `read_file`
+  et `search` (lecture seule, `os.Root`, bornés, fichiers sensibles exclus) et soumet ses
+  candidats par `submit_candidates` (schéma JSON) ; un vérificateur déterministe, seul
+  juge, relit chaque preuve dans le fichier ; les composants acceptés rejoignent le SBOM
+  Syft (Syft l'emporte). Budget dépassé ou erreur du fournisseur : SBOM Syft seul, marqué
+  incomplet. Analyse incrémentale (fichiers modifiés selon la forge, composants IA
+  précédents lus par `GET /api/v1/agent/refs/{id}/ai-components` et revérifiés), complète
+  à `ai.full_interval` ; prompt système versionné et embarqué ; analyse dans le processus
+  de l'agent, confinée par la surface d'outils et `os.Root` (ADR 0044). Qualité mesurée
+  sur le corpus annoté `testdata/ai-corpus` (`make eval-ai`).
 
 ## 18. Internationalisation
 

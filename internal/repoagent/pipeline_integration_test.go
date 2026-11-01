@@ -192,6 +192,15 @@ func TestEnsureNoSymlinksRefuses(t *testing.T) {
 
 // decodeSBOM valide le SBOM produit par le schéma officiel strict, puis le décode comme
 // le serveur.
+// scan catalogue dir et encode le SBOM, comme le fait l'agent sans enrichissement.
+func (s scanner) scan(ctx context.Context, dir, name, commit string) ([]byte, error) {
+	bom, err := s.scanBOM(ctx, dir, name, commit)
+	if err != nil {
+		return nil, err
+	}
+	return encodeBOM(bom)
+}
+
 func decodeSBOM(t *testing.T, data []byte) sbom.Document {
 	t.Helper()
 	v, err := schema.New()

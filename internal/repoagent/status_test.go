@@ -18,14 +18,14 @@ func statusAgent(t *testing.T, srv *fakeServer, f *fakeForge, cfg StatusConfig) 
 
 func TestReportStatusPublishesPendingThenVerdict(t *testing.T) {
 	for _, c := range []struct {
-		verdict Verdict
+		verdict PolicyVerdict
 		want    forge.StatusState
 	}{
-		{Verdict{State: VerdictFail, Summary: "Non conforme", URL: "https://sbom.example.org/x"}, forge.StatusFailure},
-		{Verdict{State: VerdictPass, Summary: "Conforme"}, forge.StatusSuccess},
-		{Verdict{State: VerdictError, Summary: "SBOM refusé"}, forge.StatusError},
+		{PolicyVerdict{State: VerdictFail, Summary: "Non conforme", URL: "https://sbom.example.org/x"}, forge.StatusFailure},
+		{PolicyVerdict{State: VerdictPass, Summary: "Conforme"}, forge.StatusSuccess},
+		{PolicyVerdict{State: VerdictError, Summary: "SBOM refusé"}, forge.StatusError},
 	} {
-		srv := &fakeServer{verdicts: []Verdict{{State: VerdictPending}, {State: VerdictPending, Summary: "En cours"},
+		srv := &fakeServer{verdicts: []PolicyVerdict{{State: VerdictPending}, {State: VerdictPending, Summary: "En cours"},
 			{State: VerdictPending, Summary: "En cours"}, c.verdict}}
 		f := &fakeForge{name: "fake"}
 		a, tr := statusAgent(t, srv, f, StatusConfig{Enabled: true, Context: "lotor", Timeout: 10 * time.Second, Poll: time.Millisecond})
@@ -45,7 +45,7 @@ func TestReportStatusPublishesPendingThenVerdict(t *testing.T) {
 }
 
 func TestReportStatusTimeoutLeavesPending(t *testing.T) {
-	srv := &fakeServer{verdicts: []Verdict{{State: VerdictPending, Summary: "En cours"}}}
+	srv := &fakeServer{verdicts: []PolicyVerdict{{State: VerdictPending, Summary: "En cours"}}}
 	f := &fakeForge{name: "fake"}
 	a, tr := statusAgent(t, srv, f, StatusConfig{Enabled: true, Context: "lotor", Timeout: 500 * time.Millisecond, Poll: time.Millisecond})
 	a.reportStatus(context.Background(), tr, commitN(8), Receipt{IngestionID: "i"})

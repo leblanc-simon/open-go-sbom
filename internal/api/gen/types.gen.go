@@ -9,6 +9,27 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AgentProjectAiMode.
+const (
+	Disabled AgentProjectAiMode = "disabled"
+	External AgentProjectAiMode = "external"
+	Local    AgentProjectAiMode = "local"
+)
+
+// Valid indicates whether the value is a known member of the AgentProjectAiMode enum.
+func (e AgentProjectAiMode) Valid() bool {
+	switch e {
+	case Disabled:
+		return true
+	case External:
+		return true
+	case Local:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AgentProjectKind.
 const (
 	AgentProjectKindHost AgentProjectKind = "host"
@@ -678,8 +699,34 @@ func (e ExportSearchParamsResolved) Valid() bool {
 	}
 }
 
+// AIComponent defines model for AIComponent.
+type AIComponent struct {
+	Confidence *float64 `json:"confidence,omitempty"`
+
+	// Excerpt Extrait de la preuve.
+	Excerpt string `json:"excerpt"`
+
+	// File Fichier de la preuve, relatif à la racine du dépôt.
+	File    string  `json:"file"`
+	Line    int     `json:"line"`
+	Model   *string `json:"model,omitempty"`
+	Name    string  `json:"name"`
+	Purl    string  `json:"purl"`
+	Version string  `json:"version"`
+}
+
+// AIComponentList defines model for AIComponentList.
+type AIComponentList struct {
+	Components []AIComponent `json:"components"`
+}
+
 // AgentProject defines model for AgentProject.
 type AgentProject struct {
+	// AiMode Enrichissement IA permis pour ce projet (dépôts) : `disabled`, aucun modèle ;
+	// `local`, modèle local seulement ; `external`, fournisseur externe permis. Réglage
+	// du projet borné par la politique de l'instance (`ai.forbid_external`).
+	AiMode AgentProjectAiMode `json:"ai_mode"`
+
 	// ForgeUrl URL de la forge (dépôts seulement).
 	ForgeUrl *string            `json:"forge_url,omitempty"`
 	Id       openapi_types.UUID `json:"id"`
@@ -689,6 +736,11 @@ type AgentProject struct {
 	Refs     []TrackedRef       `json:"refs"`
 	Slug     string             `json:"slug"`
 }
+
+// AgentProjectAiMode Enrichissement IA permis pour ce projet (dépôts) : `disabled`, aucun modèle ;
+// `local`, modèle local seulement ; `external`, fournisseur externe permis. Réglage
+// du projet borné par la politique de l'instance (`ai.forbid_external`).
+type AgentProjectAiMode string
 
 // AgentProjectKind defines model for AgentProject.Kind.
 type AgentProjectKind string

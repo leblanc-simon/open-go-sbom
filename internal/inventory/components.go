@@ -3,6 +3,7 @@ package inventory
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"strconv"
 	"time"
@@ -54,10 +55,14 @@ type Usage struct {
 	RefName     string
 	Origin      sbom.Origin
 	Confidence  *float64
-	Licenses    []string
-	SnapshotID  uuid.UUID
-	ScannedAt   time.Time
-	Commit      string
+	// Model et Evidence : modèle et preuve d'un composant d'origine IA.
+	Model        string
+	Evidence     json.RawMessage
+	Licenses     []string
+	SnapshotID   uuid.UUID
+	ScannedAt    time.Time
+	Commit       string
+	AgentVersion string
 }
 
 // ComponentUsage renvoie les références dont l'inventaire courant contient un composant
@@ -67,7 +72,7 @@ type Usage struct {
 func ComponentUsage(ctx context.Context, tx *db.OrgTx, purlBase string) ([]Usage, error) {
 	rows, err := tx.QueryContext(ctx, `
 		SELECT c.id, c.version, c.purl, p.id, p.slug, p.name, p.kind, r.id, r.kind, r.name, i.origin, i.confidence, i.licenses,
-		       s.id, s.scanned_at, coalesce(s.commit_sha, '')
+		       s.id, s.scanned_at, coalesce(s.commit_sha, ''), i.model, i.evidence, s.agent_version
 		  FROM components c
 		  JOIN component_set_items i ON i.org_id = c.org_id AND i.component_id = c.id
 		  JOIN ref_current rc ON rc.org_id = i.org_id AND rc.set_id = i.set_id
@@ -86,9 +91,14 @@ func ComponentUsage(ctx context.Context, tx *db.OrgTx, purlBase string) ([]Usage
 		var u Usage
 		var origin string
 		var conf sql.NullFloat64
+		var evidence []byte
 		if err := rows.Scan(&u.ComponentID, &u.Version, &u.PURL, &u.ProjectID, &u.ProjectSlug, &u.ProjectName, &u.ProjectKind,
-			&u.RefID, &u.RefKind, &u.RefName, &origin, &conf, db.Array(&u.Licenses), &u.SnapshotID, &u.ScannedAt, &u.Commit); err != nil {
+			&u.RefID, &u.RefKind, &u.RefName, &origin, &conf, db.Array(&u.Licenses), &u.SnapshotID, &u.ScannedAt, &u.Commit,
+			&u.Model, &evidence, &u.AgentVersion); err != nil {
 			return nil, wrap("usages d'un composant", err)
+		}
+		if len(evidence) > 0 {
+			u.Evidence = evidence
 		}
 		u.Origin = sbom.Origin(origin)
 		if conf.Valid {
@@ -126,4 +136,55 @@ func (s *Service) Component(ctx context.Context, org tenant.OrgID, vis tenant.Vi
 		return err
 	}, db.ReadOnly(), db.Visible(vis))
 	return c, usage, err
+}
+
+// AIComponentsMax borne la liste des composants IA d'une référence.
+const AIComponentsMax = 1000
+
+// AIComponent est un composant d'origine IA de l'inventaire courant d'une référence, avec
+// sa preuve.
+type AIComponent struct {
+	PURL       string
+	Name       string
+	Version    string
+	Confidence *float64
+	Model      string
+	Occurrence sbom.Occurrence
+}
+
+// AIComponents renvoie les composants d'origine IA de l'instantané courant de la
+// référence refID (l'appelant a vérifié l'accès), triés par purl ; ceux dont la preuve
+// n'a pas d'occurrence lisible sont omis.
+func AIComponents(ctx context.Context, tx *db.OrgTx, refID uuid.UUID) ([]AIComponent, error) {
+	rows, err := tx.QueryContext(ctx, `
+		SELECT c.purl, c.name, c.version, i.confidence::float8, i.model, i.evidence
+		  FROM ref_current rc
+		  JOIN component_set_items i ON i.org_id = rc.org_id AND i.set_id = rc.set_id AND i.origin = 'ia'
+		  JOIN components c ON c.org_id = i.org_id AND c.id = i.component_id
+		 WHERE rc.ref_id = $1
+		 ORDER BY c.purl LIMIT `+strconv.Itoa(AIComponentsMax), refID)
+	if err != nil {
+		return nil, wrap("composants IA", err)
+	}
+	defer rows.Close()
+	out := []AIComponent{}
+	for rows.Next() {
+		var a AIComponent
+		var conf sql.NullFloat64
+		var evidence []byte
+		if err := rows.Scan(&a.PURL, &a.Name, &a.Version, &conf, &a.Model, &evidence); err != nil {
+			return nil, wrap("composants IA", err)
+		}
+		occ, ok := sbom.FirstOccurrence(evidence)
+		if !ok {
+			continue
+		}
+		a.Occurrence = occ
+		if conf.Valid {
+			f := conf.Float64
+			a.Confidence = &f
+		}
+		out = append(out, a)
+	}
+	return out, wrap("composants IA", rows.Err())
 }

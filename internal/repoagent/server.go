@@ -13,12 +13,16 @@ type Project struct {
 	ID       string
 	Slug     string
 	ForgeURL string
-	Refs     []TrackedRef
+	// AIMode est le réglage d'enrichissement IA transmis par le serveur ; vide vaut
+	// AIDisabled.
+	AIMode AIMode
+	Refs   []TrackedRef
 }
 
 // TrackedRef est une référence suivie et le commit de son instantané courant (vide tant
 // qu'aucun SBOM n'a été rangé).
 type TrackedRef struct {
+	ID         string
 	Ref        forge.Ref
 	LastCommit string
 }
@@ -47,7 +51,10 @@ type Server interface {
 	Upload(ctx context.Context, u Upload) (Receipt, error)
 	// Verdict lit, en une fois, le verdict des politiques sur l'instantané d'un envoi :
 	// en attente tant que l'ingestion ou l'analyse ne sont pas terminées (T15).
-	Verdict(ctx context.Context, r Receipt) (Verdict, error)
+	Verdict(ctx context.Context, r Receipt) (PolicyVerdict, error)
+	// AIComponents renvoie les composants IA de l'instantané courant d'une référence
+	// (analyse incrémentale après un redémarrage).
+	AIComponents(ctx context.Context, refID string) ([]PreviousComponent, error)
 }
 
 // Receipt est le reçu d'un envoi : l'ingestion à suivre.
@@ -64,9 +71,9 @@ const (
 	VerdictError = "error"
 )
 
-// Verdict est le verdict des politiques sur un instantané ; Summary est traduit par le
+// PolicyVerdict est le verdict des politiques sur un instantané ; Summary est traduit par le
 // serveur dans la langue de l'organisation (vide tant que l'ingestion n'est pas finie).
-type Verdict struct {
+type PolicyVerdict struct {
 	State   string
 	Summary string
 	URL     string

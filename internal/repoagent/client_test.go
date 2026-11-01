@@ -119,7 +119,7 @@ func TestServerVerdict(t *testing.T) {
 		t.Fatal(err)
 	}
 	ctx := context.Background()
-	for id, want := range map[string]Verdict{
+	for id, want := range map[string]PolicyVerdict{
 		"0192f3a0-0000-7000-8000-000000000009": {State: VerdictFail, Summary: "Non conforme", URL: "https://sbom.example.org/o/acme"},
 		"0192f3a0-0000-7000-8000-000000000011": {State: VerdictError, Summary: "SBOM refusé"},
 		"0192f3a0-0000-7000-8000-000000000012": {State: VerdictPending},

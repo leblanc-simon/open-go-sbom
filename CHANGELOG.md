@@ -31,6 +31,17 @@ appliquées automatiquement, sans retour arrière.
   [`docs/security/permissions.md`](docs/security/permissions.md), générée depuis le code.
 - Invitations : un administrateur d'organisation invite une adresse, le compte accepte ou
   décline depuis « Mon compte » → « Invitations ».
+- Enrichissement IA de l'agent dépôt (T12, ADR 0042 à 0044) : un modèle (Ollama en local,
+  ou Anthropic, `claude-sonnet-5-5` par défaut) trouve les composants qu'aucun manifeste ne
+  déclare (bibliothèques recopiées, images de base, scripts de CDN, outils installés par
+  script) ; aucun composant n'est retenu sans preuve relue dans le fichier par un
+  vérificateur déterministe ; fichiers sensibles jamais envoyés ; budget par analyse,
+  repli sur le SBOM Syft seul marqué « enrichissement incomplet » ; analyse incrémentale.
+  Réglage par dépôt (IA désactivée par défaut ; fournisseur externe autorisé par un
+  administrateur d'organisation, audité ; `ai.forbid_external` sur l'instance). Bloc
+  « preuve » sur la fiche composant, inventaire par origine sur la fiche projet, statut
+  d'enrichissement des instantanés. Corpus d'évaluation annoté (`testdata/ai-corpus`) et
+  cible `make eval-ai`. Nouvelle dépendance : SDK Go officiel d'Anthropic (v2.4.0).
 - Différences d'instantanés (T17, ADR 0038) : la frise des instantanés d'une référence
   indique les composants ajoutés, retirés, montés ou descendus de version depuis le
   précédent ; écran de comparaison de deux instantanés quelconques d'un projet, avec

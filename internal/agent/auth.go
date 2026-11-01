@@ -385,3 +385,22 @@ func (s *Service) AssignedProjects(ctx context.Context, p Principal, cursor stri
 	}, db.ReadOnly())
 	return projects, next, err
 }
+
+// AIComponents renvoie les composants IA de l'instantané courant de la référence refID,
+// si elle appartient à un projet actif confié à l'agent de p ; project.ErrNotFound
+// sinon.
+func (s *Service) AIComponents(ctx context.Context, p Principal, refID uuid.UUID) ([]inventory.AIComponent, error) {
+	if p.Kind != KindAgent {
+		return nil, errInvalid
+	}
+	var out []inventory.AIComponent
+	err := s.pool.InOrg(ctx, p.Org, func(tx *db.OrgTx) error {
+		if _, err := project.RefOfAgent(ctx, tx, p.AgentID, refID); err != nil {
+			return err
+		}
+		var err error
+		out, err = inventory.AIComponents(ctx, tx, refID)
+		return err
+	}, db.ReadOnly())
+	return out, err
+}

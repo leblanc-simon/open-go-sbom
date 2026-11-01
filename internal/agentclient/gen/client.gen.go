@@ -18,6 +18,27 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AgentProjectAiMode.
+const (
+	Disabled AgentProjectAiMode = "disabled"
+	External AgentProjectAiMode = "external"
+	Local    AgentProjectAiMode = "local"
+)
+
+// Valid indicates whether the value is a known member of the AgentProjectAiMode enum.
+func (e AgentProjectAiMode) Valid() bool {
+	switch e {
+	case Disabled:
+		return true
+	case External:
+		return true
+	case Local:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AgentProjectKind.
 const (
 	AgentProjectKindHost AgentProjectKind = "host"
@@ -177,8 +198,34 @@ func (e TrackedRefKind) Valid() bool {
 	}
 }
 
+// AIComponent defines model for AIComponent.
+type AIComponent struct {
+	Confidence *float64 `json:"confidence,omitempty"`
+
+	// Excerpt Extrait de la preuve.
+	Excerpt string `json:"excerpt"`
+
+	// File Fichier de la preuve, relatif à la racine du dépôt.
+	File    string  `json:"file"`
+	Line    int     `json:"line"`
+	Model   *string `json:"model,omitempty"`
+	Name    string  `json:"name"`
+	Purl    string  `json:"purl"`
+	Version string  `json:"version"`
+}
+
+// AIComponentList defines model for AIComponentList.
+type AIComponentList struct {
+	Components []AIComponent `json:"components"`
+}
+
 // AgentProject defines model for AgentProject.
 type AgentProject struct {
+	// AiMode Enrichissement IA permis pour ce projet (dépôts) : `disabled`, aucun modèle ;
+	// `local`, modèle local seulement ; `external`, fournisseur externe permis. Réglage
+	// du projet borné par la politique de l'instance (`ai.forbid_external`).
+	AiMode AgentProjectAiMode `json:"ai_mode"`
+
 	// ForgeUrl URL de la forge (dépôts seulement).
 	ForgeUrl *string            `json:"forge_url,omitempty"`
 	Id       openapi_types.UUID `json:"id"`
@@ -188,6 +235,11 @@ type AgentProject struct {
 	Refs     []TrackedRef       `json:"refs"`
 	Slug     string             `json:"slug"`
 }
+
+// AgentProjectAiMode Enrichissement IA permis pour ce projet (dépôts) : `disabled`, aucun modèle ;
+// `local`, modèle local seulement ; `external`, fournisseur externe permis. Réglage
+// du projet borné par la politique de l'instance (`ai.forbid_external`).
+type AgentProjectAiMode string
 
 // AgentProjectKind defines model for AgentProject.Kind.
 type AgentProjectKind string
@@ -652,6 +704,18 @@ type ClientInterface interface {
 	// Corresponds with GET /agent/projects (the `ListAgentProjects` operationId).
 	ListAgentProjects(ctx context.Context, params *ListAgentProjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListAIComponents Composants IA de l'instantané courant d'une référence
+	//
+	// Les composants ajoutés par l'enrichissement IA (`lotor:origin=ia`) à l'instantané
+	// courant d'une référence suivie d'un projet confié à l'agent, avec leur preuve
+	// (fichier, ligne, extrait). L'agent dépôt s'en sert pour son analyse incrémentale :
+	// il revérifie ces preuves au nouveau commit et soumet leurs fichiers au modèle. Une
+	// référence d'un projet qui n'est pas confié à l'agent répond 404. Liste vide sans
+	// instantané ; 1 000 composants au plus.
+	//
+	// Corresponds with GET /agent/refs/{id}/ai-components (the `ListAIComponents` operationId).
+	ListAIComponents(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetSnapshotVerdict Verdict des politiques sur un instantané
 	//
 	// Le verdict des politiques de l'organisation sur un instantané envoyé par cet agent
@@ -831,6 +895,28 @@ func (c *Client) GetIngestion(ctx context.Context, id openapi_types.UUID, reqEdi
 // Corresponds with GET /agent/projects (the `ListAgentProjects` operationId).
 func (c *Client) ListAgentProjects(ctx context.Context, params *ListAgentProjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListAgentProjectsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListAIComponents Composants IA de l'instantané courant d'une référence
+//
+// Les composants ajoutés par l'enrichissement IA (`lotor:origin=ia`) à l'instantané
+// courant d'une référence suivie d'un projet confié à l'agent, avec leur preuve
+// (fichier, ligne, extrait). L'agent dépôt s'en sert pour son analyse incrémentale :
+// il revérifie ces preuves au nouveau commit et soumet leurs fichiers au modèle. Une
+// référence d'un projet qui n'est pas confié à l'agent répond 404. Liste vide sans
+// instantané ; 1 000 composants au plus.
+//
+// Corresponds with GET /agent/refs/{id}/ai-components (the `ListAIComponents` operationId).
+func (c *Client) ListAIComponents(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAIComponentsRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -1078,6 +1164,40 @@ func NewListAgentProjectsRequest(server string, params *ListAgentProjectsParams)
 	return req, nil
 }
 
+// NewListAIComponentsRequest constructs an http.Request for the ListAIComponents method
+func NewListAIComponentsRequest(server string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/agent/refs/%s/ai-components", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetSnapshotVerdictRequest constructs an http.Request for the GetSnapshotVerdict method
 func NewGetSnapshotVerdictRequest(server string, id openapi_types.UUID) (*http.Request, error) {
 	var err error
@@ -1259,6 +1379,20 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /agent/projects (the `ListAgentProjects` operationId).
 	ListAgentProjectsWithResponse(ctx context.Context, params *ListAgentProjectsParams, reqEditors ...RequestEditorFn) (*ListAgentProjectsResponse, error)
+
+	// ListAIComponentsWithResponse Composants IA de l'instantané courant d'une référence
+	//
+	// Les composants ajoutés par l'enrichissement IA (`lotor:origin=ia`) à l'instantané
+	// courant d'une référence suivie d'un projet confié à l'agent, avec leur preuve
+	// (fichier, ligne, extrait). L'agent dépôt s'en sert pour son analyse incrémentale :
+	// il revérifie ces preuves au nouveau commit et soumet leurs fichiers au modèle. Une
+	// référence d'un projet qui n'est pas confié à l'agent répond 404. Liste vide sans
+	// instantané ; 1 000 composants au plus.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /agent/refs/{id}/ai-components (the `ListAIComponents` operationId).
+	ListAIComponentsWithResponse(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*ListAIComponentsResponse, error)
 
 	// GetSnapshotVerdictWithResponse Verdict des politiques sur un instantané
 	//
@@ -1626,6 +1760,75 @@ func (r ListAgentProjectsResponse) ContentType() string {
 	return ""
 }
 
+type ListAIComponentsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *AIComponentList
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListAIComponentsResponse) GetJSON200() *AIComponentList {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListAIComponentsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListAIComponentsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListAIComponentsResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r ListAIComponentsResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetBody returns the raw response body bytes
+func (r ListAIComponentsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAIComponentsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAIComponentsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListAIComponentsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetSnapshotVerdictResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -1839,6 +2042,26 @@ func (c *ClientWithResponses) ListAgentProjectsWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseListAgentProjectsResponse(rsp)
+}
+
+// ListAIComponentsWithResponse Composants IA de l'instantané courant d'une référence
+//
+// Les composants ajoutés par l'enrichissement IA (`lotor:origin=ia`) à l'instantané
+// courant d'une référence suivie d'un projet confié à l'agent, avec leur preuve
+// (fichier, ligne, extrait). L'agent dépôt s'en sert pour son analyse incrémentale :
+// il revérifie ces preuves au nouveau commit et soumet leurs fichiers au modèle. Une
+// référence d'un projet qui n'est pas confié à l'agent répond 404. Liste vide sans
+// instantané ; 1 000 composants au plus.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /agent/refs/{id}/ai-components (the `ListAIComponents` operationId).
+func (c *ClientWithResponses) ListAIComponentsWithResponse(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*ListAIComponentsResponse, error) {
+	rsp, err := c.ListAIComponents(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAIComponentsResponse(rsp)
 }
 
 // GetSnapshotVerdictWithResponse Verdict des politiques sur un instantané
@@ -2124,6 +2347,60 @@ func ParseListAgentProjectsResponse(rsp *http.Response) (*ListAgentProjectsRespo
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListAIComponentsResponse parses an HTTP response from a ListAIComponentsWithResponse call
+func ParseListAIComponentsResponse(rsp *http.Response) (*ListAIComponentsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAIComponentsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest AIComponentList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest Problem

@@ -14,6 +14,7 @@ const (
 	PermTeamsManage   Permission = "teams.manage"   // créer, renommer, supprimer une équipe
 	PermOrgManage     Permission = "org.manage"     // paramètres et journal d'audit de l'organisation
 	PermTriageOrg     Permission = "triage.org"     // décisions de triage et import de VEX pour toute l'organisation (T14)
+	PermAIExternal    Permission = "ai.external"    // autoriser l'envoi du code d'un dépôt à un fournisseur de modèle externe
 	PermPolicyManage  Permission = "policy.manage"  // politiques : créer, modifier, supprimer, prévisualiser (T15)
 	PermChannelManage Permission = "channel.manage" // canaux de notification : créer, modifier, supprimer, essayer (T15)
 )
@@ -60,6 +61,7 @@ var matrix = []Rule{
 	{PermTeamsManage, ScopeOrg, RoleAdmin, TeamNone, "Créer, renommer et supprimer une équipe"},
 	{PermOrgManage, ScopeOrg, RoleAdmin, TeamNone, "Paramètres et journal d'audit de l'organisation"},
 	{PermTriageOrg, ScopeOrg, RoleAdmin, TeamNone, "Décider du triage pour toute l'organisation, importer un VEX d'organisation, retirer une décision d'organisation"},
+	{PermAIExternal, ScopeOrg, RoleAdmin, TeamNone, "Autoriser l'envoi du code d'un dépôt à un fournisseur de modèle externe (enrichissement IA, audité)"},
 	{PermPolicyManage, ScopeOrg, RoleAdmin, TeamNone, "Créer, modifier, supprimer et prévisualiser les politiques de l'organisation"},
 	{PermChannelManage, ScopeOrg, RoleAdmin, TeamNone, "Créer, modifier, supprimer et essayer les canaux de notification de l'organisation"},
 	{PermTeamView, ScopeTeam, "", TeamReader, "Voir l'équipe, ses membres et ses projets"},

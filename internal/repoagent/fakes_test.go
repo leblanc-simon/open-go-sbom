@@ -29,6 +29,7 @@ type fakeForge struct {
 	resolves  int
 	compares  int
 	failCmp   bool
+	files     []string // fichiers modifiés renvoyés par Compare
 	statuses  []publishedStatus
 	statusErr error
 }
@@ -87,7 +88,7 @@ func (f *fakeForge) Compare(_ context.Context, _ string, base, head string) (for
 	if f.failCmp {
 		return forge.Comparison{}, errors.New("comparaison impossible")
 	}
-	var c forge.Comparison
+	c := forge.Comparison{Files: append([]string(nil), f.files...)}
 	in := false
 	for _, x := range f.history {
 		if in {
@@ -134,18 +135,28 @@ type fakeServer struct {
 	heartbeats int
 	listErr    error
 	uploadErr  error
-	// verdicts sont rendus dans l'ordre par Verdict (le dernier se répète) ; aucun :
+	ai         map[string][]PreviousComponent // composants IA par référence
+	aiCalls    int
+	aiErr      error
+	// verdicts sont rendus dans l'ordre par PolicyVerdict (le dernier se répète) ; aucun :
 	// conforme.
-	verdicts     []Verdict
+	verdicts     []PolicyVerdict
 	verdictCalls int
 }
 
-func (s *fakeServer) Verdict(context.Context, Receipt) (Verdict, error) {
+func (s *fakeServer) AIComponents(_ context.Context, refID string) ([]PreviousComponent, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.aiCalls++
+	return append([]PreviousComponent(nil), s.ai[refID]...), s.aiErr
+}
+
+func (s *fakeServer) Verdict(context.Context, Receipt) (PolicyVerdict, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.verdictCalls++
 	if len(s.verdicts) == 0 {
-		return Verdict{State: VerdictPass, Summary: "ok"}, nil
+		return PolicyVerdict{State: VerdictPass, Summary: "ok"}, nil
 	}
 	v := s.verdicts[0]
 	if len(s.verdicts) > 1 {

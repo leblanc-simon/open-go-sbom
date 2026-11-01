@@ -22,7 +22,7 @@ type StatusConfig struct {
 const maxStatusPoll = 30 * time.Second
 
 // stateOf traduit un verdict en état de statut de commit.
-func stateOf(v Verdict) forge.StatusState {
+func stateOf(v PolicyVerdict) forge.StatusState {
 	switch v.State {
 	case VerdictPass:
 		return forge.StatusSuccess
@@ -76,7 +76,7 @@ func (a *Agent) reportStatus(ctx context.Context, t tracked, commit string, rc R
 }
 
 // publish publie un statut ; faux en cas d'échec (journalisé sans secret).
-func (a *Agent) publish(ctx context.Context, log *slog.Logger, t tracked, commit string, v Verdict) bool {
+func (a *Agent) publish(ctx context.Context, log *slog.Logger, t tracked, commit string, v PolicyVerdict) bool {
 	s := forge.CommitStatus{State: stateOf(v), Context: a.opts.Status.Context, Description: v.Summary, TargetURL: v.URL}
 	if err := t.forge.SetStatus(ctx, t.repo, commit, s); err != nil {
 		log.Warn("publication du statut de commit en échec", "state", s.State, "err", err)

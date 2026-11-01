@@ -31,6 +31,26 @@
     </div>
   </section>
   {{- end}}
+  {{- with .AI}}
+  <section class="panel" aria-labelledby="project-ai">
+    <div class="panel__head"><h2 class="panel__title" id="project-ai">{{T "project_ai.title"}}</h2></div>
+    <div class="panel__body stack stack--sm">
+      <p>{{T "project_ai.text"}}</p>
+      <form class="form" method="post" action="{{$.Base}}/projects/{{$.Project.Slug}}/ai">
+        {{csrfField $.Page.CSRFToken}}
+        <fieldset class="field">
+          <legend class="field__label">{{T "project_ai.mode"}}</legend>
+          {{- range .Options}}
+          <label class="check"><input type="radio" name="ai_mode" value="{{.Value}}" aria-describedby="project-ai-{{.Value}}-hint"{{if .Selected}} checked{{end}}{{if .Disabled}} disabled{{end}}{{if eq $.Error.Field "ai_mode"}} aria-invalid="true"{{end}}> <span>{{T .LabelKey}}</span></label>
+          <p class="field__hint" id="project-ai-{{.Value}}-hint">{{T .HintKey}}</p>
+          {{- end}}
+          {{- with .NoteKey}}<p class="field__hint">{{T .}}</p>{{end}}
+        </fieldset>
+        <button type="submit" class="btn">{{T "project_ai.submit"}}</button>
+      </form>
+    </div>
+  </section>
+  {{- end}}
   {{- if .MoveTeams}}
   <section class="panel" aria-labelledby="project-team">
     <div class="panel__head"><h2 class="panel__title" id="project-team">{{T "project_settings.team_title"}}</h2></div>

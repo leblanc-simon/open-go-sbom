@@ -19,8 +19,8 @@ import (
 	sbomsyft "leblanc.io/lotor/internal/sbom/syft"
 )
 
-// originSyft est la valeur de lotor:origin des composants trouvés par Syft (l'IA de T12
-// ajoutera les siens avec lotor:origin=ia).
+// originSyft est la valeur de lotor:origin des composants trouvés par Syft (l'IA ajoute
+// les siens avec lotor:origin=ia, ai_merge.go).
 const originSyft = "syft"
 
 // scanner catalogue une arborescence extraite avec Syft et l'encode en CycloneDX 1.6.
@@ -28,11 +28,12 @@ type scanner struct {
 	agentVersion string
 }
 
-// scan analyse dir. name et commit nomment le composant décrit par le document (le dépôt
-// à ce commit), à la place du chemin temporaire de l'analyse. Le document ne porte ni
+// scanBOM catalogue dir et renvoie le document CycloneDX, avant encodage (l'enrichissement
+// IA s'y ajoute). name et commit nomment le composant décrit par le document (le dépôt à
+// ce commit), à la place du chemin temporaire de l'analyse. Le document ne porte ni
 // numéro de série ni horodatage : deux analyses du même commit donnent les mêmes octets,
 // que le serveur reconnaît comme un renvoi (ADR 0023).
-func (s scanner) scan(ctx context.Context, dir, name, commit string) ([]byte, error) {
+func (s scanner) scanBOM(ctx context.Context, dir, name, commit string) (*cyclonedx.BOM, error) {
 	srcCfg := syft.DefaultGetSourceConfig().
 		WithSources("dir").
 		WithBasePath(dir).
@@ -63,6 +64,11 @@ func (s scanner) scan(ctx context.Context, dir, name, commit string) ([]byte, er
 	if bom.Components != nil {
 		markOrigin(*bom.Components)
 	}
+	return bom, nil
+}
+
+// encodeBOM encode le document en CycloneDX 1.6 JSON.
+func encodeBOM(bom *cyclonedx.BOM) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := cyclonedx.NewBOMEncoder(&buf, cyclonedx.BOMFileFormatJSON)
 	enc.SetEscapeHTML(false)

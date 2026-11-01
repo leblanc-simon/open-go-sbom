@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"leblanc.io/lotor/internal/forge"
+	"leblanc.io/lotor/internal/llm"
 )
 
 // Options assemble un agent dépôt.
@@ -22,6 +23,9 @@ type Options struct {
 	Version string
 	Work    WorkConfig
 	Catchup CatchupConfig
+	AI      AIConfig
+	// LocalModel et ExternalModel sont les modèles configurés (nil : absent).
+	LocalModel, ExternalModel llm.Provider
 	// Status règle la publication du statut de commit (T15).
 	Status StatusConfig
 	// Now remplace l'horloge (tests).
@@ -49,6 +53,7 @@ type Agent struct {
 	log     *slog.Logger
 	git     gitRunner
 	scanner scanner
+	ai      *enricher
 	queue   *queue[refKey, struct{}]
 	now     func() time.Time
 	kick    chan struct{}
@@ -58,6 +63,15 @@ type Agent struct {
 	byRepo   map[string][]refKey // forge + "\x00" + dépôt en minuscules
 	sent     map[refKey]string   // dernier commit envoyé par cette instance
 	failures *boundedSet         // commits en échec définitif (projet + commit)
+	aiState  map[refKey]aiState  // dernier enrichissement de chaque référence par cette instance
+}
+
+// aiState est l'état de l'enrichissement IA d'une référence : dernier commit analysé par
+// le modèle, ses composants IA, date de la dernière analyse complète.
+type aiState struct {
+	commit     string
+	components []PreviousComponent
+	fullAt     time.Time
 }
 
 // New construit un agent.
@@ -76,7 +90,11 @@ func New(opts Options) (*Agent, error) {
 	if now == nil {
 		now = time.Now
 	}
-	return &Agent{
+	ai, err := newEnricher(opts.AI, opts.LocalModel, opts.ExternalModel, opts.Logger)
+	if err != nil {
+		return nil, err
+	}
+	return &Agent{ai: ai, aiState: map[refKey]aiState{},
 		opts: opts, log: opts.Logger, now: now,
 		git:     gitRunner{binary: opts.Work.Git, maxBytes: int64(opts.Work.MaxCloneMiB) << 20, timeout: opts.Work.CloneTimeout},
 		scanner: scanner{agentVersion: opts.Version},
@@ -212,6 +230,11 @@ func (a *Agent) refresh(projects []Project) []refKey {
 			delete(a.sent, k)
 		}
 	}
+	for k := range a.aiState {
+		if _, ok := catalog[k]; !ok {
+			delete(a.aiState, k)
+		}
+	}
 	return keys
 }
 
@@ -291,14 +314,14 @@ func (a *Agent) processRef(ctx context.Context, k refKey) {
 		return
 	}
 	commits := a.plan(ctx, log, t, base, head)
-	for _, c := range commits {
+	for i, c := range commits {
 		if ctx.Err() != nil {
 			return
 		}
 		if a.failures.has(t.project.ID + c) {
 			continue
 		}
-		if err := a.analyze(ctx, t, c); err != nil {
+		if err := a.analyze(ctx, k, t, c, i == len(commits)-1); err != nil {
 			if ctx.Err() != nil {
 				return
 			}
@@ -355,9 +378,10 @@ func permanent(err error) bool {
 // workPrefix préfixe les répertoires d'analyse, supprimés au démarrage s'il en reste.
 const workPrefix = "scan-"
 
-// analyze extrait un commit dans un répertoire propre, le catalogue et envoie son SBOM ;
-// le répertoire est supprimé quoi qu'il arrive.
-func (a *Agent) analyze(ctx context.Context, t tracked, commit string) (err error) {
+// analyze extrait un commit dans un répertoire propre, le catalogue, l'enrichit si le
+// projet le permet et envoie son SBOM ; le répertoire est supprimé quoi qu'il arrive.
+// head désigne le dernier commit d'un rattrapage : seul lui est soumis au modèle.
+func (a *Agent) analyze(ctx context.Context, k refKey, t tracked, commit string, head bool) (err error) {
 	work, err := os.MkdirTemp(a.opts.Work.Dir, workPrefix)
 	if err != nil {
 		return fmt.Errorf("repoagent: répertoire d'analyse : %w", err)
@@ -377,7 +401,12 @@ func (a *Agent) analyze(ctx context.Context, t tracked, commit string) (err erro
 	}
 	scanCtx, cancel := context.WithTimeout(ctx, a.opts.Work.ScanTimeout)
 	defer cancel()
-	doc, err := a.scanner.scan(scanCtx, src, t.project.Slug, commit)
+	bom, err := a.scanner.scanBOM(scanCtx, src, t.project.Slug, commit)
+	if err != nil {
+		return err
+	}
+	a.enrich(ctx, k, t, src, commit, head, bom)
+	doc, err := encodeBOM(bom)
 	if err != nil {
 		return err
 	}

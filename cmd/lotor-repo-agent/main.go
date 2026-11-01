@@ -59,8 +59,13 @@ func run(ctx context.Context, cfg repoagent.Config, log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	local, external, err := cfg.AI.Models()
+	if err != nil {
+		return err
+	}
 	agent, err := repoagent.New(repoagent.Options{
 		Server: server, Forges: forges, Logger: log, Version: version, Work: cfg.Work, Catchup: cfg.Catchup, Status: cfg.Status,
+		AI: cfg.AI, LocalModel: local, ExternalModel: external,
 	})
 	if err != nil {
 		return err
@@ -89,7 +94,8 @@ func run(ctx context.Context, cfg repoagent.Config, log *slog.Logger) error {
 	}
 	agentErr := make(chan error, 1)
 	go func() { agentErr <- agent.Run(ctx) }()
-	log.Info("agent dépôt démarré", "version", version, "forges", len(forges))
+	log.Info("agent dépôt démarré", "version", version, "forges", len(forges),
+		"ai_local", local != nil, "ai_external", external != nil)
 
 	var runErr error
 	select {

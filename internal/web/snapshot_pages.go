@@ -61,6 +61,9 @@ type snapshotRow struct {
 	AgentVer    string
 	Counts      sbom.Counts
 	Current     bool
+	// Enrichment et EnrichmentModel : enrichissement IA déclaré par le SBOM (vide sans).
+	Enrichment      string
+	EnrichmentModel string
 	// Changes résume la différence avec l'instantané précédent ; nil pour le premier ou
 	// tant qu'elle n'est pas calculée (ChangesPending). CompareHref ouvre la comparaison.
 	Changes        *changeCounts
@@ -71,7 +74,8 @@ type snapshotRow struct {
 func (id *identity) snapshotRow(base string, s inventory.Snapshot) snapshotRow {
 	row := snapshotRow{ID: s.ID, Href: base + "/snapshots/" + s.ID.String(), Scanned: stampAt(s.ScannedAt),
 		Commit: s.Commit, CommitShort: shortCommit(s.Commit), AgentName: s.AgentName, AgentVer: s.AgentVersion,
-		Counts: s.Counts, Current: s.Current, Changes: changeCountsOf(s.Changes), ChangesPending: s.ChangesPending}
+		Counts: s.Counts, Current: s.Current, Changes: changeCountsOf(s.Changes), ChangesPending: s.ChangesPending,
+		Enrichment: string(s.Enrichment), EnrichmentModel: s.EnrichmentModel}
 	if s.PreviousID != nil {
 		row.CompareHref = base + "/compare?to=" + s.ID.String()
 	}
@@ -367,8 +371,10 @@ func (id *identity) downloadSBOM(w http.ResponseWriter, r *http.Request) {
 			id.rd.Error(w, r, http.StatusTooManyRequests)
 			return
 		}
-		defer release()
+		// La place ne couvre que le réencodage : libérée avant l'écriture de la réponse, pour
+		// qu'un client qui a reçu le document puisse aussitôt en demander un autre.
 		data, err = id.Ingest.Export(r.Context(), acc.Org, s.BlobID, s.Format, target)
+		release()
 		name += "." + string(target) + ".json"
 	default:
 		id.rd.Error(w, r, http.StatusNotFound)

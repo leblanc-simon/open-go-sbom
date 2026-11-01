@@ -87,3 +87,34 @@ forges:
     allowed_namespaces: [plateforme]     # groupes (et sous-groupes) autorisés
     webhook_secret_file: credential:gitlab-webhook-secret
     timeout: 30s
+
+# Enrichissement IA (T12, docs/operations.md « Enrichissement IA »). Le serveur transmet le
+# réglage de chaque dépôt : IA désactivée (défaut, aucun modèle appelé), modèle local
+# uniquement, ou fournisseur externe autorisé par un administrateur d'organisation.
+# Sans modèle configuré ici, l'agent envoie le SBOM Syft seul. Le modèle ne lit le dépôt
+# que par des outils en lecture seule confinés à l'arborescence de l'analyse ; les
+# fichiers sensibles (motifs ci-dessous et clés privées détectées) ne lui sont jamais
+# montrés ; aucun composant n'est retenu sans preuve relue dans le fichier.
+ai:
+  local:
+    url: ""                # Ollama, ex. http://127.0.0.1:11434 ; vide : pas de modèle local
+    model: ""              # modèle avec appels d'outils (ex. qwen3:14b)
+    context_tokens: 32768  # fenêtre de contexte demandée à Ollama
+    timeout: 5m            # durée maximale d'une requête
+  external:
+    provider: ""           # anthropic, ou vide : aucun fournisseur externe
+    model: claude-sonnet-5-5
+    api_key_file: credential:anthropic-api-key   # clé d'API : credential:<nom> ou fichier 0600
+    base_url: https://api.anthropic.com
+    timeout: 5m
+    retries: 2             # nouvelles tentatives (429, 5xx, erreurs réseau)
+  # Budget d'une analyse : au-delà, elle s'arrête et le SBOM part sans composant IA,
+  # marqué « enrichissement incomplet ». Toute erreur du fournisseur a le même effet.
+  max_turns: 40
+  max_input_tokens: 600000
+  max_output_tokens: 40000
+  max_read_kib: 1024       # contenu du dépôt renvoyé au modèle par les outils
+  response_tokens: 8192    # jetons de sortie d'une réponse
+  timeout: 20m
+  full_interval: 168h      # analyse complète au moins aussi souvent ; sinon fichiers modifiés seulement
+  exclude: []              # motifs ajoutés à la liste intégrée (.env, *.pem, *.key, id_rsa*, .ssh, .aws, *.tfstate…)
