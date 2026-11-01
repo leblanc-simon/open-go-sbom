@@ -382,7 +382,7 @@ func setTemporaryPassword(ctx context.Context, tx *db.Tx, userID int64, hash str
 	return err
 }
 
-// resetTOTP retire le second facteur de userID (secret, défis, verrouillage), ferme ses
+// resetTOTP retire le second facteur de userID (secret, défis, verrouillage, codes de secours), ferme ses
 // sessions et révoque ses jetons personnels. L'appelant impose aussi un nouveau mot de
 // passe.
 func resetTOTP(ctx context.Context, tx *db.Tx, actor audit.Actor, userID int64) error {
@@ -390,6 +390,7 @@ func resetTOTP(ctx context.Context, tx *db.Tx, actor audit.Actor, userID int64) 
 		`DELETE FROM mfa_totp WHERE user_id = $1`,
 		`DELETE FROM mfa_challenges WHERE user_id = $1`,
 		`DELETE FROM mfa_lockouts WHERE user_id = $1`,
+		`DELETE FROM mfa_recovery_codes WHERE user_id = $1`,
 	} {
 		if _, err := tx.ExecContext(ctx, q, userID); err != nil {
 			return err

@@ -232,7 +232,7 @@ func TestEveryScreenIsAccessible(t *testing.T) {
 	b := a.signIn(admin)
 	anon := a.browser()
 	screens := map[string]*browser{
-		"/login": anon, "/account": b, "/account/password": b,
+		"/login": anon, "/account": b, "/account/password": b, pathSecurity: b,
 		"/o/atelier": b, "/o/atelier/members": b, "/o/atelier/settings": b, "/o/atelier/audit": b,
 		"/admin/users": b, "/admin/users/" + itoa(viewer.ID): b, "/admin/orgs": b, "/admin/orgs/atelier": b, "/admin/audit": b,
 		"/admin/jobs": b, "/admin/vulndb": b,

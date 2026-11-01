@@ -28,7 +28,8 @@ func registerUI(r chi.Router, h *handlers, loginLimit func(http.Handler) http.Ha
 
 	// Enrôlement du TOTP : session de configuration (premier login) ou authentifiée. mfax
 	// refuse de re-provisionner un TOTP actif. La désactivation n'est pas montée : le TOTP
-	// est obligatoire (seul un administrateur le réinitialise).
+	// est obligatoire : seul un administrateur le réinitialise, ou son titulaire le
+	// reconfigure depuis /account/security (nouvel enrôlement imposé à la connexion suivante).
 	r.With(requireSession).Get(pathTOTPSetup, id.mfa.SetupGET)
 	r.With(requireSession).Post(pathTOTPOn, id.mfa.EnablePOST)
 
@@ -42,6 +43,9 @@ func registerUI(r chi.Router, h *handlers, loginLimit func(http.Handler) http.Ha
 		r.Post(pathTokens, id.createPersonalToken)
 		r.Get(pathTokens+"/{tokenID}/revoke", id.confirmRevokePersonalToken)
 		r.Post(pathTokens+"/{tokenID}/revoke", id.revokePersonalToken)
+		r.Get(pathSecurity, id.security)
+		r.Post(pathSecurity+"/recovery-codes", id.regenerateRecoveryCodes)
+		r.Post(pathSecurity+"/reconfigure", id.reconfigureTOTP)
 		r.Get(pathPassword, id.password)
 		r.Post(pathPassword, id.changePassword)
 		r.Get(pathInvitations, id.invitations)

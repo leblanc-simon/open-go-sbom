@@ -16,12 +16,16 @@ and the agents is covered in [`operations.md`](operations.md) (French); search i
    screen shows a QR code: scan it with an authenticator app (FreeOTP, Aegis, Google
    Authenticator, 1Password…), or type the key shown, then enter the six-digit code. The
    second factor is mandatory for every local account.
-3. Then choose your own password (at least 12 characters).
+3. The next screen shows your **recovery codes**, only once: write them down or print
+   them and keep them away from your phone. Each one replaces an app code once.
+4. Then choose your own password (at least 12 characters).
 
-From then on, each sign-in asks for the password, then a code. Lost phone: an instance
+From then on, each sign-in asks for the password, then a code. Lost phone: at the code
+step, choose “Use a recovery code”, then, in **My account › Two-factor authentication**,
+“Change authenticator app” to set up the new phone. Without a recovery code, an instance
 administrator resets your second factor and gives you a new temporary password. **My
 account** (top right) sets the language (English or French) and the theme, changes the
-password and manages your access tokens.
+password, manages your recovery codes and your access tokens.
 
 ## 2. Create the organization (instance administrator)
 

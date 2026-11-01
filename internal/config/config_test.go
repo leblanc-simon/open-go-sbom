@@ -40,6 +40,7 @@ func valid() Config {
 	c.Auth.SessionTTL, c.Auth.CookieSecure, c.Auth.BcryptCost = time.Hour, "auto", 12
 	c.MFA.ChallengeTTL, c.MFA.MaxAttempts = time.Minute, 5
 	c.MFA.LockoutThreshold, c.MFA.LockoutWindow, c.MFA.LockoutDuration, c.MFA.LockoutMaxDuration = 10, 15*time.Minute, 15*time.Minute, 24*time.Hour
+	c.MFA.RecoveryCodes = 10
 	c.Login.RateLimit, c.Login.SessionMaxAge = 10, 168*time.Hour
 	c.AgentAPI = AgentAPI{RateLimit: 120, FailureRateLimit: 30}
 	c.UserAPI = UserAPI{RateLimit: 60, FailureRateLimit: 30, ExportTimeout: 5 * time.Minute, MaxExports: 4}
@@ -49,7 +50,7 @@ func valid() Config {
 	c.Ingest = Ingest{MaxUploadMiB: 32, MaxDecompressedMiB: 64, MaxDepth: 64, MaxComponents: 50000, DecodeTimeout: 5 * time.Minute,
 		MaxPerRefPerDay: 200, MaxOrgStorageMiB: 10240, MaxReencodes: 2}
 	c.VulnDB = defaultVulnDB
-	c.Containers = Containers{ArchiveAfter: 168 * time.Hour}
+	c.Containers = Containers{ArchiveAfter: 168 * time.Hour, PurgeAfter: 4320 * time.Hour}
 	c.Retention.Days = 90
 	c.Notify = Notify{Timeout: 30 * time.Second, DigestHour: 7}
 	c.SMTP = SMTP{Port: 587, TLS: "starttls", HELO: "localhost"}
@@ -234,12 +235,14 @@ func TestValidate(t *testing.T) {
 		{"fenêtre de verrouillage", "mfa.lockout_window", func(c *Config) { c.MFA.LockoutWindow = 0 }},
 		{"durée de verrouillage", "mfa.lockout_duration", func(c *Config) { c.MFA.LockoutDuration = 0 }},
 		{"plafond de verrouillage", "mfa.lockout_max_duration", func(c *Config) { c.MFA.LockoutMaxDuration = time.Minute }},
+		{"codes de secours", "mfa.recovery_codes", func(c *Config) { c.MFA.RecoveryCodes = 2 }},
 		{"limite de connexion", "login.rate_limit", func(c *Config) { c.Login.RateLimit = -1 }},
 		{"durée absolue négative", "login.session_max_age", func(c *Config) { c.Login.SessionMaxAge = -1 }},
 		{"durée absolue sous la durée glissante", "login.session_max_age", func(c *Config) { c.Login.SessionMaxAge = time.Minute }},
 		{"limite de l'API des agents", "agent_api.rate_limit", func(c *Config) { c.AgentAPI.RateLimit = -1 }},
 		{"limite des jetons refusés", "agent_api.failure_rate_limit", func(c *Config) { c.AgentAPI.FailureRateLimit = -1 }},
 		{"archivage des conteneurs", "containers.archive_after", func(c *Config) { c.Containers.ArchiveAfter = time.Minute }},
+		{"purge des conteneurs sous la rétention", "containers.purge_after", func(c *Config) { c.Containers.PurgeAfter = 24 * time.Hour }},
 		{"limite de l'API utilisateur", "user_api.rate_limit", func(c *Config) { c.UserAPI.RateLimit = -1 }},
 		{"limite des jetons personnels refusés", "user_api.failure_rate_limit", func(c *Config) { c.UserAPI.FailureRateLimit = -1 }},
 		{"durée d'un export", "user_api.export_timeout", func(c *Config) { c.UserAPI.ExportTimeout = 0 }},

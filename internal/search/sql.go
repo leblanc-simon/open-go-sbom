@@ -11,6 +11,7 @@ import (
 	"leblanc.io/lotor/internal/db"
 	"leblanc.io/lotor/internal/finding"
 	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/triage"
 	"leblanc.io/lotor/internal/version"
 	"leblanc.io/lotor/internal/vuln"
 )
@@ -53,17 +54,18 @@ func rankSQL(col string) string {
 }
 
 // Colonnes communes des occurrences : org_id, project_id, ref_id, component_id, origin,
-// confidence, weak_id, snapshot_id, finding_id, vuln_id, status, open, sev, kev, risk,
-// kind et labels du projet.
+// confidence, weak_id, snapshot_id, finding_id, vuln_id, status, triage, open, sev, kev,
+// risk, kind, labels et team_id du projet.
 
 // componentHits : composants désignés, dans l'inventaire courant des références actives
 // des projets actifs et visibles (db.Visible), avec la pire de leurs vulnérabilités
-// ouvertes.
+// ouvertes. Comme les listes de constats, elles écartent les constats triés « non
+// affecté » ou « faux positif » (triage.HiddenStatuses, T14), qui n'appellent pas d'action.
 const componentHits = `
 	SELECT i.org_id, p.id AS project_id, r.id AS ref_id, i.component_id, i.origin, i.confidence, i.weak_id,
-	       rc.snapshot_id, NULL::uuid AS finding_id, ''::text AS vuln_id, ''::text AS status,
+	       rc.snapshot_id, NULL::uuid AS finding_id, ''::text AS vuln_id, ''::text AS status, ''::text AS triage,
 	       coalesce(v.open, 0) AS open, v.sev, coalesce(v.kev, false) AS kev, coalesce(v.risk, 0) AS risk,
-	       p.kind, p.labels
+	       p.kind, p.labels, p.team_id
 	  FROM component_set_items i
 	  JOIN ref_current rc ON rc.org_id = i.org_id AND rc.set_id = i.set_id
 	  JOIN tracked_refs r ON r.org_id = rc.org_id AND r.id = rc.ref_id AND r.removed_at IS NULL
@@ -72,16 +74,19 @@ const componentHits = `
 	  LEFT JOIN LATERAL (
 	       SELECT count(*)::int AS open, max(` + "%RANK%" + `) AS sev, bool_or(f.kev) AS kev, max(f.risk)::float8 AS risk
 	         FROM findings f
-	        WHERE f.org_id = i.org_id AND f.ref_id = r.id AND f.component_id = i.component_id AND f.status = 'open') v ON true
+	        WHERE f.org_id = i.org_id AND f.ref_id = r.id AND f.component_id = i.component_id AND f.status = 'open'
+	          AND f.triage_status <> ALL(%HIDDEN%::text[])) v ON true
 	 WHERE i.component_id = ANY(%IDS%::uuid[])`
 
 // vulnHits : constats des vulnérabilités désignées, sur les références actives des projets
-// actifs et visibles, avec l'élément de l'inventaire courant s'il contient encore le composant.
+// actifs et visibles, avec l'élément de l'inventaire courant s'il contient encore le composant,
+// et le statut de triage effectif du constat (tous les statuts : la question « qui est
+// touché » appelle aussi la réponse « non affecté »).
 const vulnHits = `
 	SELECT f.org_id, f.project_id, f.ref_id, f.component_id, i.origin, i.confidence, coalesce(i.weak_id, false) AS weak_id,
-	       rc.snapshot_id, f.id AS finding_id, f.vuln_id, f.status,
+	       rc.snapshot_id, f.id AS finding_id, f.vuln_id, f.status, f.triage_status AS triage,
 	       CASE WHEN f.status = 'open' THEN 1 ELSE 0 END AS open, ` + "%RANK%" + ` AS sev, f.kev, f.risk::float8 AS risk,
-	       p.kind, p.labels
+	       p.kind, p.labels, p.team_id
 	  FROM findings f
 	  JOIN tracked_refs r ON r.org_id = f.org_id AND r.id = f.ref_id AND r.removed_at IS NULL
 	  JOIN projects p ON p.org_id = r.org_id AND p.id = r.project_id AND p.archived_at IS NULL
@@ -102,7 +107,8 @@ func hitsSQL(t target, f Filters, projectIDs []uuid.UUID, a *args) string {
 		base = strings.NewReplacer("%RANK%", rankSQL("f.severity"), "%IDS%", a.add(t.vulnIDs),
 			"%STATUS%", a.add(statuses)).Replace(vulnHits)
 	} else {
-		base = strings.NewReplacer("%RANK%", rankSQL("f.severity"), "%IDS%", a.add(t.components)).Replace(componentHits)
+		base = strings.NewReplacer("%RANK%", rankSQL("f.severity"), "%IDS%", a.add(t.components),
+			"%HIDDEN%", a.add(hiddenStatuses())).Replace(componentHits)
 	}
 	var where []string
 	if projectIDs != nil {
@@ -110,6 +116,16 @@ func hitsSQL(t target, f Filters, projectIDs []uuid.UUID, a *args) string {
 	}
 	// Toujours posé : les conteneurs ne figurent que s'ils sont inclus.
 	where = append(where, "h.kind = ANY("+a.add(f.kinds())+"::text[])")
+	if len(f.Teams) > 0 {
+		where = append(where, "h.team_id = ANY("+a.add(f.Teams)+"::uuid[])")
+	}
+	if len(f.Triage) > 0 {
+		statuses := make([]string, len(f.Triage))
+		for i, s := range f.Triage {
+			statuses[i] = string(s)
+		}
+		where = append(where, "h.triage = ANY("+a.add(statuses)+"::text[])")
+	}
 	if len(f.Labels) > 0 {
 		docs := make([]string, 0, len(f.Labels))
 		for _, l := range f.Labels {
@@ -161,13 +177,14 @@ const hitOrder = `h.risk DESC, c.name, c.version, r.name, h.ref_id, c.id, h.vuln
 // projet.
 const hitColumns = `SELECT h.project_id, h.ref_id, r.kind, r.name, s.id, s.scanned_at, coalesce(s.commit_sha, ''),
 	       c.id, c.purl, c.name, c.version, c.type, coalesce(h.origin, ''), h.confidence, h.weak_id,
-	       h.open, h.sev, h.kev, h.risk, fx.fixed, h.vuln_id, h.status`
+	       h.open, h.sev, h.kev, h.risk, fx.fixed, h.vuln_id, h.status, h.triage, h.finding_id`
 
 // hitJoins : jointures des colonnes d'une occurrence. Versions corrigées : celles des
 // vulnérabilités ouvertes du composant dans la référence, ou celles du constat.
 func hitJoins(t target) string {
 	fixed := `SELECT array_agg(DISTINCT fv) AS fixed FROM findings f CROSS JOIN LATERAL unnest(f.fixed_versions) fv
-	           WHERE f.org_id = h.org_id AND f.ref_id = h.ref_id AND f.component_id = h.component_id AND f.status = 'open'`
+	           WHERE f.org_id = h.org_id AND f.ref_id = h.ref_id AND f.component_id = h.component_id AND f.status = 'open'
+	             AND f.triage_status NOT IN ('` + strings.Join(hiddenStatuses(), "', '") + `')`
 	if t.vulnIDs != nil {
 		fixed = `SELECT f.fixed_versions AS fixed FROM findings f WHERE f.org_id = h.org_id AND f.id = h.finding_id`
 	}
@@ -186,6 +203,8 @@ type hitScan struct {
 	confidence sql.NullFloat64
 	sev        sql.NullInt64
 	status     string
+	triage     string
+	finding    uuid.NullUUID
 }
 
 // scanTargets renvoie les destinations des colonnes de hitColumns (projet exclu). Les
@@ -194,7 +213,7 @@ func (h *Hit) scanTargets() []any {
 	h.scan = &hitScan{}
 	return []any{&h.RefID, &h.RefKind, &h.RefName, &h.scan.snapshot, &h.scan.scanned, &h.Commit,
 		&h.ComponentID, &h.PURL, &h.Name, &h.Version, &h.Type, &h.scan.origin, &h.scan.confidence, &h.Weak,
-		&h.Open, &h.scan.sev, &h.KEV, &h.Risk, db.Array(&h.Fixed), &h.VulnID, &h.scan.status}
+		&h.Open, &h.scan.sev, &h.KEV, &h.Risk, db.Array(&h.Fixed), &h.VulnID, &h.scan.status, &h.scan.triage, &h.scan.finding}
 }
 
 // finish recopie les colonnes nullables et trie les versions corrigées selon
@@ -215,11 +234,24 @@ func (h *Hit) finish(c version.Comparer) {
 	}
 	h.Severity = severityOfRank(s.sev)
 	h.Status = finding.Status(s.status)
+	h.Triage = triage.Status(s.triage)
+	if s.finding.Valid {
+		h.FindingID = s.finding.UUID
+	}
 	if len(h.Fixed) > 1 {
 		scheme := version.ForPURLType(purlType(h.PURL))
 		sorted, unreadable := version.Sort(c, scheme, h.Fixed)
 		h.Fixed = append(sorted, unreadable...)
 	}
+}
+
+// hiddenStatuses : statuts de triage écartés du décompte des vulnérabilités d'un composant.
+func hiddenStatuses() []string {
+	out := []string{}
+	for _, s := range triage.HiddenStatuses() {
+		out = append(out, string(s))
+	}
+	return out
 }
 
 // purlType lit le type d'un purl canonique (pkg:<type>/…).

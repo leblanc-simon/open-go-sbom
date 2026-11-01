@@ -52,3 +52,6 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0045](0045-politiques-cel-et-verdicts.md) | Politiques en CEL (contexte typé, coût borné), violations datées et dédoublonnées, verdict d'un instantané | Accepté |
 | [0046](0046-notifications.md) | Notifications : canaux et secrets chiffrés, envois uniques par canal et violation, réessais, webhook signé, garde SSRF, SMTP | Accepté |
 | [0047](0047-statut-de-commit.md) | Statut de commit publié par l'agent dépôt après une attente bornée du verdict | Accepté |
+| [0048](0048-codes-de-secours.md) | Codes de secours du second facteur : mfax v1.4.0, affichage unique, reconfiguration par le titulaire | Accepté |
+| [0049](0049-purge-des-conteneurs-archives.md) | Purge des conteneurs archivés pour absence depuis 180 jours, par la rétention nocturne | Accepté |
+| [0050](0050-equipe-et-triage-dans-la-recherche.md) | Équipe et statut de triage dans la recherche : filtres, résultats, export | Accepté |

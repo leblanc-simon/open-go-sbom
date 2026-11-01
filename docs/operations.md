@@ -387,6 +387,20 @@ verrouillage est journalisé (« compte verrouillé ») : il signale que le mot 
 connu d'un tiers. Le titulaire attend la fin du verrouillage ; un administrateur peut le
 lever en réinitialisant le TOTP (ce qui impose un nouveau mot de passe).
 
+**Codes de secours** (T18, ADR 0048). À l'enrôlement du TOTP, chaque compte reçoit un jeu
+de `mfa.recovery_codes` (10) codes à usage unique, montrés une seule fois ; seule leur
+empreinte est gardée (table `mfa_recovery_codes`). Un code de secours remplace un code TOTP
+à la connexion (« Utiliser un code de secours ») ; les codes faux comptent dans le
+verrouillage comme des codes TOTP faux. Depuis **Mon compte → Second facteur**, le
+titulaire voit le nombre de codes restants, en régénère un jeu (code TOTP exigé, l'ancien
+jeu devient caduc) ou **reconfigure** son application : un code TOTP ou un code de secours
+retire le second facteur et ferme ses sessions, la connexion suivante impose un nouvel
+enrôlement. Un titulaire qui a perdu à la fois son application et ses codes passe toujours
+par un administrateur (réinitialisation du TOTP). Les comptes enrôlés avant la mise à jour
+n'ont pas de codes : la page **Second facteur** les invite à en générer. Le journal d'audit
+enregistre chaque jeu généré, chaque code utilisé (avec le nombre restant) ou refusé, et
+chaque reconfiguration.
+
 **Sessions.** Une session glisse de `auth.session_ttl` (12 h) à chaque requête, dans la
 limite absolue de `login.session_max_age` (7 jours) depuis la connexion. Un jeton CSRF est
 lié à la session : un formulaire affiché avant une connexion ou une déconnexion est refusé
@@ -576,6 +590,15 @@ l'utilisateur `lotor-agent` (et quiconque le compromet) ait ce pouvoir.
   `containers.archive_after` (7 jours ; `LOTOR_CONTAINERS_ARCHIVE_AFTER`) voit son projet
   archivé par une échéance horaire ; il revient de lui-même s'il redémarre. Un projet de
   conteneur archivé à la main n'est plus inventorié, même s'il tourne.
+- **Purge** (T18, ADR 0049) : archivé pour absence depuis `containers.purge_after`
+  (180 jours ; `LOTOR_CONTAINERS_PURGE_AFTER`, `0` : jamais, au moins `retention.days`),
+  le projet d'un conteneur est **supprimé avec tout son historique** (instantanés,
+  réceptions, constats, violations) par la rétention nocturne, qu'elle soit activée ou
+  non (voir « Rétention des instantanés »). Chaque suppression est journalisée dans le
+  journal d'audit de l'organisation (« conteneur … supprimé avec son historique »). Ne
+  sont jamais purgés un conteneur archivé à la main (son archivage dit à l'agent de
+  l'ignorer) ni un conteneur qui porte une décision de triage. S'il revient plus tard,
+  le conteneur est un nouveau projet.
 
 ### Mesures
 
@@ -661,8 +684,11 @@ organisation (jobs `retention.snapshots_all`, puis `retention.snapshots_org`). R
   même `enabled: false`. Les composants restent (les constats les référencent).
 - Une ingestion concurrente n'est jamais gênée : elle verrouille l'ensemble ou le SBOM
   qu'elle réutilise, que la rétention saute alors (ADR 0039).
+- Le même passage **purge les conteneurs archivés pour absence** depuis
+  `containers.purge_after` (180 jours, voir « Conteneurs ») ; leurs ensembles et SBOM
+  partent avec les orphelins.
 - Chaque passage journalise son bilan (`rétention des instantanés`, champs `snapshots`,
-  `ingestions`, `sets`, `blobs`, `diffs`, `recompute`) et l'enregistre dans
+  `ingestions`, `sets`, `blobs`, `diffs`, `containers`, `recompute`) et l'enregistre dans
   `snapshot_retention` avec l'**horizon** (la plus récente coupure appliquée) : avant
   cette date, l'historique d'une référence est réduit à un instantané par mois, et la
   recherche à une date passée (lot 3) avertit que ses résultats sont partiels.

@@ -53,6 +53,14 @@
           {{- end}}
           <label class="facet__option"><input type="checkbox" name="containers" value="{{.Containers.Value}}"{{if .Containers.Checked}} checked{{end}}><span class="ptype ptype--container">{{T "search.include_containers"}}</span></label>
         </fieldset>
+        {{- if .Teams}}
+        <fieldset class="facet">
+          <legend>{{T "search.facet_team"}}</legend>
+          {{- range .Teams}}
+          <label class="facet__option"><input type="checkbox" name="team" value="{{.Value}}"{{if .Checked}} checked{{end}}><span>{{if .LabelKey}}{{T .LabelKey}}{{else}}{{.Label}}{{end}}</span></label>
+          {{- end}}
+        </fieldset>
+        {{- end}}
         {{- if .Labels}}
         <fieldset class="facet">
           <legend>{{T "search.facet_label"}}</legend>
@@ -81,6 +89,14 @@
           <legend>{{T "search.facet_status"}}</legend>
           <label class="facet__option"><input type="checkbox" name="resolved" value="{{.Resolved.Value}}"{{if .Resolved.Checked}} checked{{end}}><span>{{T "search.include_resolved"}}</span></label>
         </fieldset>
+        {{- if .TriageFacet}}
+        <fieldset class="facet">
+          <legend>{{T "search.facet_triage"}}</legend>
+          {{- range .Triages}}
+          <label class="facet__option"><input type="checkbox" name="triage" value="{{.Value}}"{{if .Checked}} checked{{end}}><span class="{{.Class}}">{{T .LabelKey}}</span></label>
+          {{- end}}
+        </fieldset>
+        {{- end}}
         <div class="facet">
           <label class="field__label" for="sort">{{T "search.sort_by"}}</label>
           <select class="select select--sm" id="sort" name="sort">
@@ -135,6 +151,7 @@
             {{template "project_kind" .Kind}}
             <h2 class="result-group__title" id="{{.ID}}"><a href="{{.Href}}">{{.Name}}</a></h2>
             <span class="result-group__meta">
+              <span>{{T "search.team_of" "Team" .Team}}</span>
               {{- range .Labels}}<span class="chip chip--tag">{{.}}</span>{{end}}
               {{- with .Scanned}}<span>{{T "search.snapshot_of" "Date" .Display}}</span>{{end}}
             </span>
@@ -163,7 +180,7 @@
                   <td>
                     <span class="cluster">
                     {{- if .VulnID}}
-                      <a href="{{.VulnHref}}">{{.VulnID}}</a>{{with .Sev}}{{template "sev" .}}{{end}}{{if .KEV}}{{template "kev"}}{{end}}<span class="status{{if eq .Status "resolved"}} status--revoked{{else}} status--danger{{end}}">{{T (print "search.status_" .Status)}}</span>
+                      <a href="{{.VulnHref}}">{{.VulnID}}</a>{{with .Sev}}{{template "sev" .}}{{end}}{{if .KEV}}{{template "kev"}}{{end}}<span class="status{{if eq .Status "resolved"}} status--revoked{{else}} status--danger{{end}}">{{T (print "search.status_" .Status)}}</span>{{if .Triage}}<a class="triage-link" href="{{.TriageHref}}">{{template "triage_status" .Triage}}<span class="visually-hidden"> {{T "findings.open_finding" "ID" .VulnID "Component" .Name}}</span></a>{{end}}
                     {{- else if .Open}}
                       {{with .Sev}}{{template "sev" .}}{{end}}{{if .KEV}}{{template "kev"}}{{end}}<a href="{{.FindingsHref}}">{{Tn "search.vuln_count" .Open}}</a>
                     {{- else}}

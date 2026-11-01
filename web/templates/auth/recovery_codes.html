@@ -1,0 +1,10 @@
+{{define "content" -}}
+<div class="auth">
+  <section class="auth__card auth__card--wide" aria-labelledby="recovery-title">
+    <h1 class="auth__title" id="recovery-title">{{T "recovery_codes.heading"}}</h1>
+    <p class="auth__lead">{{T "recovery_codes.lead"}}</p>
+    {{template "recovery_codes_once" .Codes}}
+    <p><a class="btn btn--primary" href="{{.Next}}">{{T "recovery_codes.continue"}}</a></p>
+  </section>
+</div>
+{{- end}}

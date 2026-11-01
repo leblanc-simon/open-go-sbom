@@ -299,7 +299,8 @@ func SearchResult(res search.Result) userapi.SearchResult {
 			labels = map[string]string{}
 		}
 		sg := userapi.SearchGroup{Project: userapi.SearchProject{Id: g.Project.ID, Slug: g.Project.Slug, Name: g.Project.Name,
-			Kind: userapi.SearchProjectKind(g.Project.Kind), Labels: labels},
+			Kind: userapi.SearchProjectKind(g.Project.Kind), Labels: labels,
+			Team: userapi.TeamRef{Id: g.Project.Team.ID, Name: g.Project.Team.Name}},
 			Occurrences: g.HitCount, MaxRisk: g.MaxRisk, LastScannedAt: g.Scanned, Truncated: g.Truncated, Hits: []userapi.SearchHit{}}
 		if pr := g.Project.Parent; pr != nil {
 			sg.Project.Parent = &userapi.ProjectRef{Id: pr.ID, Slug: pr.Slug}
@@ -341,6 +342,10 @@ func searchHit(x search.Hit) userapi.SearchHit {
 	if x.VulnID != "" {
 		v, s := x.VulnID, userapi.SearchHitStatus(x.Status)
 		h.Vulnerability, h.Status = &v, &s
+	}
+	if x.Triage != "" {
+		t := userapi.SearchHitTriageStatus(x.Triage)
+		h.TriageStatus = &t
 	}
 	return h
 }

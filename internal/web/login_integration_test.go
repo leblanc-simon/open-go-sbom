@@ -84,7 +84,8 @@ func TestFirstLoginOfBootstrappedAdmin(t *testing.T) {
 	}
 	secretKey := setupSecret(t, setup.body)
 	code, _ := totp.GenerateCode(secretKey, time.Now())
-	if p = b.post(pathTOTPOn, url.Values{"code": {code}}); p.status != http.StatusSeeOther || p.location != "/" {
+	// Activation : les codes de secours sont montrés dans la réponse, une seule fois.
+	if p = b.post(pathTOTPOn, url.Values{"code": {code}}); p.status != http.StatusOK || len(recoveryCodesIn(p.body)) != 10 {
 		t.Fatalf("activation : %d %q", p.status, p.location)
 	}
 

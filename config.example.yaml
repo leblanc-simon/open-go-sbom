@@ -102,6 +102,9 @@ mfa:
   lockout_window: 15m
   lockout_duration: 15m
   lockout_max_duration: 24h
+  # Codes de secours : nombre de codes d'un jeu (5 à 50), montrés une seule fois à
+  # l'enrôlement et à chaque régénération, chacun valable pour une connexion.
+  recovery_codes: 10
 
 # Connexion : tentatives (POST /login et /login/2fa) par minute et par IP (une IPv6 compte
 # pour son /64), et durée absolue d'une session depuis la connexion (0 : sans), dans
@@ -209,9 +212,13 @@ retention:
   monthly: true   # au-delà de la fenêtre, garder le dernier instantané de chaque mois
 # Conteneurs des hôtes, projets enfants du projet de leur hôte (docs/operations.md,
 # « Conteneurs ») : un conteneur que l'agent n'a plus signalé depuis archive_after voit
-# son projet archivé ; il revient s'il redémarre.
+# son projet archivé ; il revient s'il redémarre. Archivé pour absence depuis purge_after,
+# le projet est supprimé avec son historique par la rétention nocturne (0 : jamais ; au
+# moins retention.days) ; un conteneur archivé à la main ou portant une décision de
+# triage n'est jamais supprimé.
 containers:
   archive_after: 168h         # 7 jours
+  purge_after: 4320h          # 180 jours
 
 # Notifications des politiques (T15, docs/notifications.md, ADR 0046). Les canaux sont
 # créés par organisation dans l'interface ; leurs secrets sont chiffrés par secrets.keys.

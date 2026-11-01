@@ -33,6 +33,8 @@ var exportColumns = []string{
 	"project", "project_name", "project_type", "ref_type", "ref", "commit", "scanned_at",
 	"component", "version", "purl", "component_type", "origin", "confidence", "weak_identification",
 	"open_vulnerabilities", "max_severity", "kev", "risk", "fixed_versions", "vulnerability", "status",
+	// Ajoutées en T18, en fin de ligne pour ne pas décaler les colonnes existantes.
+	"team", "triage_status",
 }
 
 // ExportRow est une occurrence exportée, avec son projet.
@@ -48,6 +50,9 @@ type ExportRow struct {
 func (s *Service) Export(ctx context.Context, org tenant.OrgID, vis tenant.Visibility, req Request, f Format, w io.Writer) error {
 	q, err := Parse(req.Q, s.cmp)
 	if err != nil {
+		return err
+	}
+	if err := checkFilters(q, req.Filters); err != nil {
 		return err
 	}
 	var enc rowEncoder
@@ -73,8 +78,9 @@ func (s *Service) Export(ctx context.Context, org tenant.OrgID, vis tenant.Visib
 		a := &args{}
 		hits := hitsSQL(t, req.Filters, nil, a)
 		rows, err := tx.QueryContext(ctx, `WITH hits AS (`+hits+`)
-			`+hitColumns+`, p.slug, p.name, p.kind `+hitJoins(t)+`
+			`+hitColumns+`, p.slug, p.name, p.kind, tm.id, tm.name `+hitJoins(t)+`
 			  JOIN projects p ON p.org_id = h.org_id AND p.id = h.project_id
+			  JOIN teams tm ON tm.org_id = p.org_id AND tm.id = p.team_id
 			 ORDER BY lower(p.name), p.id, r.name, h.ref_id, c.name, c.version, c.id, h.vuln_id`, a.list...)
 		if err != nil {
 			return err
@@ -84,7 +90,7 @@ func (s *Service) Export(ctx context.Context, org tenant.OrgID, vis tenant.Visib
 			var r ExportRow
 			var kind string
 			dest := append([]any{&r.Project.ID}, r.scanTargets()...)
-			if err := rows.Scan(append(dest, &r.Project.Slug, &r.Project.Name, &kind)...); err != nil {
+			if err := rows.Scan(append(dest, &r.Project.Slug, &r.Project.Name, &kind, &r.Project.Team.ID, &r.Project.Team.Name)...); err != nil {
 				return err
 			}
 			r.Project.Kind = project.Kind(kind)
@@ -120,7 +126,7 @@ func (r ExportRow) cells() []string {
 		r.Project.Slug, r.Project.Name, string(r.Project.Kind), r.RefKind, r.RefName, r.Commit, scanned,
 		r.Name, r.Version, r.PURL, r.Type, string(r.Origin), conf, strconv.FormatBool(r.Weak),
 		strconv.Itoa(r.Open), string(r.Severity), strconv.FormatBool(r.KEV), strconv.FormatFloat(r.Risk, 'f', -1, 64),
-		strings.Join(r.Fixed, " "), r.VulnID, string(r.Status),
+		strings.Join(r.Fixed, " "), r.VulnID, string(r.Status), r.Project.Team.Name, string(r.Triage),
 	}
 }
 
@@ -185,6 +191,9 @@ type jsonRow struct {
 	Vulnerability       string    `json:"vulnerability,omitempty"`
 	Status              string    `json:"status,omitempty"`
 	ComponentID         uuid.UUID `json:"component_id"`
+	Team                string    `json:"team"`
+	TeamID              uuid.UUID `json:"team_id"`
+	TriageStatus        string    `json:"triage_status,omitempty"`
 }
 
 type jsonEncoder struct {
@@ -216,7 +225,8 @@ func (e *jsonEncoder) row(r ExportRow) error {
 		RefType: r.RefKind, Ref: r.RefName, Commit: r.Commit, Component: r.Name, Version: r.Version, PURL: r.PURL,
 		ComponentType: r.Type, Origin: string(r.Origin), Confidence: r.Confidence, WeakIdentification: r.Weak,
 		OpenVulnerabilities: r.Open, MaxSeverity: string(r.Severity), KEV: r.KEV, Risk: r.Risk, FixedVersions: r.Fixed,
-		Vulnerability: r.VulnID, Status: string(r.Status), ComponentID: r.ComponentID}
+		Vulnerability: r.VulnID, Status: string(r.Status), ComponentID: r.ComponentID,
+		Team: r.Project.Team.Name, TeamID: r.Project.Team.ID, TriageStatus: string(r.Triage)}
 	if j.FixedVersions == nil {
 		j.FixedVersions = []string{}
 	}

@@ -80,6 +80,36 @@ func (e SearchHitStatus) Valid() bool {
 	}
 }
 
+// Defines values for SearchHitTriageStatus.
+const (
+	SearchHitTriageStatusAffected      SearchHitTriageStatus = "affected"
+	SearchHitTriageStatusFalsePositive SearchHitTriageStatus = "false_positive"
+	SearchHitTriageStatusFixed         SearchHitTriageStatus = "fixed"
+	SearchHitTriageStatusInTriage      SearchHitTriageStatus = "in_triage"
+	SearchHitTriageStatusNotAffected   SearchHitTriageStatus = "not_affected"
+	SearchHitTriageStatusRiskAccepted  SearchHitTriageStatus = "risk_accepted"
+)
+
+// Valid indicates whether the value is a known member of the SearchHitTriageStatus enum.
+func (e SearchHitTriageStatus) Valid() bool {
+	switch e {
+	case SearchHitTriageStatusAffected:
+		return true
+	case SearchHitTriageStatusFalsePositive:
+		return true
+	case SearchHitTriageStatusFixed:
+		return true
+	case SearchHitTriageStatusInTriage:
+		return true
+	case SearchHitTriageStatusNotAffected:
+		return true
+	case SearchHitTriageStatusRiskAccepted:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SearchProjectKind.
 const (
 	SearchProjectKindContainer SearchProjectKind = "container"
@@ -422,6 +452,36 @@ func (e SearchOrganizationParamsResolved) Valid() bool {
 	}
 }
 
+// Defines values for SearchOrganizationParamsTriage.
+const (
+	SearchOrganizationParamsTriageAffected      SearchOrganizationParamsTriage = "affected"
+	SearchOrganizationParamsTriageFalsePositive SearchOrganizationParamsTriage = "false_positive"
+	SearchOrganizationParamsTriageFixed         SearchOrganizationParamsTriage = "fixed"
+	SearchOrganizationParamsTriageInTriage      SearchOrganizationParamsTriage = "in_triage"
+	SearchOrganizationParamsTriageNotAffected   SearchOrganizationParamsTriage = "not_affected"
+	SearchOrganizationParamsTriageRiskAccepted  SearchOrganizationParamsTriage = "risk_accepted"
+)
+
+// Valid indicates whether the value is a known member of the SearchOrganizationParamsTriage enum.
+func (e SearchOrganizationParamsTriage) Valid() bool {
+	switch e {
+	case SearchOrganizationParamsTriageAffected:
+		return true
+	case SearchOrganizationParamsTriageFalsePositive:
+		return true
+	case SearchOrganizationParamsTriageFixed:
+		return true
+	case SearchOrganizationParamsTriageInTriage:
+		return true
+	case SearchOrganizationParamsTriageNotAffected:
+		return true
+	case SearchOrganizationParamsTriageRiskAccepted:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SearchOrganizationParamsSort.
 const (
 	SearchOrganizationParamsSortName     SearchOrganizationParamsSort = "name"
@@ -575,6 +635,36 @@ func (e ExportSearchParamsResolved) Valid() bool {
 	}
 }
 
+// Defines values for ExportSearchParamsTriage.
+const (
+	ExportSearchParamsTriageAffected      ExportSearchParamsTriage = "affected"
+	ExportSearchParamsTriageFalsePositive ExportSearchParamsTriage = "false_positive"
+	ExportSearchParamsTriageFixed         ExportSearchParamsTriage = "fixed"
+	ExportSearchParamsTriageInTriage      ExportSearchParamsTriage = "in_triage"
+	ExportSearchParamsTriageNotAffected   ExportSearchParamsTriage = "not_affected"
+	ExportSearchParamsTriageRiskAccepted  ExportSearchParamsTriage = "risk_accepted"
+)
+
+// Valid indicates whether the value is a known member of the ExportSearchParamsTriage enum.
+func (e ExportSearchParamsTriage) Valid() bool {
+	switch e {
+	case ExportSearchParamsTriageAffected:
+		return true
+	case ExportSearchParamsTriageFalsePositive:
+		return true
+	case ExportSearchParamsTriageFixed:
+		return true
+	case ExportSearchParamsTriageInTriage:
+		return true
+	case ExportSearchParamsTriageNotAffected:
+		return true
+	case ExportSearchParamsTriageRiskAccepted:
+		return true
+	default:
+		return false
+	}
+}
+
 // ChangeCounts defines model for ChangeCounts.
 type ChangeCounts struct {
 	Added      int `json:"added"`
@@ -697,6 +787,9 @@ type SearchHit struct {
 	// Status Recherche par vulnérabilité : état du constat.
 	Status *SearchHitStatus `json:"status,omitempty"`
 
+	// TriageStatus Recherche par vulnérabilité : statut de triage effectif du constat.
+	TriageStatus *SearchHitTriageStatus `json:"triage_status,omitempty"`
+
 	// Vulnerability Recherche par vulnérabilité : identifiant du constat.
 	Vulnerability      *string `json:"vulnerability,omitempty"`
 	WeakIdentification bool    `json:"weak_identification"`
@@ -711,6 +804,9 @@ type SearchHitOrigin string
 // SearchHitStatus Recherche par vulnérabilité : état du constat.
 type SearchHitStatus string
 
+// SearchHitTriageStatus Recherche par vulnérabilité : statut de triage effectif du constat.
+type SearchHitTriageStatus string
+
 // SearchProject defines model for SearchProject.
 type SearchProject struct {
 	Id     openapi_types.UUID `json:"id"`
@@ -719,6 +815,7 @@ type SearchProject struct {
 	Name   string             `json:"name"`
 	Parent *ProjectRef        `json:"parent,omitempty"`
 	Slug   string             `json:"slug"`
+	Team   TeamRef            `json:"team"`
 }
 
 // SearchProjectKind defines model for SearchProject.Kind.
@@ -857,6 +954,12 @@ type SnapshotSummary struct {
 	SpecVersion string              `json:"spec_version"`
 }
 
+// TeamRef defines model for TeamRef.
+type TeamRef struct {
+	Id   openapi_types.UUID `json:"id"`
+	Name string             `json:"name"`
+}
+
 // Cursor defines model for Cursor.
 type Cursor = string
 
@@ -889,6 +992,12 @@ type SearchSeverity = []string
 
 // SearchSort defines model for SearchSort.
 type SearchSort string
+
+// SearchTeam defines model for SearchTeam.
+type SearchTeam = []openapi_types.UUID
+
+// SearchTriage defines model for SearchTriage.
+type SearchTriage = []string
 
 // SearchType defines model for SearchType.
 type SearchType = []string
@@ -946,6 +1055,10 @@ type SearchOrganizationParams struct {
 	// s'ajoutent aux types retenus.
 	Containers *SearchOrganizationParamsContainers `form:"containers,omitempty" json:"containers,omitempty"`
 
+	// Team Équipes propriétaires retenues (identifiants) ; les projets d'une équipe que le
+	// propriétaire du jeton ne voit pas ne figurent jamais dans les résultats.
+	Team *SearchTeam `form:"team,omitempty" json:"team,omitempty"`
+
 	// Label Étiquettes de projet retenues, `clé=valeur` ou `clé` (l'une ou l'autre).
 	Label *SearchLabel `form:"label,omitempty" json:"label,omitempty"`
 
@@ -961,6 +1074,10 @@ type SearchOrganizationParams struct {
 
 	// Resolved `1` : une recherche par vulnérabilité montre aussi les constats résolus.
 	Resolved *SearchOrganizationParamsResolved `form:"resolved,omitempty" json:"resolved,omitempty"`
+
+	// Triage Recherche par vulnérabilité seulement (400 sinon) : statuts de triage effectifs
+	// des constats retenus.
+	Triage *SearchTriage `form:"triage,omitempty" json:"triage,omitempty"`
 
 	// Sort Ordre des projets (risque maximal décroissant par défaut).
 	Sort *SearchOrganizationParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
@@ -990,6 +1107,9 @@ type SearchOrganizationParamsSeverity string
 // SearchOrganizationParamsResolved defines parameters for SearchOrganization.
 type SearchOrganizationParamsResolved string
 
+// SearchOrganizationParamsTriage defines parameters for SearchOrganization.
+type SearchOrganizationParamsTriage string
+
 // SearchOrganizationParamsSort defines parameters for SearchOrganization.
 type SearchOrganizationParamsSort string
 
@@ -1007,6 +1127,10 @@ type ExportSearchParams struct {
 	// s'ajoutent aux types retenus.
 	Containers *ExportSearchParamsContainers `form:"containers,omitempty" json:"containers,omitempty"`
 
+	// Team Équipes propriétaires retenues (identifiants) ; les projets d'une équipe que le
+	// propriétaire du jeton ne voit pas ne figurent jamais dans les résultats.
+	Team *SearchTeam `form:"team,omitempty" json:"team,omitempty"`
+
 	// Label Étiquettes de projet retenues, `clé=valeur` ou `clé` (l'une ou l'autre).
 	Label *SearchLabel `form:"label,omitempty" json:"label,omitempty"`
 
@@ -1022,6 +1146,10 @@ type ExportSearchParams struct {
 
 	// Resolved `1` : une recherche par vulnérabilité montre aussi les constats résolus.
 	Resolved *ExportSearchParamsResolved `form:"resolved,omitempty" json:"resolved,omitempty"`
+
+	// Triage Recherche par vulnérabilité seulement (400 sinon) : statuts de triage effectifs
+	// des constats retenus.
+	Triage *SearchTriage `form:"triage,omitempty" json:"triage,omitempty"`
 }
 
 // ExportSearchParamsFormat defines parameters for ExportSearch.
@@ -1044,6 +1172,9 @@ type ExportSearchParamsSeverity string
 
 // ExportSearchParamsResolved defines parameters for ExportSearch.
 type ExportSearchParamsResolved string
+
+// ExportSearchParamsTriage defines parameters for ExportSearch.
+type ExportSearchParamsTriage string
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -1395,6 +1526,19 @@ func (siw *ServerInterfaceWrapper) SearchOrganization(w http.ResponseWriter, r *
 		return
 	}
 
+	// ------------- Optional query parameter "team" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "team", r.URL.Query(), &params.Team, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "team"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "team", Err: err})
+		}
+		return
+	}
+
 	// ------------- Optional query parameter "label" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, false, "label", r.URL.Query(), &params.Label, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
@@ -1456,6 +1600,19 @@ func (siw *ServerInterfaceWrapper) SearchOrganization(w http.ResponseWriter, r *
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "resolved"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "resolved", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "triage" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "triage", r.URL.Query(), &params.Triage, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "triage"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "triage", Err: err})
 		}
 		return
 	}
@@ -1580,6 +1737,19 @@ func (siw *ServerInterfaceWrapper) ExportSearch(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// ------------- Optional query parameter "team" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "team", r.URL.Query(), &params.Team, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "team"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "team", Err: err})
+		}
+		return
+	}
+
 	// ------------- Optional query parameter "label" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, false, "label", r.URL.Query(), &params.Label, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
@@ -1641,6 +1811,19 @@ func (siw *ServerInterfaceWrapper) ExportSearch(w http.ResponseWriter, r *http.R
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "resolved"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "resolved", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "triage" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "triage", r.URL.Query(), &params.Triage, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "triage"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "triage", Err: err})
 		}
 		return
 	}

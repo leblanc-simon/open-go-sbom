@@ -21,6 +21,7 @@ import (
 	"leblanc.io/lotor/internal/project"
 	"leblanc.io/lotor/internal/sbom"
 	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/triage"
 	"leblanc.io/lotor/internal/version"
 	"leblanc.io/lotor/internal/vuln"
 )
@@ -62,6 +63,14 @@ type ProjectRef struct {
 	Labels project.Labels
 	// Parent est l'hôte d'un conteneur.
 	Parent *project.ParentRef
+	// Team est l'équipe propriétaire (T16).
+	Team TeamRef
+}
+
+// TeamRef est l'équipe d'un projet.
+type TeamRef struct {
+	ID   uuid.UUID
+	Name string
 }
 
 // Hit est une occurrence : un composant dans l'inventaire courant d'une référence (ou,
@@ -95,9 +104,12 @@ type Hit struct {
 	// Fixed : versions corrigées connues, triées selon l'écosystème.
 	Fixed []string
 
-	// Recherche par vulnérabilité : identifiant et état du constat.
-	VulnID string
-	Status finding.Status
+	// Recherche par vulnérabilité : identifiant, état et statut de triage effectif du
+	// constat (T14).
+	VulnID    string
+	Status    finding.Status
+	Triage    triage.Status
+	FindingID uuid.UUID
 
 	scan *hitScan
 }
@@ -163,6 +175,9 @@ func (s *Service) Search(ctx context.Context, org tenant.OrgID, vis tenant.Visib
 	if err != nil {
 		return Result{}, err
 	}
+	if err := checkFilters(q, req.Filters); err != nil {
+		return Result{}, err
+	}
 	if req.Sort == "" {
 		req.Sort = SortRisk
 	}
@@ -198,6 +213,15 @@ func (s *Service) Search(ctx context.Context, org tenant.OrgID, vis tenant.Visib
 		return Result{}, wrap("recherche", err)
 	}
 	return res, nil
+}
+
+// checkFilters refuse les filtres sans objet pour la requête : un statut de triage n'existe
+// que sur un constat, donc pour une recherche par vulnérabilité.
+func checkFilters(q Query, f Filters) error {
+	if len(f.Triage) > 0 && q.Kind != KindVulnerability {
+		return refuse(KeyTriageVulnOnly)
+	}
+	return nil
 }
 
 func wrap(what string, err error) error {
@@ -376,11 +400,12 @@ func (s *Service) page(ctx context.Context, tx *db.OrgTx, t target, req Request,
 	ranked AS (
 		SELECT g.project_id, p.slug, p.name, p.kind, p.labels, g.n, g.risk, g.scanned, lower(p.name) AS sort_name,
 		       count(*) OVER () AS projects, sum(g.n) OVER () AS total, pp.id AS parent_id, pp.slug AS parent_slug,
-		       pp.name AS parent_name
+		       pp.name AS parent_name, t.id AS team_id, t.name AS team_name
 		  FROM grouped g JOIN projects p ON p.id = g.project_id
+		  JOIN teams t ON t.org_id = p.org_id AND t.id = p.team_id
 		  LEFT JOIN projects pp ON pp.org_id = p.org_id AND pp.id = p.parent_id)
 	SELECT project_id, slug, name, kind, labels, n, risk, scanned, sort_name, projects, total, parent_id,
-	       coalesce(parent_slug, ''), coalesce(parent_name, '')
+	       coalesce(parent_slug, ''), coalesce(parent_name, ''), team_id, team_name
 	  FROM ranked WHERE ` + where + ` ORDER BY ` + ord.order + ` LIMIT ` + a.add(limit+1)
 	rows, err := tx.QueryContext(ctx, query, a.list...)
 	if err != nil {
@@ -400,7 +425,7 @@ func (s *Service) page(ctx context.Context, tx *db.OrgTx, t target, req Request,
 		var parentID uuid.NullUUID
 		if err := rows.Scan(&r.group.Project.ID, &r.group.Project.Slug, &r.group.Project.Name, &kind, &labels,
 			&r.group.HitCount, &r.group.MaxRisk, &scanned, &r.sortName, &res.Projects, &res.Hits, &parentID, &parentSlug,
-			&parentName); err != nil {
+			&parentName, &r.group.Project.Team.ID, &r.group.Project.Team.Name); err != nil {
 			return err
 		}
 		if parentID.Valid {

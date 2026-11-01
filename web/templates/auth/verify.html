@@ -16,11 +16,26 @@
       {{- with .Next}}<input type="hidden" name="next" value="{{.}}">{{end}}
       <div class="field">
         <label class="field__label" for="verify-code">{{T "verify.code"}}</label>
-        <input class="input input--code" id="verify-code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required aria-describedby="verify-code-hint"{{if .ErrorKey}} aria-invalid="true"{{end}}>
+        <input class="input input--code" id="verify-code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required aria-describedby="verify-code-hint"{{if and .ErrorKey (not .RecoveryError)}} aria-invalid="true"{{end}}>
         <p class="field__hint" id="verify-code-hint">{{T "verify.code_hint"}}</p>
       </div>
       <p><button type="submit" class="btn btn--primary">{{T "verify.submit"}}</button></p>
     </form>
+    {{- if .Recovery}}
+    <details class="auth__alt"{{if .RecoveryError}} open{{end}}>
+      <summary>{{T "verify.recovery_summary"}}</summary>
+      <form class="form" method="post" action="/login/2fa">
+        {{csrfField .Page.CSRFToken}}
+        {{- with .Next}}<input type="hidden" name="next" value="{{.}}">{{end}}
+        <div class="field">
+          <label class="field__label" for="verify-recovery">{{T "verify.recovery_code"}}</label>
+          <input class="input input--code" id="verify-recovery" name="recovery_code" type="text" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false" required aria-describedby="verify-recovery-hint"{{if .RecoveryError}} aria-invalid="true"{{end}}>
+          <p class="field__hint" id="verify-recovery-hint">{{T "verify.recovery_hint"}}</p>
+        </div>
+        <p><button type="submit" class="btn">{{T "verify.recovery_submit"}}</button></p>
+      </form>
+    </details>
+    {{- end}}
     <p class="muted">{{T "verify.lost"}}</p>
   </section>
 </div>

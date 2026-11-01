@@ -181,6 +181,9 @@ func (c Config) Validate() error {
 	if c.MFA.LockoutMaxDuration < c.MFA.LockoutDuration {
 		v.fail("mfa.lockout_max_duration", "doit être au moins égal à mfa.lockout_duration")
 	}
+	if c.MFA.RecoveryCodes < 5 || c.MFA.RecoveryCodes > 50 {
+		v.fail("mfa.recovery_codes", "doit être compris entre 5 et 50 (reçu %d)", c.MFA.RecoveryCodes)
+	}
 	v.nonNegative("login.rate_limit", int64(c.Login.RateLimit))
 	v.nonNegative("login.session_max_age", int64(c.Login.SessionMaxAge))
 	if c.Login.SessionMaxAge > 0 && c.Login.SessionMaxAge < c.Auth.SessionTTL {
@@ -218,6 +221,9 @@ func (c Config) Validate() error {
 	}
 	c.Notify.validate(&v)
 	c.SMTP.validate(&v)
+	if c.Containers.PurgeAfter != 0 && c.Containers.PurgeAfter < time.Duration(c.Retention.Days)*24*time.Hour {
+		v.fail("containers.purge_after", "0 (jamais) ou au moins retention.days (%d jours ; reçu %s)", c.Retention.Days, c.Containers.PurgeAfter)
+	}
 	if c.Containers.ArchiveAfter < time.Hour {
 		v.fail("containers.archive_after", "au moins 1h (reçu %s)", c.Containers.ArchiveAfter)
 	}

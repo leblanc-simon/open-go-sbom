@@ -48,13 +48,16 @@ const (
 	KeyHashInvalid     = "error.search.hash_invalid"
 	KeyLicense         = "error.search.license_unavailable"
 	KeyFilterInvalid   = "error.search.filter_invalid"
+	// KeyTriageVulnOnly : le filtre de triage ne vaut que pour une recherche par
+	// vulnérabilité (un constat a un statut de triage, un composant non).
+	KeyTriageVulnOnly = "error.search.triage_vulnerability_only"
 )
 
 // ErrorKeys liste les clés d'erreur du paquet (tests de traduction).
 func ErrorKeys() []string {
 	return []string{KeyEmpty, KeyTooLong, KeyPURLInvalid, KeyRangeNeedsPURL, KeyRangeAndVersion, KeyVersInvalid,
 		KeyVersScheme, KeyVersDuplicate, KeyVersVersion, KeyVersMismatch, KeyVulnInvalid, KeyHashInvalid, KeyLicense,
-		KeyFilterInvalid}
+		KeyFilterInvalid, KeyTriageVulnOnly}
 }
 
 // Error est une requête ou un filtre refusés, avec une clé traduisible.

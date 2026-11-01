@@ -63,6 +63,9 @@ type SMTP struct {
 // Containers règle les conteneurs en projets enfants des hôtes (T13, ADR 0040).
 type Containers struct {
 	ArchiveAfter time.Duration `yaml:"archive_after" env:"CONTAINERS_ARCHIVE_AFTER" env-default:"168h" env-description:"Absence after which the project of a container is archived (it comes back when the container restarts)"`
+	// PurgeAfter : archivé pour absence depuis plus longtemps, le projet d'un conteneur est
+	// supprimé avec son historique par la rétention nocturne (T18, ADR 0048).
+	PurgeAfter time.Duration `yaml:"purge_after" env:"CONTAINERS_PURGE_AFTER" env-default:"4320h" env-description:"Time archived for absence after which the project of a container is deleted with its history, by the nightly retention (0: never; at least retention.days)"`
 }
 
 // Retention règle la rétention des instantanés (T17, ADR 0039), appliquée chaque nuit

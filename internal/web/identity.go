@@ -46,6 +46,7 @@ const (
 	pathTOTPOn      = "/account/totp/enable"
 	pathPassword    = "/account/password"
 	pathTokens      = "/account/tokens"
+	pathSecurity    = "/account/security"
 	pathInvitations = "/account/invitations"
 	pathLogout      = "/logout"
 	pathHome        = "/"
@@ -145,6 +146,12 @@ func newIdentity(o IdentityOptions, rd *render.Renderer, cat *locale.Catalog, lo
 		mfax.WithErrorHandler(id.mfaError),
 		mfax.WithLockout(mfasql.NewLockoutStore(sqlDB, d)),
 		mfax.WithLockoutHook(id.accountLocked),
+		// Codes de secours (T18) : montrés à l'enrôlement, acceptés à la connexion à la
+		// place d'un code TOTP ; une connexion par code de secours mène à la page du second
+		// facteur, qui dit combien il en reste et propose de reconfigurer l'application.
+		mfax.WithRecoveryCodes(mfasql.NewRecoveryStore(sqlDB, d)),
+		mfax.WithRecoveryHook(id.recoveryCodeUsed),
+		mfax.WithRecoveryLanding(pathSecurity + "?done=" + doneRecoverySignIn),
 	}
 	if hostCookies(o.Auth.CookieSecure) {
 		mfaOpts = append(mfaOpts, mfax.WithChallengeCookieName(hostCookie(mfax.ChallengeCookieName)))
@@ -173,6 +180,21 @@ func (id *identity) accountLocked(r *http.Request, u *authx.User, until time.Tim
 	a := authRenderer{id}
 	a.record(r, audit.Event{Action: audit.AccountLocked, TargetType: "account", TargetID: strconv.FormatInt(u.ID, 10),
 		TargetLabel: u.Email, Details: map[string]string{"until": until.UTC().Format(time.RFC3339)}})
+}
+
+// recoveryCodeUsed journalise un code de secours consommé (connexion ou réauthentification)
+// et le nombre restant. À la connexion, la requête n'a pas encore de visiteur : l'auteur est
+// le titulaire du code.
+func (id *identity) recoveryCodeUsed(r *http.Request, u *authx.User, remaining int) {
+	actor := id.actor(r)
+	if actor.UserID == 0 {
+		actor.UserID, actor.Email = u.ID, u.Email
+	}
+	ev := audit.Event{Action: audit.RecoveryCodeUsed, TargetType: "account", TargetID: strconv.FormatInt(u.ID, 10),
+		TargetLabel: u.Email, Details: map[string]string{"remaining": strconv.Itoa(remaining)}}
+	if err := audit.RecordInstance(r.Context(), id.Pool.DB(), actor, ev); err != nil {
+		middleware.Logger(r.Context(), id.logger).Error("journal d'audit", "action", ev.Action, "err", err)
+	}
 }
 
 func (id *identity) authError(w http.ResponseWriter, r *http.Request, status int, code authx.ErrorCode, err error) {

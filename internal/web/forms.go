@@ -64,6 +64,7 @@ var flashes = map[string]string{
 	"enrollment_revoked":  "flash.enrollment_revoked",
 
 	"personal_token_revoked": "flash.personal_token_revoked",
+	doneRecoverySignIn:       "flash.recovery_signin",
 
 	"job_retried":          "flash.job_retried",
 	"job_discarded":        "flash.job_discarded",

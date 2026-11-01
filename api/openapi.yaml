@@ -367,11 +367,13 @@ paths:
         - $ref: "#/components/parameters/SearchQuery"
         - $ref: "#/components/parameters/SearchType"
         - $ref: "#/components/parameters/SearchContainers"
+        - $ref: "#/components/parameters/SearchTeam"
         - $ref: "#/components/parameters/SearchLabel"
         - $ref: "#/components/parameters/SearchOrigin"
         - $ref: "#/components/parameters/SearchKEV"
         - $ref: "#/components/parameters/SearchSeverity"
         - $ref: "#/components/parameters/SearchResolved"
+        - $ref: "#/components/parameters/SearchTriage"
         - $ref: "#/components/parameters/SearchSort"
         - $ref: "#/components/parameters/Cursor"
         - name: limit
@@ -420,11 +422,13 @@ paths:
         - $ref: "#/components/parameters/SearchQuery"
         - $ref: "#/components/parameters/SearchType"
         - $ref: "#/components/parameters/SearchContainers"
+        - $ref: "#/components/parameters/SearchTeam"
         - $ref: "#/components/parameters/SearchLabel"
         - $ref: "#/components/parameters/SearchOrigin"
         - $ref: "#/components/parameters/SearchKEV"
         - $ref: "#/components/parameters/SearchSeverity"
         - $ref: "#/components/parameters/SearchResolved"
+        - $ref: "#/components/parameters/SearchTriage"
       responses:
         "200":
           description: L'export.
@@ -652,6 +656,20 @@ components:
       schema:
         type: string
         enum: ["1"]
+    SearchTeam:
+      name: team
+      in: query
+      description: |
+        Équipes propriétaires retenues (identifiants) ; les projets d'une équipe que le
+        propriétaire du jeton ne voit pas ne figurent jamais dans les résultats.
+      style: form
+      explode: true
+      schema:
+        type: array
+        maxItems: 32
+        items:
+          type: string
+          format: uuid
     SearchLabel:
       name: label
       in: query
@@ -704,6 +722,20 @@ components:
       schema:
         type: string
         enum: ["1"]
+    SearchTriage:
+      name: triage
+      in: query
+      description: |
+        Recherche par vulnérabilité seulement (400 sinon) : statuts de triage effectifs
+        des constats retenus.
+      style: form
+      explode: true
+      schema:
+        type: array
+        maxItems: 32
+        items:
+          type: string
+          enum: [in_triage, affected, not_affected, false_positive, risk_accepted, fixed]
     SearchSort:
       name: sort
       in: query
@@ -1321,8 +1353,10 @@ components:
             $ref: "#/components/schemas/SearchHit"
     SearchProject:
       type: object
-      required: [id, slug, name, kind, labels]
+      required: [id, slug, name, kind, labels, team]
       properties:
+        team:
+          $ref: "#/components/schemas/TeamRef"
         id:
           type: string
           format: uuid
@@ -1339,6 +1373,15 @@ components:
           type: object
           additionalProperties:
             type: string
+    TeamRef:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
     SearchHit:
       type: object
       required: [ref, component, weak_identification, open_vulnerabilities, kev, risk, fixed_versions]
@@ -1384,6 +1427,10 @@ components:
           type: string
           enum: [open, resolved]
           description: "Recherche par vulnérabilité : état du constat."
+        triage_status:
+          type: string
+          enum: [in_triage, affected, not_affected, false_positive, risk_accepted, fixed]
+          description: "Recherche par vulnérabilité : statut de triage effectif du constat."
     SearchRef:
       type: object
       required: [id, kind, name]

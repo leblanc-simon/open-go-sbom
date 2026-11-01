@@ -70,6 +70,8 @@ SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T1
 | Texte arbitraire injecté par un lien (`?error=`) | seuls des codes connus sont affichés (open-go-base v1.1.0, messages `?done=` en liste fermée) | T03 |
 | Usurpation de l'IP journalisée | `X-Forwarded-For` réécrit avec l'IP résolue par les seuls mandataires de confiance | T03 |
 | Rejeu d'un code TOTP | mfax refuse un code déjà utilisé | T03 |
+| Code de secours volé, deviné ou rejoué | 80 bits d'aléa par code, seule l'empreinte SHA-256 liée au compte est gardée ; usage unique (consommation atomique) ; codes faux comptés dans le verrouillage par compte et dans le plafond du défi, compte verrouillé qui refuse aussi les codes de secours ; affichage unique (`Cache-Control: no-store`), régénération soumise à un code TOTP et qui rend caduc l'ancien jeu ; chaque code utilisé ou refusé et chaque jeu généré au journal d'audit ; jamais dans les journaux (open-go-base v1.4.0, ADR 0048) | T18 |
+| Second facteur remplacé depuis une session volée | la reconfiguration exige un code TOTP ou un code de secours, ferme toutes les sessions et impose, à la connexion suivante, le mot de passe puis un nouvel enrôlement ; journalisée (`account.totp_reconfigured`) (ADR 0048) | T18 |
 | Accès à une autre organisation (IDOR) | garde d'organisation, RLS forcée, 404 uniforme, tests d'isolement par route | T03 → |
 | Clickjacking | `frame-ancestors 'none'` | T01 |
 | Compte administrateur unique perdu | procédure de secours auditée, une fois par ticket ; avertissement s'il n'y a qu'un administrateur | T03 |

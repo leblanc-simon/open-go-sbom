@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"leblanc.io/lotor/internal/audit"
 	"leblanc.io/lotor/internal/db"
 	"leblanc.io/lotor/internal/db/crossorg"
 	"leblanc.io/lotor/internal/jobs"
@@ -28,6 +29,10 @@ type RetentionPolicy struct {
 	Days    int
 	Count   int
 	Monthly bool
+	// ContainerPurgeAfter : un conteneur archivé pour absence depuis plus longtemps est
+	// supprimé avec son historique (0 : jamais), qu'Enabled soit posé ou non (T18,
+	// ADR 0048). Au moins Days jours : la fenêtre détaillée de son historique est passée.
+	ContainerPurgeAfter time.Duration
 }
 
 // Bornes de la politique de rétention.
@@ -49,6 +54,9 @@ func (p RetentionPolicy) Validate() error {
 	}
 	if p.Count < 0 || p.Count > RetentionMaxCount {
 		return fmt.Errorf("inventory: nombre d'instantanés gardés %d hors de [0, %d]", p.Count, RetentionMaxCount)
+	}
+	if p.ContainerPurgeAfter != 0 && p.ContainerPurgeAfter < time.Duration(p.Days)*24*time.Hour {
+		return fmt.Errorf("inventory: purge des conteneurs après %s, sous la fenêtre de rétention de %d jours", p.ContainerPurgeAfter, p.Days)
 	}
 	return nil
 }
@@ -83,6 +91,8 @@ type RetentionReport struct {
 	Sets       int64
 	Blobs      int64
 	Diffs      int64
+	// Containers : projets de conteneurs supprimés (ContainerPurgeAfter).
+	Containers int64
 	// Recompute : références dont les différences sont mises en file.
 	Recompute int
 }
@@ -174,6 +184,13 @@ func (h *History) Retain(ctx context.Context, org tenant.OrgID) (RetentionReport
 			return rep, wrap("réceptions hors de la fenêtre", err)
 		}
 	}
+	if h.policy.ContainerPurgeAfter > 0 {
+		n, err := h.purgeContainers(ctx, org, now.Add(-h.policy.ContainerPurgeAfter))
+		rep.Containers = n
+		if err != nil {
+			return rep, wrap("purge des conteneurs archivés", err)
+		}
+	}
 	var err error
 	if rep.Sets, err = h.deleteOrphans(ctx, org, orphanSets); err != nil {
 		return rep, wrap("ensembles orphelins", err)
@@ -212,7 +229,7 @@ func (h *History) Retain(ctx context.Context, org tenant.OrgID) (RetentionReport
 		return rep, wrap("différences et bilan de la rétention", err)
 	}
 	h.logger.Info("rétention des instantanés", "org", org.String(), "snapshots", rep.Snapshots, "ingestions", rep.Ingestions,
-		"sets", rep.Sets, "blobs", rep.Blobs, "diffs", rep.Diffs, "recompute", rep.Recompute)
+		"sets", rep.Sets, "blobs", rep.Blobs, "diffs", rep.Diffs, "containers", rep.Containers, "recompute", rep.Recompute)
 	return rep, nil
 }
 
@@ -460,4 +477,96 @@ func (h *History) Retention(ctx context.Context, org tenant.OrgID) (st Retention
 		return err
 	}, db.ReadOnly())
 	return st, ok, err
+}
+
+// containerPurgeBatch borne les conteneurs supprimés par transaction.
+const containerPurgeBatch = 50
+
+// purgeContainers supprime les projets des conteneurs archivés pour absence avant before,
+// avec tout leur historique (instantanés, réceptions, constats, analyses, violations), par
+// lots ; ensembles, SBOM et différences devenus orphelins partent ensuite avec les étapes
+// communes de la rétention. Ne sont jamais purgés : un conteneur archivé par un
+// utilisateur (son archivage dit à l'agent de l'ignorer, le supprimer le ferait revenir),
+// ni un conteneur qui porte une décision de triage (le journal des décisions est en ajout
+// seul). Chaque suppression est journalisée (project.purged, acteur système). Idempotent ;
+// un conteneur qui réapparaît pendant le passage est protégé par le verrou de sa ligne,
+// pris avant la suppression et sous lequel la condition est vérifiée de nouveau.
+func (h *History) purgeContainers(ctx context.Context, org tenant.OrgID, before time.Time) (int64, error) {
+	var total int64
+	for {
+		var n int
+		err := h.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
+			rows, err := tx.QueryContext(ctx, `
+				SELECT p.id, p.slug, p.archived_at, coalesce(pp.slug, '') FROM projects p
+				  LEFT JOIN projects pp ON pp.org_id = p.org_id AND pp.id = p.parent_id
+				 WHERE p.kind = 'container' AND p.archived_absent AND p.archived_at < $1
+				   AND NOT EXISTS (SELECT 1 FROM triage_decisions d WHERE d.org_id = p.org_id AND d.project_id = p.id)
+				 ORDER BY p.archived_at, p.id LIMIT $2 FOR UPDATE OF p SKIP LOCKED`, before, containerPurgeBatch)
+			if err != nil {
+				return err
+			}
+			type victim struct {
+				id         uuid.UUID
+				slug, host string
+				archived   time.Time
+			}
+			var victims []victim
+			for rows.Next() {
+				var v victim
+				if err := rows.Scan(&v.id, &v.slug, &v.archived, &v.host); err != nil {
+					rows.Close()
+					return err
+				}
+				victims = append(victims, v)
+			}
+			if err := rows.Close(); err != nil {
+				return err
+			}
+			if err := rows.Err(); err != nil {
+				return err
+			}
+			n = len(victims)
+			if n == 0 {
+				return nil
+			}
+			ids := make([]string, n)
+			for i, v := range victims {
+				ids[i] = v.id.String()
+			}
+			// Références verrouillées comme par l'ingestion : aucune réception ne s'écrit
+			// pendant la suppression.
+			if _, err := tx.ExecContext(ctx, `SELECT 1 FROM tracked_refs WHERE project_id = ANY($1::uuid[]) FOR UPDATE`, ids); err != nil {
+				return err
+			}
+			for _, q := range []string{
+				`DELETE FROM ref_current WHERE project_id = ANY($1::uuid[])`,
+				`DELETE FROM ref_analyses WHERE project_id = ANY($1::uuid[])`,
+				`DELETE FROM findings WHERE project_id = ANY($1::uuid[])`,
+				`DELETE FROM ingestions WHERE project_id = ANY($1::uuid[])`,
+				`DELETE FROM snapshots WHERE project_id = ANY($1::uuid[])`,
+				// Références, évaluations et violations restantes, statistiques : en cascade.
+				`DELETE FROM projects WHERE id = ANY($1::uuid[])`,
+			} {
+				if _, err := tx.ExecContext(ctx, q, ids); err != nil {
+					return err
+				}
+			}
+			for _, v := range victims {
+				if err := audit.RecordOrg(ctx, tx, audit.System, audit.Event{Action: audit.ProjectPurged, TargetType: "project",
+					TargetID: v.id.String(), TargetLabel: v.slug,
+					Details: map[string]string{"reason": "archived_absent", "host": v.host,
+						"archived_at": v.archived.UTC().Format(time.RFC3339)}}); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return total, err
+		}
+		total += int64(n)
+		if n < containerPurgeBatch {
+			return total, nil
+		}
+	}
 }

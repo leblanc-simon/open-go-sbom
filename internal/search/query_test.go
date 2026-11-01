@@ -8,6 +8,7 @@ import (
 
 	"leblanc.io/lotor/internal/project"
 	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/triage"
 	"leblanc.io/lotor/internal/version/grypeversion"
 )
 
@@ -129,6 +130,8 @@ func TestRequestRoundTripsThroughTheURL(t *testing.T) {
 		"q": {"pkg:npm/lodash vers:npm/<4.17.21"}, "type": {"host", "repo", "repo"}, "label": {"Env=prod", "exposé-internet"},
 		"origin": {"ia"}, "kev": {"1"}, "severity": {"none", "critical"}, "resolved": {"1"}, "sort": {"name"},
 		"cursor": {"abc"}, "limit": {"50"},
+		"team":   {"0192f5a8-0000-7000-8000-000000000002", "0192f5a8-0000-7000-8000-000000000001", "0192f5a8-0000-7000-8000-000000000002"},
+		"triage": {"not_affected", "in_triage"},
 	}
 	r, err := ParseRequest(v)
 	if err != nil {
@@ -137,7 +140,9 @@ func TestRequestRoundTripsThroughTheURL(t *testing.T) {
 	if !slices.Equal(r.Filters.ProjectKinds, []project.Kind{project.KindRepo, project.KindHost}) ||
 		!slices.Equal(r.Filters.Labels, []string{"env=prod", "exposé-internet"}) ||
 		!slices.Equal(r.Filters.Origins, []sbom.Origin{sbom.OriginIA}) || !r.Filters.KEV || !r.Filters.Resolved ||
-		!slices.Equal(r.Filters.Severities, []string{"critical", "none"}) || r.Sort != SortName || r.Cursor != "abc" || r.Limit != 50 {
+		!slices.Equal(r.Filters.Severities, []string{"critical", "none"}) || r.Sort != SortName || r.Cursor != "abc" || r.Limit != 50 ||
+		len(r.Filters.Teams) != 2 || r.Filters.Teams[0].String() != "0192f5a8-0000-7000-8000-000000000001" ||
+		!slices.Equal(r.Filters.Triage, []triage.Status{triage.StatusInTriage, triage.StatusNotAffected}) {
 		t.Fatalf("%+v", r)
 	}
 	if !r.Filters.Active() {
@@ -171,6 +176,7 @@ func TestParseRequestRejectsUnknownFilters(t *testing.T) {
 		{"type": {"container"}}, {"origin": {"manual"}}, {"severity": {"severe"}}, {"kev": {"true"}},
 		{"resolved": {"yes"}}, {"sort": {"-risk"}}, {"label": {"a=b,c=d"}}, {"label": {"=x"}}, {"label": {""}},
 		{"label": {strings.Repeat("a", 300)}}, {"type": slices.Repeat([]string{"repo"}, 40)}, {"containers": {"oui"}},
+		{"team": {"général"}}, {"team": {"00000000-0000-0000-0000-000000000000"}}, {"triage": {"ignored"}},
 	} {
 		if _, err := ParseRequest(v); err == nil {
 			t.Errorf("%v accepté", v)

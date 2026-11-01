@@ -22,6 +22,7 @@ nav:
   label: Navigation principale
   profile: Mon compte
   password: Mot de passe
+  security: "Second facteur"
   logout: Se déconnecter
   admin: Administration
   org_overview: Tableau de bord
@@ -82,6 +83,7 @@ flash:
   policy_saved: "Politique enregistrée ; son évaluation est en file."
   policy_deleted: "Politique supprimée avec ses violations."
   channel_saved: "Canal enregistré."
+  recovery_signin: "Vous vous êtes connecté avec un code de secours, qui ne servira plus. Si vous avez perdu votre application d'authentification, reconfigurez-la ci-dessous."
   channel_deleted: "Canal supprimé."
   triage_saved: "Décision de triage enregistrée."
   triage_withdrawn: "Décision de triage retirée."
@@ -270,7 +272,9 @@ login:
   email: Adresse e-mail
   password: Mot de passe
   submit: Continuer
-  help: Mot de passe oublié ou appareil perdu ? Adressez-vous à un administrateur de l'instance.
+  help: "Mot de passe oublié ? Adressez-vous à un administrateur de l'instance. Appareil perdu : utilisez un code de secours à l'étape suivante."
+  info_title: "Information"
+  totp_reconfigured: "Votre second facteur a été retiré et vos sessions fermées. Connectez-vous pour configurer votre nouvelle application d'authentification."
   error:
     title: Connexion refusée
     invalid_credentials: Adresse e-mail ou mot de passe incorrect.
@@ -284,10 +288,15 @@ verify:
   code: Code TOTP
   code_hint: Six chiffres, renouvelés toutes les trente secondes. Un code ne sert qu'une fois.
   submit: Vérifier
-  lost: Appareil perdu ? Un administrateur de l'instance peut réinitialiser votre TOTP.
+  lost: "Appareil perdu ? Utilisez un code de secours, ou adressez-vous à un administrateur de l'instance."
+  recovery_summary: "Utiliser un code de secours"
+  recovery_code: "Code de secours"
+  recovery_hint: "Seize caractères, avec ou sans tirets. Un code ne sert qu'une fois."
+  recovery_submit: "Se connecter avec ce code"
   error:
     title: Code refusé
     invalid_code: Ce code est incorrect, expiré ou déjà utilisé.
+    invalid_recovery_code: "Ce code de secours est incorrect ou a déjà servi."
 
 totp_setup:
   title: Configuration du TOTP
@@ -455,6 +464,10 @@ audit:
   system: Système (démarrage)
   empty: Aucun événement pour l'instant.
   action:
+    auth_recovery_code_used: "Code de secours utilisé par {{.Target}} ({{.D_remaining}} restants)"
+    auth_recovery_code_failed: "Code de secours refusé pour {{.Target}}"
+    account_recovery_codes_generated: "{{.D_count}} codes de secours générés pour {{.Target}}"
+    account_totp_reconfigured: "Second facteur de {{.Target}} retiré par son titulaire, à reconfigurer"
     policy_created: "Politique créée : {{.Target}}"
     policy_updated: "Politique modifiée : {{.Target}}"
     policy_deleted: "Politique supprimée : {{.Target}}"
@@ -495,6 +508,7 @@ audit:
     project_updated: "Projet {{.Target}} modifié ({{.D_fields}})"
     project_archived: "Projet {{.Target}} archivé"
     project_unarchived: "Projet {{.Target}} réactivé"
+    project_purged: "Conteneur {{.Target}} de l'hôte {{.D_host}} supprimé avec son historique, archivé pour absence depuis le {{.D_archived_at}}"
     project_agent_changed: "Agent du projet {{.Target}} : {{.D_agent}}"
     project_ai_mode_changed: "Enrichissement IA du projet {{.Target}} : {{.D_from}} → {{.D_to}}"
     agent_created: "Agent {{.Target}} créé"
@@ -671,6 +685,9 @@ error:
     filter_invalid:
       title: Filtre inconnu
       text: Un filtre ou un ordre de l'adresse n'existe pas ; réinitialisez les filtres.
+    triage_vulnerability_only:
+      title: "Filtre de triage sans objet"
+      text: "Le statut de triage porte sur un constat : il ne filtre qu'une recherche par vulnérabilité (CVE-… ou GHSA-…). Retirez ce filtre."
   client_cert_required:
     title: Certificat client exigé
     text: Ce serveur exige un certificat client valide (mTLS) pour l'API des agents. Configurez le certificat et la clé de l'agent.
@@ -1505,6 +1522,10 @@ search:
   severity_none: Sans vulnérabilité
   facet_status: Constats
   include_resolved: Inclure les constats résolus
+  facet_team: "Équipe"
+  team_unknown: "Équipe inconnue"
+  team_of: "Équipe {{.Team}}"
+  facet_triage: "Statut de triage"
   sort_by: Trier par
   sort_risk: Risque décroissant
   sort_name: Nom du projet
@@ -1559,6 +1580,40 @@ search:
   unreadable_text: "Ces versions ne se lisent pas selon les règles de l'écosystème : impossible de dire si elles sont dans la plage. Leurs occurrences ne sont pas affichées."
   include_containers: Inclure les conteneurs
   filter_containers: Conteneurs inclus
+
+recovery_codes:
+  title: "Codes de secours"
+  heading: "Vos codes de secours"
+  lead: "Votre second facteur est configuré. Si vous perdez votre application d'authentification, chacun de ces codes permet de vous connecter une fois à sa place."
+  once_title: "Affichés une seule fois"
+  once_text: "Notez ou imprimez ces codes maintenant et rangez-les en lieu sûr, hors de l'appareil qui porte votre application : ils ne seront plus jamais affichés."
+  list_label: "Codes de secours"
+  usage: "À la connexion, choisissez « Utiliser un code de secours ». Un nouveau jeu se génère depuis Mon compte, rubrique Second facteur."
+  continue: "J'ai noté mes codes, continuer"
+
+security:
+  title: "Second facteur"
+  heading: "Second facteur"
+  lead: "Votre compte est protégé par un code TOTP, obligatoire. Les codes de secours vous permettent de vous connecter si vous perdez votre application d'authentification."
+  new_codes_title: "Nouveaux codes de secours"
+  codes_title: "Codes de secours"
+  codes_meta: "Restants : {{.Remaining}} sur {{.Total}}"
+  codes_text: "Générer un nouveau jeu invalide tous les codes précédents, utilisés ou non."
+  codes_none_title: "Aucun code de secours"
+  codes_none_text: "Sans code de secours, la perte de votre application d'authentification impose de passer par un administrateur de l'instance. Générez un jeu maintenant."
+  codes_low_title: "Peu de codes restants"
+  codes_low_text: "Codes de secours restants : {{.Remaining}}. Générez un nouveau jeu avant d'en manquer."
+  code: "Code TOTP"
+  regenerate_hint: "Confirmez par le code de votre application d'authentification."
+  regenerate: "Générer de nouveaux codes"
+  reconfigure_title: "Changer d'application d'authentification"
+  reconfigure_text: "Nouveau téléphone, application perdue : retirez votre second facteur actuel. Toutes vos sessions seront fermées ; à la connexion suivante, votre mot de passe vous mènera à la configuration d'une nouvelle application et de nouveaux codes de secours. Vos jetons d'accès personnels sont gardés."
+  reconfigure_code: "Code TOTP ou code de secours"
+  reconfigure_hint: "Le code à six chiffres de votre application ou, si vous l'avez perdue, un code de secours (il sera consommé)."
+  reconfigure: "Retirer et reconfigurer"
+  error:
+    invalid_code: "Ce code est incorrect, expiré ou déjà utilisé."
+    locked: "Trop de codes incorrects : le compte est verrouillé pour un temps, réessayez plus tard."
 
 tokens:
   title: Jetons d'accès

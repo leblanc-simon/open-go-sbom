@@ -6,9 +6,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"leblanc.io/lotor/internal/pagination"
 	"leblanc.io/lotor/internal/project"
 	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/triage"
 	"leblanc.io/lotor/internal/vuln"
 )
 
@@ -41,6 +44,9 @@ type Filters struct {
 	ProjectKinds []project.Kind
 	// Containers ajoute les conteneurs (projets enfants des hôtes), écartés sinon.
 	Containers bool
+	// Teams : équipes propriétaires retenues (toutes les équipes visibles si vide). Une
+	// équipe invisible du compte ne donne rien : la visibilité s'applique d'abord.
+	Teams []uuid.UUID
 	// Labels : étiquettes « clé=valeur », ou « clé » pour une étiquette sans valeur.
 	Labels  []string
 	Origins []sbom.Origin
@@ -51,12 +57,15 @@ type Filters struct {
 	Severities []string
 	// Resolved : une recherche par vulnérabilité montre aussi les constats résolus.
 	Resolved bool
+	// Triage : statuts de triage effectifs retenus (recherche par vulnérabilité seulement,
+	// KeyTriageVulnOnly sinon) ; tous si vide.
+	Triage []triage.Status
 }
 
 // Active indique si un filtre au moins est posé.
 func (f Filters) Active() bool {
-	return len(f.ProjectKinds) > 0 || f.Containers || len(f.Labels) > 0 || len(f.Origins) > 0 || f.KEV || len(f.Severities) > 0 ||
-		f.Resolved
+	return len(f.ProjectKinds) > 0 || f.Containers || len(f.Teams) > 0 || len(f.Labels) > 0 || len(f.Origins) > 0 || f.KEV ||
+		len(f.Severities) > 0 || f.Resolved || len(f.Triage) > 0
 }
 
 // kinds renvoie les natures de projets retenues : celles demandées, ou toutes celles de
@@ -100,11 +109,13 @@ const (
 	ParamKind  = "type"
 	// ParamContainers vaut « 1 » pour inclure les conteneurs.
 	ParamContainers = "containers"
+	ParamTeam       = "team"
 	ParamLabel      = "label"
 	ParamOrigin     = "origin"
 	ParamKEV        = "kev"
 	ParamSeverity   = "severity"
 	ParamResolved   = "resolved"
+	ParamTriage     = "triage"
 	ParamSort       = "sort"
 	ParamCursor     = "cursor"
 	ParamLimit      = "limit"
@@ -131,6 +142,12 @@ func ParseRequest(v url.Values) (Request, error) {
 		return Request{}, err
 	}
 	if r.Filters.Severities, err = closed(v[ParamSeverity], severityValues()); err != nil {
+		return Request{}, err
+	}
+	if r.Filters.Triage, err = closed(v[ParamTriage], triage.Statuses()); err != nil {
+		return Request{}, err
+	}
+	if r.Filters.Teams, err = teamIDs(v[ParamTeam]); err != nil {
 		return Request{}, err
 	}
 	labels := v[ParamLabel]
@@ -199,6 +216,25 @@ func closed[T ~string](values []string, allowed []T) ([]T, error) {
 	return out, nil
 }
 
+// teamIDs lit les équipes d'un filtre : identifiants valides, sans doublon, triés.
+func teamIDs(values []string) ([]uuid.UUID, error) {
+	if len(values) > maxFilterValues {
+		return nil, refuse(KeyFilterInvalid)
+	}
+	var out []uuid.UUID
+	for _, s := range values {
+		id, err := uuid.Parse(s)
+		if err != nil || id == uuid.Nil {
+			return nil, refuse(KeyFilterInvalid)
+		}
+		if !slices.Contains(out, id) {
+			out = append(out, id)
+		}
+	}
+	slices.SortFunc(out, func(a, b uuid.UUID) int { return strings.Compare(a.String(), b.String()) })
+	return out, nil
+}
+
 func flag(v url.Values, name string) (bool, error) {
 	switch v.Get(name) {
 	case "":
@@ -232,6 +268,9 @@ func (r Request) Values() url.Values {
 	if r.Filters.Containers {
 		v.Set(ParamContainers, "1")
 	}
+	for _, t := range r.Filters.Teams {
+		v.Add(ParamTeam, t.String())
+	}
 	for _, l := range r.Filters.Labels {
 		v.Add(ParamLabel, l)
 	}
@@ -246,6 +285,9 @@ func (r Request) Values() url.Values {
 	}
 	if r.Filters.Resolved {
 		v.Set(ParamResolved, "1")
+	}
+	for _, s := range r.Filters.Triage {
+		v.Add(ParamTriage, string(s))
 	}
 	if r.Sort != "" && r.Sort != SortRisk {
 		v.Set(ParamSort, string(r.Sort))

@@ -23,6 +23,7 @@ type loginView struct {
 	Next     string
 	Email    string
 	ErrorKey string
+	InfoKey  string
 }
 
 // RenderLogin rend le formulaire de connexion. Un échec est générique (jamais distinguer
@@ -39,6 +40,8 @@ func (a authRenderer) RenderLogin(w http.ResponseWriter, r *http.Request, v auth
 		view.ErrorKey = "login.error.attempts_exhausted"
 	case r.URL.Query().Get("err") == string(mfax.CodeLocked):
 		view.ErrorKey = "login.error.locked"
+	case r.URL.Query().Get("done") == doneTOTPReconfigured:
+		view.InfoKey = "login.totp_reconfigured"
 	}
 	a.id.rd.Render(w, r, status, "auth/login", view)
 }
@@ -53,16 +56,24 @@ type verifyView struct {
 	render.Page
 	Next     string
 	ErrorKey string
+	// Recovery : les codes de secours sont acceptés ; RecoveryError : le refus porte sur
+	// un code de secours (le formulaire correspondant s'ouvre, son champ est signalé).
+	Recovery      bool
+	RecoveryError bool
 }
 
-// RenderVerify rend la saisie du code TOTP ; un code refusé est journalisé pour le compte
-// du défi en cours.
+// RenderVerify rend la saisie du code TOTP, et celle d'un code de secours ; un code refusé
+// est journalisé pour le compte du défi en cours.
 func (a authRenderer) RenderVerify(w http.ResponseWriter, r *http.Request, v mfax.VerifyView) {
-	view := &verifyView{Page: render.Page{TitleKey: "verify.title"}, Next: safeNext(v.Next)}
+	view := &verifyView{Page: render.Page{TitleKey: "verify.title"}, Next: safeNext(v.Next), Recovery: v.Recovery}
 	status := http.StatusOK
-	if v.Code == mfax.CodeInvalidCode {
+	if v.Code == mfax.CodeInvalidCode || v.Code == mfax.CodeInvalidRecoveryCode {
 		view.ErrorKey, status = "verify.error.invalid_code", http.StatusUnauthorized
 		ev := audit.Event{Action: audit.TOTPFailed, TargetType: "account"}
+		if v.Code == mfax.CodeInvalidRecoveryCode {
+			view.ErrorKey, view.RecoveryError = "verify.error.invalid_recovery_code", true
+			ev.Action = audit.RecoveryCodeFailed
+		}
 		if c, err := r.Cookie(a.id.mfa.ChallengeCookieName()); err == nil {
 			if ch, err := a.id.challenges.Get(c.Value); err == nil {
 				ev.TargetID = strconv.FormatInt(ch.UserID, 10)
@@ -99,6 +110,31 @@ func (a authRenderer) RenderSetup(w http.ResponseWriter, r *http.Request, v mfax
 		view.ErrorKey = "totp_setup.error.invalid_code"
 	}
 	a.id.rd.Render(w, r, http.StatusOK, "auth/totp_setup", view)
+}
+
+type recoveryCodesView struct {
+	render.Page
+	Codes []string
+	Next  string
+}
+
+// RenderRecoveryCodes montre, une seule fois, les codes de secours tirés à l'enrôlement du
+// TOTP (mfax.EnablePOST) ; la régénération depuis le compte passe par sa propre page.
+func (a authRenderer) RenderRecoveryCodes(w http.ResponseWriter, r *http.Request, v mfax.RecoveryCodesView) {
+	a.recordRecoveryCodes(r, len(v.Codes), "enrollment")
+	a.id.rd.Render(w, r, http.StatusOK, "auth/recovery_codes",
+		&recoveryCodesView{Page: render.Page{TitleKey: "recovery_codes.title"}, Codes: v.Codes, Next: pathHome})
+}
+
+// recordRecoveryCodes journalise la génération d'un jeu de codes de secours (jamais les
+// codes eux-mêmes).
+func (a authRenderer) recordRecoveryCodes(r *http.Request, count int, context string) {
+	ev := audit.Event{Action: audit.RecoveryCodesGenerated, TargetType: "account",
+		Details: map[string]string{"count": strconv.Itoa(count), "context": context}}
+	if v := viewerFrom(r); v != nil {
+		ev.TargetID, ev.TargetLabel = strconv.FormatInt(v.user.ID, 10), v.user.Email
+	}
+	a.record(r, ev)
 }
 
 // groupBy4 rend un secret base32 lisible à la recopie.
