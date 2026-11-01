@@ -471,7 +471,8 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
   changement des identifiants, refus pour un compte en attente (ADR 0029).
 - Agents : un projet est confié à au plus un agent de même nature (clé étrangère
   composite) ; un agent serveur couvre un seul hôte, dont le projet est créé ou rattaché à
-  l'inscription ; un agent dépôt reçoit ses dépôts depuis leur fiche.
+  l'inscription (par le nom d'hôte déclaré, seulement dans l'équipe du jeton : SEC2-02) ;
+  un agent dépôt reçoit ses dépôts depuis leur fiche.
 - Limitation de débit : par IP pour l'interface (open-go-base ; une IPv6 compte pour son
   /64) ; **par jeton** pour l'API agent et l'API utilisateur, pour que des hôtes derrière
   une même sortie NAT ne se gênent pas.

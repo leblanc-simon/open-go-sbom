@@ -245,8 +245,8 @@ func ValidVersion(v string) error {
 // Enroll inscrit un agent serveur avec le jeton d'inscription de p (voir Authenticate).
 // Dans une seule transaction : jeton revérifié et consommé sous verrou, agent créé,
 // projet de l'hôte créé (étiquettes du jeton) ou rattaché (projet désigné par le jeton, ou
-// projet existant de même référence d'hôte, s'il n'a pas d'agent actif), jeton d'agent
-// tiré, journal.
+// projet existant de même référence d'hôte, de l'équipe du jeton, s'il n'a pas d'agent
+// actif), jeton d'agent tiré, journal.
 func (s *Service) Enroll(ctx context.Context, p Principal, req EnrollRequest, ip, requestID string) (Enrollment, error) {
 	if p.Kind != KindEnrollment {
 		return Enrollment{}, errInvalid
@@ -321,19 +321,26 @@ func (s *Service) Enroll(ctx context.Context, p Principal, req EnrollRequest, ip
 
 // hostProject confie à agentID le projet de son hôte : celui que désigne le jeton,
 // sinon celui qui suit déjà cet hôte, sinon un projet créé.
+//
+// Sans projet désigné, le rattachement par le nom d'hôte déclaré est borné à l'équipe du
+// jeton (SEC2-02) : un projet homonyme d'une autre équipe répond comme un hôte déjà suivi
+// (KeyHostTaken, la référence d'hôte étant unique dans l'organisation), sans être pris ni
+// révéler son équipe, qu'il ait un agent, aucun, ou qu'il soit archivé. Seul
+// l'administrateur d'organisation lève le conflit (jeton de la bonne équipe, ou projet
+// désigné).
 func hostProject(ctx context.Context, tx *db.OrgTx, r enrollmentRow, host string, agentID uuid.UUID) (project.Project, bool, error) {
-	var pid uuid.UUID
+	var pid, team uuid.UUID
 	var slug string
 	var archived, assigned bool
-	query := `SELECT p.id, p.slug, p.archived_at IS NOT NULL, p.agent_id IS NOT NULL FROM projects p WHERE p.id = $1 FOR UPDATE`
+	query := `SELECT p.id, p.slug, p.team_id, p.archived_at IS NOT NULL, p.agent_id IS NOT NULL FROM projects p WHERE p.id = $1 FOR UPDATE`
 	arg := any(r.projectID)
 	if !r.projectID.Valid {
-		query = `SELECT p.id, p.slug, p.archived_at IS NOT NULL, p.agent_id IS NOT NULL
+		query = `SELECT p.id, p.slug, p.team_id, p.archived_at IS NOT NULL, p.agent_id IS NOT NULL
 			FROM projects p JOIN tracked_refs t ON t.org_id = p.org_id AND t.project_id = p.id
 			WHERE t.kind = 'host' AND lower(t.name) = $1 FOR UPDATE OF p`
 		arg = host
 	}
-	err := tx.QueryRowContext(ctx, query, arg).Scan(&pid, &slug, &archived, &assigned)
+	err := tx.QueryRowContext(ctx, query, arg).Scan(&pid, &slug, &team, &archived, &assigned)
 	switch {
 	case errors.Is(err, sql.ErrNoRows) && !r.projectID.Valid:
 		p, err := project.CreateHost(ctx, tx, host, r.labels, agentID, r.teamID)
@@ -345,6 +352,11 @@ func hostProject(ctx context.Context, tx *db.OrgTx, r enrollmentRow, host string
 		return project.Project{}, false, &ConflictError{Key: KeyProjectUnavailable}
 	case err != nil:
 		return project.Project{}, false, err
+	case !r.projectID.Valid && team != r.teamID:
+		return project.Project{}, false, &ConflictError{Key: KeyHostTaken}
+	case team != r.teamID:
+		// Projet désigné passé dans une autre équipe depuis la création du jeton.
+		return project.Project{}, false, &ConflictError{Key: KeyProjectUnavailable}
 	case archived:
 		return project.Project{}, false, &ConflictError{Key: KeyProjectUnavailable}
 	case assigned:

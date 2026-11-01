@@ -437,7 +437,10 @@ Les écrans **Projets** et **Agents** d'une organisation (`/o/<slug>/projects`,
   hôte), étiquettes des projets créés, ou projet de serveur existant à rattacher. Chaque
   hôte l'échange contre son propre jeton d'agent (`POST /api/v1/agent/enroll`) ; le
   serveur crée le projet de l'hôte, ou rattache l'agent au projet désigné, ou au projet
-  qui suit déjà ce nom d'hôte s'il n'a plus d'agent actif.
+  qui suit déjà ce nom d'hôte s'il n'a plus d'agent actif **et s'il est dans l'équipe du
+  jeton** ; un homonyme d'une autre équipe répond « hôte déjà suivi »
+  (`error.enrollment.host_taken`) sans être pris : désigner le projet, ou créer le jeton
+  dans la bonne équipe (SEC2-02).
 - **Agent dépôt** (`lotor-repo-agent`, T08) : « Nouvel agent dépôt » crée l'agent et son
   premier jeton ; les dépôts lui sont confiés depuis leur fiche.
 - Un jeton n'est **affiché qu'une fois** ; seul son SHA-256 est conservé. Le fournir à
