@@ -28,9 +28,20 @@ appliquées automatiquement, sans retour arrière.
   instantané de chaque mois, sans limite de durée ; le dernier instantané d'une référence
   n'est jamais supprimé ; les réceptions hors fenêtre, puis les ensembles d'inventaire et
   SBOM devenus orphelins sont supprimés chaque nuit. Réglages `retention.*`.
+- Triage et VEX (T14, ADR 0035 à 0037) : chaque constat a un statut de triage (à
+  analyser, affecté, non affecté avec justification VEX, faux positif, risque accepté
+  jusqu'à une date, corrigé), décidé pour un projet ou pour toute l'organisation (une
+  décision de projet surcharge celle de l'organisation) et hérité par les constats à
+  venir ; fiche d'un constat avec son panneau de triage et son historique, filtre par
+  statut, constats non affectés et faux positifs masqués par défaut ; échéance
+  automatique des risques acceptés ; export OpenVEX et CycloneDX VEX d'un projet
+  (interface et `GET /api/v1/orgs/{org}/projects/{project}/vex`), import des VEX
+  d'éditeurs pour un projet ou pour l'organisation ; chaque décision est journalisée.
 
 ### Modifié
 
+- Le tableau de bord ne compte plus les constats « non affecté » ni « faux positif »
+  parmi les constats ouverts (T14).
 - Le rôle d'organisation vaut désormais « membre » ou « administrateur » (les rôles
   `viewer` et `analyst` disparaissent). La migration 016 crée une équipe « Général » par
   organisation, y rattache projets, jetons d'inscription et agents serveur, et y fait

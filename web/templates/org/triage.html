@@ -1,0 +1,59 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{T "org_triage.title"}}</h1>
+    </div>
+    <p class="page-head__meta">{{T "org_triage.intro"}}</p>
+  </div>
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  {{template "vex_result" .Result}}
+  <section class="panel" aria-labelledby="org-decisions">
+    <div class="panel__head"><h2 class="panel__title" id="org-decisions">{{T "org_triage.decisions_title"}}</h2></div>
+    {{- if .Rows}}
+    <div class="panel__body panel__body--flush">
+      <div class="table-wrap" role="group" aria-labelledby="org-decisions" tabindex="0">
+        <table class="data-table">
+          <caption class="visually-hidden">{{T "org_triage.caption"}}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{{T "org_triage.col_vulnerability"}}</th>
+              <th scope="col">{{T "org_triage.col_component"}}</th>
+              <th scope="col">{{T "org_triage.col_status"}}</th>
+              <th scope="col">{{T "org_triage.col_comment"}}</th>
+              <th scope="col">{{T "org_triage.col_author"}}</th>
+              <th scope="col" class="num">{{T "org_triage.col_findings"}}</th>
+              <th scope="col"><span class="visually-hidden">{{T "table.actions"}}</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {{- range .Rows}}
+            <tr>
+              <th scope="row"><a class="mono" href="{{.VulnHref}}">{{.VulnID}}</a></th>
+              <td><span class="cell-stack"><span class="mono">{{.PURLBase}}</span>{{if .Vers}}<span class="mono muted">{{.Vers}}</span>{{else}}<span class="muted">{{T "org_triage.all_versions"}}</span>{{end}}</span></td>
+              <td><span class="cell-stack">{{template "triage_status" .Badge}}{{with .Justification}}<span class="muted">{{T (print "vex_justification." .)}}</span>{{end}}{{with .ExpiresOn}}<span class="muted">{{T "triage.history_until" "Date" .Display}}</span>{{end}}</span></td>
+              <td>{{.Comment}}</td>
+              <td><span class="cell-stack"><span>{{.Who}}</span>{{template "stamp" .When}}</span></td>
+              <td class="num">{{.Findings}}</td>
+              <td class="cell-actions"><a class="btn btn--sm" href="{{.WithdrawHref}}">{{T "triage.withdraw"}}<span class="visually-hidden"> {{.VulnID}} {{.PURLBase}}</span></a></td>
+            </tr>
+            {{- end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {{- if .Truncated}}<p class="panel__note muted">{{T "org_triage.truncated"}}</p>{{end}}
+    {{- else}}
+    <div class="panel__body"><p class="muted">{{T "org_triage.none"}}</p></div>
+    {{- end}}
+  </section>
+  <section class="panel" aria-labelledby="org-vex-import">
+    <div class="panel__head"><h2 class="panel__title" id="org-vex-import">{{T "vex.import_title"}}</h2></div>
+    <div class="panel__body stack stack--sm">
+      <p>{{T "vex.import_org_text"}}</p>
+      {{template "vex_import_form" .}}
+    </div>
+  </section>
+</div>
+{{- end}}

@@ -105,6 +105,13 @@ montée ou descente par `purl_base` ; ADR 0038), effet sur la sécurité calcul�
 `…/projects/{project}/snapshots` et `…/compare` ; rétention quotidienne (`retention.*` :
 90 jours puis le dernier instantané de chaque mois, jamais le dernier d'une référence ;
 orphelins supprimés ; horizon `snapshot_retention` pour T21 ; ADR 0039).
+T14 terminé : triage et VEX (`internal/triage`, `internal/triage/vex`, ADR 0035 à 0037).
+Décisions de projet (composant exact) ou d'organisation (`purl_base`, plage `vers`,
+permission `triage.org`), journal `triage_decisions` en ajout seul, statut effectif rangé
+sur chaque constat (`findings.triage_status`), recalculé à chaque décision et classé par
+l'analyse (`finding.Classifier`) ; échéance des risques acceptés (job `triage.expire`) ;
+export OpenVEX et CycloneDX (écran et API), import de VEX d'éditeurs. T15 réutilise
+`triage_status` et `triage.Options.OnChange` (voir le `doc.go` de `triage`).
 
 ## Règles de travail
 

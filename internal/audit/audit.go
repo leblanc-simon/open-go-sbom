@@ -78,6 +78,10 @@ const (
 	VulnDBImported         Action = "vulndb.imported"
 	VulnDBImportFailed     Action = "vulndb.import_failed"
 	VulnDBArchivesPurged   Action = "vulndb.archives_purged"
+	TriageDecided          Action = "triage.decided"
+	TriageWithdrawn        Action = "triage.withdrawn"
+	TriageExpired          Action = "triage.expired"
+	TriageVEXImported      Action = "triage.vex_imported"
 )
 
 // Actions renvoie toutes les actions connues (tests de traduction).
@@ -95,6 +99,7 @@ func Actions() []Action {
 		AgentCreated, AgentEnrolled, AgentDisabled, AgentScanRequested, AgentTokenCreated, AgentTokenRevoked,
 		EnrollmentTokenCreated, EnrollmentTokenRevoked, PersonalTokenCreated, PersonalTokenRevoked,
 		JobRetried, JobDiscarded, VulnDBImportRequested, VulnDBImported, VulnDBImportFailed, VulnDBArchivesPurged,
+		TriageDecided, TriageWithdrawn, TriageExpired, TriageVEXImported,
 	}
 }
 

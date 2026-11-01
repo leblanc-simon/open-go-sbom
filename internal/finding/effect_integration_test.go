@@ -6,7 +6,12 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
+
+	"leblanc.io/lotor/internal/audit"
 	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/triage"
+	"leblanc.io/lotor/internal/version/grypeversion"
 	"leblanc.io/lotor/internal/vuln"
 	"leblanc.io/lotor/internal/vuln/vulntest"
 )
@@ -104,5 +109,38 @@ func TestUpgradeFixingCVEIsResolvedFinding(t *testing.T) {
 	other, _, _, _ := e.newOrg("autre")
 	if eff, err := svc.Effect(ctx, other, s[0], s[1]); err != nil || eff.ResolvedTotal+eff.IntroducedTotal != 0 || eff.Pending {
 		t.Fatalf("autre organisation : %+v, %v", eff, err)
+	}
+}
+
+// TestEffectIgnoresMutedFindings : un constat « non affecté » ou « faux positif » (T14)
+// n'est ni introduit ni résolu par le passage d'un instantané à l'autre.
+func TestEffectIgnoresMutedFindings(t *testing.T) {
+	e := newEnv(t)
+	e.publish(built1, log4shellRule())
+	e.push(testdata(t, "log4shell.cdx16.json"))
+	e.analyze(e.org, e.main)
+	e.push(sbomWith(t, "2.17.1"))
+	e.analyze(e.org, e.main)
+	s := e.sides()
+	svc := NewService(e.pool)
+	ctx := context.Background()
+	if eff, err := svc.Effect(ctx, e.org, s[0], s[1]); err != nil || eff.ResolvedTotal != 1 {
+		t.Fatalf("avant le triage : %+v, %v", eff, err)
+	}
+	var id uuid.UUID
+	if err := e.pool.InOrg(ctx, e.org, func(tx *db.OrgTx) error {
+		return tx.QueryRowContext(ctx, `SELECT id FROM findings WHERE vuln_id = 'CVE-2021-44228'`).Scan(&id)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	tr := triage.NewService(triage.Options{Pool: e.pool, Comparer: grypeversion.New()})
+	if _, _, err := tr.Decide(ctx, e.org, audit.Actor{Email: "a@example.org"}, triage.Input{ProjectID: e.repo, FindingID: id,
+		Scope: triage.ScopeProject, Status: triage.StatusFalsePositive, Comment: "Mauvaise version."}); err != nil {
+		t.Fatal(err)
+	}
+	for _, pair := range [][2]EffectSide{{s[0], s[1]}, {s[1], s[0]}} {
+		if eff, err := svc.Effect(ctx, e.org, pair[0], pair[1]); err != nil || eff.ResolvedTotal != 0 || eff.IntroducedTotal != 0 {
+			t.Fatalf("après le triage : %+v, %v", eff, err)
+		}
 	}
 }

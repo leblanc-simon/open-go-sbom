@@ -38,6 +38,7 @@ import (
 	"leblanc.io/lotor/internal/sbom/schema"
 	"leblanc.io/lotor/internal/search"
 	"leblanc.io/lotor/internal/secret"
+	"leblanc.io/lotor/internal/triage"
 	"leblanc.io/lotor/internal/version/grypeversion"
 	"leblanc.io/lotor/internal/vuln"
 	"leblanc.io/lotor/internal/vuln/grype"
@@ -168,6 +169,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	triager := triage.NewService(triage.Options{Pool: pool, Comparer: grypeversion.New(), Logger: logger})
 	exports := search.NewExportLimiter(cfg.UserAPI.MaxExports, cfg.UserAPI.ExportTimeout)
 	reencodes := search.NewExportLimiter(cfg.Ingest.MaxReencodes, cfg.UserAPI.ExportTimeout)
 	vulndbScreen := web.VulnDBOptions{MaxAge: cfg.VulnDB.MaxAge, Offline: cfg.VulnDB.Offline, ListingURL: cfg.VulnDB.ListingURL,
@@ -193,6 +195,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			History:        history,
 			Ingest:         ingester,
 			Findings:       findings,
+			Triage:         triager,
 			Search:         searcher,
 			Exports:        exports,
 			Reencodes:      reencodes,
@@ -222,6 +225,8 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Inventory:        inv,
 			History:          history,
 			Findings:         findings,
+			Triage:           triager,
+			Version:          version,
 			RateLimit:        cfg.UserAPI.RateLimit,
 			FailureRateLimit: cfg.UserAPI.FailureRateLimit,
 		},
@@ -294,7 +299,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			jobs.WithOrgLimit(cfg.Workers.OrgLimit), jobs.WithTimeout(cfg.Ingest.DecodeTimeout)); err != nil {
 			return err
 		}
-		if err := registerAnalysis(cfg, runner, scheduler, pool, vulndb, ingester, logger); err != nil {
+		if err := registerAnalysis(cfg, runner, scheduler, pool, vulndb, ingester, triager, logger); err != nil {
 			return err
 		}
 		if err := scheduler.Register(account.PurgeSchedule()); err != nil {
@@ -314,8 +319,8 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 // registerAnalysis enregistre l'analyse de vulnérabilités : analyses des références,
 // réanalyse du parc, vérification de la liste de distribution (sauf hors ligne).
 func registerAnalysis(cfg config.Config, runner *jobs.Runner, scheduler *jobs.Scheduler, pool *db.Pool, vulndb *vuln.Manager,
-	ingester *ingest.Service, logger *slog.Logger) error {
-	analyzer := finding.NewAnalyzer(finding.Options{Pool: pool, Engine: vulndb, Blobs: ingester, Logger: logger})
+	ingester *ingest.Service, triager *triage.Service, logger *slog.Logger) error {
+	analyzer := finding.NewAnalyzer(finding.Options{Pool: pool, Engine: vulndb, Blobs: ingester, Triage: triager, Logger: logger})
 	source, err := grype.NewSource(download.New(name+"/"+version, cfg.VulnDB.DownloadTimeout), cfg.VulnDB.ListingURL)
 	if err != nil {
 		return err
@@ -336,6 +341,8 @@ func registerAnalysis(cfg config.Config, runner *jobs.Runner, scheduler *jobs.Sc
 			jobs.WithTimeout(cfg.VulnDB.AnalysisTimeout)}},
 		{vuln.RescanAllKind, analyzer.RescanAllHandler(), nil},
 		{finding.RescanOrgKind, analyzer.RescanOrgHandler(), nil},
+		// Échéance d'un risque accepté (triage).
+		{triage.ExpireKind, triager.ExpireHandler(), nil},
 		// Téléchargement, puis installation complète pour valider l'archive.
 		{vuln.CheckKind, check, []jobs.KindOption{jobs.WithTimeout(2 * cfg.VulnDB.DownloadTimeout)}},
 		// Archive téléversée depuis l'administration : même validation, même en mode hors ligne.

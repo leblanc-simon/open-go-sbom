@@ -61,7 +61,12 @@ type scope struct {
 
 func (s scope) org() bool { return s.project == uuid.Nil }
 
-// openWhere sélectionne les constats ouverts des références actives : des projets actifs
+// mutedTriage exclut des indicateurs les constats « non affecté » et « faux positif »
+// (triage.Status.Hidden) : ils n'appellent aucune action (T14, ADR 0035).
+const mutedTriage = ` AND f.triage_status NOT IN ('not_affected', 'false_positive')`
+
+// openWhere sélectionne les constats ouverts à traiter (sans les non affectés ni les faux
+// positifs) des références actives : des projets actifs
 // et visibles pour l'organisation, du projet demandé sinon (projets joints en p dans les deux cas). Le paramètre $1 porte la portée dans les
 // deux cas (NULL pour l'organisation), pour que les requêtes numérotent leurs paramètres
 // de la même façon. joins s'ajoute aux jointures (composants…).
@@ -71,12 +76,12 @@ func (s scope) openWhere(joins string) string {
 		  JOIN tracked_refs r ON r.org_id = f.org_id AND r.id = f.ref_id
 		  JOIN projects p ON p.org_id = f.org_id AND p.id = f.project_id` + joins + `
 		 WHERE f.status = 'open' AND r.removed_at IS NULL AND p.archived_at IS NULL AND $1::uuid IS NULL
-		   AND lotor_team_visible(p.team_id)`
+		   AND lotor_team_visible(p.team_id)` + mutedTriage
 	}
 	return ` FROM findings f
 	  JOIN tracked_refs r ON r.org_id = f.org_id AND r.id = f.ref_id
 	  JOIN projects p ON p.org_id = f.org_id AND p.id = f.project_id` + joins + `
-	 WHERE f.status = 'open' AND r.removed_at IS NULL AND f.project_id = $1`
+	 WHERE f.status = 'open' AND r.removed_at IS NULL AND f.project_id = $1` + mutedTriage
 }
 
 // arg renvoie le paramètre $1 de la portée (NULL pour l'organisation).

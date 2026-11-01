@@ -48,6 +48,7 @@ import (
 	"leblanc.io/lotor/internal/search"
 	"leblanc.io/lotor/internal/secret"
 	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/triage"
 	"leblanc.io/lotor/internal/version/grypeversion"
 	"leblanc.io/lotor/internal/web/middleware"
 	"leblanc.io/lotor/locales"
@@ -90,6 +91,7 @@ type app struct {
 	exports  *search.ExportLimiter
 	reencode *search.ExportLimiter
 	dash     *dashboard.Service
+	triage   *triage.Service
 	clock    *testClock
 	box      *secret.Box
 	handler  http.Handler
@@ -154,6 +156,7 @@ func newApp(t *testing.T, opts ...appOption) *app {
 		inv: inventory.NewService(tdb.App), search: search.NewService(tdb.App, grypeversion.New()),
 		exports: search.NewExportLimiter(2, time.Minute), reencode: search.NewExportLimiter(2, time.Minute),
 		dash: dashboard.NewService(tdb.App, dashboard.WithClock(clock.Now))}
+	a.triage = triage.NewService(triage.Options{Pool: tdb.App, Comparer: grypeversion.New(), Now: clock.Now})
 	if a.history, err = inventory.NewHistory(inventory.HistoryOptions{Pool: tdb.App, Comparer: grypeversion.New(),
 		Retention: inventory.DefaultRetention(), Clock: jobs.ClockFunc(clock.Now)}); err != nil {
 		t.Fatal(err)
@@ -169,7 +172,7 @@ func newApp(t *testing.T, opts ...appOption) *app {
 		CSRFSecure: "off",
 		Identity: &IdentityOptions{
 			Pool: tdb.App, Accounts: a.accounts, Orgs: a.orgs, Projects: a.projects, Agents: a.agents, Secrets: box,
-			Inventory: a.inv, History: a.history, Ingest: a.ingest, Findings: finding.NewService(tdb.App),
+			Inventory: a.inv, History: a.history, Ingest: a.ingest, Findings: finding.NewService(tdb.App), Triage: a.triage,
 			Search: a.search, Exports: a.exports, Reencodes: a.reencode,
 			Dashboard: dashboard.NewService(tdb.App, dashboard.WithClock(clock.Now)),
 			VulnDB: VulnDBOptions{MaxAge: 120 * time.Hour, ListingURL: "https://grype.anchore.io/databases/v6/latest.json",
@@ -181,7 +184,7 @@ func newApp(t *testing.T, opts ...appOption) *app {
 		AgentAPI: &apiv1.AgentOptions{Agents: a.agents, Ingest: a.ingest},
 		UserAPI: &apiv1.UserOptions{Pool: tdb.App, Accounts: a.accounts, Orgs: a.orgs, Search: a.search,
 			Exports: search.NewExportLimiter(2, time.Minute), Projects: a.projects, Inventory: a.inv, History: a.history,
-			Findings: finding.NewService(tdb.App)},
+			Findings: finding.NewService(tdb.App), Triage: a.triage, Version: "test"},
 	}
 	for _, opt := range opts {
 		opt(&o)

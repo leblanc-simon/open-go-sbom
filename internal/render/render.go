@@ -141,6 +141,9 @@ func escapeNow(t *template.Template) error {
 }
 
 // Pages renvoie les noms des pages connues, pour les tests.
+// Version renvoie la version de l'application (pied de page, outil des exports).
+func (r *Renderer) Version() string { return r.version }
+
 func (r *Renderer) Pages() []string {
 	var out []string
 	for name := range r.pages[r.cat.Default()] {

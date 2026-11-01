@@ -103,6 +103,7 @@ func TestMatrixRules(t *testing.T) {
 		{analyst, PermFindingTriage, true}, {analyst, PermProjectScan, true}, {analyst, PermProjectManage, false},
 		{teamAdmin, PermProjectManage, true}, {teamAdmin, PermAgentManage, true}, {teamAdmin, PermTeamMembers, true},
 		{teamAdmin, PermTeamsManage, false}, {teamAdmin, PermMembersManage, false}, {teamAdmin, PermOrgManage, false},
+		{analyst, PermTriageOrg, false}, {teamAdmin, PermTriageOrg, false}, {admin, PermTriageOrg, true},
 		{outside, PermOrgView, true}, {outside, PermMembersView, true}, {outside, PermProjectView, false},
 		{Subject{Role: "viewer", Team: TeamAdmin}, PermProjectView, false},
 		{admin, "inconnue", false},

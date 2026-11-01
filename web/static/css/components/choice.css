@@ -1,0 +1,64 @@
+/* Liste de choix exclusifs (boutons radio) avec libellé, description et champs
+   complémentaires révélés par le choix coché (panneau de triage, T14). */
+.choice-list {
+  display: grid;
+  gap: var(--space-1);
+  padding: 0;
+  list-style: none;
+
+  .choice {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 0 var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+
+    input {
+      margin-top: 0.15rem;
+    }
+
+    &:has(input:checked) {
+      background: var(--color-accent-soft);
+      border-color: var(--color-accent);
+    }
+
+    &:has(input:focus-visible) {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 1px;
+    }
+  }
+
+  .choice__label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+  }
+
+  .choice__note {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-regular);
+  }
+
+  .choice__desc {
+    grid-column: 2;
+    font-size: var(--text-xs);
+    color: var(--color-text-2);
+  }
+
+  .choice__extra {
+    display: none;
+    grid-column: 2;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+  }
+
+  .choice:has(input:checked) .choice__extra {
+    display: grid;
+  }
+}
