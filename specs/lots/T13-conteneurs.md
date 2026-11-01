@@ -25,7 +25,8 @@ l'hôte, avec son propre SBOM, et disparaît proprement quand le conteneur n'exi
   conteneurs est donc **désactivé par défaut** ; la documentation explique l'option, son
   impact, et privilégie une socket Podman sans root quand c'est possible.
 
-**Exclu** : analyse des images dans un registre (hors périmètre du cahier des charges).
+**Exclu** : analyse des images dans un registre (hors périmètre du cahier des charges) ;
+containerd seul, sans Docker ni Podman (renvoyé à T22).
 
 ## Conception
 
@@ -33,8 +34,7 @@ l'hôte, avec son propre SBOM, et disparaît proprement quand le conteneur n'exi
   même projet. Elle est encapsulée dans une seule fonction de l'agent, testée en table.
 - L'agent envoie un SBOM par conteneur sur une référence propre ; le serveur crée le projet
   enfant s'il n'existe pas, sous l'hôte de l'agent uniquement.
-- containerd seul (sans Docker ni Podman) : étudié en début de lot, réalisé seulement si le
-  coût en dépendances est raisonnable.
+- containerd seul (sans Docker ni Podman) : hors du lot 2 (voir Décisions), renvoyé à T22.
 
 ## Livrables
 
@@ -46,7 +46,8 @@ Planches « 4b · Fiche projet — serveur » du [design de référence](https:/
 
 ## Critères d'acceptation
 
-- [ ] Trois conteneurs sur deux images : trois projets enfants, deux scans d'image.
+- [ ] Trois conteneurs de services distincts sur deux images : trois projets enfants, deux
+      scans d'image ; deux répliques d'un même service Compose : un seul projet enfant.
 - [ ] Un conteneur arrêté depuis plus de N jours voit son projet archivé ; il réapparaît
       s'il redémarre.
 - [ ] La fiche hôte agrège les constats de ses enfants en comptant les couples distincts
@@ -60,11 +61,15 @@ Planches « 4b · Fiche projet — serveur » du [design de référence](https:/
 API Docker simulée (`httptest` sur socket Unix) ; tests en table de l'identité ;
 intégration serveur des cycles création et archivage.
 
-## Points à trancher
+## Décisions
 
-- Identité d'un projet enfant : nom du conteneur, service Compose ou image ?
-- Durée N avant archivage (7 jours proposé).
-- containerd seul dans le périmètre ?
+Prises le 1er novembre 2026 :
+
+- Identité d'un projet enfant : projet Compose et service quand les étiquettes Compose
+  sont présentes (les répliques d'un même service forment un seul projet), sinon nom du
+  conteneur.
+- Durée N avant archivage : 7 jours par défaut, réglable.
+- containerd seul (sans Docker ni Podman) : exclu du lot 2, renvoyé au lot 3 (T22).
 
 ## Journal
 

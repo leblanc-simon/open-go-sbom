@@ -62,9 +62,11 @@ canaux et du format de webhook.
 Tables de règles CEL ; destinataires simulés (`httptest`, serveur SMTP de test) ;
 vérification de signature ; forges simulées ; isolement.
 
-## Points à trancher
+## Décisions
 
-- Valider la dépendance `cel-go`.
+Prises le 1er novembre 2026 :
+
+- Dépendance `github.com/google/cel-go` validée.
 
 ## Journal
 

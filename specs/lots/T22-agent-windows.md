@@ -19,6 +19,10 @@ Porter `lotor-host-agent` sur Windows Server avec les mêmes garanties que sous 
 - Service Windows (démarrage, arrêt, journal des événements), planification interne.
 - Répertoire d'état protégé par ACL (compte de service et administrateurs seulement).
 - Installeur MSI ; documentation.
+- Renvoyé de T13 (décision du 1er novembre 2026) : inventaire des conteneurs d'un hôte
+  Linux équipé de containerd seul, sans Docker ni Podman. Étudié en début de lot,
+  réalisé seulement si le coût en dépendances est raisonnable (nouvelle dépendance
+  soumise à l'utilisateur).
 
 **Exclu** : postes de travail (le cahier des charges vise les serveurs).
 
@@ -37,6 +41,7 @@ Tests unitaires portables en CI sur un exécuteur Windows ; recette manuelle con
 ## Points à trancher
 
 - Versions de Windows Server supportées.
+- containerd : dépendance éventuelle et périmètre, après l'étude.
 
 ## Journal
 

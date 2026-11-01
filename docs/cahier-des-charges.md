@@ -146,7 +146,7 @@ L'agent serveur est un binaire Go statique qui embarque Syft comme bibliothèque
 - Paquets du système : dpkg, rpm, apk.
 - Paquets de langages installés hors système : Python, Ruby, Node.js, archives Java, binaires Go et Rust.
 - Contexte de l'hôte : distribution, version du noyau, architecture, nom d'hôte.
-- Conteneurs en cours d'exécution (Docker, Podman, containerd) : chacun devient un projet enfant du projet de l'hôte, avec son propre SBOM ; un conteneur disparu depuis N jours voit son projet enfant archivé.
+- Conteneurs en cours d'exécution (Docker et Podman au lot 2, containerd seul au lot 3) : chacun devient un projet enfant du projet de l'hôte, avec son propre SBOM ; un conteneur disparu depuis N jours voit son projet enfant archivé.
 - Exclusions configurables : `/proc`, `/sys`, montages réseau, répertoires de données volumineux.
 
 **Fonctionnement**
@@ -232,7 +232,7 @@ L'outil centralise la carte des faiblesses de chaque organisation hébergée : s
 **Sécurité**
 
 - Authentification : SSO OIDC, ou compte local avec double authentification TOTP obligatoire ; un compte local n'ouvre aucune session tant que son second facteur n'est pas enrôlé. Avec OIDC, la double authentification est déléguée au fournisseur d'identité.
-- Multi-organisation dès la v1 : projets, équipes, jetons, politiques et fournisseur OIDC propres à chaque organisation ; toute requête est filtrée par organisation. À l'intérieur, droits par équipe : lecteur, analyste (trie les constats), administrateur.
+- Multi-organisation dès la v1 : projets, équipes, jetons, politiques et fournisseur OIDC propres à chaque organisation ; toute requête est filtrée par organisation. À l'intérieur, droits par équipe : lecteur, analyste (trie les constats), administrateur ; un administrateur d'organisation voit tout.
 - Jetons d'agent : un par agent, limités à l'envoi pour leurs projets, révocables, stockés hachés.
 - Journal d'audit : décisions de triage, changements de politique, création et révocation de jetons.
 - TLS partout ; clés d'API des modèles jamais stockées en clair ; CSRF, limitation de débit et échec de connexion générique fournis par open-go-base.
@@ -292,7 +292,7 @@ L'agent de dépôt démarre en mode Syft seul au lot 1 : toute la chaîne est va
 
 ## 12. Décisions et points ouverts
 
-Dix décisions ont été prises le 31 octobre 2026 ; le modèle par défaut reste à choisir avant le lot 2.
+Dix décisions ont été prises le 31 octobre 2026, et celles du lot 2 le 1er novembre 2026.
 
 | Sujet | Décision |
 | --- | --- |
@@ -306,12 +306,16 @@ Dix décisions ont été prises le 31 octobre 2026 ; le modèle par défaut rest
 | Socle du serveur | leblanc.io/open-go-base |
 | Connexion sans SSO | Double authentification TOTP obligatoire |
 | SSO OIDC | Lot 3 |
+| Modèle et envoi de code (lot 2) | IA désactivée par défaut ; fournisseur externe autorisé projet par projet par un administrateur d'organisation ; Claude Sonnet 5.5 par défaut pour Anthropic ; seuils : faux positifs ≤ 5 %, rappel ≥ 80 % |
+| Identité d'un projet enfant | Projet Compose et service si présents, sinon nom du conteneur ; archivage après 7 jours d'absence ; containerd seul au lot 3 |
+| Équipes (lot 2) | Équipe « Général » pour l'existant ; rôle d'organisation membre ou administrateur, droits sur les projets par rôle d'équipe ; ajout d'un membre par invitation |
+| Rétention des instantanés | 90 jours complets, puis un par mois sans limite de durée |
 
 **Points ouverts**
 
-- [ ] Choisir le fournisseur de modèle par défaut et la règle d'envoi de code à un modèle externe, avant le lot 2.
+- [x] Choisir le fournisseur de modèle par défaut et la règle d'envoi de code à un modèle externe, avant le lot 2 (1er novembre 2026, voir T12).
 - [ ] Développer OIDC dans lotor ou l'ajouter à open-go-base, qui ne le fournit pas encore, avant le lot 3.
-- [ ] Définir l'identité d'un projet enfant : nom du conteneur, service Compose ou image.
+- [x] Définir l'identité d'un projet enfant : nom du conteneur, service Compose ou image (1er novembre 2026, voir T13).
 - [ ] Confirmer les cibles de volumétrie et de performance sur un parc réel.
 
 ## Sources

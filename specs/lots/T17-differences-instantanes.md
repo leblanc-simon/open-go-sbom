@@ -49,9 +49,12 @@ Migrations, calcul, écrans, job de rétention, documentation de la rétention.
 
 Tables de différences ; intégration de la rétention avec horloge simulée ; isolement.
 
-## Points à trancher
+## Décisions
 
-- Valeurs par défaut de la rétention.
+Prises le 1er novembre 2026 :
+
+- Rétention par défaut : tous les instantanés sont gardés 90 jours, puis un par mois, sans
+  limite de durée ; le dernier instantané d'une référence n'est jamais supprimé.
 
 ## Journal
 

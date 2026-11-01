@@ -36,7 +36,7 @@ parallèle.
   leurs équipes.
 - La recherche, le tableau de bord, les exports et l'API respectent le filtre d'équipe : un
   même test vérifie chaque surface.
-- Migration de l'existant : voir point à trancher.
+- Migration de l'existant : équipe « Général » par organisation (voir Décisions).
 
 ## Livrables
 
@@ -53,10 +53,22 @@ Migrations, stores, écrans, matrice des droits, tests dérivés de la matrice.
 
 Tests en table dérivés de la matrice, sur chaque route et chaque surface d'agrégat.
 
-## Points à trancher
+## Décisions
 
-- Projets existants sans équipe : visibles par toute l'organisation, ou rattachés à une
-  équipe par défaut lors de la migration ?
+Prises le 1er novembre 2026 :
+
+- Migration de l'existant : une équipe « Général » est créée dans chaque organisation ;
+  tous les projets existants y sont rattachés et tous les membres actuels en deviennent
+  membres avec leur rôle d'organisation actuel. Tout projet a ensuite toujours une équipe
+  (pas de projet sans équipe).
+- Rôles : le rôle d'organisation se réduit à « membre » ou « administrateur »
+  (l'administrateur voit et gère tout). Les droits sur les projets viennent uniquement du
+  rôle dans l'équipe : lecteur, analyste (trie les constats) ou administrateur d'équipe.
+  Les `viewer` et `analyst` actuels deviennent membres de l'organisation, avec le même
+  rôle dans l'équipe « Général ».
+- SEC-09 corrigé : l'ajout d'un membre à une organisation crée une invitation, que le
+  compte doit accepter avant d'être membre ; la réponse est identique que le compte
+  existe ou non.
 
 ## Journal
 

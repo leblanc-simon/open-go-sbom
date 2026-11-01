@@ -23,9 +23,11 @@ un taux de faux positifs mesuré et tenu, et publier une préversion `v0.2.0` du
 - Audit RGAA des écrans du lot 2.
 - Nouvelle mesure des cibles de performance avec les équipes et les conteneurs, selon
   `docs/benchmarks.md`.
+- Codes de secours TOTP : évolution de mfax dans open-go-base (§ 23 de l'architecture :
+  codes à usage unique, hachés, régénérables ; étiquette semver), puis adoption dans lotor.
 - Documentation utilisateur et exploitation du lot 2 ; `CHANGELOG.md` ; `v0.2.0`.
 
-**Exclu** : toute nouvelle fonction.
+**Exclu** : toute autre nouvelle fonction.
 
 ## Critères d'acceptation
 
@@ -34,7 +36,16 @@ un taux de faux positifs mesuré et tenu, et publier une préversion `v0.2.0` du
       l'échantillon pilote annoté.
 - [ ] Aucune faiblesse de gravité haute ou critique ouverte.
 - [ ] Grille RGAA remplie pour chaque nouvel écran, sans non-conformité bloquante.
+- [ ] Un utilisateur peut se connecter avec un code de secours, à usage unique.
 - [ ] `v0.2.0` publiée.
+
+## Décisions
+
+Prises le 1er novembre 2026 :
+
+- Seuils de l'enrichissement IA : faux positifs inférieurs ou égaux à 5 %, rappel
+  supérieur ou égal à 80 % (décidés pour T12).
+- Codes de secours TOTP livrés dans ce lot, par une évolution de mfax dans open-go-base.
 
 ## Journal
 
