@@ -8,11 +8,14 @@ import (
 	"slices"
 	"strconv"
 
+	"github.com/google/uuid"
+
 	apiv1 "leblanc.io/lotor/internal/api"
 	"leblanc.io/lotor/internal/project"
 	"leblanc.io/lotor/internal/render"
 	"leblanc.io/lotor/internal/sbom"
 	"leblanc.io/lotor/internal/search"
+	"leblanc.io/lotor/internal/triage"
 	"leblanc.io/lotor/internal/vuln"
 )
 
@@ -51,6 +54,8 @@ type searchHitRow struct {
 	VulnID        string
 	VulnHref      string
 	Status        string
+	Triage        *statusBadge
+	TriageHref    string
 	Fixed         []string
 	Risk          int
 }
@@ -61,6 +66,7 @@ type searchGroupRow struct {
 	Name      string
 	Href      string
 	Labels    []string
+	Team      string
 	Scanned   *stamp
 	Count     int
 	Truncated bool
@@ -91,14 +97,18 @@ type searchView struct {
 	ExportCSV    template.URL
 	ExportJSON   template.URL
 	Kinds        []facetOption
+	Teams        []facetOption
 	Labels       []facetOption
 	Origins      []facetOption
 	Severities   []facetOption
 	KEV          facetOption
 	Containers   facetOption
 	Resolved     facetOption
-	Sorts        []option
-	Syntax       []syntaxExample
+	// Triages : statuts de triage, proposés pour une recherche par vulnérabilité.
+	Triages     []facetOption
+	TriageFacet bool
+	Sorts       []option
+	Syntax      []syntaxExample
 }
 
 // syntaxExample est une ligne de l'aide de syntaxe : un exemple, sa description.
@@ -150,7 +160,21 @@ func (id *identity) search(w http.ResponseWriter, r *http.Request) {
 		id.serverError(w, r, err)
 		return
 	}
-	id.searchFacets(view, req, labels)
+	teams, err := id.Orgs.Teams(r.Context(), acc.Org, acc.Visibility())
+	if err != nil {
+		id.serverError(w, r, err)
+		return
+	}
+	var teamNames []facetOption
+	for _, t := range teams {
+		teamNames = append(teamNames, facetOption{Value: t.ID.String(), Label: t.Name})
+	}
+	// Le filtre de triage n'a de sens que pour une recherche par vulnérabilité : il n'est
+	// proposé que pour elle, ou s'il est déjà posé (l'erreur dit alors pourquoi).
+	if q, err := search.Parse(req.Q, id.Search.Comparer()); (err == nil && q.Kind == search.KindVulnerability) || len(req.Filters.Triage) > 0 {
+		view.TriageFacet = true
+	}
+	id.searchFacets(view, req, labels, teamNames)
 	if view.ErrorKey == "" && req.Q != "" {
 		res, err := id.Search.Search(r.Context(), acc.Org, acc.Visibility(), req)
 		switch {
@@ -172,7 +196,7 @@ func (id *identity) search(w http.ResponseWriter, r *http.Request) {
 }
 
 // searchFacets prépare les filtres, l'ordre, les filtres actifs et les liens d'export.
-func (id *identity) searchFacets(view *searchView, req search.Request, labels []string) {
+func (id *identity) searchFacets(view *searchView, req search.Request, labels []string, teams []facetOption) {
 	f := req.Filters
 	path := view.Action
 	chip := func(param, value, key, label string) {
@@ -188,6 +212,22 @@ func (id *identity) searchFacets(view *searchView, req search.Request, labels []
 			Class: cls, Checked: on})
 		if on {
 			chip(search.ParamKind, string(k), "project_type."+string(k), "")
+		}
+	}
+	for i, t := range teams {
+		on := slices.ContainsFunc(f.Teams, func(u uuid.UUID) bool { return u.String() == t.Value })
+		view.Teams = append(view.Teams, facetOption{ID: "f-team-" + strconv.Itoa(i), Value: t.Value, Label: t.Label, Checked: on})
+		if on {
+			chip(search.ParamTeam, t.Value, "", t.Label)
+		}
+	}
+	for _, u := range f.Teams {
+		if !slices.ContainsFunc(teams, func(t facetOption) bool { return t.Value == u.String() }) {
+			// Équipe d'une URL partagée invisible du compte (ou supprimée) : elle ne donne
+			// aucun résultat ; la case reste visible et cochée, sans en révéler le nom.
+			view.Teams = append(view.Teams, facetOption{ID: "f-team-" + strconv.Itoa(len(view.Teams)), Value: u.String(),
+				LabelKey: "search.team_unknown", Checked: true})
+			chip(search.ParamTeam, u.String(), "search.team_unknown", "")
 		}
 	}
 	for i, l := range labels {
@@ -235,6 +275,15 @@ func (id *identity) searchFacets(view *searchView, req search.Request, labels []
 	if f.Resolved {
 		chip(search.ParamResolved, "1", "search.filter_resolved", "")
 	}
+	for _, s := range triage.Statuses() {
+		on := slices.Contains(f.Triage, s)
+		b := triageBadge(s)
+		view.Triages = append(view.Triages, facetOption{ID: "f-triage-" + string(s), Value: string(s), LabelKey: b.LabelKey,
+			Class: b.Class, Checked: on})
+		if on {
+			chip(search.ParamTriage, string(s), b.LabelKey, "")
+		}
+	}
 	for _, s := range search.Sorts() {
 		view.Sorts = append(view.Sorts, option{Value: string(s), LabelKey: "search.sort_" + string(s), Selected: req.Sort == s})
 	}
@@ -261,8 +310,9 @@ func (id *identity) searchResults(view *searchView, req search.Request, res sear
 	}
 	for _, g := range res.Groups {
 		gr := searchGroupRow{ID: "g-" + g.Project.ID.String(), Kind: string(g.Project.Kind), Name: g.Project.Name,
-			Href: base + "/projects/" + g.Project.Slug, Labels: g.Project.Labels.Pairs(), Scanned: stampOf(g.Scanned),
-			Count: g.HitCount, Truncated: g.Truncated}
+			Href: base + "/projects/" + g.Project.Slug, Labels: g.Project.Labels.Pairs(), Team: g.Project.Team.Name,
+			Scanned: stampOf(g.Scanned),
+			Count:   g.HitCount, Truncated: g.Truncated}
 		for _, h := range g.Hits {
 			row := searchHitRow{ComponentHref: base + "/components/" + h.ComponentID.String(), Name: h.Name, PURL: h.PURL,
 				Version: h.Version, RefKind: h.RefKind, RefName: h.RefName, CommitShort: shortCommit(h.Commit),
@@ -278,6 +328,11 @@ func (id *identity) searchResults(view *searchView, req search.Request, res sear
 			}
 			if h.VulnID != "" {
 				row.VulnID, row.VulnHref = h.VulnID, base+"/vulnerabilities/"+url.PathEscape(h.VulnID)
+			}
+			if h.Triage != "" {
+				b := triageBadge(h.Triage)
+				row.Triage = &b
+				row.TriageHref = base + "/projects/" + g.Project.Slug + "/findings/" + h.FindingID.String()
 			}
 			gr.Rows = append(gr.Rows, row)
 		}

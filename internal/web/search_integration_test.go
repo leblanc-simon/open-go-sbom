@@ -51,14 +51,16 @@ func TestSearchScreenAndAPI(t *testing.T) {
 	}
 
 	b := a.signIn(viewer)
+	general := a.defaultTeam(f.org.ID).String()
 	queries := []string{"", "q=log4j-core", "q=CVE-2021-44228", "q=CVE-2021-44228&resolved=1&kev=1&severity=critical",
 		"q=pkg%3Amaven%2Forg.apache.logging.log4j%2Flog4j-core+vers%3Amaven%2F%3C2.15.0", "q=log4j&type=repo&origin=syft&sort=name",
-		"q=absent-zzz", "q=lodash+vers%3Anpm%2F%3C1", "q=license%3AMIT"}
+		"q=absent-zzz", "q=lodash+vers%3Anpm%2F%3C1", "q=license%3AMIT", "q=CVE-2021-44228&triage=in_triage&team=" + general,
+		"q=log4j-core&triage=affected"}
 	for _, lang := range []string{"fr", "en"} {
 		for _, q := range queries {
 			pg := b.get("/o/org-a/search?" + q + "&lang=" + lang)
 			want := http.StatusOK
-			if strings.Contains(q, "vers%3Anpm") || strings.Contains(q, "license") {
+			if strings.Contains(q, "vers%3Anpm") || strings.Contains(q, "license") || strings.Contains(q, "log4j-core&triage") {
 				want = http.StatusBadRequest
 			}
 			if pg.status != want {
@@ -74,6 +76,20 @@ func TestSearchScreenAndAPI(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Errorf("écran sans %q", want)
 		}
+	}
+	// Recherche par vulnérabilité : statut de triage de chaque constat (lien vers sa fiche),
+	// filtre de triage proposé ; filtre « équipe » et équipe de chaque projet.
+	vulnBody := unescape(b.get("/o/org-a/search?q=CVE-2021-44228").body)
+	for _, want := range []string{`name="triage"`, "Statut de triage", "À analyser", "/findings/", `name="team"`, "Équipe Général"} {
+		if !strings.Contains(vulnBody, want) {
+			t.Errorf("recherche par CVE sans %q", want)
+		}
+	}
+	if strings.Contains(unescape(b.get("/o/org-a/search?q=log4j-core").body), `name="triage"`) {
+		t.Error("filtre de triage proposé pour une recherche par composant")
+	}
+	if !strings.Contains(unescape(b.get("/o/org-a/search?q=log4j-core&triage=affected").body), "Filtre de triage sans objet") {
+		t.Error("triage sur un composant : message absent")
 	}
 	if !strings.Contains(unescape(b.get("/o/org-a/search?q=lodash+vers%3Anpm%2F%3C1").body), "Plage sans purl") {
 		t.Error("plage sur un nom : message absent")
@@ -146,7 +162,8 @@ func TestSearchScreenAndAPI(t *testing.T) {
 	}
 
 	// L'API renvoie exactement les mêmes résultats que l'écran.
-	for _, q := range []string{"q=log4j-core", "q=CVE-2021-44228&resolved=1", "q=GHSA-jfh8-c2jp-5v3q",
+	for _, q := range []string{"q=log4j-core", "q=CVE-2021-44228&resolved=1", "q=GHSA-jfh8-c2jp-5v3q", "q=log4j-core&team=" + general,
+		"q=CVE-2021-44228&triage=in_triage",
 		"q=pkg%3Amaven%2Forg.apache.logging.log4j%2Flog4j-core+vers%3Amaven%2F%3C2.15.0", "q=log4j&type=host"} {
 		pg := a.apiGet(token, "/api/v1/orgs/org-a/search?"+q)
 		if pg.status != http.StatusOK {
@@ -179,7 +196,8 @@ func TestSearchScreenAndAPI(t *testing.T) {
 		}
 	}
 	if pg := a.apiGet(token, "/api/v1/orgs/org-a/search?q=CVE-2021-44228"); !strings.Contains(pg.body, `"status":"open"`) ||
-		!strings.Contains(pg.body, `"fixed_versions":["2.15.0"]`) {
+		!strings.Contains(pg.body, `"fixed_versions":["2.15.0"]`) || !strings.Contains(pg.body, `"triage_status":"in_triage"`) ||
+		!strings.Contains(pg.body, `"team":{"id":"`+general+`","name":"Général"}`) {
 		t.Errorf("API CVE : %s", pg.body)
 	}
 	exp := a.apiGet(token, "/api/v1/orgs/org-a/search/export?q=log4j-core&format=csv")
@@ -187,7 +205,8 @@ func TestSearchScreenAndAPI(t *testing.T) {
 		t.Errorf("export par l'API : %d", exp.status)
 	}
 	for q, key := range map[string]string{"q=": "error.search.empty", "q=lodash+vers%3Anpm%2F%3C1": "error.search.range_needs_purl",
-		"q=x&type=container": "error.search.filter_invalid", "q=x&cursor=illisible": "error.invalid_cursor", "q=x&limit=500": "error.invalid_limit"} {
+		"q=x&type=container": "error.search.filter_invalid", "q=x&team=moi": "error.invalid_request",
+		"q=log4j&triage=affected": "error.search.triage_vulnerability_only", "q=x&cursor=illisible": "error.invalid_cursor", "q=x&limit=500": "error.invalid_limit"} {
 		if pg := a.apiGet(token, "/api/v1/orgs/org-a/search?"+q); pg.status != http.StatusBadRequest || !strings.Contains(pg.body, key) {
 			t.Errorf("API %s : %d %s", q, pg.status, pg.body)
 		}

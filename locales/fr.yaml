@@ -684,6 +684,9 @@ error:
     filter_invalid:
       title: Filtre inconnu
       text: Un filtre ou un ordre de l'adresse n'existe pas ; réinitialisez les filtres.
+    triage_vulnerability_only:
+      title: "Filtre de triage sans objet"
+      text: "Le statut de triage porte sur un constat : il ne filtre qu'une recherche par vulnérabilité (CVE-… ou GHSA-…). Retirez ce filtre."
   client_cert_required:
     title: Certificat client exigé
     text: Ce serveur exige un certificat client valide (mTLS) pour l'API des agents. Configurez le certificat et la clé de l'agent.
@@ -1518,6 +1521,10 @@ search:
   severity_none: Sans vulnérabilité
   facet_status: Constats
   include_resolved: Inclure les constats résolus
+  facet_team: "Équipe"
+  team_unknown: "Équipe inconnue"
+  team_of: "Équipe {{.Team}}"
+  facet_triage: "Statut de triage"
   sort_by: Trier par
   sort_risk: Risque décroissant
   sort_name: Nom du projet

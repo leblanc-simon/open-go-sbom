@@ -684,6 +684,9 @@ error:
     filter_invalid:
       title: Unknown filter
       text: A filter or an order in the address does not exist; reset the filters.
+    triage_vulnerability_only:
+      title: "Triage filter not applicable"
+      text: "A triage status belongs to a finding: it only filters a vulnerability search (CVE-… or GHSA-…). Remove this filter."
   client_cert_required:
     title: Client certificate required
     text: This server requires a valid client certificate (mTLS) for the agent API. Configure the agent's certificate and key.
@@ -1518,6 +1521,10 @@ search:
   severity_none: No vulnerability
   facet_status: Findings
   include_resolved: Include resolved findings
+  facet_team: "Team"
+  team_unknown: "Unknown team"
+  team_of: "Team {{.Team}}"
+  facet_triage: "Triage status"
   sort_by: Sort by
   sort_risk: Highest risk
   sort_name: Project name
