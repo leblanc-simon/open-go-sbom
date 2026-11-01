@@ -2155,7 +2155,7 @@ channel_form:
   room_hint: "Internal room identifier, for instance !abcdef:example.org."
   secret: "Secret"
   secret_hint: "Webhook HMAC key (at least 16 characters), Matrix access token, or Mattermost or Slack incoming webhook URL. Encrypted, never shown again."
-  secret_keep: "Leave empty to keep the current secret."
+  secret_keep: "Leave empty to keep the current secret, unless you change the Matrix server or the webhook URL: enter it again then (a secret never follows a new destination)."
   enabled: "Active"
 channel_kind:
   email: "E-mail"
