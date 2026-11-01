@@ -416,3 +416,27 @@ func TestOrgIndicatorsFollowTeams(t *testing.T) {
 	}
 	wantCounts(t, "administrateur", all.Open, 1, 1, 2, 1, 1)
 }
+
+// TestMutedFindingsLeaveIndicators : un constat « non affecté » ou « faux positif »
+// (triage, T14) ne compte plus parmi les constats ouverts du tableau de bord ; « risque
+// accepté » ou « affecté » comptent toujours.
+func TestMutedFindingsLeaveIndicators(t *testing.T) {
+	t.Parallel()
+	pool, _, s := newDB(t)
+	f := reference(t, pool, "atelier")
+	decision := newID()
+	f.exec(`INSERT INTO triage_decisions (org_id, id, scope, vuln_id, purl_base, action, status, justification, author_label, created_at)
+		VALUES ($1, $2, 'org', 'CVE-2021-44228', 'pkg:maven/org.apache.logging.log4j/log4j-core', 'set', 'not_affected',
+		        'code_not_reachable', 'system', now())`, f.org, decision)
+	f.exec(`UPDATE findings SET triage_status = 'not_affected', triage_decision_id = $2 WHERE vuln_id = 'CVE-2021-44228' AND component_id = $1`,
+		f.id("log4j"), decision)
+	f.exec(`UPDATE findings SET triage_status = 'risk_accepted', triage_decision_id = $1 WHERE vuln_id = 'CVE-2099-0003'`, decision)
+	o, err := s.Org(context.Background(), f.org, tenant.AllTeams(), Period90)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantCounts(t, "ouverts à traiter", o.Open, 0, 1, 2, 1, 0)
+	if o.KEVVulns != 0 || o.KEVProjects != 0 {
+		t.Errorf("KEV : %d vulnérabilités, %d projets", o.KEVVulns, o.KEVProjects)
+	}
+}

@@ -134,6 +134,14 @@ var orgTables = []orgTable{
 			VALUES ($1, $2, now(), 'opened', $3, $4)`, tx.OrgID(), seedID(tx, "finding"), seedID(tx, "snapshot"), uuid.Must(uuid.NewV7()))
 		return err
 	}},
+	{"triage_decisions", "org_id", func(ctx context.Context, tx *db.OrgTx, userID int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO triage_decisions (org_id, id, scope, project_id, vuln_id, purl, purl_base,
+			action, status, justification, comment, author_user_id, author_label, created_at)
+			VALUES ($1, $2, 'project', $3, 'CVE-2021-44228', 'pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1',
+			        'pkg:maven/org.apache.logging.log4j/log4j-core', 'set', 'not_affected', 'code_not_reachable', 'JNDI désactivé',
+			        $4, 'a@example.org', now())`, tx.OrgID(), seedID(tx, "decision"), seedID(tx, "project"), userID)
+		return err
+	}},
 	{"ref_analyses", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
 		_, err := tx.ExecContext(ctx, `INSERT INTO ref_analyses (org_id, ref_id, project_id, set_id, snapshot_id, vulndb_archive,
 			vulndb_built, analyzed_at, match_count, unmatched_count)
@@ -245,8 +253,14 @@ func TestOrgTablesAreAllCovered(t *testing.T) {
 }
 
 // appendOnly sont les tables d'organisation en ajout seul pour le rôle d'exécution
-// (journal d'audit, migration 015) : ni UPDATE ni DELETE.
-var appendOnly = map[string]bool{"audit_events": true}
+// (journal d'audit, migration 015 ; journal des décisions de triage, migration 017) : ni
+// UPDATE ni DELETE. La valeur est l'insertion d'une ligne pour l'organisation $1, que la
+// RLS doit refuser depuis une autre organisation.
+var appendOnly = map[string]string{
+	"audit_events": `INSERT INTO audit_events (org_id, id, action) VALUES ($1, gen_random_uuid(), 'member.added')`,
+	"triage_decisions": `INSERT INTO triage_decisions (org_id, id, scope, vuln_id, purl_base, action, status, author_label, created_at)
+		VALUES ($1, gen_random_uuid(), 'org', 'CVE-1', 'pkg:npm/a', 'set', 'affected', 'system', now())`,
+}
 
 // assertAppendOnly : la table refuse UPDATE et DELETE au rôle d'exécution, et la RLS
 // refuse d'y ajouter une ligne de B depuis A ; les lignes de B restent intactes.
@@ -263,7 +277,7 @@ func assertAppendOnly(t *testing.T, tdb *dbtest.DB, a, b tenant.OrgID, tbl orgTa
 		}
 	}
 	err := tdb.App.InOrg(ctx, a, func(tx *db.OrgTx) error {
-		_, err := tx.ExecContext(ctx, `INSERT INTO audit_events (org_id, id, action) VALUES ($1, gen_random_uuid(), 'member.added')`, b)
+		_, err := tx.ExecContext(ctx, appendOnly[tbl.name], b)
 		return err
 	})
 	if err == nil || !strings.Contains(err.Error(), "row-level security") {
@@ -305,7 +319,7 @@ func TestRLSOnEveryOrgTable(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if appendOnly[tbl.name] {
+			if appendOnly[tbl.name] != "" {
 				assertAppendOnly(t, tdb, a, b, tbl)
 				return
 			}

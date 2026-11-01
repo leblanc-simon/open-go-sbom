@@ -375,6 +375,24 @@ func (e SearchSort) Valid() bool {
 	}
 }
 
+// Defines values for ExportProjectVEXParamsFormat.
+const (
+	ExportProjectVEXParamsFormatCyclonedx ExportProjectVEXParamsFormat = "cyclonedx"
+	ExportProjectVEXParamsFormatOpenvex   ExportProjectVEXParamsFormat = "openvex"
+)
+
+// Valid indicates whether the value is a known member of the ExportProjectVEXParamsFormat enum.
+func (e ExportProjectVEXParamsFormat) Valid() bool {
+	switch e {
+	case ExportProjectVEXParamsFormatCyclonedx:
+		return true
+	case ExportProjectVEXParamsFormatOpenvex:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SearchOrganizationParamsType.
 const (
 	SearchOrganizationParamsTypeHost SearchOrganizationParamsType = "host"
@@ -1045,6 +1063,14 @@ type ListAgentProjectsParams struct {
 	// Limit Taille de page (100 par défaut, 200 au plus).
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
+
+// ExportProjectVEXParams defines parameters for ExportProjectVEX.
+type ExportProjectVEXParams struct {
+	Format ExportProjectVEXParamsFormat `form:"format" json:"format"`
+}
+
+// ExportProjectVEXParamsFormat defines parameters for ExportProjectVEX.
+type ExportProjectVEXParamsFormat string
 
 // SearchOrganizationParams defines parameters for SearchOrganization.
 type SearchOrganizationParams struct {

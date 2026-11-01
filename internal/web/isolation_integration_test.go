@@ -97,7 +97,8 @@ func TestEveryOrgRouteAnswers404ToAnotherOrganization(t *testing.T) {
 			path := fill(r.pattern, map[string]string{"slug": slug, "userID": itoa(bob.ID), "project": "projet",
 				"agentID": "0192d6a4-0000-7000-8000-000000000001", "tokenID": "0192d6a4-0000-7000-8000-000000000002",
 				"snapshotID": "0192d6a4-0000-7000-8000-000000000003", "componentID": "0192d6a4-0000-7000-8000-000000000004",
-				"vulnID": "CVE-2021-44228"})
+				"vulnID": "CVE-2021-44228", "findingID": "0192d6a4-0000-7000-8000-000000000005",
+				"decisionID": "0192d6a4-0000-7000-8000-000000000006"})
 			var p page
 			switch r.method {
 			case http.MethodGet:

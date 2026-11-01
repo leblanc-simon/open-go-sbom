@@ -221,6 +221,24 @@ func (e SearchSort) Valid() bool {
 	}
 }
 
+// Defines values for ExportProjectVEXParamsFormat.
+const (
+	Cyclonedx ExportProjectVEXParamsFormat = "cyclonedx"
+	Openvex   ExportProjectVEXParamsFormat = "openvex"
+)
+
+// Valid indicates whether the value is a known member of the ExportProjectVEXParamsFormat enum.
+func (e ExportProjectVEXParamsFormat) Valid() bool {
+	switch e {
+	case Cyclonedx:
+		return true
+	case Openvex:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SearchOrganizationParamsType.
 const (
 	SearchOrganizationParamsTypeHost SearchOrganizationParamsType = "host"
@@ -650,6 +668,14 @@ type SearchSort string
 // SearchType defines model for SearchType.
 type SearchType = []string
 
+// ExportProjectVEXParams defines parameters for ExportProjectVEX.
+type ExportProjectVEXParams struct {
+	Format ExportProjectVEXParamsFormat `form:"format" json:"format"`
+}
+
+// ExportProjectVEXParamsFormat defines parameters for ExportProjectVEX.
+type ExportProjectVEXParamsFormat string
+
 // SearchOrganizationParams defines parameters for SearchOrganization.
 type SearchOrganizationParams struct {
 	// Q Requête de recherche (1 024 octets au plus).
@@ -749,6 +775,9 @@ type ExportSearchParamsResolved string
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// ExportProjectVEX Export VEX des décisions de triage d'un projet
+	// (GET /orgs/{org}/projects/{project}/vex)
+	ExportProjectVEX(w http.ResponseWriter, r *http.Request, org Org, project string, params ExportProjectVEXParams)
 	// SearchOrganization Recherche transverse dans une organisation
 	// (GET /orgs/{org}/search)
 	SearchOrganization(w http.ResponseWriter, r *http.Request, org Org, params SearchOrganizationParams)
@@ -760,6 +789,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// ExportProjectVEX Export VEX des décisions de triage d'un projet
+// (GET /orgs/{org}/projects/{project}/vex)
+func (_ Unimplemented) ExportProjectVEX(w http.ResponseWriter, r *http.Request, org Org, project string, params ExportProjectVEXParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // SearchOrganization Recherche transverse dans une organisation
 // (GET /orgs/{org}/search)
@@ -781,6 +816,57 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ExportProjectVEX operation middleware
+func (siw *ServerInterfaceWrapper) ExportProjectVEX(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "org" -------------
+	var org Org
+
+	err = runtime.BindStyledParameterWithOptions("simple", "org", chi.URLParam(r, "org"), &org, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "org", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "project" -------------
+	var project string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "project", chi.URLParam(r, "project"), &project, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "project", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ExportProjectVEXParams
+
+	// ------------- Required query parameter "format" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "format", r.URL.Query(), &params.Format, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "format"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "format", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExportProjectVEX(w, r, org, project, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // SearchOrganization operation middleware
 func (siw *ServerInterfaceWrapper) SearchOrganization(w http.ResponseWriter, r *http.Request) {
@@ -1192,6 +1278,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/orgs/{org}/search/export", wrapper.ExportSearch)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/orgs/{org}/projects/{project}/vex", wrapper.ExportProjectVEX)
 	})
 
 	return r

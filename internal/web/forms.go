@@ -69,6 +69,10 @@ var flashes = map[string]string{
 	"job_discarded":        "flash.job_discarded",
 	"vulndb_import_queued": "flash.vulndb_import_queued",
 	"vulndb_purged":        "flash.vulndb_purged",
+
+	"triage_saved":     "flash.triage_saved",
+	"triage_withdrawn": "flash.triage_withdrawn",
+	"vex_empty":        "flash.vex_empty",
 }
 
 func flashKey(r *http.Request) string { return flashes[r.URL.Query().Get("done")] }

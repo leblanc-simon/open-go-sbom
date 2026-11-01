@@ -8,9 +8,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
+	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db"
 	"leblanc.io/lotor/internal/inventory"
 	"leblanc.io/lotor/internal/jobs"
 	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/triage"
+	"leblanc.io/lotor/internal/version/grypeversion"
 	"leblanc.io/lotor/internal/vuln"
 	"leblanc.io/lotor/internal/vuln/vulntest"
 )
@@ -299,5 +305,46 @@ func TestAnalyzeEdgeCases(t *testing.T) {
 	_ = org2
 	if out := e.analyze(e.org, main2); out != OutcomeUnknownRef {
 		t.Fatalf("référence d'une autre organisation : %s", out)
+	}
+}
+
+// TestNewFindingInheritsTriageDecision : une décision d'organisation prise sur un constat
+// s'applique au constat qu'une analyse crée ensuite dans un autre projet, dans la
+// transaction de l'analyse (triage.Service.Classify, ADR 0035).
+func TestNewFindingInheritsTriageDecision(t *testing.T) {
+	e := newEnv(t)
+	svc := triage.NewService(triage.Options{Pool: e.pool, Comparer: grypeversion.New()})
+	e.analyzer = NewAnalyzer(Options{Pool: e.pool, Engine: e.manager, Blobs: e.ingest, Triage: svc})
+	e.publish(built1, log4shellRule())
+	e.push(testdata(t, "log4shell.cdx16.json"))
+	e.analyze(e.org, e.main)
+	var first uuid.UUID
+	if err := e.pool.InOrg(context.Background(), e.org, func(tx *db.OrgTx) error {
+		return tx.QueryRowContext(context.Background(), `SELECT id FROM findings WHERE ref_id = $1 AND vuln_id = 'CVE-2021-44228'`, e.main).Scan(&first)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := svc.Decide(context.Background(), e.org, audit.Actor{Email: "a@example.org"}, triage.Input{
+		ProjectID: e.repo, FindingID: first, Scope: triage.ScopeOrg, Status: triage.StatusNotAffected,
+		Justification: triage.JustCodeNotReachable, Comment: "JNDI désactivé partout."}); err != nil {
+		t.Fatal(err)
+	}
+	// Un second dépôt, confié au même agent, envoie le même inventaire.
+	second, ref := newID(), newID()
+	e.execIn(e.org, `INSERT INTO projects (org_id, id, kind, slug, name, agent_id, team_id) VALUES ($1, $2, 'repo', 'second', 'second', $3, $1)`,
+		e.org, second, e.agent)
+	e.execIn(e.org, `INSERT INTO tracked_refs (org_id, id, project_id, project_kind, kind, name) VALUES ($1, $2, $3, 'repo', 'branch', 'main')`,
+		e.org, ref, second)
+	e.ingestIn(e.org, e.agent, second, testdata(t, "log4shell.cdx16.json"))
+	if out := e.analyze(e.org, ref); out != OutcomeAnalyzed {
+		t.Fatalf("issue %s", out)
+	}
+	if n := e.count(`SELECT count(*) FROM findings WHERE ref_id = $1 AND vuln_id = 'CVE-2021-44228'
+		AND triage_status = 'not_affected' AND triage_decision_id IS NOT NULL`, ref); n != 1 {
+		t.Fatalf("le nouveau constat n'hérite pas de la décision (%d)", n)
+	}
+	// Un constat sans décision reste « à analyser ».
+	if n := e.count(`SELECT count(*) FROM findings WHERE vuln_id <> 'CVE-2021-44228' AND triage_status <> 'in_triage'`); n != 0 {
+		t.Fatalf("%d constats sans décision classés", n)
 	}
 }

@@ -3,6 +3,7 @@ package finding
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"leblanc.io/lotor/internal/db"
 	"leblanc.io/lotor/internal/pagination"
 	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/triage"
 	"leblanc.io/lotor/internal/vuln"
 )
 
@@ -52,12 +54,18 @@ type Row struct {
 	FirstSeen        time.Time
 	LastSeen         time.Time
 	ResolvedAt       *time.Time
+	// Statut de triage effectif et décision qui le donne (uuid.Nil : aucune), § T14.
+	TriageStatus      triage.Status
+	TriageDecisionID  uuid.UUID
+	ComponentPURLBase string
+	ComponentType     string
 }
 
 const rowColumns = `
 	f.id, f.project_id, p.slug, p.name, p.kind, f.ref_id, r.kind, r.name, f.component_id, c.name, c.version, c.purl,
 	f.vuln_id, f.severity, f.cvss_score, f.epss, f.epss_percentile, f.kev, f.risk, f.fixed_versions, f.fix_state,
-	f.match_type, f.status, coalesce(f.resolution, ''), f.first_seen_at, f.last_seen_at, f.resolved_at`
+	f.match_type, f.status, coalesce(f.resolution, ''), f.first_seen_at, f.last_seen_at, f.resolved_at,
+	f.triage_status, f.triage_decision_id, c.purl_base, c.type`
 
 const rowFrom = `
 	  FROM findings f
@@ -72,12 +80,16 @@ func scanRow(s scanner) (Row, error) {
 	var sev, state, mtype, status, res string
 	var cvss, epss, pct sql.NullFloat64
 	var resolved sql.NullTime
+	var triageStatus string
+	var decision uuid.NullUUID
 	err := s.Scan(&r.ID, &r.ProjectID, &r.ProjectSlug, &r.ProjectName, &r.ProjectKind, &r.RefID, &r.RefKind, &r.RefName,
 		&r.ComponentID, &r.ComponentName, &r.ComponentVersion, &r.ComponentPURL, &r.VulnID, &sev, &cvss, &epss, &pct,
-		&r.KEV, &r.Risk, db.Array(&r.FixedVersions), &state, &mtype, &status, &res, &r.FirstSeen, &r.LastSeen, &resolved)
+		&r.KEV, &r.Risk, db.Array(&r.FixedVersions), &state, &mtype, &status, &res, &r.FirstSeen, &r.LastSeen, &resolved,
+		&triageStatus, &decision, &r.ComponentPURLBase, &r.ComponentType)
 	if err != nil {
 		return Row{}, err
 	}
+	r.TriageStatus, r.TriageDecisionID = triage.Status(triageStatus), decision.UUID
 	r.Severity, r.FixState, r.MatchType, r.Status, r.Resolution = vuln.Severity(sev), vuln.FixState(state),
 		vuln.MatchType(mtype), Status(status), Resolution(res)
 	r.CVSS, r.EPSS, r.EPSSPercentile = nullFloat(cvss), nullFloat(epss), nullFloat(pct)
@@ -121,6 +133,11 @@ type Filter struct {
 	Status   Status
 	Severity vuln.Severity // vide : toutes
 	KEVOnly  bool
+	// Triage ne garde qu'un statut de triage effectif (vide : tous).
+	Triage triage.Status
+	// HideMuted masque les constats « non affecté » et « faux positif »
+	// (triage.Status.Hidden), comme les écrans par défaut ; sans effet avec Triage.
+	HideMuted bool
 }
 
 type rowCursor struct {
@@ -150,6 +167,11 @@ func ProjectFindings(ctx context.Context, tx *db.OrgTx, projectID uuid.UUID, f F
 	}
 	if f.KEVOnly {
 		where = append(where, "f.kev")
+	}
+	if f.Triage != "" {
+		add("f.triage_status = ?", string(f.Triage))
+	} else if f.HideMuted {
+		add("f.triage_status <> ALL(?::text[])", hiddenStatuses())
 	}
 	if cursor != "" {
 		var c rowCursor
@@ -186,11 +208,22 @@ type readError struct {
 func (e *readError) Error() string { return "finding: " + e.what + " : " + e.err.Error() }
 func (e *readError) Unwrap() error { return e.err }
 
+func hiddenStatuses() []string {
+	var out []string
+	for _, s := range triage.HiddenStatuses() {
+		out = append(out, string(s))
+	}
+	return out
+}
+
 // Counts résume des constats.
 type Counts struct {
-	Open       int
-	Resolved   int
-	KEV        int // ouverts
+	Open     int
+	Resolved int
+	KEV      int // ouverts
+	// Muted compte les constats ouverts « non affecté » ou « faux positif », masqués par
+	// défaut des listes (ils restent comptés dans Open et BySeverity).
+	Muted      int
 	BySeverity map[vuln.Severity]int
 	Projects   int // projets distincts aux constats ouverts (fiche vulnérabilité)
 }
@@ -198,14 +231,14 @@ type Counts struct {
 // Of renvoie le nombre de constats ouverts d'une sévérité (pour les gabarits).
 func (c Counts) Of(s vuln.Severity) int { return c.BySeverity[s] }
 
-func scanCounts(rows *sql.Rows, err error, key func(*sql.Rows) (uuid.UUID, string, string, bool, int, error)) (map[uuid.UUID]Counts, error) {
+func scanCounts(rows *sql.Rows, err error, key func(*sql.Rows) (uuid.UUID, string, string, bool, bool, int, error)) (map[uuid.UUID]Counts, error) {
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	out := map[uuid.UUID]Counts{}
 	for rows.Next() {
-		id, status, sev, kev, n, err := key(rows)
+		id, status, sev, kev, muted, n, err := key(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -221,6 +254,9 @@ func scanCounts(rows *sql.Rows, err error, key func(*sql.Rows) (uuid.UUID, strin
 			if kev {
 				c.KEV += n
 			}
+			if muted {
+				c.Muted += n
+			}
 		}
 		out[id] = c
 	}
@@ -229,15 +265,16 @@ func scanCounts(rows *sql.Rows, err error, key func(*sql.Rows) (uuid.UUID, strin
 
 // RefCounts résume les constats de chaque référence d'un projet.
 func RefCounts(ctx context.Context, tx *db.OrgTx, projectID uuid.UUID) (map[uuid.UUID]Counts, error) {
-	rows, err := tx.QueryContext(ctx, `SELECT ref_id, status, severity, kev, count(*) FROM findings WHERE project_id = $1
-		GROUP BY ref_id, status, severity, kev`, projectID)
-	out, err := scanCounts(rows, err, func(r *sql.Rows) (uuid.UUID, string, string, bool, int, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT ref_id, status, severity, kev, triage_status = ANY($2::text[]), count(*)
+		  FROM findings WHERE project_id = $1
+		 GROUP BY 1, 2, 3, 4, 5`, projectID, hiddenStatuses())
+	out, err := scanCounts(rows, err, func(r *sql.Rows) (uuid.UUID, string, string, bool, bool, int, error) {
 		var id uuid.UUID
 		var status, sev string
-		var kev bool
+		var kev, muted bool
 		var n int
-		err := r.Scan(&id, &status, &sev, &kev, &n)
-		return id, status, sev, kev, n, err
+		err := r.Scan(&id, &status, &sev, &kev, &muted, &n)
+		return id, status, sev, kev, muted, n, err
 	})
 	return out, wrap("décompte par référence", err)
 }
@@ -246,7 +283,7 @@ func RefCounts(ctx context.Context, tx *db.OrgTx, projectID uuid.UUID) (map[uuid
 func Sum(cs map[uuid.UUID]Counts) Counts {
 	t := Counts{BySeverity: map[vuln.Severity]int{}}
 	for _, c := range cs {
-		t.Open, t.Resolved, t.KEV = t.Open+c.Open, t.Resolved+c.Resolved, t.KEV+c.KEV
+		t.Open, t.Resolved, t.KEV, t.Muted = t.Open+c.Open, t.Resolved+c.Resolved, t.KEV+c.KEV, t.Muted+c.Muted
 		for s, n := range c.BySeverity {
 			t.BySeverity[s] += n
 		}
@@ -281,6 +318,56 @@ func ComponentFindings(ctx context.Context, tx *db.OrgTx, purlBase string) ([]Ro
 		  AND lotor_team_visible(p.team_id)
 		ORDER BY f.risk DESC, f.vuln_id, f.id LIMIT `+strconv.Itoa(ListMax), purlBase))
 	return rows, wrap("constats d'un composant", err)
+}
+
+// ErrNotFound : constat inconnu dans le projet.
+var ErrNotFound = errors.New("finding: constat introuvable")
+
+// Get renvoie un constat d'un projet ; ErrNotFound s'il n'en est pas.
+func (s *Service) Get(ctx context.Context, org tenant.OrgID, projectID, findingID uuid.UUID) (r Row, err error) {
+	err = s.read(ctx, org, func(tx *db.OrgTx) error {
+		r, err = scanRow(tx.QueryRowContext(ctx, `SELECT `+rowColumns+rowFrom+` WHERE f.id = $1 AND f.project_id = $2`,
+			findingID, projectID))
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	})
+	return r, err
+}
+
+// Event est un événement du cycle de vie d'un constat.
+type Event struct {
+	At         time.Time
+	Kind       string // opened, resolved, reopened
+	Resolution Resolution
+}
+
+// EventsMax borne l'historique d'un constat.
+const EventsMax = 200
+
+// Events renvoie l'historique d'un constat, du plus récent au plus ancien (EventsMax au
+// plus).
+func (s *Service) Events(ctx context.Context, org tenant.OrgID, findingID uuid.UUID) (out []Event, err error) {
+	err = s.read(ctx, org, func(tx *db.OrgTx) error {
+		rows, err := tx.QueryContext(ctx, `SELECT at, kind, coalesce(resolution, '') FROM finding_events WHERE finding_id = $1
+			ORDER BY seq DESC LIMIT `+strconv.Itoa(EventsMax), findingID)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var e Event
+			var res string
+			if err := rows.Scan(&e.At, &e.Kind, &res); err != nil {
+				return err
+			}
+			e.At, e.Resolution = e.At.UTC(), Resolution(res)
+			out = append(out, e)
+		}
+		return rows.Err()
+	})
+	return out, wrap("historique d'un constat", err)
 }
 
 // Analysis est la dernière analyse d'une référence.

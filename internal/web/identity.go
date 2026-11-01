@@ -32,6 +32,7 @@ import (
 	"leblanc.io/lotor/internal/search"
 	"leblanc.io/lotor/internal/secret"
 	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/triage"
 	"leblanc.io/lotor/internal/web/middleware"
 )
 
@@ -61,6 +62,8 @@ type IdentityOptions struct {
 	Ingest    *ingest.Service
 	// Findings sert les constats, les fiches vulnérabilité et composant (T06).
 	Findings *finding.Service
+	// Triage sert le triage des constats et les VEX (T14).
+	Triage *triage.Service
 	// Search sert l'écran de recherche et ses exports (bornés par Exports), et compare
 	// les versions de la fiche composant (T09).
 	Search  *search.Service
@@ -104,7 +107,7 @@ type identity struct {
 
 func newIdentity(o IdentityOptions, rd *render.Renderer, cat *locale.Catalog, logger *slog.Logger, clientIP func(*http.Request) string) (*identity, error) {
 	if o.Pool == nil || o.Accounts == nil || o.Orgs == nil || o.Projects == nil || o.Agents == nil || o.Inventory == nil ||
-		o.Ingest == nil || o.Findings == nil || o.Search == nil || o.Exports == nil || o.Reencodes == nil || o.Dashboard == nil || o.Secrets == nil || o.VulnDB.MaxAge <= 0 {
+		o.Ingest == nil || o.Findings == nil || o.Triage == nil || o.Search == nil || o.Exports == nil || o.Reencodes == nil || o.Dashboard == nil || o.Secrets == nil || o.VulnDB.MaxAge <= 0 {
 		return nil, errors.New("web: dépendances de l'identité incomplètes")
 	}
 	if hostCookies(o.Auth.CookieSecure) {
