@@ -222,6 +222,43 @@ paths:
           $ref: "#/components/responses/Problem"
         "429":
           $ref: "#/components/responses/Problem"
+  /agent/refs/{id}/ai-components:
+    get:
+      operationId: listAIComponents
+      tags: [agent]
+      summary: Composants IA de l'instantané courant d'une référence
+      description: |
+        Les composants ajoutés par l'enrichissement IA (`lotor:origin=ia`) à l'instantané
+        courant d'une référence suivie d'un projet confié à l'agent, avec leur preuve
+        (fichier, ligne, extrait). L'agent dépôt s'en sert pour son analyse incrémentale :
+        il revérifie ces preuves au nouveau commit et soumet leurs fichiers au modèle. Une
+        référence d'un projet qui n'est pas confié à l'agent répond 404. Liste vide sans
+        instantané ; 1 000 composants au plus.
+      security:
+        - agentToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identifiant de la référence suivie (`TrackedRef.id`).
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Les composants IA de l'instantané courant.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIComponentList"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
   /orgs/{org}/search:
     get:
       operationId: searchOrganization
@@ -624,7 +661,7 @@ components:
           $ref: "#/components/schemas/PageInfo"
     AgentProject:
       type: object
-      required: [id, slug, name, kind, labels, refs]
+      required: [id, slug, name, kind, labels, refs, ai_mode]
       properties:
         id:
           type: string
@@ -647,6 +684,46 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TrackedRef"
+        ai_mode:
+          type: string
+          enum: [disabled, local, external]
+          description: |
+            Enrichissement IA permis pour ce projet (dépôts) : `disabled`, aucun modèle ;
+            `local`, modèle local seulement ; `external`, fournisseur externe permis. Réglage
+            du projet borné par la politique de l'instance (`ai.forbid_external`).
+    AIComponentList:
+      type: object
+      required: [components]
+      properties:
+        components:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: "#/components/schemas/AIComponent"
+    AIComponent:
+      type: object
+      required: [purl, name, version, file, line, excerpt]
+      properties:
+        purl:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        confidence:
+          type: number
+          format: double
+        model:
+          type: string
+        file:
+          type: string
+          description: Fichier de la preuve, relatif à la racine du dépôt.
+        line:
+          type: integer
+          minimum: 1
+        excerpt:
+          type: string
+          description: Extrait de la preuve.
     TrackedRef:
       type: object
       required: [id, kind, name]

@@ -86,6 +86,7 @@ flash:
   project_archived: Le projet est archivé ; il n'est plus proposé à son agent.
   project_unarchived: Le projet est de nouveau actif.
   project_agent_saved: L'agent du projet est enregistré.
+  project_ai_saved: "Le réglage de l'enrichissement IA est enregistré."
   token_revoked: Le jeton est révoqué ; la prochaine requête qui le présente sera refusée.
   agent_disabled: L'agent est désactivé ; ses jetons sont révoqués et ses projets lui sont retirés.
   enrollment_revoked: Le jeton d'inscription est révoqué.
@@ -176,6 +177,8 @@ validation:
   invitation_limit: "L'organisation a atteint le nombre maximal d'invitations en attente : révoquez-en avant d'inviter."
   invitation_unknown: "Cette invitation n'existe plus ou a expiré."
   project_team_invalid: "Choisissez une équipe dans laquelle vous pouvez agir."
+  project_ai_mode_invalid: "Choisissez un réglage d'enrichissement IA proposé, pour un dépôt actif."
+  project_ai_external_forbidden: "Cette instance interdit tout fournisseur de modèle externe."
   agent_team_invalid: "Choisissez une équipe dans laquelle vous pouvez gérer les agents."
   enrollment_team_mismatch: "Le projet de serveur à rattacher appartient à une autre équipe que celle du jeton."
 
@@ -408,6 +411,7 @@ audit:
     project_archived: "Projet {{.Target}} archivé"
     project_unarchived: "Projet {{.Target}} réactivé"
     project_agent_changed: "Agent du projet {{.Target}} : {{.D_agent}}"
+    project_ai_mode_changed: "Enrichissement IA du projet {{.Target}} : {{.D_from}} → {{.D_to}}"
     agent_created: "Agent {{.Target}} créé"
     agent_enrolled: "Agent serveur {{.Target}} inscrit (projet {{.D_project}}, jeton {{.D_token}})"
     agent_disabled: "Agent {{.Target}} désactivé"
@@ -765,6 +769,9 @@ project:
   assign_agent: Agent dépôt chargé de ce dépôt
   enroll_this_host: Inscrire ce serveur
   team: "Équipe"
+  inventory_title: Inventaire courant
+  inventory_meta: "Composants du dernier instantané de chaque référence, par origine."
+  inventory_none: Aucun instantané pour l'instant.
 
 project_new:
   title: Nouveau projet
@@ -1191,6 +1198,8 @@ component:
   col_project: Projet
   col_ref: Référence
   col_origin: Origine
+  col_location: Emplacement
+  location_manifest: Manifeste
   col_findings: Constats ouverts
   col_snapshot: Instantané
   open_findings:
@@ -1516,3 +1525,40 @@ team:
   rename: "Renommer"
   delete_text: "Une équipe ne peut être supprimée qu'une fois tous ses projets rattachés à une autre équipe."
   delete: "Supprimer l'équipe"
+
+project_ai:
+  title: Enrichissement IA
+  text: "L'agent dépôt peut compléter l'inventaire de Syft par les composants qu'aucun manifeste ne déclare (bibliothèques recopiées, images de base, scripts chargés depuis un CDN). Un composant n'est retenu que si sa preuve est relue dans le fichier."
+  mode: Réglage
+  mode_disabled: IA désactivée
+  mode_local: Modèle local uniquement
+  mode_external: Fournisseur externe autorisé
+  hint_disabled: "Aucun modèle n'est appelé : l'inventaire vient de Syft seul."
+  hint_local: "Le code n'est envoyé qu'à un modèle exécuté dans l'infrastructure de l'agent dépôt (Ollama), s'il en a un."
+  hint_external: "Le code lu par l'analyse peut être envoyé au fournisseur externe configuré sur l'agent dépôt (Anthropic), hors fichiers sensibles ; à défaut, au modèle local."
+  external_forbidden: "Cette instance interdit tout fournisseur externe."
+  external_admin_only: "Seul un administrateur de l'organisation peut autoriser un fournisseur externe ; ce choix est journalisé."
+  submit: Enregistrer le réglage
+
+proof:
+  title: Preuve de la détection IA
+  line: "ligne {{.Line}}"
+  excerpt: "Extrait du fichier, ligne {{.Line}}"
+  confidence_high: Confiance élevée
+  confidence_medium: Confiance moyenne
+  confidence_low: Confiance faible
+  verified: "Extrait relu dans le fichier au commit analysé par le vérificateur de l'agent : le nom et la version y figurent. La confiance est l'estimation du modèle."
+  metadata: Contexte de la détection
+  model: Modèle
+  model_unknown: Non indiqué
+  agent: Version de l'agent
+  snapshot: Instantané
+  purl: purl déduit
+
+enrichment:
+  label: Enrichissement IA
+  complete: Enrichissement IA complet
+  incomplete: Enrichissement IA incomplet
+  carried: Composants IA reportés
+  incomplete_title: Enrichissement IA incomplet
+  incomplete_text: "L'analyse IA de ce commit n'a pas abouti (budget dépassé ou erreur du fournisseur) : l'inventaire ne contient que les composants trouvés par Syft."

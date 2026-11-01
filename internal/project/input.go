@@ -32,6 +32,8 @@ const (
 	KeyAgentInvalid    = "validation.agent_invalid"
 	KeyProjectArchived = "validation.project_archived"
 	KeyTeamInvalid     = "validation.project_team_invalid"
+	KeyAIModeInvalid   = "validation.project_ai_mode_invalid"
+	KeyAIExternalOff   = "validation.project_ai_external_forbidden"
 )
 
 // ValidationKeys liste les clés de validation du paquet (tests de traduction).

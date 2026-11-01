@@ -54,6 +54,10 @@ type RawDocument struct {
 	SpecVersion string
 	Distro      *Distro
 	Components  []RawComponent
+	// Enrichment et EnrichmentModel : propriétés lotor:enrichment et
+	// lotor:enrichment-model des métadonnées (CycloneDX).
+	Enrichment      string
+	EnrichmentModel string
 }
 
 // Normalize canonicalise les composants d'un document décodé : purl canonique (ou générique
@@ -61,7 +65,11 @@ type RawDocument struct {
 // validées, preuve en JSON canonique ; les doublons de purl sont fusionnés et les
 // composants triés par purl. Le résultat ne dépend pas de l'ordre du document.
 func Normalize(raw RawDocument) Document {
-	doc := Document{Format: raw.Format, SpecVersion: raw.SpecVersion, Distro: raw.Distro}
+	doc := Document{Format: raw.Format, SpecVersion: raw.SpecVersion, Distro: raw.Distro,
+		Enrichment: ParseEnrichment(raw.Enrichment)}
+	if m := cleanText(raw.EnrichmentModel); doc.Enrichment != "" && len(m) <= MaxModelLen {
+		doc.EnrichmentModel = m
+	}
 	byPURL := make(map[string]int, len(raw.Components))
 	for _, rc := range raw.Components {
 		c, ok := normalizeComponent(rc)

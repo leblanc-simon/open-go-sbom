@@ -45,12 +45,17 @@ type Snapshot struct {
 	Counts        sbom.Counts
 	// Current : instantané courant de sa référence.
 	Current bool
+	// Enrichment est le statut de l'enrichissement IA déclaré par le SBOM (vide sans
+	// enrichissement) ; EnrichmentModel, le modèle déclaré.
+	Enrichment      sbom.Enrichment
+	EnrichmentModel string
 }
 
 const snapshotColumns = `
 	s.id, s.project_id, s.ref_id, r.kind, r.name, coalesce(s.commit_sha, ''), s.agent_id, coalesce(a.name, ''),
 	s.agent_version, s.scanned_at, s.last_scanned_at, s.blob_id, s.set_id, s.format, s.spec_version,
-	cs.component_count, cs.syft_count, cs.ia_count, cs.weak_count, rc.snapshot_id IS NOT NULL`
+	cs.component_count, cs.syft_count, cs.ia_count, cs.weak_count, rc.snapshot_id IS NOT NULL,
+	coalesce(s.enrichment, ''), s.enrichment_model`
 
 const snapshotFrom = `
 	  FROM snapshots s
@@ -64,10 +69,11 @@ type scanner interface{ Scan(dest ...any) error }
 func scanSnapshot(row scanner) (Snapshot, error) {
 	var s Snapshot
 	var agentID uuid.NullUUID
-	var format string
+	var format, enrichment string
 	err := row.Scan(&s.ID, &s.ProjectID, &s.RefID, &s.RefKind, &s.RefName, &s.Commit, &agentID, &s.AgentName,
 		&s.AgentVersion, &s.ScannedAt, &s.LastScannedAt, &s.BlobID, &s.SetID, &format, &s.SpecVersion,
-		&s.Counts.Total, &s.Counts.Syft, &s.Counts.IA, &s.Counts.Weak, &s.Current)
+		&s.Counts.Total, &s.Counts.Syft, &s.Counts.IA, &s.Counts.Weak, &s.Current, &enrichment, &s.EnrichmentModel)
+	s.Enrichment = sbom.Enrichment(enrichment)
 	if agentID.Valid {
 		s.AgentID = &agentID.UUID
 	}

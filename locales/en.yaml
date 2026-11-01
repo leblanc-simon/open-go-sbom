@@ -86,6 +86,7 @@ flash:
   project_archived: The project is archived; it is no longer offered to its agent.
   project_unarchived: The project is active again.
   project_agent_saved: The project's agent is saved.
+  project_ai_saved: "The AI enrichment setting is saved."
   token_revoked: The token is revoked; the next request that presents it will be refused.
   agent_disabled: The agent is disabled; its tokens are revoked and its projects taken away.
   enrollment_revoked: The enrollment token is revoked.
@@ -176,6 +177,8 @@ validation:
   invitation_limit: "The organization has reached the maximum number of pending invitations: revoke some before inviting."
   invitation_unknown: "This invitation no longer exists or has expired."
   project_team_invalid: "Choose a team in which you can act."
+  project_ai_mode_invalid: "Choose one of the offered AI enrichment settings, for an active repository."
+  project_ai_external_forbidden: "This instance forbids any external model provider."
   agent_team_invalid: "Choose a team in which you can manage agents."
   enrollment_team_mismatch: "The server project to attach belongs to a team other than the token's."
 
@@ -408,6 +411,7 @@ audit:
     project_archived: "Project {{.Target}} archived"
     project_unarchived: "Project {{.Target}} unarchived"
     project_agent_changed: "Agent of project {{.Target}}: {{.D_agent}}"
+    project_ai_mode_changed: "AI enrichment of project {{.Target}}: {{.D_from}} → {{.D_to}}"
     agent_created: "Agent {{.Target}} created"
     agent_enrolled: "Server agent {{.Target}} enrolled (project {{.D_project}}, token {{.D_token}})"
     agent_disabled: "Agent {{.Target}} disabled"
@@ -765,6 +769,9 @@ project:
   assign_agent: Repository agent in charge of this repository
   enroll_this_host: Enroll this server
   team: "Team"
+  inventory_title: Current inventory
+  inventory_meta: "Components of the latest snapshot of each reference, by origin."
+  inventory_none: No snapshot yet.
 
 project_new:
   title: New project
@@ -1191,6 +1198,8 @@ component:
   col_project: Project
   col_ref: Reference
   col_origin: Origin
+  col_location: Location
+  location_manifest: Manifest
   col_findings: Open findings
   col_snapshot: Snapshot
   open_findings:
@@ -1516,3 +1525,40 @@ team:
   rename: "Rename"
   delete_text: "A team can only be deleted once all its projects have been moved to another team."
   delete: "Delete the team"
+
+project_ai:
+  title: AI enrichment
+  text: "The repository agent can complete the Syft inventory with components that no manifest declares (copied libraries, base images, scripts loaded from a CDN). A component is kept only if its evidence is read back in the file."
+  mode: Setting
+  mode_disabled: AI disabled
+  mode_local: Local model only
+  mode_external: External provider allowed
+  hint_disabled: "No model is called: the inventory comes from Syft alone."
+  hint_local: "Code is only sent to a model running in the repository agent's infrastructure (Ollama), if it has one."
+  hint_external: "Code read by the analysis may be sent to the external provider configured on the repository agent (Anthropic), sensitive files excepted; otherwise to the local model."
+  external_forbidden: "This instance forbids any external provider."
+  external_admin_only: "Only an organization administrator can allow an external provider; the choice is logged."
+  submit: Save the setting
+
+proof:
+  title: Evidence of the AI detection
+  line: "line {{.Line}}"
+  excerpt: "File excerpt, line {{.Line}}"
+  confidence_high: High confidence
+  confidence_medium: Medium confidence
+  confidence_low: Low confidence
+  verified: "Excerpt read back in the file at the analysed commit by the agent's verifier: the name and version appear in it. The confidence is the model's estimate."
+  metadata: Detection context
+  model: Model
+  model_unknown: Not given
+  agent: Agent version
+  snapshot: Snapshot
+  purl: Inferred purl
+
+enrichment:
+  label: AI enrichment
+  complete: AI enrichment complete
+  incomplete: AI enrichment incomplete
+  carried: AI components carried over
+  incomplete_title: AI enrichment incomplete
+  incomplete_text: "The AI analysis of this commit did not complete (budget exceeded or provider error): the inventory only holds the components found by Syft."

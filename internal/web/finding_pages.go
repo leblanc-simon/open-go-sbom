@@ -2,6 +2,7 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	"html/template"
 	"maps"
 	"math"
@@ -16,6 +17,7 @@ import (
 	"leblanc.io/lotor/internal/finding"
 	"leblanc.io/lotor/internal/inventory"
 	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/sbom"
 	"leblanc.io/lotor/internal/version"
 	"leblanc.io/lotor/internal/vuln"
 )
@@ -405,6 +407,46 @@ type usageRow struct {
 	SnapshotURL string
 	CommitShort string
 	Current     bool // version de la fiche
+	// File et ProofID : fichier de la preuve d'un composant IA, et ancre de son bloc
+	// « preuve » sur la fiche.
+	File    string
+	ProofID string
+}
+
+// proofView est le bloc « preuve » d'un composant trouvé par l'IA, pour une référence
+// (maquette « Fiche composant (origine IA) »).
+type proofView struct {
+	ID          string
+	ProjectName string
+	RefName     string
+	CommitShort string
+	File        string
+	Line        int
+	Excerpt     string
+	Confidence  int // pourcentage
+	// Level : high, medium ou low (libellé et repères de l'échelle).
+	Level     string
+	LevelOn   []bool
+	ConfValue float64
+	Model     string
+	Agent     string
+	PURL      string
+	Scanned   *stamp
+	Snapshot  string
+}
+
+// maxProofs borne les blocs « preuve » d'une fiche composant.
+const maxProofs = 20
+
+// confidenceLevel classe une confiance : élevée dès 0,8, moyenne dès 0,5.
+func confidenceLevel(c float64) (string, []bool) {
+	switch {
+	case c >= 0.8:
+		return "high", []bool{true, true, true}
+	case c >= 0.5:
+		return "medium", []bool{true, true, false}
+	}
+	return "low", []bool{true, false, false}
 }
 
 type componentView struct {
@@ -418,6 +460,8 @@ type componentView struct {
 	Usage     []usageRow
 	Licenses  []string
 	Truncated bool
+	// Proofs : preuves des occurrences d'origine IA de la version de la fiche.
+	Proofs []proofView
 }
 
 // component est la fiche d'un composant : projets qui l'utilisent (inventaire courant de
@@ -471,6 +515,20 @@ func (id *identity) component(w http.ResponseWriter, r *http.Request) {
 		if u.Confidence != nil {
 			pct := int(math.Round(*u.Confidence * 100))
 			row.Confidence = &pct
+		}
+		if occ, ok := sbom.FirstOccurrence(u.Evidence); ok && u.Origin == sbom.OriginIA {
+			row.File = occ.Location
+			if u.ComponentID == c.ID && len(view.Proofs) < maxProofs {
+				row.ProofID = fmt.Sprintf("proof-%d", len(view.Proofs)+1)
+				pv := proofView{ID: row.ProofID, ProjectName: u.ProjectName, RefName: u.RefName, CommitShort: row.CommitShort,
+					File: occ.Location, Line: occ.Line, Excerpt: occ.Excerpt, Model: u.Model, Agent: u.AgentVersion, PURL: u.PURL,
+					Scanned: row.Scanned, Snapshot: row.SnapshotURL}
+				if u.Confidence != nil {
+					pv.ConfValue, pv.Confidence = *u.Confidence, *row.Confidence
+					pv.Level, pv.LevelOn = confidenceLevel(*u.Confidence)
+				}
+				view.Proofs = append(view.Proofs, pv)
+			}
 		}
 		view.Usage = append(view.Usage, row)
 		occ[u.Version]++

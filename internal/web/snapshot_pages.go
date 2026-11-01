@@ -61,12 +61,15 @@ type snapshotRow struct {
 	AgentVer    string
 	Counts      sbom.Counts
 	Current     bool
+	// Enrichment et EnrichmentModel : enrichissement IA déclaré par le SBOM (vide sans).
+	Enrichment      string
+	EnrichmentModel string
 }
 
 func (id *identity) snapshotRow(base string, s inventory.Snapshot) snapshotRow {
 	row := snapshotRow{ID: s.ID, Href: base + "/snapshots/" + s.ID.String(), Scanned: stampAt(s.ScannedAt),
 		Commit: s.Commit, CommitShort: shortCommit(s.Commit), AgentName: s.AgentName, AgentVer: s.AgentVersion,
-		Counts: s.Counts, Current: s.Current}
+		Counts: s.Counts, Current: s.Current, Enrichment: string(s.Enrichment), EnrichmentModel: s.EnrichmentModel}
 	if s.LastScannedAt.After(s.ScannedAt) {
 		row.LastScanned = stampAt(s.LastScannedAt)
 	}

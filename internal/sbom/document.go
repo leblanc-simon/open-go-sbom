@@ -3,6 +3,7 @@ package sbom
 import (
 	"encoding/json"
 	"slices"
+	"strings"
 )
 
 // Format est le format d'un SBOM reçu. Seuls les formats JSON sont acceptés.
@@ -67,6 +68,30 @@ type Document struct {
 	// Skipped compte les composants écartés : sans nom ni purl, ou hors des bornes de
 	// taille d'un champ.
 	Skipped int `json:"skipped,omitempty"`
+	// Enrichment est le statut de l'enrichissement IA déclaré par le document (propriété
+	// lotor:enrichment de ses métadonnées) ; vide sans enrichissement ou valeur inconnue.
+	// EnrichmentModel est le modèle déclaré (lotor:enrichment-model).
+	Enrichment      Enrichment `json:"enrichment,omitempty"`
+	EnrichmentModel string     `json:"enrichment_model,omitempty"`
+}
+
+// Enrichment est le statut de l'enrichissement IA d'un SBOM de l'agent dépôt.
+type Enrichment string
+
+// Statuts d'enrichissement.
+const (
+	EnrichmentComplete   Enrichment = "complete"
+	EnrichmentIncomplete Enrichment = "incomplete"
+	EnrichmentCarried    Enrichment = "carried"
+)
+
+// ParseEnrichment lit un statut d'enrichissement ; vide pour une valeur inconnue.
+func ParseEnrichment(s string) Enrichment {
+	switch e := Enrichment(strings.TrimSpace(s)); e {
+	case EnrichmentComplete, EnrichmentIncomplete, EnrichmentCarried:
+		return e
+	}
+	return ""
 }
 
 // Component est un composant normalisé (voir Normalize).

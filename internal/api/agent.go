@@ -57,6 +57,10 @@ type AgentOptions struct {
 	RequireClientCert bool
 	// ClientIP résout l'IP du client (mandataires de confiance compris).
 	ClientIP func(*http.Request) string
+	// ForbidExternalAI : l'instance interdit tout fournisseur de modèle externe ; le
+	// réglage « external » d'un projet est transmis aux agents comme « local »
+	// (ai.forbid_external, ADR 0043).
+	ForbidExternalAI bool
 }
 
 // MountAgent monte les opérations de l'API des agents sur r, routeur de /api/v1 : corps
@@ -192,6 +196,7 @@ var operationKinds = map[string]agent.TokenKind{
 	"Enroll":            agent.KindEnrollment,
 	"Heartbeat":         agent.KindAgent,
 	"ListAgentProjects": agent.KindAgent,
+	"ListAIComponents":  agent.KindAgent,
 	"CreateIngestion":   agent.KindAgent,
 	"GetIngestion":      agent.KindAgent,
 }
@@ -230,7 +235,7 @@ func (h *agentAPI) responseError(w http.ResponseWriter, r *http.Request, err err
 		problem.Write(w, r, h.Catalog, http.StatusConflict, ce.Key, nil)
 	case errors.Is(err, ingest.ErrRefUnknown):
 		problem.Write(w, r, h.Catalog, http.StatusNotFound, ingest.KeyRefUnknown, nil)
-	case errors.Is(err, ingest.ErrNotFound):
+	case errors.Is(err, ingest.ErrNotFound), errors.Is(err, project.ErrNotFound):
 		problem.Write(w, r, h.Catalog, http.StatusNotFound, problem.KeyNotFound, nil)
 	case errors.Is(err, ingest.ErrUploadTooLarge):
 		problem.Write(w, r, h.Catalog, http.StatusRequestEntityTooLarge, sbom.KeyTooLarge, nil)
@@ -346,7 +351,8 @@ func (h *agentAPI) ListAgentProjects(ctx context.Context, req gen.ListAgentProje
 	}
 	for _, pr := range projects {
 		ap := gen.AgentProject{Id: pr.ID, Slug: pr.Slug, Name: pr.Name, Kind: gen.AgentProjectKind(pr.Kind),
-			Labels: pr.Labels, Refs: make([]gen.TrackedRef, 0, len(pr.Refs))}
+			Labels: pr.Labels, Refs: make([]gen.TrackedRef, 0, len(pr.Refs)),
+			AiMode: gen.AgentProjectAiMode(pr.AIMode.Effective(!h.ForbidExternalAI))}
 		if pr.ForgeURL != "" {
 			ap.ForgeUrl = &pr.ForgeURL
 		}
@@ -361,6 +367,26 @@ func (h *agentAPI) ListAgentProjects(ctx context.Context, req gen.ListAgentProje
 			ap.Refs = append(ap.Refs, tr)
 		}
 		out.Projects = append(out.Projects, ap)
+	}
+	return out, nil
+}
+
+// ListAIComponents renvoie les composants IA de l'instantané courant d'une référence d'un
+// projet confié à l'agent (404 pour toute autre référence).
+func (h *agentAPI) ListAIComponents(ctx context.Context, req gen.ListAIComponentsRequestObject) (gen.ListAIComponentsResponseObject, error) {
+	p, _ := principalFrom(ctx)
+	comps, err := h.Agents.AIComponents(ctx, p, req.Id)
+	if err != nil {
+		return nil, err
+	}
+	out := gen.ListAIComponents200JSONResponse{Components: make([]gen.AIComponent, 0, len(comps))}
+	for _, c := range comps {
+		ac := gen.AIComponent{Purl: c.PURL, Name: c.Name, Version: c.Version, Confidence: c.Confidence,
+			File: c.Occurrence.Location, Line: max(c.Occurrence.Line, 1), Excerpt: c.Occurrence.Excerpt}
+		if c.Model != "" {
+			ac.Model = &c.Model
+		}
+		out.Components = append(out.Components, ac)
 	}
 	return out, nil
 }

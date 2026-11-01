@@ -60,6 +60,7 @@
               <span>{{if .AgentName}}{{if .AgentVer}}{{T "snapshots.agent_version" "Name" .AgentName "Version" .AgentVer}}{{else}}{{T "snapshots.agent" "Name" .AgentName}}{{end}}{{else}}{{T "snapshots.agent_unknown"}}{{end}}</span>
               <span>{{T "snapshots.components" "Syft" .Counts.Syft "IA" .Counts.IA}}</span>
               {{- if .Counts.Weak}}<span>{{Tn "snapshots.weak" .Counts.Weak}}</span>{{end}}
+              {{- with .Enrichment}}<span>{{T (print "enrichment." .)}}</span>{{end}}
             </div>
             {{- with .LastScanned}}
             <div class="snapshot__stats"><span>{{T "snapshots.last_scanned"}} {{template "stamp" .}}</span></div>

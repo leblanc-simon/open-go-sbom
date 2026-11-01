@@ -13,6 +13,7 @@ const (
 	PermMembersManage Permission = "members.manage" // inviter, changer le rôle d'organisation, retirer
 	PermTeamsManage   Permission = "teams.manage"   // créer, renommer, supprimer une équipe
 	PermOrgManage     Permission = "org.manage"     // paramètres et journal d'audit de l'organisation
+	PermAIExternal    Permission = "ai.external"    // autoriser l'envoi du code d'un dépôt à un fournisseur de modèle externe
 )
 
 // Permissions d'équipe.
@@ -56,6 +57,7 @@ var matrix = []Rule{
 	{PermMembersManage, ScopeOrg, RoleAdmin, TeamNone, "Inviter un compte, changer un rôle d'organisation, retirer un membre, révoquer une invitation"},
 	{PermTeamsManage, ScopeOrg, RoleAdmin, TeamNone, "Créer, renommer et supprimer une équipe"},
 	{PermOrgManage, ScopeOrg, RoleAdmin, TeamNone, "Paramètres et journal d'audit de l'organisation"},
+	{PermAIExternal, ScopeOrg, RoleAdmin, TeamNone, "Autoriser l'envoi du code d'un dépôt à un fournisseur de modèle externe (enrichissement IA, audité)"},
 	{PermTeamView, ScopeTeam, "", TeamReader, "Voir l'équipe, ses membres et ses projets"},
 	{PermTeamMembers, ScopeTeam, "", TeamAdmin, "Ajouter ou retirer un membre de l'équipe, changer son rôle d'équipe"},
 	{PermProjectView, ScopeTeam, "", TeamReader, "Fiche, constats, instantanés, composants et SBOM d'un projet de l'équipe"},
