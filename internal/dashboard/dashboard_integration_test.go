@@ -40,7 +40,7 @@ func TestOrgIndicators(t *testing.T) {
 	other := reference(t, pool, "autre") // même jeu dans une autre organisation : rien ne fuit
 	other.finding("api/main", "openssl", "CVE-2099-0004", "low", false, 5, now.Add(-day24), nil)
 
-	o, err := s.Org(context.Background(), f.org, Period90)
+	o, err := s.Org(context.Background(), f.org, tenant.AllTeams(), Period90)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func TestOrgIndicators(t *testing.T) {
 	wantFix(t, o.FixTimes, vuln.SeverityMedium, 1, 15*day24)
 	wantFix(t, o.FixTimes, vuln.SeverityLow, 0, 0)
 	// Sur 365 jours, le constat faible résolu il y a 95 jours compte.
-	year, err := s.Org(context.Background(), f.org, Period365)
+	year, err := s.Org(context.Background(), f.org, tenant.AllTeams(), Period365)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +256,7 @@ func TestTrendFromDailyStats(t *testing.T) {
 		}
 	}
 	c.set(now)
-	o, err := s.Org(context.Background(), f.org, Period30)
+	o, err := s.Org(context.Background(), f.org, tenant.AllTeams(), Period30)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,7 +271,7 @@ func TestTrendFromDailyStats(t *testing.T) {
 	}
 	// Sur 365 jours, un point par semaine en remontant depuis aujourd'hui : J−7, puis
 	// l'état courant.
-	year, err := s.Org(context.Background(), f.org, Period365)
+	year, err := s.Org(context.Background(), f.org, tenant.AllTeams(), Period365)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -354,11 +354,11 @@ func TestReadsNeedTheOrganization(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	o, err := s.Org(context.Background(), stranger, Period90)
+	o, err := s.Org(context.Background(), stranger, tenant.AllTeams(), Period90)
 	if err != nil || o.Open.Total() != 0 || len(o.Exposed) != 0 || len(o.Widespread) != 0 || o.SilentAgents != 0 || o.ProjectCount() != 0 {
 		t.Fatalf("organisation étrangère : %+v, %v", o, err)
 	}
-	if _, err := s.Org(context.Background(), tenant.OrgID{}, Period90); !errors.Is(err, tenant.ErrZeroOrgID) {
+	if _, err := s.Org(context.Background(), tenant.OrgID{}, tenant.AllTeams(), Period90); !errors.Is(err, tenant.ErrZeroOrgID) {
 		t.Fatalf("organisation nulle : %v", err)
 	}
 }

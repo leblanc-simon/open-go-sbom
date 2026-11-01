@@ -57,7 +57,8 @@ func rankSQL(col string) string {
 // kind et labels du projet.
 
 // componentHits : composants désignés, dans l'inventaire courant des références actives
-// des projets actifs, avec la pire de leurs vulnérabilités ouvertes.
+// des projets actifs et visibles (db.Visible), avec la pire de leurs vulnérabilités
+// ouvertes.
 const componentHits = `
 	SELECT i.org_id, p.id AS project_id, r.id AS ref_id, i.component_id, i.origin, i.confidence, i.weak_id,
 	       rc.snapshot_id, NULL::uuid AS finding_id, ''::text AS vuln_id, ''::text AS status,
@@ -67,6 +68,7 @@ const componentHits = `
 	  JOIN ref_current rc ON rc.org_id = i.org_id AND rc.set_id = i.set_id
 	  JOIN tracked_refs r ON r.org_id = rc.org_id AND r.id = rc.ref_id AND r.removed_at IS NULL
 	  JOIN projects p ON p.org_id = r.org_id AND p.id = r.project_id AND p.archived_at IS NULL
+	       AND lotor_team_visible(p.team_id)
 	  LEFT JOIN LATERAL (
 	       SELECT count(*)::int AS open, max(` + "%RANK%" + `) AS sev, bool_or(f.kev) AS kev, max(f.risk)::float8 AS risk
 	         FROM findings f
@@ -74,7 +76,7 @@ const componentHits = `
 	 WHERE i.component_id = ANY(%IDS%::uuid[])`
 
 // vulnHits : constats des vulnérabilités désignées, sur les références actives des projets
-// actifs, avec l'élément de l'inventaire courant s'il contient encore le composant.
+// actifs et visibles, avec l'élément de l'inventaire courant s'il contient encore le composant.
 const vulnHits = `
 	SELECT f.org_id, f.project_id, f.ref_id, f.component_id, i.origin, i.confidence, coalesce(i.weak_id, false) AS weak_id,
 	       rc.snapshot_id, f.id AS finding_id, f.vuln_id, f.status,
@@ -83,6 +85,7 @@ const vulnHits = `
 	  FROM findings f
 	  JOIN tracked_refs r ON r.org_id = f.org_id AND r.id = f.ref_id AND r.removed_at IS NULL
 	  JOIN projects p ON p.org_id = r.org_id AND p.id = r.project_id AND p.archived_at IS NULL
+	       AND lotor_team_visible(p.team_id)
 	  LEFT JOIN ref_current rc ON rc.org_id = f.org_id AND rc.ref_id = f.ref_id
 	  LEFT JOIN component_set_items i ON i.org_id = rc.org_id AND i.set_id = rc.set_id AND i.component_id = f.component_id
 	 WHERE f.vuln_id = ANY(%IDS%::text[]) AND f.status = ANY(%STATUS%::text[])`

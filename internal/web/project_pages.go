@@ -103,6 +103,7 @@ type projectsView struct {
 	Label      string
 	Archived   bool
 	Kinds      []option
+	Teams      []option
 	FlashKey   string
 	Error      formError
 }
@@ -116,14 +117,25 @@ func (id *identity) projects(w http.ResponseWriter, r *http.Request) {
 			f.Kind = kind
 		}
 	}
+	if t, err := uuid.Parse(q.Get("team")); err == nil {
+		f.Team = t
+	}
+	teams, ok := id.teamOptions(w, r, tenant.PermProjectView, q.Get("team"), "common.all")
+	if !ok {
+		return
+	}
+	if !acc.Admin() {
+		// Pour un membre, « toutes » désigne ses équipes : l'option vient en tête.
+		teams = append([]option{{Value: "", LabelKey: "common.all", Selected: f.Team == uuid.Nil}}, teams...)
+	}
 	view := &projectsView{
 		Page: render.Page{TitleKey: "projects.title", Nav: orgNav(acc, "projects")},
-		Base: orgBase(acc), CanAdmin: acc.Role.AtLeast(tenant.RoleAdmin),
-		Query: f.Query, Label: f.Label, Archived: f.Archived, Kinds: projectKindOptions(f.Kind, true),
+		Base: orgBase(acc), CanAdmin: acc.CanAny(tenant.PermProjectCreate),
+		Query: f.Query, Label: f.Label, Archived: f.Archived, Kinds: projectKindOptions(f.Kind, true), Teams: teams,
 		FlashKey: flashKey(r),
 	}
 	status := http.StatusOK
-	page, err := id.Projects.List(r.Context(), acc.Org, f, q.Get("cursor"), project.DefaultPage)
+	page, err := id.Projects.List(r.Context(), acc.Org, acc.Visibility(), f, q.Get("cursor"), project.DefaultPage)
 	if err != nil {
 		fe, ok := validationOf(err)
 		if !ok {
@@ -147,7 +159,7 @@ func (id *identity) projects(w http.ResponseWriter, r *http.Request) {
 	}
 	if page.NextCursor != "" {
 		next := url.Values{}
-		for _, k := range []string{"q", "kind", "label", "archived"} {
+		for _, k := range []string{"q", "kind", "label", "archived", "team"} {
 			if v := q.Get(k); v != "" {
 				next.Set(k, v)
 			}
@@ -162,6 +174,7 @@ func (id *identity) projects(w http.ResponseWriter, r *http.Request) {
 // projectForm est la saisie d'un projet telle qu'affichée par le formulaire.
 type projectForm struct {
 	Kind        project.Kind
+	Team        string
 	Slug        string
 	Name        string
 	Description string
@@ -191,7 +204,7 @@ func joinLines(s []string) string {
 
 func readProjectForm(r *http.Request) projectForm {
 	f := r.PostForm
-	return projectForm{Kind: project.Kind(f.Get("kind")), Slug: f.Get("slug"), Name: f.Get("name"),
+	return projectForm{Kind: project.Kind(f.Get("kind")), Team: f.Get("team"), Slug: f.Get("slug"), Name: f.Get("name"),
 		Description: f.Get("description"), Labels: f.Get("labels"), ForgeURL: f.Get("forge_url"),
 		Branches: f.Get("branches"), Tags: f.Get("tags"), HostRef: f.Get("host_ref")}
 }
@@ -221,6 +234,7 @@ type projectFormView struct {
 	Base   string
 	Form   projectForm
 	Kinds  []option
+	Teams  []option
 	Error  formError
 	IsNew  bool
 	Action string
@@ -232,9 +246,13 @@ func (id *identity) projectFormPage(w http.ResponseWriter, r *http.Request, stat
 	if f.Kind == "" {
 		f.Kind = project.KindRepo
 	}
+	teams, ok := id.teamOptions(w, r, tenant.PermProjectCreate, f.Team, "")
+	if !ok {
+		return
+	}
 	id.rd.Render(w, r, status, "projects/new", &projectFormView{
 		Page: render.Page{TitleKey: "project_new.title", Nav: orgNav(acc, "projects")},
-		Base: orgBase(acc), Form: f, Kinds: projectKindOptions(f.Kind, false), Error: fe, IsNew: true,
+		Base: orgBase(acc), Form: f, Kinds: projectKindOptions(f.Kind, false), Teams: teams, Error: fe, IsNew: true,
 		Action: orgBase(acc) + "/projects",
 	})
 }
@@ -244,7 +262,7 @@ func (id *identity) newProject(w http.ResponseWriter, r *http.Request) {
 	if _, err := project.ParseKind(string(kind)); err != nil {
 		kind = project.KindRepo
 	}
-	id.projectFormPage(w, r, http.StatusOK, projectForm{Kind: kind}, formError{})
+	id.projectFormPage(w, r, http.StatusOK, projectForm{Kind: kind, Team: r.URL.Query().Get("team")}, formError{})
 }
 
 func (id *identity) createProject(w http.ResponseWriter, r *http.Request) {
@@ -254,6 +272,12 @@ func (id *identity) createProject(w http.ResponseWriter, r *http.Request) {
 	acc := access(r)
 	f := readProjectForm(r)
 	in, err := f.input()
+	if err == nil {
+		var team *uuid.UUID
+		if team, err = chosenTeam(acc, tenant.PermProjectCreate, f.Team, false, project.KeyTeamInvalid); err == nil {
+			in.TeamID = *team
+		}
+	}
 	if err == nil {
 		var p project.Project
 		if p, err = id.Projects.Create(r.Context(), id.actor(r), acc.Org, in); err == nil {
@@ -268,9 +292,14 @@ func (id *identity) createProject(w http.ResponseWriter, r *http.Request) {
 	id.serverError(w, r, err)
 }
 
-// loadProject lit le projet du chemin ; 404 s'il n'existe pas dans l'organisation.
+// loadProject lit le projet du chemin, résolu par la garde de la route (sinon relu) ; 404
+// s'il n'existe pas dans l'organisation ou qu'il n'est pas visible.
 func (id *identity) loadProject(w http.ResponseWriter, r *http.Request) (project.Project, bool) {
-	p, err := id.Projects.Get(r.Context(), access(r).Org, chi.URLParam(r, "project"))
+	if p, ok := projectFromContext(r.Context()); ok {
+		return p, true
+	}
+	acc := access(r)
+	p, err := id.Projects.Get(r.Context(), acc.Org, acc.Visibility(), chi.URLParam(r, "project"))
 	if errors.Is(err, project.ErrNotFound) {
 		id.rd.Error(w, r, http.StatusNotFound)
 		return project.Project{}, false
@@ -296,7 +325,7 @@ func projectTabs(acc tenant.Access, p project.Project, current string) []project
 		{LabelKey: "project.tab_findings", Href: base + "/findings", Current: current == "findings"},
 		{LabelKey: "project.tab_snapshots", Href: base + "/snapshots", Current: current == "snapshots"},
 	}
-	if acc.Role.AtLeast(tenant.RoleAdmin) {
+	if acc.Can(tenant.PermProjectManage, p.TeamID) {
 		tabs = append(tabs, projectTab{LabelKey: "project.tab_settings", Href: base + "/settings", Current: current == "settings"})
 	}
 	return tabs
@@ -354,7 +383,7 @@ func (id *identity) renderProject(w http.ResponseWriter, r *http.Request, status
 	acc := access(r)
 	view := &projectView{
 		Page: render.Page{TitleKey: "project.title", TitleArgs: map[string]any{"Name": p.Name}, Nav: orgNav(acc, "projects")},
-		Base: orgBase(acc), CanAdmin: acc.Role.AtLeast(tenant.RoleAdmin), Project: id.projectRow(p, id.Agents.Now()),
+		Base: orgBase(acc), CanAdmin: acc.Can(tenant.PermProjectManage, p.TeamID), Project: id.projectRow(p, id.Agents.Now()),
 		Tabs: projectTabs(acc, p, "overview"), Branches: p.RefNames(project.RefBranch), Tags: p.RefNames(project.RefTag),
 		HostRef: p.HostRef(), Created: stampAt(p.CreatedAt), FlashKey: flashKey(r), Error: fe,
 	}
@@ -366,15 +395,17 @@ func (id *identity) renderProject(w http.ResponseWriter, r *http.Request, status
 	}
 	view.Period, view.Summary = periodFormOf(orgBase(acc)+"/projects/"+p.Slug, period), summaryOf("project", summary)
 	if p.Kind == project.KindHost && p.Agent != nil {
-		a, err := id.Agents.Get(r.Context(), acc.Org, p.Agent.ID)
+		// L'agent serveur d'un projet visible fait partie de sa fiche, même s'il était
+		// rattaché à une autre équipe : il est lu sans filtre d'équipe.
+		a, err := id.Agents.Get(r.Context(), acc.Org, tenant.AllTeams(), p.Agent.ID)
 		if err != nil {
 			id.serverError(w, r, err)
 			return
 		}
-		view.Host = newHostAgentView(a, acc.Role.AtLeast(tenant.RoleAnalyst) && p.ArchivedAt == nil)
+		view.Host = newHostAgentView(a, acc.Can(tenant.PermProjectScan, p.TeamID) && p.ArchivedAt == nil)
 	}
 	if view.CanAdmin && p.Kind == project.KindRepo && p.ArchivedAt == nil {
-		agents, err := id.Agents.RepoAgents(r.Context(), acc.Org)
+		agents, err := id.Agents.RepoAgents(r.Context(), acc.Org, p.TeamID)
 		if err != nil {
 			id.serverError(w, r, err)
 			return
@@ -389,12 +420,19 @@ func (id *identity) renderProject(w http.ResponseWriter, r *http.Request, status
 
 func (id *identity) projectSettingsPage(w http.ResponseWriter, r *http.Request, status int, p project.Project, f projectForm, fe formError) {
 	acc := access(r)
+	var teams []option
+	if acc.Can(tenant.PermProjectMove, p.TeamID) {
+		var ok bool
+		if teams, ok = id.teamOptions(w, r, tenant.PermProjectMove, p.TeamID.String(), ""); !ok {
+			return
+		}
+	}
 	id.rd.Render(w, r, status, "projects/settings", &projectSettingsView{
 		projectFormView: projectFormView{
 			Page: render.Page{TitleKey: "project_settings.title", TitleArgs: map[string]any{"Name": p.Name}, Nav: orgNav(acc, "projects")},
 			Base: orgBase(acc), Form: f, Error: fe, Action: orgBase(acc) + "/projects/" + p.Slug + "/settings", Slug: p.Slug,
 		},
-		Project: p, Tabs: projectTabs(acc, p, "settings"), FlashKey: flashKey(r),
+		Project: p, Tabs: projectTabs(acc, p, "settings"), FlashKey: flashKey(r), MoveTeams: teams,
 	})
 }
 
@@ -403,6 +441,8 @@ type projectSettingsView struct {
 	Project  project.Project
 	Tabs     []projectTab
 	FlashKey string
+	// MoveTeams : équipes où rattacher le projet (droit de rattachement dans les deux).
+	MoveTeams []option
 }
 
 func (id *identity) projectSettings(w http.ResponseWriter, r *http.Request) {

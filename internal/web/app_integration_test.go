@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/pquerna/otp/totp"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -172,7 +173,7 @@ func newApp(t *testing.T, opts ...appOption) *app {
 			LoginRateLimit: 0,
 		},
 		AgentAPI: &apiv1.AgentOptions{Agents: a.agents, Ingest: a.ingest},
-		UserAPI: &apiv1.UserOptions{Pool: tdb.App, Accounts: a.accounts, Search: a.search,
+		UserAPI: &apiv1.UserOptions{Pool: tdb.App, Accounts: a.accounts, Orgs: a.orgs, Search: a.search,
 			Exports: search.NewExportLimiter(2, time.Minute)},
 	}
 	for _, opt := range opts {
@@ -410,6 +411,44 @@ func (a *app) addMember(o org.Organization, u user, role tenant.Role) {
 	if err := a.orgs.AddMember(context.Background(), audit.System, o.ID, u.Email, role); err != nil {
 		a.t.Fatal(err)
 	}
+}
+
+// addTeamMember fait de u un membre de l'organisation et de son équipe par défaut, avec le
+// rôle d'équipe role.
+func (a *app) addTeamMember(o org.Organization, u user, role tenant.TeamRole) {
+	a.t.Helper()
+	a.addMember(o, u, tenant.RoleMember)
+	if err := a.orgs.AddTeamMember(context.Background(), audit.System, o.ID, a.defaultTeam(o.ID), u.Email, role); err != nil {
+		a.t.Fatal(err)
+	}
+}
+
+// defaultTeam renvoie l'équipe créée avec l'organisation (DefaultTeamName).
+func (a *app) defaultTeam(o tenant.OrgID) uuid.UUID {
+	a.t.Helper()
+	teams, err := a.orgs.Teams(context.Background(), o, tenant.AllTeams())
+	if err != nil || len(teams) == 0 {
+		a.t.Fatalf("équipes : %v, %v", teams, err)
+	}
+	return teams[0].ID
+}
+
+// inTeam rattache une saisie sans équipe à l'équipe par défaut de l'organisation.
+func (a *app) inTeam(o tenant.OrgID, in project.Input) project.Input {
+	a.t.Helper()
+	if in.TeamID == uuid.Nil {
+		in.TeamID = a.defaultTeam(o)
+	}
+	return in
+}
+
+// enrollTeam fait de même pour un jeton d'inscription.
+func (a *app) enrollTeam(o tenant.OrgID, in agent.EnrollmentInput) agent.EnrollmentInput {
+	a.t.Helper()
+	if in.TeamID == uuid.Nil {
+		in.TeamID = a.defaultTeam(o)
+	}
+	return in
 }
 
 var secretPattern = regexp.MustCompile(`<code class="auth__secret">([A-Z2-7 ]+)</code>`)

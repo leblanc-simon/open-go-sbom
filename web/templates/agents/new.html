@@ -21,6 +21,15 @@
         <p class="field__hint" id="agent-name-hint">{{T "agent_new.name_hint"}}</p>
       </div>
       <div class="field">
+        <label class="field__label" for="agent-team">{{T "project_form.team"}}</label>
+        <select class="select" id="agent-team" name="team" aria-describedby="agent-team-hint"{{if eq .Error.Field "team"}} aria-invalid="true"{{end}}>
+          {{- range .Teams}}
+          <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{if .LabelKey}}{{T .LabelKey}}{{else}}{{.Label}}{{end}}</option>
+          {{- end}}
+        </select>
+        <p class="field__hint" id="agent-team-hint">{{T "agent_new.team_hint"}}</p>
+      </div>
+      <div class="field">
         <label class="field__label" for="agent-token-name">{{T "agent_new.token_name"}}</label>
         <input class="input" id="agent-token-name" name="token_name" type="text" maxlength="100" required value="{{.TokenName}}"{{if eq .Error.Field "token_name"}} aria-invalid="true"{{end}}>
       </div>

@@ -42,7 +42,7 @@ func TestSilentCountsEveryPage(t *testing.T) {
 	var longest []agent.Agent
 	if err := f.tdb.App.InOrg(ctx, o, func(tx *db.OrgTx) error {
 		var err error
-		count, longest, err = agent.Silent(ctx, tx, now, 3)
+		count, longest, err = agent.Silent(ctx, tx, now, 3, false)
 		return err
 	}, db.ReadOnly()); err != nil {
 		t.Fatal(err)

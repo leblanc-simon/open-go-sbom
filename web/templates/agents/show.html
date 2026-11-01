@@ -14,6 +14,7 @@
     </div>
     <p class="page-head__meta">
       <span>{{T (print "agent_type." $a.Kind)}}</span>
+      <span>{{if $a.TeamID}}<a href="{{.Base}}/teams/{{$a.TeamID}}">{{T "agent.team_value" "Team" $a.TeamName}}</a>{{else}}{{T "agents.org_wide"}}{{end}}</span>
       <span>{{with $a.Version}}{{T "agent.version_value" "Version" .}}{{else}}{{T "agents.version_unknown"}}{{end}}</span>
       <span>{{T "agents.col_last_contact"}} : {{template "stamp" $a.LastSeen}}</span>
     </p>

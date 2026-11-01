@@ -76,11 +76,11 @@ func newFixture(t testing.TB, pool *db.Pool) fixture {
 	suffix := strings.ReplaceAll(org.String()[24:], "-", "")
 	f := fixture{pool: pool, org: org, repoAgent: newID(), hostAgent: newID(), repo: newID(), other: newID(), host: newID(),
 		hostName: "srv-" + suffix}
-	f.exec(t, `INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, $2, 'Org', 'fr')`, org, "o-"+suffix)
+	f.exec(t, `WITH o AS (INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, $2, 'Org', 'fr') RETURNING id) INSERT INTO teams (org_id, id, name) SELECT id, id, 'Général' FROM o`, org, "o-"+suffix)
 	f.exec(t, `INSERT INTO agents (org_id, id, kind, name) VALUES ($1, $2, 'repo', 'depot'), ($1, $3, 'host', $4)`,
 		org, f.repoAgent, f.hostAgent, f.hostName)
-	f.exec(t, `INSERT INTO projects (org_id, id, kind, slug, name, agent_id) VALUES
-		($1, $2, 'repo', 'depot', 'Dépôt', $3), ($1, $4, 'repo', 'autre', 'Autre', NULL), ($1, $5, 'host', 'srv', 'srv', $6)`,
+	f.exec(t, `INSERT INTO projects (org_id, id, kind, slug, name, agent_id, team_id) VALUES
+		($1, $2, 'repo', 'depot', 'Dépôt', $3, $1), ($1, $4, 'repo', 'autre', 'Autre', NULL, $1), ($1, $5, 'host', 'srv', 'srv', $6, $1)`,
 		org, f.repo, f.repoAgent, f.other, f.host, f.hostAgent)
 	f.exec(t, `INSERT INTO tracked_refs (org_id, id, project_id, project_kind, kind, name) VALUES
 		($1, $2, $3, 'repo', 'branch', 'main'), ($1, $4, $5, 'repo', 'branch', 'main'), ($1, $6, $7, 'host', 'host', $8)`,

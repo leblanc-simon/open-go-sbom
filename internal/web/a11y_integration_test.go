@@ -54,15 +54,15 @@ func TestIrreversibleActionsAreConfirmed(t *testing.T) {
 	admin := a.user("admin@example.org", true)
 	member := a.user("membre@example.org", false)
 	o := a.org("atelier", admin)
-	a.addMember(o, member, tenant.RoleViewer)
-	ag, _, err := a.agents.CreateRepoAgent(ctx, audit.System, o.ID, "ci-principal", "initial", 90)
+	a.addTeamMember(o, member, tenant.TeamReader)
+	ag, _, err := a.agents.CreateRepoAgent(ctx, audit.System, o.ID, nil, "ci-principal", "initial", 90)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ag, err = a.agents.Get(ctx, o.ID, ag.ID); err != nil {
+	if ag, err = a.agents.Get(ctx, o.ID, tenant.AllTeams(), ag.ID); err != nil {
 		t.Fatal(err)
 	}
-	enr, _, err := a.agents.CreateEnrollment(ctx, audit.System, o.ID, agent.EnrollmentInput{Name: "Serveurs web", LifetimeHours: 24, MaxUses: 3})
+	enr, _, err := a.agents.CreateEnrollment(ctx, audit.System, o.ID, a.enrollTeam(o.ID, agent.EnrollmentInput{Name: "Serveurs web", LifetimeHours: 24, MaxUses: 3}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,17 +84,17 @@ func TestIrreversibleActionsAreConfirmed(t *testing.T) {
 		{"jeton d'agent", agentPath, agentPath + "/tokens/" + ag.Tokens[0].ID.String() + "/revoke", agentPath,
 			[]string{"Révoquer le jeton « initial » de l'agent ci-principal ?", "Cette action est définitive", "Révoquer le jeton « initial »"},
 			nil, "token_revoked", func() bool {
-				got, err := a.agents.Get(ctx, o.ID, ag.ID)
+				got, err := a.agents.Get(ctx, o.ID, tenant.AllTeams(), ag.ID)
 				return err == nil && got.Tokens[0].RevokedAt != nil
 			}},
 		{"jeton d'inscription", "/o/atelier/agents", "/o/atelier/enrollment-tokens/" + enr.ID.String() + "/revoke", "/o/atelier/agents",
 			[]string{"Révoquer le jeton d'inscription « Serveurs web » ?", "Les agents déjà inscrits"}, nil, "enrollment_revoked", func() bool {
-				list, err := a.agents.Enrollments(ctx, o.ID)
+				list, err := a.agents.Enrollments(ctx, o.ID, tenant.AllTeams())
 				return err == nil && len(list) == 1 && list[0].RevokedAt != nil
 			}},
 		{"désactivation d'agent", agentPath, agentPath + "/disable", agentPath,
 			[]string{"Désactiver l'agent ci-principal ?", "ne se réactive pas", "Désactiver l'agent"}, nil, "agent_disabled", func() bool {
-				got, err := a.agents.Get(ctx, o.ID, ag.ID)
+				got, err := a.agents.Get(ctx, o.ID, tenant.AllTeams(), ag.ID)
 				return err == nil && got.DisabledAt != nil
 			}},
 		{"retrait d'un membre", "/o/atelier/members", "/o/atelier/members/" + itoa(member.ID) + "/remove", "/o/atelier/members",
@@ -262,7 +262,7 @@ func TestSiteMap(t *testing.T) {
 	viewer := a.user("lecteur@example.org", false)
 	o := a.org("nord", admin)
 	a.org("sud", admin)
-	a.addMember(o, viewer, tenant.RoleViewer)
+	a.addTeamMember(o, viewer, tenant.TeamReader)
 
 	b := a.signIn(admin)
 	for _, lang := range []string{"fr", "en"} {

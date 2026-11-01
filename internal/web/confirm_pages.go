@@ -108,7 +108,7 @@ func (id *identity) confirmRevokeEnrollment(w http.ResponseWriter, r *http.Reque
 		id.rd.Error(w, r, http.StatusNotFound)
 		return
 	}
-	list, err := id.Agents.Enrollments(r.Context(), acc.Org)
+	list, err := id.Agents.Enrollments(r.Context(), acc.Org, acc.Visibility())
 	if err != nil {
 		id.serverError(w, r, err)
 		return

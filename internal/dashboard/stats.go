@@ -119,7 +119,7 @@ func (s *Service) Record(ctx context.Context, org tenant.OrgID) (Day, error) {
 			return err
 		}
 		d.Projects = Org{Projects: kinds}.ProjectCount()
-		if d.SilentAgents, _, err = agent.Silent(ctx, tx, now, 0); err != nil {
+		if d.SilentAgents, _, err = agent.Silent(ctx, tx, now, 0, false); err != nil {
 			return err
 		}
 		if d.Fixed, err = fixTimes(ctx, tx, scope{}, d.Day, d.Day.AddDate(0, 0, 1)); err != nil {
@@ -129,7 +129,7 @@ func (s *Service) Record(ctx context.Context, org tenant.OrgID) (Day, error) {
 			return err
 		}
 		return writeProjectDays(ctx, tx, d.Day, now)
-	})
+	}, db.Visible(tenant.AllTeams())) // statistiques de toute l'organisation
 	if err != nil {
 		return Day{}, fmt.Errorf("dashboard: statistiques du jour : %w", err)
 	}

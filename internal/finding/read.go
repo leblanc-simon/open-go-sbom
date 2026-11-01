@@ -254,25 +254,31 @@ func Sum(cs map[uuid.UUID]Counts) Counts {
 	return t
 }
 
-// VulnerabilityFindings renvoie les constats d'une vulnérabilité dans l'organisation, de
-// l'état demandé, par risque décroissant (ListMax au plus), et le décompte par état.
+// VulnerabilityFindings renvoie les constats d'une vulnérabilité dans les projets visibles
+// (db.Visible) de l'organisation, de l'état demandé, par risque décroissant (ListMax au
+// plus), et le décompte par état.
 func VulnerabilityFindings(ctx context.Context, tx *db.OrgTx, vulnID string, status Status) ([]Row, Counts, error) {
 	rows, err := scanRows(tx.QueryContext(ctx, `SELECT `+rowColumns+rowFrom+` WHERE f.vuln_id = $1 AND f.status = $2
+		  AND lotor_team_visible(p.team_id)
 		ORDER BY f.risk DESC, p.name, r.name, c.version, f.id LIMIT `+strconv.Itoa(ListMax), vulnID, string(status)))
 	if err != nil {
 		return nil, Counts{}, wrap("constats d'une vulnérabilité", err)
 	}
 	var c Counts
-	err = tx.QueryRowContext(ctx, `SELECT count(*) FILTER (WHERE status = 'open'), count(*) FILTER (WHERE status = 'resolved'),
-		count(DISTINCT project_id) FILTER (WHERE status = 'open') FROM findings WHERE vuln_id = $1`, vulnID).
+	err = tx.QueryRowContext(ctx, `SELECT count(*) FILTER (WHERE f.status = 'open'), count(*) FILTER (WHERE f.status = 'resolved'),
+		count(DISTINCT f.project_id) FILTER (WHERE f.status = 'open')
+		  FROM findings f JOIN projects p ON p.org_id = f.org_id AND p.id = f.project_id
+		 WHERE f.vuln_id = $1 AND lotor_team_visible(p.team_id)`, vulnID).
 		Scan(&c.Open, &c.Resolved, &c.Projects)
 	return rows, c, wrap("décompte d'une vulnérabilité", err)
 }
 
 // ComponentFindings renvoie les constats ouverts des composants de base purlBase
-// (toutes versions), pour la fiche composant (ListMax au plus).
+// (toutes versions) dans les projets visibles (db.Visible), pour la fiche composant
+// (ListMax au plus).
 func ComponentFindings(ctx context.Context, tx *db.OrgTx, purlBase string) ([]Row, error) {
 	rows, err := scanRows(tx.QueryContext(ctx, `SELECT `+rowColumns+rowFrom+` WHERE c.purl_base = $1 AND f.status = 'open'
+		  AND lotor_team_visible(p.team_id)
 		ORDER BY f.risk DESC, f.vuln_id, f.id LIMIT `+strconv.Itoa(ListMax), purlBase))
 	return rows, wrap("constats d'un composant", err)
 }
@@ -343,24 +349,25 @@ func (s *Service) Analyses(ctx context.Context, org tenant.OrgID, projectID uuid
 	return out, err
 }
 
-// Vulnerability renvoie la fiche du catalogue et les constats de l'organisation qui la
-// concernent. vuln.ErrNotFound si le catalogue ne la connaît pas.
-func (s *Service) Vulnerability(ctx context.Context, org tenant.OrgID, id string, status Status) (e vuln.Entry, rows []Row, c Counts, err error) {
-	err = s.read(ctx, org, func(tx *db.OrgTx) error {
+// Vulnerability renvoie la fiche du catalogue (publique) et les constats des projets
+// visibles qui la concernent. vuln.ErrNotFound si le catalogue ne la connaît pas.
+func (s *Service) Vulnerability(ctx context.Context, org tenant.OrgID, vis tenant.Visibility, id string, status Status) (e vuln.Entry, rows []Row, c Counts, err error) {
+	err = s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
 		if e, err = vuln.GetVulnerability(ctx, tx, id); err != nil {
 			return err
 		}
 		rows, c, err = VulnerabilityFindings(ctx, tx, e.ID, status)
 		return err
-	})
+	}, db.ReadOnly(), db.Visible(vis))
 	return e, rows, c, err
 }
 
-// Component renvoie les constats ouverts d'une famille de composants.
-func (s *Service) Component(ctx context.Context, org tenant.OrgID, purlBase string) (rows []Row, err error) {
-	err = s.read(ctx, org, func(tx *db.OrgTx) error {
+// Component renvoie les constats ouverts d'une famille de composants, dans les projets
+// visibles.
+func (s *Service) Component(ctx context.Context, org tenant.OrgID, vis tenant.Visibility, purlBase string) (rows []Row, err error) {
+	err = s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
 		rows, err = ComponentFindings(ctx, tx, purlBase)
 		return err
-	})
+	}, db.ReadOnly(), db.Visible(vis))
 	return rows, err
 }

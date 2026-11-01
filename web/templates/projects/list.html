@@ -28,6 +28,14 @@
       </select>
     </div>
     <div class="field field--narrow">
+      <label class="field__label" for="p-team">{{T "projects.filter_team"}}</label>
+      <select class="select" id="p-team" name="team">
+        {{- range .Teams}}
+        <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{if .LabelKey}}{{T .LabelKey}}{{else}}{{.Label}}{{end}}</option>
+        {{- end}}
+      </select>
+    </div>
+    <div class="field field--narrow">
       <label class="field__label" for="p-label">{{T "projects.filter_label_field"}}</label>
       <input class="input" id="p-label" name="label" type="text" value="{{.Label}}" aria-describedby="p-label-hint">
       <p class="field__hint" id="p-label-hint">{{T "projects.filter_label_hint"}}</p>
@@ -45,6 +53,7 @@
           <tr>
             <th scope="col">{{T "projects.col_project"}}</th>
             <th scope="col">{{T "projects.col_type"}}</th>
+            <th scope="col">{{T "projects.col_team"}}</th>
             <th scope="col">{{T "projects.col_labels"}}</th>
             <th scope="col">{{T "projects.col_agent"}}</th>
             <th scope="col">{{T "projects.col_last_contact"}}</th>
@@ -57,6 +66,7 @@
           <tr>
             <th scope="row"><span class="cell-stack"><a href="{{$base}}/projects/{{.Slug}}">{{.Name}}</a><span class="mono muted">{{.Slug}}</span></span></th>
             <td>{{template "project_kind" .Kind}}</td>
+            <td><a href="{{$base}}/teams/{{.TeamID}}">{{.TeamName}}</a></td>
             <td class="wrap">{{template "labels" .Labels}}</td>
             <td>{{with .Agent}}<span class="cell-stack"><a href="{{$base}}/agents/{{.ID}}">{{.Name}}</a>{{with .Version}}<span class="version">{{.}}</span>{{end}}</span>{{else}}<span class="muted">{{T "projects.no_agent"}}</span>{{end}}</td>
             <td>{{if .AgentStatus}}<span class="cell-stack">{{template "agent_status" .AgentStatus}}{{template "stamp" .LastSeen}}</span>{{else}}<span class="muted">{{T "projects.no_agent"}}</span>{{end}}</td>

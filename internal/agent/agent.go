@@ -63,12 +63,15 @@ const (
 	KeyVersionInvalid = "validation.agent_version_invalid"
 	KeyProjectNotHost = "validation.enrollment_project_invalid"
 	KeyTokenRevoked   = "validation.token_already_revoked"
+	KeyTeamInvalid    = "validation.agent_team_invalid"
+	KeyTeamMismatch   = "validation.enrollment_team_mismatch"
 )
 
 // ValidationKeys liste les clés de validation du paquet (tests de traduction).
 func ValidationKeys() []string {
 	return []string{KeyNameInvalid, KeyNameTaken, KeyExpiryInvalid, KeyMaxUsesInvalid, KeyAgentDisabled,
-		KeyVersionInvalid, KeyProjectNotHost, KeyTokenRevoked, KeyHostContextInvalid, KeyInventoryInvalid, KeyScanNotHost}
+		KeyVersionInvalid, KeyProjectNotHost, KeyTokenRevoked, KeyHostContextInvalid, KeyInventoryInvalid, KeyScanNotHost,
+		KeyTeamInvalid, KeyTeamMismatch}
 }
 
 func invalid(field, key string) error { return &account.ValidationError{Field: field, Key: key} }
@@ -88,8 +91,12 @@ type Agent struct {
 	// ScanRequestedAt : scan demandé depuis l'interface, pas encore remis (agent serveur).
 	ScanRequestedAt *time.Time
 	// Host et HostAt : dernier contexte d'hôte annoncé (agent serveur).
-	Host         *HostContext
-	HostAt       *time.Time
+	Host   *HostContext
+	HostAt *time.Time
+	// TeamID est l'équipe de l'agent ; nil : agent d'organisation, géré par ses seuls
+	// administrateurs, qui peut servir les projets de toutes les équipes.
+	TeamID       *uuid.UUID
+	TeamName     string
 	ProjectCount int
 	ActiveTokens int
 	Projects     []ProjectRef // Get seulement
@@ -248,7 +255,7 @@ func agentEvent(action audit.Action, a Agent, details map[string]string) audit.E
 	return audit.Event{Action: action, TargetType: "agent", TargetID: a.ID.String(), TargetLabel: a.Name, Details: details}
 }
 
-func newAgent(ctx context.Context, tx *db.OrgTx, kind Kind, name, version string, createdBy int64, seen *time.Time) (Agent, error) {
+func newAgent(ctx context.Context, tx *db.OrgTx, kind Kind, name, version string, createdBy int64, seen *time.Time, team *uuid.UUID) (Agent, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return Agent{}, err
@@ -257,14 +264,20 @@ func newAgent(ctx context.Context, tx *db.OrgTx, kind Kind, name, version string
 	if createdBy != 0 {
 		by = createdBy
 	}
-	a := Agent{ID: id, Kind: kind, Name: name, Version: version, LastSeenAt: seen}
+	a := Agent{ID: id, Kind: kind, Name: name, Version: version, LastSeenAt: seen, TeamID: team}
+	var teamName sql.NullString
 	err = tx.QueryRowContext(ctx, `
-		INSERT INTO agents (org_id, id, kind, name, version, last_seen_at, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING created_at`,
-		tx.OrgID(), id, string(kind), name, version, seen, by).Scan(&a.CreatedAt)
-	if pgConstraint(err) == "agents_active_name" {
+		INSERT INTO agents (org_id, id, kind, name, version, last_seen_at, created_by, team_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING created_at, (SELECT t.name FROM teams t WHERE t.org_id = $1 AND t.id = $8)`,
+		tx.OrgID(), id, string(kind), name, version, seen, by, team).Scan(&a.CreatedAt, &teamName)
+	switch pgConstraint(err) {
+	case "agents_active_name":
 		return Agent{}, invalid("name", KeyNameTaken)
+	case "agents_team_fk":
+		return Agent{}, invalid("team", KeyTeamInvalid)
 	}
+	a.TeamName = teamName.String
 	return a, err
 }
 
@@ -298,9 +311,9 @@ func tokenEvent(action audit.Action, a Agent, t Token, details map[string]string
 	return audit.Event{Action: action, TargetType: "agent_token", TargetID: t.ID.String(), TargetLabel: t.Name, Details: d}
 }
 
-// CreateRepoAgent crée un agent dépôt et son premier jeton, dont le secret n'est renvoyé
-// qu'ici.
-func (s *Service) CreateRepoAgent(ctx context.Context, actor audit.Actor, org tenant.OrgID, name, tokenName string, lifetimeDays int) (Agent, IssuedToken, error) {
+// CreateRepoAgent crée un agent dépôt de l'équipe team (nil : agent d'organisation) et
+// son premier jeton, dont le secret n'est renvoyé qu'ici.
+func (s *Service) CreateRepoAgent(ctx context.Context, actor audit.Actor, org tenant.OrgID, team *uuid.UUID, name, tokenName string, lifetimeDays int) (Agent, IssuedToken, error) {
 	name, err := validName(name)
 	if err != nil {
 		return Agent{}, IssuedToken{}, err
@@ -315,14 +328,14 @@ func (s *Service) CreateRepoAgent(ctx context.Context, actor audit.Actor, org te
 	var issued IssuedToken
 	err = s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
 		var err error
-		if a, err = newAgent(ctx, tx, KindRepo, name, "", actor.UserID, nil); err != nil {
+		if a, err = newAgent(ctx, tx, KindRepo, name, "", actor.UserID, nil, team); err != nil {
 			return err
 		}
 		var t Token
 		if t, issued, err = insertToken(ctx, tx, a.ID, tokenName, expiry(s.Now(), lifetimeDays), actor.UserID); err != nil {
 			return err
 		}
-		if err := audit.RecordOrg(ctx, tx, actor, agentEvent(audit.AgentCreated, a, map[string]string{"kind": string(a.Kind)})); err != nil {
+		if err := audit.RecordOrg(ctx, tx, actor, agentEvent(audit.AgentCreated, a, map[string]string{"kind": string(a.Kind), "team": a.TeamName})); err != nil {
 			return err
 		}
 		return audit.RecordOrg(ctx, tx, actor, tokenEvent(audit.AgentTokenCreated, a, t, nil))
@@ -341,16 +354,21 @@ const agentColumns = `a.id, a.kind, a.name, a.version, a.last_seen_at, a.disable
 	  WHERE p.org_id = a.org_id AND p.agent_id = a.id),
 	(SELECT count(*) FROM projects p WHERE p.org_id = a.org_id AND p.agent_id = a.id AND p.archived_at IS NULL),
 	(SELECT count(*) FROM agent_tokens t WHERE t.org_id = a.org_id AND t.agent_id = a.id AND t.revoked_at IS NULL
-	    AND (t.expires_at IS NULL OR t.expires_at > $1))`
+	    AND (t.expires_at IS NULL OR t.expires_at > $1)),
+	a.team_id, coalesce((SELECT tm.name FROM teams tm WHERE tm.org_id = a.org_id AND tm.id = a.team_id), '')`
 
 func scanAgent(row interface{ Scan(...any) error }) (Agent, error) {
 	var a Agent
 	var kind string
 	var seen, disabled, requested, hostAt, inventoried sql.NullTime
 	var host []byte
+	var team uuid.NullUUID
 	if err := row.Scan(&a.ID, &kind, &a.Name, &a.Version, &seen, &disabled, &a.CreatedAt, &requested, &host, &hostAt,
-		&inventoried, &a.ProjectCount, &a.ActiveTokens); err != nil {
+		&inventoried, &a.ProjectCount, &a.ActiveTokens, &team, &a.TeamName); err != nil {
 		return Agent{}, err
+	}
+	if team.Valid {
+		a.TeamID = &team.UUID
 	}
 	a.Kind = Kind(kind)
 	a.LastSeenAt, a.DisabledAt = timePtr(seen), timePtr(disabled)
@@ -372,8 +390,13 @@ func timePtr(t sql.NullTime) *time.Time {
 	return &v
 }
 
-func loadAgent(ctx context.Context, tx *db.OrgTx, id uuid.UUID, now time.Time, lock bool) (Agent, error) {
+// loadAgent lit un agent ; visible restreint aux agents des équipes déclarées par
+// db.Visible (un agent d'organisation n'est visible qu'avec toutes les équipes).
+func loadAgent(ctx context.Context, tx *db.OrgTx, id uuid.UUID, now time.Time, lock, visible bool) (Agent, error) {
 	query := `SELECT ` + agentColumns + ` FROM agents a WHERE a.id = $2`
+	if visible {
+		query += ` AND lotor_team_visible(a.team_id)`
+	}
 	if lock {
 		query += ` FOR UPDATE`
 	}
@@ -384,12 +407,13 @@ func loadAgent(ctx context.Context, tx *db.OrgTx, id uuid.UUID, now time.Time, l
 	return a, err
 }
 
-// Get renvoie un agent, ses projets et ses jetons (les 100 plus récents).
-func (s *Service) Get(ctx context.Context, org tenant.OrgID, id uuid.UUID) (Agent, error) {
+// Get renvoie un agent visible, ses projets visibles et ses jetons (les 100 plus récents) ;
+// ErrNotFound pour un agent invisible.
+func (s *Service) Get(ctx context.Context, org tenant.OrgID, vis tenant.Visibility, id uuid.UUID) (Agent, error) {
 	var a Agent
 	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
 		var err error
-		if a, err = loadAgent(ctx, tx, id, s.Now(), false); err != nil {
+		if a, err = loadAgent(ctx, tx, id, s.Now(), false, true); err != nil {
 			return err
 		}
 		if a.Projects, err = agentProjects(ctx, tx, id); err != nil {
@@ -397,13 +421,13 @@ func (s *Service) Get(ctx context.Context, org tenant.OrgID, id uuid.UUID) (Agen
 		}
 		a.Tokens, err = agentTokens(ctx, tx, id)
 		return err
-	}, db.ReadOnly())
+	}, db.ReadOnly(), db.Visible(vis))
 	return a, wrap("lecture d'un agent", err)
 }
 
 func agentProjects(ctx context.Context, tx *db.OrgTx, id uuid.UUID) ([]ProjectRef, error) {
 	rows, err := tx.QueryContext(ctx, `
-		SELECT slug, name, archived_at IS NOT NULL FROM projects WHERE agent_id = $1
+		SELECT slug, name, archived_at IS NOT NULL FROM projects WHERE agent_id = $1 AND lotor_team_visible(team_id)
 		 ORDER BY archived_at IS NOT NULL, lower(name) LIMIT 200`, id)
 	if err != nil {
 		return nil, err
@@ -459,8 +483,8 @@ type listCursor struct {
 	I uuid.UUID `json:"i"`
 }
 
-// List renvoie une page d'agents, par nom.
-func (s *Service) List(ctx context.Context, org tenant.OrgID, f Filter, cursor string, limit int) (pagination.Page[Agent], error) {
+// List renvoie une page des agents visibles, par nom.
+func (s *Service) List(ctx context.Context, org tenant.OrgID, vis tenant.Visibility, f Filter, cursor string, limit int) (pagination.Page[Agent], error) {
 	if limit < 1 || limit > MaxPage {
 		return pagination.Page[Agent]{}, &pagination.LimitError{Max: MaxPage}
 	}
@@ -479,7 +503,7 @@ func (s *Service) List(ctx context.Context, org tenant.OrgID, f Filter, cursor s
 		rows, err := tx.QueryContext(ctx, `
 			SELECT lower(a.name), `+agentColumns+` FROM agents a
 			 WHERE (a.disabled_at IS NOT NULL) = $2 AND ($3 = '' OR a.kind = $3)
-			   AND ($4 = '' OR (lower(a.name), a.id) > ($4, $5::uuid))
+			   AND ($4 = '' OR (lower(a.name), a.id) > ($4, $5::uuid)) AND lotor_team_visible(a.team_id)
 			 ORDER BY lower(a.name), a.id LIMIT $6`,
 			s.Now(), f.Disabled, string(f.Kind), after.N, after.I, limit+1)
 		if err != nil {
@@ -511,7 +535,7 @@ func (s *Service) List(ctx context.Context, org tenant.OrgID, f Filter, cursor s
 			page.Items = append(page.Items, r.Agent)
 		}
 		return nil
-	}, db.ReadOnly())
+	}, db.ReadOnly(), db.Visible(vis))
 	return page, wrap("liste des agents", err)
 }
 
@@ -519,12 +543,14 @@ type scannerFunc func(dest ...any) error
 
 func (f scannerFunc) Scan(dest ...any) error { return f(dest...) }
 
-// RepoAgents renvoie les agents dépôt actifs (200 au plus), pour confier un dépôt.
-func (s *Service) RepoAgents(ctx context.Context, org tenant.OrgID) ([]Agent, error) {
+// RepoAgents renvoie les agents dépôt actifs qui peuvent servir un projet de l'équipe
+// team : ceux de l'équipe et ceux de l'organisation (200 au plus), pour confier un dépôt.
+func (s *Service) RepoAgents(ctx context.Context, org tenant.OrgID, team uuid.UUID) ([]Agent, error) {
 	var out []Agent
 	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
 		rows, err := tx.QueryContext(ctx, `SELECT `+agentColumns+` FROM agents a
-			 WHERE a.kind = 'repo' AND a.disabled_at IS NULL ORDER BY lower(a.name), a.id LIMIT 200`, s.Now())
+			 WHERE a.kind = 'repo' AND a.disabled_at IS NULL AND (a.team_id IS NULL OR a.team_id = $2)
+			 ORDER BY lower(a.name), a.id LIMIT 200`, s.Now(), team)
 		if err != nil {
 			return err
 		}
@@ -554,7 +580,7 @@ func (s *Service) CreateToken(ctx context.Context, actor audit.Actor, org tenant
 	var t Token
 	var issued IssuedToken
 	err = s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
-		a, err := loadAgent(ctx, tx, agentID, s.Now(), true)
+		a, err := loadAgent(ctx, tx, agentID, s.Now(), true, false)
 		if err != nil {
 			return err
 		}
@@ -575,7 +601,7 @@ func (s *Service) CreateToken(ctx context.Context, actor audit.Actor, org tenant
 // RevokeToken révoque un jeton d'agent : la requête suivante qui le présente est refusée.
 func (s *Service) RevokeToken(ctx context.Context, actor audit.Actor, org tenant.OrgID, agentID, tokenID uuid.UUID) error {
 	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
-		a, err := loadAgent(ctx, tx, agentID, s.Now(), false)
+		a, err := loadAgent(ctx, tx, agentID, s.Now(), false, false)
 		if err != nil {
 			return err
 		}
@@ -612,7 +638,7 @@ func nullUser(id int64) any {
 // (un hôte pourra s'inscrire de nouveau avec un nouvel agent).
 func (s *Service) Disable(ctx context.Context, actor audit.Actor, org tenant.OrgID, agentID uuid.UUID) error {
 	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
-		a, err := loadAgent(ctx, tx, agentID, s.Now(), true)
+		a, err := loadAgent(ctx, tx, agentID, s.Now(), true, false)
 		if err != nil {
 			return err
 		}
@@ -633,4 +659,24 @@ func (s *Service) Disable(ctx context.Context, actor audit.Actor, org tenant.Org
 		return audit.RecordOrg(ctx, tx, actor, agentEvent(audit.AgentDisabled, a, nil))
 	})
 	return wrap("désactivation d'un agent", err)
+}
+
+// Team renvoie l'équipe d'un agent visible (nil : agent d'organisation) ; ErrNotFound
+// pour un agent inconnu ou invisible.
+func (s *Service) Team(ctx context.Context, org tenant.OrgID, vis tenant.Visibility, id uuid.UUID) (*uuid.UUID, error) {
+	var team uuid.NullUUID
+	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
+		err := tx.QueryRowContext(ctx, `SELECT team_id FROM agents WHERE id = $1 AND lotor_team_visible(team_id)`, id).Scan(&team)
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}, db.ReadOnly(), db.Visible(vis))
+	if err != nil {
+		return nil, wrap("équipe d'un agent", err)
+	}
+	if !team.Valid {
+		return nil, nil
+	}
+	return &team.UUID, nil
 }

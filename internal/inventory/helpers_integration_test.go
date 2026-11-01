@@ -40,11 +40,11 @@ func newFixture(t *testing.T, pool *db.Pool) fixture {
 	f := fixture{pool: pool, org: org, agent: newID(), repo: newID(), main: newID(), host: newID(), hostRef: newID(), blob: newID()}
 	suffix := strings.ReplaceAll(org.String()[24:], "-", "")
 	f.exec(t,
-		`INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, $2, 'Org', 'fr')`, org, "o-"+suffix)
+		`WITH o AS (INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, $2, 'Org', 'fr') RETURNING id) INSERT INTO teams (org_id, id, name) SELECT id, id, 'Général' FROM o`, org, "o-"+suffix)
 	f.exec(t, `INSERT INTO agents (org_id, id, kind, name) VALUES ($1, $2, 'repo', 'agent')`, org, f.agent)
-	f.exec(t, `INSERT INTO projects (org_id, id, kind, slug, name, agent_id) VALUES ($1, $2, 'repo', 'depot', 'Dépôt', $3)`, org, f.repo, f.agent)
+	f.exec(t, `INSERT INTO projects (org_id, id, kind, slug, name, agent_id, team_id) VALUES ($1, $2, 'repo', 'depot', 'Dépôt', $3, $1)`, org, f.repo, f.agent)
 	f.exec(t, `INSERT INTO tracked_refs (org_id, id, project_id, project_kind, kind, name) VALUES ($1, $2, $3, 'repo', 'branch', 'main')`, org, f.main, f.repo)
-	f.exec(t, `INSERT INTO projects (org_id, id, kind, slug, name) VALUES ($1, $2, 'host', 'srv', 'srv')`, org, f.host)
+	f.exec(t, `INSERT INTO projects (org_id, id, kind, slug, name, team_id) VALUES ($1, $2, 'host', 'srv', 'srv', $1)`, org, f.host)
 	f.exec(t, `INSERT INTO tracked_refs (org_id, id, project_id, project_kind, kind, name) VALUES ($1, $2, $3, 'host', 'host', $4)`,
 		org, f.hostRef, f.host, "srv-"+suffix)
 	f.exec(t, `INSERT INTO sbom_blobs (org_id, id, sha256, size, compressed_size, content) VALUES ($1, $2, sha256($3::bytea), 2, 1, '\x00'::bytea)`,

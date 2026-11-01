@@ -302,7 +302,7 @@ func (id *identity) vulnerability(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("state") == string(finding.StatusResolved) {
 		status = finding.StatusResolved
 	}
-	e, rows, counts, err := id.Findings.Vulnerability(r.Context(), acc.Org, vid, status)
+	e, rows, counts, err := id.Findings.Vulnerability(r.Context(), acc.Org, acc.Visibility(), vid, status)
 	if errors.Is(err, vuln.ErrNotFound) {
 		id.rd.Error(w, r, http.StatusNotFound)
 		return
@@ -430,7 +430,7 @@ func (id *identity) component(w http.ResponseWriter, r *http.Request) {
 		id.rd.Error(w, r, http.StatusNotFound)
 		return
 	}
-	c, usage, err := id.Inventory.Component(r.Context(), acc.Org, cid)
+	c, usage, err := id.Inventory.Component(r.Context(), acc.Org, acc.Visibility(), cid)
 	if errors.Is(err, inventory.ErrNotFound) {
 		id.rd.Error(w, r, http.StatusNotFound)
 		return
@@ -439,7 +439,7 @@ func (id *identity) component(w http.ResponseWriter, r *http.Request) {
 		id.serverError(w, r, err)
 		return
 	}
-	rows, err := id.Findings.Component(r.Context(), acc.Org, c.PURLBase)
+	rows, err := id.Findings.Component(r.Context(), acc.Org, acc.Visibility(), c.PURLBase)
 	if err != nil {
 		id.serverError(w, r, err)
 		return

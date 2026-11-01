@@ -81,7 +81,7 @@ func (f fixture) enrollment(t *testing.T, org tenant.OrgID, in agent.EnrollmentI
 	if in.MaxUses == 0 {
 		in.MaxUses = 5
 	}
-	_, issued, err := f.agents.CreateEnrollment(context.Background(), f.actor, org, in)
+	_, issued, err := f.agents.CreateEnrollment(context.Background(), f.actor, org, f.enrollTeam(t, org, in))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +139,7 @@ func TestEnrollmentCreatesHostProject(t *testing.T) {
 	if !res.Created || res.Project.Slug != "srv-db-02" || res.Agent.Kind != agent.KindHost || res.Agent.Name != "srv-db-02" {
 		t.Fatalf("inscription : %+v", res)
 	}
-	p, err := f.projects.Get(ctx, o, "srv-db-02")
+	p, err := f.projects.Get(ctx, o, tenant.AllTeams(), "srv-db-02")
 	if err != nil || p.Kind != project.KindHost || p.HostRef() != "srv-db-02" || p.Labels["env"] != "prod" ||
 		p.Agent == nil || p.Agent.ID != res.Agent.ID {
 		t.Fatalf("projet de l'hôte : %+v %v", p, err)
@@ -199,7 +199,7 @@ func TestEnrollmentTokenRefusals(t *testing.T) {
 	o := f.org(t, "a")
 	expiring := f.enrollment(t, o, agent.EnrollmentInput{LifetimeHours: 1})
 	revoked := f.enrollment(t, o, agent.EnrollmentInput{Name: "à révoquer"})
-	list, err := f.agents.Enrollments(ctx, o)
+	list, err := f.agents.Enrollments(ctx, o, tenant.AllTeams())
 	if err != nil || len(list) != 2 {
 		t.Fatal(list, err)
 	}
@@ -235,7 +235,7 @@ func TestEnrollmentTokenRefusals(t *testing.T) {
 			t.Errorf("signal de vie avec un jeton d'inscription : %v", err)
 		}
 	}
-	page, err := f.projects.List(ctx, o, project.Filter{}, "", 10)
+	page, err := f.projects.List(ctx, o, tenant.AllTeams(), project.Filter{}, "", 10)
 	if err != nil || len(page.Items) != 0 {
 		t.Errorf("projets créés malgré les refus : %v %v", page.Items, err)
 	}
@@ -266,18 +266,18 @@ func TestEnrollmentIntoDesignatedProject(t *testing.T) {
 	ctx := context.Background()
 	f := setup(t)
 	o := f.org(t, "a")
-	h, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindHost, Name: "Base de prod", HostRef: "db-prod"})
+	h, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, project.Input{Kind: project.KindHost, Name: "Base de prod", HostRef: "db-prod"}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := f.agents.CreateEnrollment(ctx, f.actor, o, agent.EnrollmentInput{Name: "x", LifetimeHours: 24, MaxUses: 1, ProjectSlug: "absent"}); err == nil {
+	if _, _, err := f.agents.CreateEnrollment(ctx, f.actor, o, f.enrollTeam(t, o, agent.EnrollmentInput{Name: "x", LifetimeHours: 24, MaxUses: 1, ProjectSlug: "absent"})); err == nil {
 		t.Error("projet inconnu accepté")
 	}
-	r, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindRepo, Name: "depot", Branches: []string{"main"}})
+	r, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, project.Input{Kind: project.KindRepo, Name: "depot", Branches: []string{"main"}}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := f.agents.CreateEnrollment(ctx, f.actor, o, agent.EnrollmentInput{Name: "x", LifetimeHours: 24, MaxUses: 1, ProjectSlug: r.Slug}); err == nil {
+	if _, _, err := f.agents.CreateEnrollment(ctx, f.actor, o, f.enrollTeam(t, o, agent.EnrollmentInput{Name: "x", LifetimeHours: 24, MaxUses: 1, ProjectSlug: r.Slug})); err == nil {
 		t.Error("dépôt accepté comme projet de serveur")
 	}
 	tok := f.enrollment(t, o, agent.EnrollmentInput{ProjectSlug: h.Slug, MaxUses: 2})
@@ -306,14 +306,14 @@ func TestAgentTokenLifecycle(t *testing.T) {
 	ctx := context.Background()
 	f := setup(t)
 	o := f.org(t, "a")
-	a, first, err := f.agents.CreateRepoAgent(ctx, f.actor, o, "ci", "initial", 30)
+	a, first, err := f.agents.CreateRepoAgent(ctx, f.actor, o, nil, "ci", "initial", 30)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, "CI", "initial", 30); !isKey(err, agent.KeyNameTaken) {
+	if _, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, nil, "CI", "initial", 30); !isKey(err, agent.KeyNameTaken) {
 		t.Errorf("nom en double : %v", err)
 	}
-	if _, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, "autre", "initial", 7); !isKey(err, agent.KeyExpiryInvalid) {
+	if _, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, nil, "autre", "initial", 7); !isKey(err, agent.KeyExpiryInvalid) {
 		t.Errorf("durée non proposée : %v", err)
 	}
 	p, err := f.agents.Authenticate(ctx, first.Plaintext)
@@ -326,7 +326,7 @@ func TestAgentTokenLifecycle(t *testing.T) {
 	if _, err := f.agents.Heartbeat(ctx, p, agent.HeartbeatRequest{Version: "avec espace"}); !isKey(err, agent.KeyVersionInvalid) {
 		t.Errorf("version invalide : %v", err)
 	}
-	got, err := f.agents.Get(ctx, o, a.ID)
+	got, err := f.agents.Get(ctx, o, tenant.AllTeams(), a.ID)
 	if err != nil || got.Version != "0.9.2" || got.LastSeenAt == nil || got.ActiveTokens != 1 || len(got.Tokens) != 1 ||
 		got.Tokens[0].LastUsedAt == nil || got.Tokens[0].CreatedBy != "admin@example.org" {
 		t.Fatalf("agent : %+v %v", got, err)
@@ -363,7 +363,7 @@ func TestAgentTokenLifecycle(t *testing.T) {
 	if _, err := f.agents.Authenticate(ctx, third.Plaintext); authKey(err) != agent.KeyTokenExpired {
 		t.Errorf("jeton expiré : %v", err)
 	}
-	if got, _ := f.agents.Get(ctx, o, a.ID); got.StateAt(f.clock.Now()) != agent.StateSilent {
+	if got, _ := f.agents.Get(ctx, o, tenant.AllTeams(), a.ID); got.StateAt(f.clock.Now()) != agent.StateSilent {
 		t.Errorf("agent muet attendu : %s", got.StateAt(f.clock.Now()))
 	}
 
@@ -377,7 +377,7 @@ func TestAgentTokenLifecycle(t *testing.T) {
 	if _, err := f.agents.Authenticate(ctx, secondIssued.Plaintext); authKey(err) != agent.KeyTokenRevokedErr {
 		t.Errorf("jeton d'un agent désactivé : %v", err)
 	}
-	page, err := f.agents.List(ctx, o, agent.Filter{Disabled: true}, "", 10)
+	page, err := f.agents.List(ctx, o, tenant.AllTeams(), agent.Filter{Disabled: true}, "", 10)
 	if err != nil || len(page.Items) != 1 || page.Items[0].StateAt(f.clock.Now()) != agent.StateDisabled {
 		t.Errorf("agents désactivés : %+v %v", page.Items, err)
 	}
@@ -410,20 +410,20 @@ func TestAgentSeesOnlyItsProjects(t *testing.T) {
 	ctx := context.Background()
 	f := setup(t)
 	o, other := f.org(t, "a"), f.org(t, "b")
-	a1, tok1, err := f.agents.CreateRepoAgent(ctx, f.actor, o, "ci-1", "initial", 90)
+	a1, tok1, err := f.agents.CreateRepoAgent(ctx, f.actor, o, nil, "ci-1", "initial", 90)
 	if err != nil {
 		t.Fatal(err)
 	}
-	a2, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, "ci-2", "initial", 90)
+	a2, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, nil, "ci-2", "initial", 90)
 	if err != nil {
 		t.Fatal(err)
 	}
-	b1, tokB, err := f.agents.CreateRepoAgent(ctx, f.actor, other, "ci-1", "initial", 90)
+	b1, tokB, err := f.agents.CreateRepoAgent(ctx, f.actor, other, nil, "ci-1", "initial", 90)
 	if err != nil {
 		t.Fatal(err)
 	}
 	mk := func(org tenant.OrgID, name string, agentID *agent.Agent) project.Project {
-		p, err := f.projects.Create(ctx, f.actor, org, project.Input{Kind: project.KindRepo, Name: name, Branches: []string{"main"}})
+		p, err := f.projects.Create(ctx, f.actor, org, f.inTeam(t, org, project.Input{Kind: project.KindRepo, Name: name, Branches: []string{"main"}}))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -501,7 +501,7 @@ func TestListsAndValidation(t *testing.T) {
 	f := setup(t)
 	o := f.org(t, "a")
 	for _, n := range []string{"zulu", "Alpha", "mike"} {
-		if _, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, n, "initial", 90); err != nil {
+		if _, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, nil, n, "initial", 90); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -510,7 +510,7 @@ func TestListsAndValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 	names := func(fl agent.Filter, cursor string, limit int) ([]string, string) {
-		page, err := f.agents.List(ctx, o, fl, cursor, limit)
+		page, err := f.agents.List(ctx, o, tenant.AllTeams(), fl, cursor, limit)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -530,14 +530,14 @@ func TestListsAndValidation(t *testing.T) {
 	if hosts, _ := names(agent.Filter{Kind: agent.KindHost}, "", 10); len(hosts) != 1 || hosts[0] != "host-1" {
 		t.Errorf("agents serveur : %v", hosts)
 	}
-	if _, err := f.agents.List(ctx, o, agent.Filter{}, "x", 10); !errors.Is(err, pagination.ErrInvalidCursor) {
+	if _, err := f.agents.List(ctx, o, tenant.AllTeams(), agent.Filter{}, "x", 10); !errors.Is(err, pagination.ErrInvalidCursor) {
 		t.Errorf("curseur : %v", err)
 	}
 	var le *pagination.LimitError
-	if _, err := f.agents.List(ctx, o, agent.Filter{}, "", 201); !errors.As(err, &le) {
+	if _, err := f.agents.List(ctx, o, tenant.AllTeams(), agent.Filter{}, "", 201); !errors.As(err, &le) {
 		t.Errorf("taille : %v", err)
 	}
-	repos, err := f.agents.RepoAgents(ctx, o)
+	repos, err := f.agents.RepoAgents(ctx, o, f.defaultTeam(t, o))
 	if err != nil || len(repos) != 3 {
 		t.Errorf("agents dépôt : %v %v", repos, err)
 	}
@@ -547,7 +547,7 @@ func TestListsAndValidation(t *testing.T) {
 	if _, err := f.enroll(t, spent, "host-2"); err != nil {
 		t.Fatal(err)
 	}
-	list, err := f.agents.Enrollments(ctx, o)
+	list, err := f.agents.Enrollments(ctx, o, tenant.AllTeams())
 	if err != nil || len(list) != 2 || list[0].Name != "parc" || !list[0].UsableAt(f.clock.Now()) || list[1].UsableAt(f.clock.Now()) ||
 		list[1].Uses != 1 || list[1].LastUsedAt == nil || list[0].Prefix() == "" || list[0].CreatedBy != "admin@example.org" {
 		t.Fatalf("jetons d'inscription : %+v %v", list, err)
@@ -564,18 +564,18 @@ func TestListsAndValidation(t *testing.T) {
 		"étiquette invalide": {agent.EnrollmentInput{Name: "x", LifetimeHours: 24, MaxUses: 1, Labels: project.Labels{"A": ""}}, project.KeyLabelInvalid},
 		"projet inexistant":  {agent.EnrollmentInput{Name: "x", LifetimeHours: 24, MaxUses: 1, ProjectSlug: "absent"}, agent.KeyProjectNotHost},
 	} {
-		if _, _, err := f.agents.CreateEnrollment(ctx, f.actor, o, in.in); !isKey(err, in.key) {
+		if _, _, err := f.agents.CreateEnrollment(ctx, f.actor, o, f.enrollTeam(t, o, in.in)); !isKey(err, in.key) {
 			t.Errorf("%s : %v", name, err)
 		}
 	}
-	if _, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, "ok", "", 90); !isKey(err, agent.KeyNameInvalid) {
+	if _, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, nil, "ok", "", 90); !isKey(err, agent.KeyNameInvalid) {
 		t.Errorf("nom de jeton vide : %v", err)
 	}
 	if _, _, err := f.agents.CreateToken(ctx, f.actor, o, repos[0].ID, "x", 7); !isKey(err, agent.KeyExpiryInvalid) {
 		t.Errorf("durée de jeton : %v", err)
 	}
 	unknown := uuid.Must(uuid.NewV7())
-	if _, err := f.agents.Get(ctx, o, unknown); !errors.Is(err, agent.ErrNotFound) {
+	if _, err := f.agents.Get(ctx, o, tenant.AllTeams(), unknown); !errors.Is(err, agent.ErrNotFound) {
 		t.Errorf("agent inconnu : %v", err)
 	}
 	if err := f.agents.RevokeToken(ctx, f.actor, o, repos[0].ID, unknown); !errors.Is(err, agent.ErrNotFound) {
@@ -594,7 +594,7 @@ func TestListsAndValidation(t *testing.T) {
 		t.Errorf("seconde désactivation : %v", err)
 	}
 	// Un nom libéré par un agent désactivé peut resservir.
-	if _, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, repos[0].Name, "initial", 90); err != nil {
+	if _, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, nil, repos[0].Name, "initial", 90); err != nil {
 		t.Errorf("nom d'un agent désactivé : %v", err)
 	}
 
@@ -644,4 +644,32 @@ func mustEnroll(t *testing.T, f fixture, o tenant.OrgID) string {
 		t.Fatal(err)
 	}
 	return res.Token.Plaintext
+}
+
+// inTeam rattache une saisie sans équipe à l'équipe créée avec l'organisation.
+func (f fixture) inTeam(t *testing.T, org tenant.OrgID, in project.Input) project.Input {
+	t.Helper()
+	if in.TeamID == uuid.Nil {
+		in.TeamID = f.defaultTeam(t, org)
+	}
+	return in
+}
+
+// enrollTeam fait de même pour un jeton d'inscription.
+func (f fixture) enrollTeam(t *testing.T, org tenant.OrgID, in agent.EnrollmentInput) agent.EnrollmentInput {
+	t.Helper()
+	if in.TeamID == uuid.Nil {
+		in.TeamID = f.defaultTeam(t, org)
+	}
+	return in
+}
+
+// defaultTeam renvoie l'équipe créée avec l'organisation (DefaultTeamName).
+func (f fixture) defaultTeam(t *testing.T, org tenant.OrgID) uuid.UUID {
+	t.Helper()
+	teams, err := f.orgs.Teams(context.Background(), org, tenant.AllTeams())
+	if err != nil || len(teams) == 0 {
+		t.Fatalf("équipes : %v, %v", teams, err)
+	}
+	return teams[0].ID
 }

@@ -1,0 +1,55 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T "teams.heading"}}</h1>
+    <p class="page-head__lead">{{T "teams.lead"}}</p>
+  </div>
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  {{- if .CanCreate}}
+  <section class="panel" aria-labelledby="teams-create">
+    <div class="panel__head"><h2 class="panel__title" id="teams-create">{{T "teams.create_title"}}</h2></div>
+    <div class="panel__body">
+      <form class="form form--inline" method="post" action="{{.Base}}/teams">
+        {{csrfField .Page.CSRFToken}}
+        <div class="field">
+          <label class="field__label" for="team-name">{{T "teams.name"}}</label>
+          <input class="input" id="team-name" name="name" type="text" maxlength="100" required value="{{.Name}}"{{if eq .Error.Field "name"}} aria-invalid="true"{{end}}>
+        </div>
+        <button type="submit" class="btn btn--primary">{{T "teams.create"}}</button>
+      </form>
+    </div>
+  </section>
+  {{- end}}
+  <section class="panel" aria-labelledby="teams-list">
+    <div class="panel__head"><h2 class="panel__title" id="teams-list">{{T "teams.list_title"}}</h2></div>
+    {{- if .Rows}}
+    <div class="table-wrap" role="group" aria-labelledby="teams-list" tabindex="0">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "teams.list_title"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "teams.name"}}</th>
+            <th scope="col">{{T "teams.col_your_role"}}</th>
+            <th scope="col" class="num">{{T "teams.col_members"}}</th>
+            <th scope="col" class="num">{{T "teams.col_projects"}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{- range .Rows}}
+          <tr>
+            <th scope="row"><a href="{{.Href}}">{{.Name}}</a></th>
+            <td>{{if .RoleKey}}{{T .RoleKey}}{{else}}<span class="muted">{{T "teams.not_member"}}</span>{{end}}</td>
+            <td class="num">{{.Members}}</td>
+            <td class="num">{{.Projects}}</td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{- else}}
+    <div class="panel__body"><p>{{T "teams.empty"}}</p></div>
+    {{- end}}
+  </section>
+</div>
+{{- end}}

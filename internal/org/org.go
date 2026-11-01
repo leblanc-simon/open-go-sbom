@@ -88,7 +88,17 @@ func orgEvent(action audit.Action, o Organization, details map[string]string) au
 	return audit.Event{Action: action, TargetType: "org", TargetID: o.ID.String(), TargetLabel: o.Slug, Details: details}
 }
 
-// Create crée une organisation et en fait de adminUserID son premier administrateur.
+// DefaultTeamName est le nom de l'équipe créée avec chaque organisation, selon sa langue
+// (même nom que l'équipe de la migration 016).
+func DefaultTeamName(lang string) string {
+	if lang == "en" {
+		return "General"
+	}
+	return "Général"
+}
+
+// Create crée une organisation, en fait de adminUserID son premier administrateur et lui
+// donne une première équipe (DefaultTeamName), pour que ses premiers projets en aient une.
 func (s *Service) Create(ctx context.Context, actor audit.Actor, slug, name, lang string, adminUserID int64) (Organization, error) {
 	slug = strings.TrimSpace(slug)
 	if !slugPattern.MatchString(slug) {
@@ -124,7 +134,11 @@ func (s *Service) Create(ctx context.Context, actor audit.Actor, slug, name, lan
 		if err := audit.RecordInstance(ctx, tx, actor, ev); err != nil {
 			return err
 		}
-		return addMember(ctx, tx, actor, adminUserID, tenant.RoleAdmin)
+		if err := addMember(ctx, tx, actor, adminUserID, tenant.RoleAdmin); err != nil {
+			return err
+		}
+		_, err = insertTeam(ctx, tx, actor, DefaultTeamName(lang))
+		return err
 	})
 	if err != nil {
 		return Organization{}, wrap("création de l'organisation "+slug, err)
@@ -371,7 +385,9 @@ func addMember(ctx context.Context, tx *db.OrgTx, actor audit.Actor, userID int6
 	return audit.RecordOrg(ctx, tx, actor, memberEvent(audit.MemberAdded, userID, email, map[string]string{"role": string(role)}))
 }
 
-// AddMember ajoute un compte existant (désigné par son e-mail) à l'organisation.
+// AddMember ajoute directement un compte existant (désigné par son e-mail) à
+// l'organisation. Réservé à l'administration de l'instance, qui connaît déjà les comptes :
+// dans l'organisation, un membre s'ajoute par invitation (Invite, SEC-09).
 func (s *Service) AddMember(ctx context.Context, actor audit.Actor, org tenant.OrgID, email string, role tenant.Role) error {
 	if _, err := tenant.ParseRole(string(role)); err != nil {
 		return invalid("role", KeyRoleInvalid)

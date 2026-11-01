@@ -202,7 +202,7 @@ func periodFormOf(action string, selected dashboard.Period) periodForm {
 func (id *identity) orgOverview(w http.ResponseWriter, r *http.Request) {
 	acc := access(r)
 	period := dashboard.ParsePeriod(r.URL.Query().Get("period"))
-	d, err := id.Dashboard.Org(r.Context(), acc.Org, period)
+	d, err := id.Dashboard.Org(r.Context(), acc.Org, acc.Visibility(), period)
 	if err != nil {
 		id.serverError(w, r, err)
 		return

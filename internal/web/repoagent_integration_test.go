@@ -89,13 +89,13 @@ func TestRepoAgentAgainstServer(t *testing.T) {
 	ctx := context.Background()
 	admin := a.user("admin@example.org", false)
 	o := a.org("org-a", admin)
-	ag, tok, err := a.agents.CreateRepoAgent(ctx, audit.System, o.ID, "forge", "initial", 90)
+	ag, tok, err := a.agents.CreateRepoAgent(ctx, audit.System, o.ID, nil, "forge", "initial", 90)
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := a.projects.Create(ctx, audit.System, o.ID, project.Input{
+	p, err := a.projects.Create(ctx, audit.System, o.ID, a.inTeam(o.ID, project.Input{
 		Kind: project.KindRepo, Name: "App", ForgeURL: "https://forge.test/acme/app", Branches: []string{"main"},
-	})
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}

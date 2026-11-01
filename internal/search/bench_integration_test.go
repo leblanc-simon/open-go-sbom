@@ -14,6 +14,7 @@ import (
 
 	"leblanc.io/lotor/internal/benchdata"
 	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // TestSearchBenchmark mesure la recherche sur le jeu de référence (1 000 projets,
@@ -41,7 +42,7 @@ func TestSearchBenchmark(t *testing.T) {
 		return r
 	}
 	second := req("q=lib-1&sort=name")
-	first, err := svc.Search(ctx, org, second)
+	first, err := svc.Search(ctx, org, tenant.AllTeams(), second)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,26 +51,26 @@ func TestSearchBenchmark(t *testing.T) {
 		name string
 		run  func(i int) (Result, error)
 	}{
-		{"nom large (lib-1, 1 000 composants)", func(int) (Result, error) { return svc.Search(ctx, org, req("q=lib-1")) }},
+		{"nom large (lib-1, 1 000 composants)", func(int) (Result, error) { return svc.Search(ctx, org, tenant.AllTeams(), req("q=lib-1")) }},
 		{"nom précis (lib-<i>)", func(i int) (Result, error) {
-			return svc.Search(ctx, org, req("q=lib-"+strconv.Itoa(1234+i)))
+			return svc.Search(ctx, org, tenant.AllTeams(), req("q=lib-"+strconv.Itoa(1234+i)))
 		}},
 		{"plage vers sur lodash (une occurrence par projet)", func(int) (Result, error) {
-			return svc.Search(ctx, org, req("q=pkg:npm/lodash+vers:npm/<4.17.20"))
+			return svc.Search(ctx, org, tenant.AllTeams(), req("q=pkg:npm/lodash+vers:npm/<4.17.20"))
 		}},
 		{"purl d'un paquet", func(i int) (Result, error) {
-			return svc.Search(ctx, org, req("q=pkg:maven/org.bench/lib-"+strconv.Itoa(5*i+1)))
+			return svc.Search(ctx, org, tenant.AllTeams(), req("q=pkg:maven/org.bench/lib-"+strconv.Itoa(5*i+1)))
 		}},
 		{"vulnérabilité", func(i int) (Result, error) {
-			return svc.Search(ctx, org, req("q=CVE-2099-"+[]string{"00001", "00002", "00941", "00050", "00100"}[i%5]))
+			return svc.Search(ctx, org, tenant.AllTeams(), req("q=CVE-2099-"+[]string{"00001", "00002", "00941", "00050", "00100"}[i%5]))
 		}},
 		{"empreinte", func(i int) (Result, error) {
-			return svc.Search(ctx, org, req("q="+url.QueryEscape(benchdata.SearchHash(i))))
+			return svc.Search(ctx, org, tenant.AllTeams(), req("q="+url.QueryEscape(benchdata.SearchHash(i))))
 		}},
 		{"nom large filtré (sévérité moyenne, dépôts, tri par instantané)", func(int) (Result, error) {
-			return svc.Search(ctx, org, req("q=lib-1&severity=medium&type=repo&sort=snapshot"))
+			return svc.Search(ctx, org, tenant.AllTeams(), req("q=lib-1&severity=medium&type=repo&sort=snapshot"))
 		}},
-		{"page suivante (curseur)", func(int) (Result, error) { return svc.Search(ctx, org, second) }},
+		{"page suivante (curseur)", func(int) (Result, error) { return svc.Search(ctx, org, tenant.AllTeams(), second) }},
 	}
 	for _, c := range cases {
 		var ds []time.Duration
@@ -99,7 +100,7 @@ func TestSearchBenchmark(t *testing.T) {
 	var ds []time.Duration
 	for range 20 {
 		s := time.Now()
-		if err := svc.Export(ctx, org, req("q=lib-1"), FormatCSV, io.Discard); err != nil {
+		if err := svc.Export(ctx, org, tenant.AllTeams(), req("q=lib-1"), FormatCSV, io.Discard); err != nil {
 			t.Fatal(err)
 		}
 		ds = append(ds, time.Since(s))

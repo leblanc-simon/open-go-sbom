@@ -149,12 +149,14 @@ type target struct {
 	approx     bool
 }
 
-func (s *Service) read(ctx context.Context, org tenant.OrgID, fn func(*db.OrgTx) error) error {
-	return s.pool.InOrg(ctx, org, fn, db.ReadOnly())
+// read ouvre la transaction d'une recherche, limitée aux projets des équipes visibles.
+func (s *Service) read(ctx context.Context, org tenant.OrgID, vis tenant.Visibility, fn func(*db.OrgTx) error) error {
+	return s.pool.InOrg(ctx, org, fn, db.ReadOnly(), db.Visible(vis))
 }
 
-// Search exécute une recherche : une page de projets, chacun avec ses occurrences.
-func (s *Service) Search(ctx context.Context, org tenant.OrgID, req Request) (Result, error) {
+// Search exécute une recherche sur les projets visibles : une page de projets, chacun
+// avec ses occurrences.
+func (s *Service) Search(ctx context.Context, org tenant.OrgID, vis tenant.Visibility, req Request) (Result, error) {
 	q, err := Parse(req.Q, s.cmp)
 	if err != nil {
 		return Result{}, err
@@ -179,7 +181,7 @@ func (s *Service) Search(ctx context.Context, org tenant.OrgID, req Request) (Re
 		}
 	}
 	res := Result{Query: q}
-	err = s.read(ctx, org, func(tx *db.OrgTx) error {
+	err = s.read(ctx, org, vis, func(tx *db.OrgTx) error {
 		t, err := s.resolve(ctx, tx, q)
 		if err != nil {
 			return err
@@ -509,13 +511,13 @@ func (s *Service) outside(ctx context.Context, tx *db.OrgTx, t target, f Filters
 	return nil
 }
 
-// Labels renvoie les étiquettes des projets actifs de l'organisation (« clé=valeur » ou
+// Labels renvoie les étiquettes des projets actifs et visibles (« clé=valeur » ou
 // « clé »), pour le filtre de l'écran.
-func (s *Service) Labels(ctx context.Context, org tenant.OrgID) ([]string, error) {
+func (s *Service) Labels(ctx context.Context, org tenant.OrgID, vis tenant.Visibility) ([]string, error) {
 	var out []string
-	err := s.read(ctx, org, func(tx *db.OrgTx) error {
+	err := s.read(ctx, org, vis, func(tx *db.OrgTx) error {
 		rows, err := tx.QueryContext(ctx, `SELECT DISTINCT l.key, l.value FROM projects p, jsonb_each_text(p.labels) l
-			WHERE p.archived_at IS NULL ORDER BY l.key, l.value LIMIT 100`)
+			WHERE p.archived_at IS NULL AND lotor_team_visible(p.team_id) ORDER BY l.key, l.value LIMIT 100`)
 		if err != nil {
 			return err
 		}

@@ -238,7 +238,7 @@ func (s *Service) RequestScan(ctx context.Context, actor audit.Actor, org tenant
 		if kind != string(KindHost) || !agentID.Valid || archived {
 			return invalid("agent", KeyScanNotHost)
 		}
-		if a, err = loadAgent(ctx, tx, agentID.UUID, s.Now(), true); err != nil {
+		if a, err = loadAgent(ctx, tx, agentID.UUID, s.Now(), true, false); err != nil {
 			return err
 		}
 		if a.DisabledAt != nil {

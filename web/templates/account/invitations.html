@@ -1,0 +1,49 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T "invitations.heading"}}</h1>
+    <p class="page-head__lead">{{T "invitations.lead"}}</p>
+  </div>
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  <section class="panel" aria-labelledby="invitations-list">
+    <div class="panel__head"><h2 class="panel__title" id="invitations-list">{{T "invitations.list_title"}}</h2></div>
+    {{- if .Rows}}
+    <div class="table-wrap" role="group" aria-labelledby="invitations-list" tabindex="0">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "invitations.list_title"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "invitations.col_org"}}</th>
+            <th scope="col">{{T "members.role"}}</th>
+            <th scope="col">{{T "members.invited_on"}}</th>
+            <th scope="col">{{T "members.invitation_expires"}}</th>
+            <th scope="col" class="cell-actions">{{T "table.actions"}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{- $csrf := .Page.CSRFToken}}
+          {{- range .Rows}}
+          <tr>
+            <th scope="row">{{.OrgName}}</th>
+            <td>{{T .RoleKey}}</td>
+            <td>{{template "stamp" .Created}}</td>
+            <td>{{template "stamp" .Expires}}</td>
+            <td class="cell-actions">
+              <form class="form form--inline" method="post" action="/account/invitations/{{.ID}}/accept">
+                {{csrfField $csrf}}
+                <button type="submit" class="btn btn--sm btn--primary">{{T "invitations.accept"}}<span class="visually-hidden"> {{.OrgName}}</span></button>
+              </form>
+              <a class="btn btn--sm btn--danger" href="/account/invitations/{{.ID}}/decline">{{T "invitations.decline"}}<span class="visually-hidden"> {{.OrgName}}</span></a>
+            </td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{- else}}
+    <div class="panel__body"><p>{{T "invitations.empty"}}</p></div>
+    {{- end}}
+  </section>
+</div>
+{{- end}}

@@ -1,0 +1,106 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
+      <ol>
+        <li><a href="{{.Base}}/teams">{{T "nav.teams"}}</a></li>
+        <li><span aria-current="page">{{.Team.Name}}</span></li>
+      </ol>
+    </nav>
+    <h1 class="page-head__title">{{.Team.Name}}</h1>
+    <p class="page-head__meta">
+      <span>{{T "team.members_count" "Count" .Team.Members}}</span>
+      <span><a href="{{.ProjectsURL}}">{{T "team.projects_count" "Count" .Team.Projects}}</a></span>
+    </p>
+  </div>
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  {{- if .CanMembers}}
+  <section class="panel" aria-labelledby="team-add">
+    <div class="panel__head"><h2 class="panel__title" id="team-add">{{T "team.add_title"}}</h2></div>
+    <div class="panel__body">
+      <form class="form form--inline" method="post" action="{{.Href}}/members">
+        {{csrfField .Page.CSRFToken}}
+        <div class="field">
+          <label class="field__label" for="team-member-email">{{T "members.email"}}</label>
+          <input class="input" id="team-member-email" name="email" type="email" required value="{{.Email}}"{{if eq .Error.Field "email"}} aria-invalid="true"{{end}}>
+        </div>
+        <div class="field">
+          <label class="field__label" for="team-member-role">{{T "team.role"}}</label>
+          <select class="select" id="team-member-role" name="role">
+            {{- range .Roles}}
+            <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>
+            {{- end}}
+          </select>
+        </div>
+        <button type="submit" class="btn btn--primary">{{T "team.add"}}</button>
+      </form>
+      <p class="field__hint">{{T "team.add_hint"}}</p>
+    </div>
+  </section>
+  {{- end}}
+  <section class="panel" aria-labelledby="team-members">
+    <div class="panel__head"><h2 class="panel__title" id="team-members">{{T "team.members_title"}}</h2></div>
+    {{- if .Members}}
+    <div class="table-wrap" role="group" aria-labelledby="team-members" tabindex="0">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "team.members_title"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "members.email"}}</th>
+            <th scope="col">{{T "team.role"}}</th>
+            <th scope="col">{{T "members.status"}}</th>
+            {{- if .CanMembers}}<th scope="col" class="cell-actions">{{T "table.actions"}}</th>{{end}}
+          </tr>
+        </thead>
+        <tbody>
+          {{- $href := .Href}}{{$can := .CanMembers}}{{$csrf := .Page.CSRFToken}}{{$roles := .Roles}}
+          {{- range .Members}}
+          <tr>
+            <th scope="row">{{.Email}}{{if .Self}} <span class="chip">{{T "members.you"}}</span>{{end}}</th>
+            <td>{{T .RoleKey}}</td>
+            <td>{{if .Active}}<span class="status status--active">{{T "status.active"}}</span>{{else}}<span class="status status--revoked">{{T "status.inactive"}}</span>{{end}}</td>
+            {{- if $can}}
+            <td class="cell-actions">
+              {{- $m := .}}
+              <form class="form form--inline" method="post" action="{{$href}}/members/{{.UserID}}/role">
+                {{csrfField $csrf}}
+                <label class="visually-hidden" for="team-role-{{.UserID}}">{{T "team.role_of" "Email" .Email}}</label>
+                <select class="select select--sm" id="team-role-{{.UserID}}" name="role">
+                  {{- range $roles}}
+                  <option value="{{.Value}}"{{if eq .Value (print $m.Role)}} selected{{end}}>{{T .LabelKey}}</option>
+                  {{- end}}
+                </select>
+                <button type="submit" class="btn btn--sm">{{T "members.change_role"}}<span class="visually-hidden"> {{.Email}}</span></button>
+              </form>
+              <a class="btn btn--sm btn--danger" href="{{$href}}/members/{{.UserID}}/remove">{{T "members.remove"}}<span class="visually-hidden"> {{.Email}}</span></a>
+            </td>
+            {{- end}}
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{- else}}
+    <div class="panel__body"><p>{{T "team.no_members"}}</p></div>
+    {{- end}}
+  </section>
+  {{- if .CanManage}}
+  <section class="panel" aria-labelledby="team-settings">
+    <div class="panel__head"><h2 class="panel__title" id="team-settings">{{T "team.settings_title"}}</h2></div>
+    <div class="panel__body stack stack--sm">
+      <form class="form form--inline" method="post" action="{{.Href}}">
+        {{csrfField .Page.CSRFToken}}
+        <div class="field">
+          <label class="field__label" for="team-rename">{{T "teams.name"}}</label>
+          <input class="input" id="team-rename" name="name" type="text" maxlength="100" required value="{{.Name}}"{{if eq .Error.Field "name"}} aria-invalid="true"{{end}}>
+        </div>
+        <button type="submit" class="btn">{{T "team.rename"}}</button>
+      </form>
+      <p>{{T "team.delete_text"}}</p>
+      <p><a class="btn btn--danger" href="{{.Href}}/delete">{{T "team.delete"}}</a></p>
+    </div>
+  </section>
+  {{- end}}
+</div>
+{{- end}}

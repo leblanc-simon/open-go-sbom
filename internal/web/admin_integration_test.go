@@ -228,7 +228,7 @@ func TestEveryScreenIsAccessible(t *testing.T) {
 	admin := a.user("admin@example.org", true)
 	viewer := a.user("viewer@example.org", false)
 	o := a.org("atelier", admin)
-	a.addMember(o, viewer, tenant.RoleViewer)
+	a.addTeamMember(o, viewer, tenant.TeamReader)
 	b := a.signIn(admin)
 	anon := a.browser()
 	screens := map[string]*browser{

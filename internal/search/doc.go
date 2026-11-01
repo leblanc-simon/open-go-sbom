@@ -13,7 +13,8 @@
 //     qualificatifs et plage filtrés en Go avec version.Comparer) ou des vulnérabilités
 //     (identifiant et alias du catalogue) ;
 //  2. les occurrences sont lues sur ref_current, component_set_items et findings, pour les
-//     références actives des projets actifs, filtres appliqués en SQL ;
+//     références actives des projets actifs et visibles (équipes déclarées par
+//     db.Visible, filtre lotor_team_visible, ADR 0034), filtres appliqués en SQL ;
 //  3. une page de projets (curseur par ordre : risque, nom, instantané), puis leurs
 //     occurrences (MaxGroupHits par projet).
 //
@@ -21,6 +22,6 @@
 // l'écosystème, sont comptées et signalées, jamais ignorées en silence. Export (CSV, JSON)
 // : lecture et écriture en flux, ligne à ligne.
 //
-//	res, err := svc.Search(ctx, org, req)
-//	err = svc.Export(ctx, org, req, search.FormatCSV, w)
+//	res, err := svc.Search(ctx, org, acc.Visibility(), req)
+//	err = svc.Export(ctx, org, acc.Visibility(), req, search.FormatCSV, w)
 package search

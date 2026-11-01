@@ -36,6 +36,15 @@
     {{- end}}
     <p class="field__hint">{{T "project_form.kind_hint"}}</p>
   </fieldset>
+  <div class="field">
+    <label class="field__label" for="project-team">{{T "project_form.team"}}</label>
+    <select class="select" id="project-team" name="team" required aria-describedby="project-team-hint"{{if eq .Error.Field "team"}} aria-invalid="true"{{end}}>
+      {{- range .Teams}}
+      <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>
+      {{- end}}
+    </select>
+    <p class="field__hint" id="project-team-hint">{{T "project_form.team_hint"}}</p>
+  </div>
   {{- end}}
   <div class="field">
     <label class="field__label" for="project-name">{{T "project_form.name"}}</label>

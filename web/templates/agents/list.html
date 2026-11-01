@@ -36,6 +36,7 @@
           <tr>
             <th scope="col">{{T "agents.col_agent"}}</th>
             <th scope="col">{{T "agents.col_type"}}</th>
+            <th scope="col">{{T "agents.col_team"}}</th>
             <th scope="col">{{T "agents.col_state"}}</th>
             <th scope="col">{{T "agents.col_last_contact"}}</th>
             <th scope="col">{{T "agents.col_version"}}</th>
@@ -49,6 +50,7 @@
           <tr>
             <th scope="row"><a href="{{$base}}/agents/{{.ID}}">{{.Name}}</a></th>
             <td>{{T (print "agent_type." .Kind)}}</td>
+            <td>{{if .TeamID}}<a href="{{$base}}/teams/{{.TeamID}}">{{.TeamName}}</a>{{else}}<span class="muted">{{T "agents.org_wide"}}</span>{{end}}</td>
             <td>{{template "agent_status" .Status}}</td>
             <td>{{template "stamp" .LastSeen}}</td>
             <td>{{with .Version}}<span class="version">{{.}}</span>{{else}}<span class="muted">{{T "agents.version_unknown"}}</span>{{end}}</td>
@@ -83,6 +85,7 @@
             <th scope="col">{{T "enrollment.col_name"}}</th>
             <th scope="col">{{T "agents.col_token_prefix"}}</th>
             <th scope="col">{{T "enrollment.col_target"}}</th>
+            <th scope="col">{{T "agents.col_team"}}</th>
             <th scope="col" class="num">{{T "enrollment.col_uses"}}</th>
             <th scope="col">{{T "agents.col_expires"}}</th>
             <th scope="col">{{T "agents.col_state"}}</th>
@@ -96,6 +99,7 @@
             <th scope="row"><span class="cell-stack"><span>{{.Name}}</span>{{with .CreatedBy}}<span class="muted">{{T "agents.created_by" "Email" .}}</span>{{end}}</span></th>
             <td class="mono">{{.Prefix}}</td>
             <td class="wrap">{{if .ProjectSlug}}<a href="{{$base}}/projects/{{.ProjectSlug}}">{{.ProjectName}}</a>{{else}}<span class="cell-stack"><span>{{T "enrollment.target_new"}}</span>{{template "labels" .Labels}}</span>{{end}}</td>
+            <td><a href="{{$base}}/teams/{{.TeamID}}">{{.TeamName}}</a></td>
             <td class="num">{{T "enrollment.uses_value" "Uses" .Uses "Max" .MaxUses}}</td>
             <td>{{template "stamp" .Expires}}</td>
             <td>{{if .RevokedAt}}<span class="status status--revoked">{{T "token_state.revoked"}}</span>{{else if .Usable}}<span class="status status--active">{{T "token_state.active"}}</span>{{else}}<span class="status">{{T "token_state.spent"}}</span>{{end}}</td>

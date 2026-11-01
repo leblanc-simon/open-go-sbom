@@ -42,7 +42,7 @@ func TestSearchScreenAndAPI(t *testing.T) {
 	a := newApp(t)
 	admin, viewer := a.user("admin@example.org", false), a.user("viewer@example.org", false)
 	f := repoSetup(t, a, "org-a", admin)
-	a.addMember(f.org, viewer, tenant.RoleViewer)
+	a.addTeamMember(f.org, viewer, tenant.TeamReader)
 	s := a.analysis()
 	s.publish(t, time.Now().Add(-48*time.Hour), log4shellRules()...)
 	a.pushLog4shell(f, 1, sbomFile(t, "log4shell.cdx16.json"))
@@ -157,7 +157,7 @@ func TestSearchScreenAndAPI(t *testing.T) {
 			t.Fatal(err)
 		}
 		req, _ := url.ParseQuery(q)
-		screen, err := a.search.Search(context.Background(), f.org.ID, mustRequest(t, req))
+		screen, err := a.search.Search(context.Background(), f.org.ID, tenant.AllTeams(), mustRequest(t, req))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -216,7 +216,7 @@ func TestSearchScreenAndAPI(t *testing.T) {
 	if pg := a.apiGet(token, "/api/v1/orgs/org-a/search?q=log4j"); pg.status != http.StatusNotFound {
 		t.Errorf("membre retiré : %d", pg.status)
 	}
-	a.addMember(f.org, viewer, tenant.RoleViewer)
+	a.addTeamMember(f.org, viewer, tenant.TeamReader)
 	tokens, err := a.accounts.PersonalTokens(context.Background(), viewer.ID)
 	if err != nil || len(tokens) != 1 {
 		t.Fatalf("jetons : %v, %v", tokens, err)

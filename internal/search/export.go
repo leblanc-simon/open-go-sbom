@@ -45,7 +45,7 @@ type ExportRow struct {
 // (nom), référence et composant. Les lignes sont lues et écrites en flux, une à une : la
 // mémoire ne dépend pas du volume. La lecture se fait dans une transaction en lecture
 // seule, que l'appelant borne par le délai de ctx (ADR 0024).
-func (s *Service) Export(ctx context.Context, org tenant.OrgID, req Request, f Format, w io.Writer) error {
+func (s *Service) Export(ctx context.Context, org tenant.OrgID, vis tenant.Visibility, req Request, f Format, w io.Writer) error {
 	q, err := Parse(req.Q, s.cmp)
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func (s *Service) Export(ctx context.Context, org tenant.OrgID, req Request, f F
 	default:
 		return refuse(KeyFilterInvalid)
 	}
-	err = s.read(ctx, org, func(tx *db.OrgTx) error {
+	err = s.read(ctx, org, vis, func(tx *db.OrgTx) error {
 		t, err := s.resolve(ctx, tx, q)
 		if err != nil {
 			return err

@@ -31,6 +31,26 @@
     </div>
   </section>
   {{- end}}
+  {{- if .MoveTeams}}
+  <section class="panel" aria-labelledby="project-team">
+    <div class="panel__head"><h2 class="panel__title" id="project-team">{{T "project_settings.team_title"}}</h2></div>
+    <div class="panel__body stack stack--sm">
+      <p>{{T "project_settings.team_text" "Team" .Project.TeamName}}</p>
+      <form class="form form--inline" method="post" action="{{.Base}}/projects/{{.Project.Slug}}/team">
+        {{csrfField .Page.CSRFToken}}
+        <div class="field">
+          <label class="field__label" for="project-move-team">{{T "project_form.team"}}</label>
+          <select class="select" id="project-move-team" name="team"{{if eq .Error.Field "team"}} aria-invalid="true"{{end}}>
+            {{- range .MoveTeams}}
+            <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>
+            {{- end}}
+          </select>
+        </div>
+        <button type="submit" class="btn">{{T "project_settings.team_submit"}}</button>
+      </form>
+    </div>
+  </section>
+  {{- end}}
   <section class="panel" aria-labelledby="project-archive">
     <div class="panel__head"><h2 class="panel__title" id="project-archive">{{T "project_settings.archive_title"}}</h2></div>
     <div class="panel__body stack stack--sm">

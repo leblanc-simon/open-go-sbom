@@ -47,7 +47,7 @@ func TestEnrollmentMergesAgentLabels(t *testing.T) {
 	f := setup(t)
 	o := f.org(t, "a")
 	_, e := f.hostAgent(t, o, "srv-labels", map[string]string{"Role": "db", "env": "test"})
-	p, err := f.projects.Get(ctx, o, e.Project.Slug)
+	p, err := f.projects.Get(ctx, o, tenant.AllTeams(), e.Project.Slug)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestScanRequestDeliveredOnce(t *testing.T) {
 	if _, err := f.agents.RequestScan(ctx, f.actor, o, e.Project.Slug); err != nil {
 		t.Fatal(err)
 	}
-	a, _ := f.agents.Get(ctx, o, e.Agent.ID)
+	a, _ := f.agents.Get(ctx, o, tenant.AllTeams(), e.Agent.ID)
 	if a.ScanRequestedAt == nil || !a.ScanRequestedAt.Equal(first) {
 		t.Errorf("une demande en attente garde sa date : %v, %v attendu", a.ScanRequestedAt, first)
 	}
@@ -101,7 +101,7 @@ func TestScanRequestDeliveredOnce(t *testing.T) {
 		t.Errorf("%d demandes journalisées, 2 attendues", n)
 	}
 
-	repo, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindRepo, Name: "app", Branches: []string{"main"}})
+	repo, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, project.Input{Kind: project.KindRepo, Name: "app", Branches: []string{"main"}}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestHostContextIsStored(t *testing.T) {
 	if _, err := f.agents.Heartbeat(ctx, p, agent.HeartbeatRequest{Version: "1", Host: &h}); err != nil {
 		t.Fatal(err)
 	}
-	a, _ := f.agents.Get(ctx, o, e.Agent.ID)
+	a, _ := f.agents.Get(ctx, o, tenant.AllTeams(), e.Agent.ID)
 	if a.Host == nil || *a.Host != h || a.HostAt == nil || a.Host.ScanDurationValue() != 42*time.Second {
 		t.Errorf("contexte relu %+v (%v)", a.Host, a.HostAt)
 	}
@@ -145,7 +145,7 @@ func TestHostContextIsStored(t *testing.T) {
 	if err := f.agents.RecordHost(ctx, p, h2); err != nil {
 		t.Fatal(err)
 	}
-	if a, _ = f.agents.Get(ctx, o, e.Agent.ID); a.Host.Kernel != h2.Kernel {
+	if a, _ = f.agents.Get(ctx, o, tenant.AllTeams(), e.Agent.ID); a.Host.Kernel != h2.Kernel {
 		t.Errorf("contexte d'un envoi non enregistré : %+v", a.Host)
 	}
 	for name, bad := range map[string]agent.HostContext{
@@ -158,7 +158,7 @@ func TestHostContextIsStored(t *testing.T) {
 			t.Errorf("%s : %v", name, err)
 		}
 	}
-	_, repoTok, err := f.agents.CreateRepoAgent(ctx, f.actor, o, "ci", "initial", 30)
+	_, repoTok, err := f.agents.CreateRepoAgent(ctx, f.actor, o, nil, "ci", "initial", 30)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +221,7 @@ func TestInventoryReportAdvancesLastScan(t *testing.T) {
 	if err := ing.Decode(ctx, o, in.ID); err != nil {
 		t.Fatal(err)
 	}
-	a, _ := f.agents.Get(ctx, o, e.Agent.ID)
+	a, _ := f.agents.Get(ctx, o, tenant.AllTeams(), e.Agent.ID)
 	if a.LastInventoryAt == nil || !a.LastInventoryAt.Equal(scanned) {
 		t.Fatalf("dernier inventaire %v, %v attendu", a.LastInventoryAt, scanned)
 	}
@@ -230,7 +230,7 @@ func TestInventoryReportAdvancesLastScan(t *testing.T) {
 	if st := report(fp, "srv-inv", later); st != agent.InventoryCurrent {
 		t.Fatalf("même empreinte : %s", st)
 	}
-	if a, _ = f.agents.Get(ctx, o, e.Agent.ID); !a.LastInventoryAt.Equal(later) {
+	if a, _ = f.agents.Get(ctx, o, tenant.AllTeams(), e.Agent.ID); !a.LastInventoryAt.Equal(later) {
 		t.Errorf("date de dernière analyse %v, %v attendu", a.LastInventoryAt, later)
 	}
 	if st := report([32]byte{1}, "srv-inv", later); st != agent.InventoryOutdated {
@@ -254,14 +254,14 @@ func TestInventoryReportAdvancesLastScan(t *testing.T) {
 	if _, err := f.agents.Heartbeat(ctx, p, agent.HeartbeatRequest{Version: "1"}); err != nil {
 		t.Fatal(err)
 	}
-	a, _ = f.agents.Get(ctx, o, e.Agent.ID)
+	a, _ = f.agents.Get(ctx, o, tenant.AllTeams(), e.Agent.ID)
 	if st := a.StateAt(f.clock.Now()); st != agent.StateSilent {
 		t.Errorf("agent serveur sans inventaire récent : %s", st)
 	}
 	if report(fp, "srv-inv", f.clock.Now()) != agent.InventoryCurrent {
 		t.Fatal("confirmation")
 	}
-	a, _ = f.agents.Get(ctx, o, e.Agent.ID)
+	a, _ = f.agents.Get(ctx, o, tenant.AllTeams(), e.Agent.ID)
 	if st := a.StateAt(f.clock.Now()); st != agent.StateActive {
 		t.Errorf("après un inventaire confirmé : %s", st)
 	}

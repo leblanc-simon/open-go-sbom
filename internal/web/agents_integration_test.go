@@ -115,7 +115,7 @@ func TestHostEnrollmentEndToEnd(t *testing.T) {
 	t.Parallel()
 	a := newApp(t)
 	admin := a.user("admin@example.org", false)
-	a.org("org-a", admin)
+	oa := a.org("org-a", admin)
 	b := a.signIn(admin)
 
 	form := b.get("/o/org-a/enrollment-tokens/new")
@@ -125,7 +125,7 @@ func TestHostEnrollmentEndToEnd(t *testing.T) {
 	webtest.AssertAccessible(t, []byte(form.body))
 	webtest.AssertNoInlineCode(t, []byte(form.body))
 	created := b.post("/o/org-a/enrollment-tokens", url.Values{"name": {"parc-web"}, "expires_in": {"24"}, "max_uses": {"2"},
-		"labels": {"env=prod, exposé-internet"}, "project": {""}})
+		"labels": {"env=prod, exposé-internet"}, "project": {""}, "team": {a.defaultTeam(oa.ID).String()}})
 	enr := shownToken(t, created)
 	webtest.AssertAccessible(t, []byte(created.body))
 	webtest.AssertNoInlineCode(t, []byte(created.body))
@@ -219,7 +219,7 @@ func TestExpiredEnrollmentTokenRefused(t *testing.T) {
 	admin := a.user("admin@example.org", false)
 	o := a.org("org-a", admin)
 	_, issued, err := a.agents.CreateEnrollment(context.Background(), audit.System, o.ID,
-		agent.EnrollmentInput{Name: "court", LifetimeHours: 1, MaxUses: 10})
+		a.enrollTeam(o.ID, agent.EnrollmentInput{Name: "court", LifetimeHours: 1, MaxUses: 10}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,11 +247,11 @@ func TestRevokedAgentTokenRefusedAtNextRequest(t *testing.T) {
 	if r := a.api(http.MethodPost, "/api/v1/agent/heartbeat", tok, map[string]string{"version": "0.9.2"}); r.status != http.StatusOK {
 		t.Fatalf("signal de vie : %d %s", r.status, r.body)
 	}
-	page, err := a.agents.List(context.Background(), o.ID, agent.Filter{}, "", 10)
+	page, err := a.agents.List(context.Background(), o.ID, tenant.AllTeams(), agent.Filter{}, "", 10)
 	if err != nil || len(page.Items) != 1 {
 		t.Fatal(page, err)
 	}
-	ag, err := a.agents.Get(context.Background(), o.ID, page.Items[0].ID)
+	ag, err := a.agents.Get(context.Background(), o.ID, tenant.AllTeams(), page.Items[0].ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -285,11 +285,11 @@ func TestAgentAPIRequestsAndErrors(t *testing.T) {
 	admin := a.user("admin@example.org", false)
 	o := a.org("org-a", admin)
 	ctx := context.Background()
-	_, agt, err := a.agents.CreateRepoAgent(ctx, audit.System, o.ID, "ci", "initial", 90)
+	_, agt, err := a.agents.CreateRepoAgent(ctx, audit.System, o.ID, nil, "ci", "initial", 90)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, enr, err := a.agents.CreateEnrollment(ctx, audit.System, o.ID, agent.EnrollmentInput{Name: "x", LifetimeHours: 24, MaxUses: 5})
+	_, enr, err := a.agents.CreateEnrollment(ctx, audit.System, o.ID, a.enrollTeam(o.ID, agent.EnrollmentInput{Name: "x", LifetimeHours: 24, MaxUses: 5}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,11 +336,11 @@ func TestAgentRateLimitIsPerToken(t *testing.T) {
 	admin := a.user("admin@example.org", false)
 	o := a.org("org-a", admin)
 	ctx := context.Background()
-	_, t1, err := a.agents.CreateRepoAgent(ctx, audit.System, o.ID, "ci-1", "initial", 90)
+	_, t1, err := a.agents.CreateRepoAgent(ctx, audit.System, o.ID, nil, "ci-1", "initial", 90)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, t2, err := a.agents.CreateRepoAgent(ctx, audit.System, o.ID, "ci-2", "initial", 90)
+	_, t2, err := a.agents.CreateRepoAgent(ctx, audit.System, o.ID, nil, "ci-2", "initial", 90)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -387,28 +387,29 @@ func TestProjectScreens(t *testing.T) {
 	a := newApp(t)
 	admin, viewer := a.user("admin@example.org", false), a.user("viewer@example.org", false)
 	o := a.org("org-a", admin)
-	a.addMember(o, viewer, tenant.RoleViewer)
+	a.addTeamMember(o, viewer, tenant.TeamReader)
 	ad := a.signIn(admin)
+	team := a.defaultTeam(o.ID).String()
 
-	p := ad.post("/o/org-a/projects", url.Values{"kind": {"repo"}, "name": {"Portail client"}, "description": {"Site public"},
+	p := ad.post("/o/org-a/projects", url.Values{"team": {team}, "kind": {"repo"}, "name": {"Portail client"}, "description": {"Site public"},
 		"labels": {"env=prod, pci"}, "forge_url": {"https://git.example.org/web/portail"}, "branches": {"main\nrelease/1.x"}, "tags": {"v1.0"}})
 	if p.status != http.StatusSeeOther || p.location != "/o/org-a/projects/portail-client?done=project_created" {
 		t.Fatalf("création : %d %q\n%s", p.status, p.location, p.body)
 	}
-	if p := ad.post("/o/org-a/projects", url.Values{"kind": {"repo"}, "name": {"x"}, "labels": {"=bad"}, "branches": {"main"}}); p.status != http.StatusUnprocessableEntity ||
+	if p := ad.post("/o/org-a/projects", url.Values{"team": {team}, "kind": {"repo"}, "name": {"x"}, "labels": {"=bad"}, "branches": {"main"}}); p.status != http.StatusUnprocessableEntity ||
 		!strings.Contains(unescape(p.body), "Une étiquette s'écrit") {
 		t.Errorf("étiquette invalide : %d", p.status)
 	}
-	if p := ad.post("/o/org-a/projects", url.Values{"kind": {"host"}, "name": {"srv"}, "host_ref": {"srv db"}}); p.status != http.StatusUnprocessableEntity {
+	if p := ad.post("/o/org-a/projects", url.Values{"team": {team}, "kind": {"host"}, "name": {"srv"}, "host_ref": {"srv db"}}); p.status != http.StatusUnprocessableEntity {
 		t.Errorf("hôte invalide : %d", p.status)
 	}
-	if p := ad.post("/o/org-a/projects", url.Values{"kind": {"host"}, "name": {"Base"}, "host_ref": {"db-01"}}); p.status != http.StatusSeeOther {
+	if p := ad.post("/o/org-a/projects", url.Values{"team": {team}, "kind": {"host"}, "name": {"Base"}, "host_ref": {"db-01"}}); p.status != http.StatusSeeOther {
 		t.Errorf("serveur : %d %s", p.status, p.body)
 	}
-	if _, _, err := a.agents.CreateRepoAgent(context.Background(), audit.System, o.ID, "ci-atelier", "initial", 90); err != nil {
+	if _, _, err := a.agents.CreateRepoAgent(context.Background(), audit.System, o.ID, nil, "ci-atelier", "initial", 90); err != nil {
 		t.Fatal(err)
 	}
-	repoAgents, err := a.agents.RepoAgents(context.Background(), o.ID)
+	repoAgents, err := a.agents.RepoAgents(context.Background(), o.ID, a.defaultTeam(o.ID))
 	if err != nil || len(repoAgents) != 1 {
 		t.Fatal(repoAgents, err)
 	}
@@ -422,7 +423,7 @@ func TestProjectScreens(t *testing.T) {
 		"labels": {"env=prod"}, "forge_url": {""}, "branches": {"main"}, "tags": {""}}); p.status != http.StatusSeeOther {
 		t.Fatalf("modification : %d %s", p.status, p.body)
 	}
-	got, err := a.projects.Get(context.Background(), o.ID, "portail-client")
+	got, err := a.projects.Get(context.Background(), o.ID, tenant.AllTeams(), "portail-client")
 	if err != nil || got.Labels.String() != "env=prod" || got.ForgeURL != "" || got.Agent == nil || got.Agent.Name != "ci-atelier" {
 		t.Fatalf("projet modifié : %+v %v", got, err)
 	}

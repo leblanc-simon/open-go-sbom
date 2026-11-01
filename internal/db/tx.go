@@ -49,15 +49,29 @@ type OrgTx struct {
 // OrgID renvoie l'organisation déclarée pour la transaction.
 func (t *OrgTx) OrgID() tenant.OrgID { return t.org }
 
+// txConfig réunit les options d'une transaction.
+type txConfig struct {
+	sql.TxOptions
+	visibility *tenant.Visibility
+}
+
 // TxOption ajuste les options d'une transaction.
-type TxOption func(*sql.TxOptions)
+type TxOption func(*txConfig)
 
 // ReadOnly ouvre une transaction en lecture seule.
-func ReadOnly() TxOption { return func(o *sql.TxOptions) { o.ReadOnly = true } }
+func ReadOnly() TxOption { return func(o *txConfig) { o.ReadOnly = true } }
 
 // Isolation fixe le niveau d'isolement (READ COMMITTED par défaut).
 func Isolation(level sql.IsolationLevel) TxOption {
-	return func(o *sql.TxOptions) { o.Isolation = level }
+	return func(o *txConfig) { o.Isolation = level }
+}
+
+// Visible déclare, pour une transaction InOrg, les équipes dont les projets sont visibles
+// (réglage lotor.teams, lu par la fonction SQL lotor_team_visible). Sans cette option,
+// toute requête qui appelle lotor_team_visible échoue : un filtre d'équipe oublié par
+// l'appelant ne renvoie jamais les projets de toutes les équipes (ADR 0034).
+func Visible(v tenant.Visibility) TxOption {
+	return func(o *txConfig) { o.visibility = &v }
 }
 
 // Pool est le pool du rôle d'exécution. Toute donnée d'organisation passe par InOrg,
@@ -83,7 +97,7 @@ func (p *Pool) Close() error { return p.db.Close() }
 // InTx exécute fn dans une transaction réservée aux tables globales. La transaction est
 // validée si fn renvoie nil, annulée sinon (et en cas de panique, relancée ensuite).
 func (p *Pool) InTx(ctx context.Context, fn func(*Tx) error, opts ...TxOption) error {
-	return p.run(ctx, opts, func(tx *sql.Tx) error {
+	return p.run(ctx, opts, func(tx *sql.Tx, _ txConfig) error {
 		return fn(&Tx{tx: tx})
 	})
 }
@@ -95,20 +109,25 @@ func (p *Pool) InOrg(ctx context.Context, org tenant.OrgID, fn func(*OrgTx) erro
 	if org.IsZero() {
 		return tenant.ErrZeroOrgID
 	}
-	return p.run(ctx, opts, func(tx *sql.Tx) error {
+	return p.run(ctx, opts, func(tx *sql.Tx, c txConfig) error {
 		if _, err := tx.ExecContext(ctx, "SELECT set_config('lotor.org_id', $1, true)", org.String()); err != nil {
 			return fmt.Errorf("db: déclaration de l'organisation : %w", err)
+		}
+		if c.visibility != nil {
+			if _, err := tx.ExecContext(ctx, "SELECT set_config('lotor.teams', $1, true)", c.visibility.Setting()); err != nil {
+				return fmt.Errorf("db: déclaration des équipes visibles : %w", err)
+			}
 		}
 		return fn(&OrgTx{Tx: Tx{tx: tx}, org: org})
 	})
 }
 
-func (p *Pool) run(ctx context.Context, opts []TxOption, fn func(*sql.Tx) error) (err error) {
-	var o sql.TxOptions
+func (p *Pool) run(ctx context.Context, opts []TxOption, fn func(*sql.Tx, txConfig) error) (err error) {
+	var o txConfig
 	for _, opt := range opts {
 		opt(&o)
 	}
-	tx, err := p.db.BeginTx(ctx, &o)
+	tx, err := p.db.BeginTx(ctx, &o.TxOptions)
 	if err != nil {
 		return fmt.Errorf("db: ouverture de transaction : %w", err)
 	}
@@ -118,7 +137,7 @@ func (p *Pool) run(ctx context.Context, opts []TxOption, fn func(*sql.Tx) error)
 			panic(r)
 		}
 	}()
-	if err := fn(tx); err != nil {
+	if err := fn(tx, o); err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil && !errors.Is(rbErr, sql.ErrTxDone) {
 			return errors.Join(err, fmt.Errorf("db: annulation : %w", rbErr))
 		}

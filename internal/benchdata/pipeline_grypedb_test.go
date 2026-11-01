@@ -53,10 +53,10 @@ func TestRealPipeline(t *testing.T) {
 			t.Fatalf("%s : %v", q, err)
 		}
 	}
-	exec(`INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, 'reel', 'Réel', 'fr')`, org)
+	exec(`WITH o AS (INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, 'reel', 'Réel', 'fr') RETURNING id) INSERT INTO teams (org_id, id, name) SELECT id, id, 'Général' FROM o`, org)
 	exec(`INSERT INTO agents (org_id, id, kind, name) VALUES ($1, $2, 'repo', 'depot'), ($1, $3, 'host', 'srv')`, org, repoAgent, hostAgent)
-	exec(`INSERT INTO projects (org_id, id, kind, slug, name, agent_id) VALUES ($1, $2, 'repo', 'rapports', 'Rapports', $3),
-		($1, $4, 'host', 'srv', 'srv', $5)`, org, repo, repoAgent, host, hostAgent)
+	exec(`INSERT INTO projects (org_id, id, kind, slug, name, agent_id, team_id) VALUES ($1, $2, 'repo', 'rapports', 'Rapports', $3, $1),
+		($1, $4, 'host', 'srv', 'srv', $5, $1)`, org, repo, repoAgent, host, hostAgent)
 	exec(`INSERT INTO tracked_refs (org_id, id, project_id, project_kind, kind, name) VALUES ($1, $2, $3, 'repo', 'branch', 'main'),
 		($1, $4, $5, 'host', 'host', 'srv')`, org, repoRef, repo, hostRef, host)
 	engine := openReal(t, d.App)

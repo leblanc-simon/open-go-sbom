@@ -55,7 +55,7 @@ func newFixture(t *testing.T, pool *db.Pool, slug string) *fixture {
 		t.Fatal(err)
 	}
 	f := &fixture{t: t, pool: pool, org: org, blob: newID(), set: newID(), ids: map[string]uuid.UUID{}}
-	f.exec(`INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, $2, $2, 'fr')`, org, slug)
+	f.exec(`WITH o AS (INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, $2, $2, 'fr') RETURNING id) INSERT INTO teams (org_id, id, name) SELECT id, id, 'Général' FROM o`, org, slug)
 	f.exec(`INSERT INTO sbom_blobs (org_id, id, sha256, size, compressed_size, content)
 		VALUES ($1, $2, sha256('{}'::bytea), 2, 1, '\x00'::bytea)`, org, f.blob)
 	f.exec(`INSERT INTO component_sets (org_id, id, fingerprint, component_count, syft_count, ia_count, weak_count)
@@ -104,7 +104,7 @@ func (f *fixture) project(slug, kind string, archived bool) {
 	if archived {
 		arch = now.Add(-24 * time.Hour)
 	}
-	f.exec(`INSERT INTO projects (org_id, id, kind, slug, name, archived_at) VALUES ($1, $2, $3, $4, $4, $5)`,
+	f.exec(`INSERT INTO projects (org_id, id, kind, slug, name, archived_at, team_id) VALUES ($1, $2, $3, $4, $4, $5, $1)`,
 		f.org, f.name(slug), kind, slug, arch)
 	ref := "main"
 	if kind == "host" {
