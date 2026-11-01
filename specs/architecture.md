@@ -159,8 +159,8 @@ relevées en T00 (une montée de version ultérieure ne demande pas de nouvelle 
 | Validation des SBOM par schéma JSON | schémas officiels embarqués, `github.com/santhosh-tekuri/jsonschema/v6` | v6.0.3 | Validé |
 | Métriques | `github.com/prometheus/client_golang` | v1.25.0 | Validé |
 | Paquets deb et rpm | `nfpm` en directive `tool` (`make packages`, T07) | v2.48.0 | Validé |
-| Fournisseur de modèle | SDK Go officiel d'Anthropic ; Ollama par son API HTTP sans SDK | — | À valider en T12 |
-| Règles de politique | `github.com/google/cel-go` | — | À valider en T15 |
+| Fournisseur de modèle | SDK Go officiel d'Anthropic ; Ollama par son API HTTP sans SDK | — | À valider en T12 (modèle par défaut `claude-sonnet-5-5`, IA désactivée par défaut) |
+| Règles de politique | `github.com/google/cel-go` | — | Validé le 1er novembre 2026 (T15) |
 | OIDC | `oidcx` dans open-go-base, ou paquet local | — | Point ouvert, T25 |
 
 Sans dépendance : client Git (binaire `git` du système), clients des forges (HTTP + JWT
@@ -382,8 +382,10 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
 - Secrets TOTP chiffrés en base par `internal/secret` (enveloppe du store de mfax),
   rechiffrés par la clé active au démarrage (ADR 0013).
 - Pas d'envoi de courriel avant T15 : les comptes sont créés avec un mot de passe temporaire.
-- Rôles d'organisation : `viewer`, `analyst` (trie les constats), `admin`. Les équipes (T16)
-  restreignent ensuite la visibilité par projet.
+- Rôles d'organisation : `viewer`, `analyst` (trie les constats), `admin`. En T16
+  (décision du 1er novembre 2026), le rôle d'organisation devient membre ou
+  administrateur (qui voit tout) et les droits sur les projets viennent du rôle d'équipe
+  (lecteur, analyste, administrateur) ; l'existant passe dans une équipe « Général ».
 - Jetons : préfixés par leur nature (`lotor_agt_`, `lotor_enr_`, `lotor_pat_`), puis un
   identifiant public (128 bits) et un secret de 256 bits, en base32 minuscule séparés par
   `_`. Seul le SHA-256 du secret est stocké ; comparaison en temps constant ; révocation
@@ -764,6 +766,6 @@ dupliquer.
 | Erreurs d'authx, mfax et csrfx exposées comme clés plutôt qu'en texte français | Messages traduits (« Identifiants invalides », « Code invalide », « Accès interdit », réponse 403 de csrfx) | Fait en T03 (PR #1 d'open-go-base) |
 | Gestionnaire d'échec configurable dans csrfx | Page 403 traduite et au format du projet | Fait en T03 (PR #1 d'open-go-base) |
 | Clé de limitation configurable dans `ratelimit` (par jeton) | Évite le limiteur maison de `internal/ratelimit` | Fait en T04 (`WithKeyFunc`, PR #2 d'open-go-base) |
-| Codes de secours dans mfax | Récupération sans administrateur d'instance | Absent d'open-go-base au 31 octobre 2026 (constaté en T11) ; non nécessaire au lot 1 (réinitialisation par un administrateur, procédure de secours) : reporté à T18 **[à relire]** |
+| Codes de secours dans mfax | Récupération sans administrateur d'instance | Absent d'open-go-base au 31 octobre 2026 (constaté en T11) ; non nécessaire au lot 1 (réinitialisation par un administrateur, procédure de secours) : reporté à T18, confirmé le 1er novembre 2026 (codes à usage unique, hachés, régénérables) |
 | Verrouillage par compte et réauthentification dans mfax ; jeton CSRF lié à la session ; nom du cookie de défi | Revue de sécurité du lot 1 (SEC-01, SEC-02, SEC-08) | Fait en T11 (PR #3 d'open-go-base, commit `9a7b91f`, étiquette `v1.3.0` à pousser) |
 | Composant `oidcx` | SSO réutilisable par les projets open-go | T25 |

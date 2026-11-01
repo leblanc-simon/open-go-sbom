@@ -88,10 +88,19 @@ Faux `Provider` scénarisé et enregistreur pour les tests déterministes ; test
 vérificateur en table ; évaluation sur le corpus avec un vrai modèle, hors CI par défaut
 (cible `make eval-ai`).
 
-## Points à trancher
+## Décisions
 
-- Fournisseur et modèle par défaut, et règle d'envoi de code à un modèle externe.
-- Seuils de faux positifs et de rappel sur le corpus.
+Prises le 1er novembre 2026 :
+
+- Par défaut, l'IA est désactivée : un projet non réglé n'appelle aucun modèle.
+- Envoi de code à un fournisseur externe : autorisé projet par projet, par un
+  administrateur d'organisation, avec un événement d'audit ; la configuration de l'instance
+  peut interdire tout fournisseur externe.
+- Modèle Anthropic par défaut : `claude-sonnet-5-5`, à confirmer (ou changer) au vu du
+  rapport d'évaluation sur le corpus.
+- Seuils sur le corpus annoté, pour les composants d'origine IA acceptés : taux de faux
+  positifs inférieur ou égal à 5 %, rappel supérieur ou égal à 80 %. Ils valent aussi pour
+  la recette (T18).
 
 ## Journal
 
