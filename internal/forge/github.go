@@ -230,13 +230,19 @@ func (g *GitHub) headers(auth string) http.Header {
 // fuit (il passe dans l'environnement de git) n'ouvre ainsi qu'un dépôt, pas toute
 // l'installation (SEC-10).
 func (g *GitHub) token(ctx context.Context, repo string) (string, error) {
+	return g.tokenFor(ctx, repo, map[string]string{"contents": "read"}, "")
+}
+
+// tokenFor renvoie un jeton d'installation restreint au dépôt et aux permissions perms,
+// mis en cache sous prefix + dépôt.
+func (g *GitHub) tokenFor(ctx context.Context, repo string, perms map[string]string, prefix string) (string, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	id, err := g.installation(ctx, repo)
 	if err != nil {
 		return "", err
 	}
-	key := strings.ToLower(repo)
+	key := prefix + strings.ToLower(repo)
 	if t, ok := g.tokens[key]; ok && g.now().Add(tokenMargin).Before(t.expires) {
 		return t.value, nil
 	}
@@ -252,7 +258,7 @@ func (g *GitHub) token(ctx context.Context, repo string) (string, error) {
 		Token     string    `json:"token"`
 		ExpiresAt time.Time `json:"expires_at"`
 	}
-	body := map[string]any{"permissions": map[string]string{"contents": "read"}, "repositories": []string{name}}
+	body := map[string]any{"permissions": perms, "repositories": []string{name}}
 	path := "/app/installations/" + strconv.FormatInt(id, 10) + "/access_tokens"
 	if err := call(ctx, g.client, http.MethodPost, g.api+path, g.headers("Bearer "+jwt), body, &out); err != nil {
 		if errors.Is(err, ErrNotFound) && g.cfg.InstallationID == 0 {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -22,12 +23,36 @@ type fakeForge struct {
 	creds    forge.Credentials
 	secret   string
 
-	mu       sync.Mutex
-	heads    map[forge.Ref]string
-	history  []string // commits de la branche, du plus ancien au plus récent
-	resolves int
-	compares int
-	failCmp  bool
+	mu        sync.Mutex
+	heads     map[forge.Ref]string
+	history   []string // commits de la branche, du plus ancien au plus récent
+	resolves  int
+	compares  int
+	failCmp   bool
+	statuses  []publishedStatus
+	statusErr error
+}
+
+// publishedStatus est un statut de commit publié sur la fausse forge.
+type publishedStatus struct {
+	Commit string
+	Status forge.CommitStatus
+}
+
+func (f *fakeForge) SetStatus(_ context.Context, _ string, commit string, s forge.CommitStatus) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.statusErr != nil {
+		return f.statusErr
+	}
+	f.statuses = append(f.statuses, publishedStatus{Commit: commit, Status: s})
+	return nil
+}
+
+func (f *fakeForge) published() []publishedStatus {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]publishedStatus(nil), f.statuses...)
 }
 
 func (f *fakeForge) Name() string     { return f.name }
@@ -109,6 +134,24 @@ type fakeServer struct {
 	heartbeats int
 	listErr    error
 	uploadErr  error
+	// verdicts sont rendus dans l'ordre par Verdict (le dernier se répète) ; aucun :
+	// conforme.
+	verdicts     []Verdict
+	verdictCalls int
+}
+
+func (s *fakeServer) Verdict(context.Context, Receipt) (Verdict, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.verdictCalls++
+	if len(s.verdicts) == 0 {
+		return Verdict{State: VerdictPass, Summary: "ok"}, nil
+	}
+	v := s.verdicts[0]
+	if len(s.verdicts) > 1 {
+		s.verdicts = s.verdicts[1:]
+	}
+	return v, nil
 }
 
 func (s *fakeServer) Projects(context.Context) ([]Project, error) {
@@ -124,11 +167,11 @@ func (s *fakeServer) Heartbeat(context.Context, string) error {
 	return nil
 }
 
-func (s *fakeServer) Upload(_ context.Context, u Upload) error {
+func (s *fakeServer) Upload(_ context.Context, u Upload) (Receipt, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.uploadErr != nil {
-		return s.uploadErr
+		return Receipt{}, s.uploadErr
 	}
 	s.uploads = append(s.uploads, u)
 	// Le serveur range l'instantané : son commit devient le dernier connu.
@@ -141,7 +184,7 @@ func (s *fakeServer) Upload(_ context.Context, u Upload) error {
 			}
 		}
 	}
-	return nil
+	return Receipt{IngestionID: fmt.Sprintf("ingestion-%d", len(s.uploads))}, nil
 }
 
 // syncBuffer est un tampon de journal partagé entre goroutines.

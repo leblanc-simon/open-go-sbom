@@ -95,19 +95,51 @@ func (s *apiServer) Heartbeat(ctx context.Context, version string) error {
 // Upload envoie le SBOM (partie context puis sbom en gzip, réessais compris). Un refus du
 // serveur autre que 429 ou 5xx (référence inconnue, trop gros, contexte invalide, jeton
 // refusé) est définitif : l'erreur enveloppe ErrRejected et porte la clé du problème.
-func (s *apiServer) Upload(ctx context.Context, u Upload) error {
+func (s *apiServer) Upload(ctx context.Context, u Upload) (Receipt, error) {
 	pid, err := uuid.Parse(u.ProjectID)
 	if err != nil {
-		return fmt.Errorf("repoagent: projet %q : %w", u.ProjectID, err)
+		return Receipt{}, fmt.Errorf("repoagent: projet %q : %w", u.ProjectID, err)
 	}
 	ic := gen.IngestionContext{ProjectId: pid, AgentVersion: u.AgentVersion, Commit: &u.Commit, ScannedAt: u.ScannedAt}
 	ic.Ref.Kind, ic.Ref.Name = gen.IngestionContextRefKind(u.Ref.Kind), u.Ref.Name
-	if _, err := s.client.Upload(ctx, ic, u.SBOM); err != nil {
+	in, err := s.client.Upload(ctx, ic, u.SBOM)
+	if err != nil {
 		var e *agentclient.Error
 		if errors.As(err, &e) && e.Status >= 400 && e.Status < 500 && e.Status != http.StatusTooManyRequests {
-			return fmt.Errorf("%w : statut %d %s", ErrRejected, e.Status, printable(e.Key))
+			return Receipt{}, fmt.Errorf("%w : statut %d %s", ErrRejected, e.Status, printable(e.Key))
 		}
-		return fmt.Errorf("repoagent: envoi : %w", err)
+		return Receipt{}, fmt.Errorf("repoagent: envoi : %w", err)
 	}
-	return nil
+	return Receipt{IngestionID: in.Id.String()}, nil
+}
+
+// Verdict suit l'ingestion d'un envoi puis lit le verdict de son instantané.
+func (s *apiServer) Verdict(ctx context.Context, r Receipt) (Verdict, error) {
+	id, err := uuid.Parse(r.IngestionID)
+	if err != nil {
+		return Verdict{}, fmt.Errorf("repoagent: ingestion %q : %w", r.IngestionID, err)
+	}
+	in, err := s.client.Ingestion(ctx, id)
+	if err != nil {
+		return Verdict{}, fmt.Errorf("repoagent: ingestion : %w", err)
+	}
+	switch {
+	case in.Status == gen.Failed:
+		v := Verdict{State: VerdictError}
+		if in.Error != nil {
+			v.Summary = in.Error.Title
+		}
+		return v, nil
+	case !agentclient.Final(in) || in.SnapshotId == nil:
+		return Verdict{State: VerdictPending}, nil
+	}
+	got, err := s.client.Verdict(ctx, *in.SnapshotId)
+	if err != nil {
+		return Verdict{}, fmt.Errorf("repoagent: verdict : %w", err)
+	}
+	v := Verdict{State: got.State, Summary: got.Summary}
+	if got.Url != nil {
+		v.URL = *got.Url
+	}
+	return v, nil
 }
