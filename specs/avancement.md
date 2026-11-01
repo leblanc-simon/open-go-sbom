@@ -13,6 +13,7 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 | Lot | PR | Statut | Décisions à relire |
 | --- | --- | --- | --- |
 | T16 | #21 | Terminé (PR à fusionner) | Filtre d'équipe déclaré à la transaction, fermé par défaut ; matrice des droits (administrateur d'équipe sans gestion des équipes ni des membres de l'organisation, rattachement avec droit dans les deux équipes) ; 404 pour une équipe invisible ; agents sans équipe = agents d'organisation, agents dépôt existants d'organisation ; équipe « Général » aussi pour une nouvelle organisation, « General » en anglais ; invitations de 30 jours, sans équipe, bornées, nouvelle fonction `crossorg` ; tendance d'un membre additionnée par projet ; point d'essai `routeStub` — tous **[à relire]** |
+| T17 | à ouvrir | Terminé (PR à fusionner) | Différences enregistrées pour les seuls couples consécutifs, par job ; appariement par `purl_base` et version, même version = retrait + ajout, versions incomparables « approchées » ; effet sur la sécurité calculé à la lecture, sans `not_matched` ; « un par mois » = le dernier du mois, instantané en vigueur à la coupure toujours gardé ; fenêtre sur scan et réception ; `count` en plus de `days` ; réceptions hors fenêtre supprimées, orphelins même rétention désactivée, composants jamais purgés ; constat sans instantané (`SET NULL`) ; verrous ingestion / rétention ; horizon pour T21 ; frise = liste enrichie — tous **[à relire]** |
 
 ### Décisions à relire, par thème
 
@@ -37,6 +38,24 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 - Point d'essai `routeStub` pour le test des droits dérivé de la matrice
   ([T16](lots/T16-equipes-droits.md#décisions)).
 
+#### Historique, différences et rétention
+
+- Différences des instantanés consécutifs enregistrées par couple d'ensembles (job
+  `inventory.diff`), comparaison quelconque à la demande, appariement par `purl_base`
+  et version, versions incomparables « approchées »
+  ([ADR 0038](../docs/adr/0038-differences-d-instantanes.md), [T17](lots/T17-differences-instantanes.md#décisions)).
+- Effet sur la sécurité calculé à la lecture (vulnérabilité présente des deux côtés ni
+  résolue ni introduite, `not_matched` exclu, 200 constats au plus de chaque côté)
+  ([ADR 0038](../docs/adr/0038-differences-d-instantanes.md)).
+- Rétention : dernier instantané de chaque mois (UTC) au-delà de 90 jours, instantané en
+  vigueur au début de la fenêtre toujours gardé, fenêtre sur la date de scan et la date
+  de réception, instantané de la dernière analyse gardé, `retention.count` en plus de la
+  fenêtre ([ADR 0039](../docs/adr/0039-retention-des-instantanes.md)).
+- Purge : réceptions terminées hors fenêtre, ensembles et SBOM orphelins (même rétention
+  désactivée), composants jamais purgés ; constat et historique gardés sans instantané
+  (`ON DELETE SET NULL`, migration 017) ; horizon `snapshot_retention` pour T21
+  ([ADR 0039](../docs/adr/0039-retention-des-instantanes.md)).
+
 #### Sécurité et identité
 
 - SEC-09 corrigé par des invitations : 30 jours, 200 en attente par organisation, une par
@@ -50,6 +69,10 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 - T16 : captures d'écran clair et sombre non faites (aucune CSS nouvelle ; audit RGAA du
   lot 2 en T18) ; filtre « équipe » de la recherche non livré (recherche filtrée par les
   équipes visibles) ([T16](lots/T16-equipes-droits.md#écarts)).
+- T17 : captures d'écran clair et sombre non faites (un seul composant CSS nouveau,
+  `change.css` ; audit RGAA en T18) ; réceptions hors fenêtre supprimées en plus des
+  orphelins ; tri des constats de T14 à prendre en compte dans l'effet sur la sécurité
+  une fois T14 fusionné (T18) ([T17](lots/T17-differences-instantanes.md#écarts)).
 
 ### Actions pour l'utilisateur
 
@@ -58,6 +81,10 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 2. Après la publication d'une version contenant T16 : vérifier sur une instance réelle
    que la migration 016 a placé chaque membre dans l'équipe « Général » avec son ancien
    rôle (page **Équipes** de chaque organisation).
+3. Après la publication d'une version contenant T17 : le premier passage nocturne de la
+   rétention réduit l'historique antérieur à 90 jours (un instantané par mois) ; régler
+   `retention.*` avant la mise à jour si une autre politique est voulue
+   ([`operations.md`](../docs/operations.md#rétention-des-instantanés)).
 
 ## Lot 1
 

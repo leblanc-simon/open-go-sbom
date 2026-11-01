@@ -562,7 +562,8 @@ Bornes (`ingest.*`) :
   double (même commit, même document) ne compte pas. Relever `max_per_ref_per_day` pour
   une branche qui reçoit plus de 200 commits analysés par jour. Surveiller le volume :
   `SELECT org_id, pg_size_pretty(sum(compressed_size)) FROM sbom_blobs GROUP BY org_id`
-  (rôle propriétaire). La rétention des anciens instantanés arrive avec T17.
+  (rôle propriétaire). La rétention des anciens instantanés libère cet espace (voir
+  « Rétention des instantanés »).
 
 - Un JSON non compressé compte tout entier dans `max_upload_mib` : les agents envoient du
   gzip (un SBOM se compresse d'environ dix fois).
@@ -579,6 +580,47 @@ Bornes (`ingest.*`) :
   d'erreur et le nombre de composants le sont.
 - Décision de conception : ADR 0015 (décodage dans le worker) et ADR 0016 (règles de
   l'inventaire).
+
+## Rétention des instantanés
+
+Chaque nuit à 02:30 UTC, une instance à workers applique la rétention à chaque
+organisation (jobs `retention.snapshots_all`, puis `retention.snapshots_org`). Réglages
+`retention.*` (`LOTOR_RETENTION_*`) :
+
+| Réglage | Défaut | Effet |
+| --- | --- | --- |
+| `enabled` | `true` | `false` : aucun instantané ni aucune réception n'est supprimé |
+| `days` | 90 | fenêtre, en jours (1 à 36 500) : tout instantané scanné ou reçu depuis est gardé |
+| `count` | 0 | derniers instantanés de chaque référence gardés en plus, quel que soit leur âge |
+| `monthly` | `true` | au-delà de la fenêtre, garder le dernier instantané de chaque mois (UTC), sans limite de durée |
+
+- **Jamais supprimés** : le dernier instantané d'une référence (son instantané courant),
+  l'instantané en vigueur au début de la fenêtre (le dernier plus ancien que la coupure),
+  un instantané reçu dans la fenêtre même s'il a été scanné avant (envoi en retard),
+  l'instantané de la dernière analyse d'une référence.
+- Avec les réglages par défaut, une référence garde tous ses instantanés des 90 derniers
+  jours, puis environ douze par an : l'état de la fin de chaque mois.
+- Partent avec un instantané supprimé : ses réceptions ; un constat qu'il a vu en dernier
+  reste, sans lien vers lui. Sont supprimées ensuite les **réceptions terminées** plus
+  anciennes que la fenêtre (journal de réception), puis les **ensembles d'inventaire et
+  SBOM bruts que plus rien ne référence** — et eux seuls. Ces orphelins sont supprimés
+  même `enabled: false`. Les composants restent (les constats les référencent).
+- Une ingestion concurrente n'est jamais gênée : elle verrouille l'ensemble ou le SBOM
+  qu'elle réutilise, que la rétention saute alors (ADR 0039).
+- Chaque passage journalise son bilan (`rétention des instantanés`, champs `snapshots`,
+  `ingestions`, `sets`, `blobs`, `diffs`, `recompute`) et l'enregistre dans
+  `snapshot_retention` avec l'**horizon** (la plus récente coupure appliquée) : avant
+  cette date, l'historique d'une référence est réduit à un instantané par mois, et la
+  recherche à une date passée (lot 3) avertit que ses résultats sont partiels.
+- Allonger `days` ne rend pas ce qui a déjà été supprimé ; le raccourcir prend effet au
+  passage suivant. Le premier passage sur une instance ancienne peut être long : il
+  avance référence par référence, en transactions courtes, et reprend le lendemain s'il
+  est interrompu. Surveiller sa durée par `lotor_job_duration_seconds{kind="retention.snapshots_org"}`.
+- Les différences entre instantanés consécutifs (frise, comparaison) sont calculées par
+  le job `inventory.diff` à chaque instantané créé, et recalculées après une rétention
+  qui a réduit un historique (ADR 0038). La rétention les remet en file pour toute
+  référence dont une différence manque, y compris celles reçues avant la mise à jour qui
+  a introduit la frise.
 
 ## Base de vulnérabilités
 
