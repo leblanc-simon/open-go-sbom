@@ -1,0 +1,111 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{if .Editing}}{{T "policy_form.heading_edit" "Name" .Form.Name}}{{else}}{{T "policy_form.heading_new"}}{{end}}</h1>
+    <p class="page-head__lead">{{T "policy_form.lead"}}</p>
+  </div>
+  {{- with .Expr}}
+  <div class="callout callout--danger" role="alert">
+    <div class="callout__body">
+      <p class="callout__title">{{T "policy_form.expr_error_title"}}</p>
+      <p class="callout__text">{{T .Key .Args}}</p>
+      {{- with .Detail}}<p class="callout__text"><span class="muted">{{T "policy_form.expr_detail"}}</span> <code class="mono">{{.}}</code></p>{{end}}
+    </div>
+  </div>
+  {{- else}}
+  {{template "form_error" .Error}}
+  {{- end}}
+  {{- with .Preview}}
+  <div class="callout" role="status">
+    <div class="callout__body">
+      <p class="callout__title">{{T "policy_form.preview_title"}}</p>
+      <p class="callout__text">{{Tn (print "policy_form.preview_" .Subject) .Matches}}</p>
+      {{- if .Failures}}<p class="callout__text">{{Tn "policy_form.preview_failures" .Failures}}</p>{{end}}
+    </div>
+  </div>
+  {{- end}}
+  {{- with .LastError}}
+  <div class="callout callout--warning">
+    <div class="callout__body">
+      <p class="callout__title">{{T "policy_form.last_error_title"}}</p>
+      <p class="callout__text"><code class="mono">{{.}}</code></p>
+    </div>
+  </div>
+  {{- end}}
+  <div class="layout">
+    <section class="panel" aria-labelledby="policy-form-title">
+      <div class="panel__head"><h2 class="panel__title" id="policy-form-title">{{T "policy_form.form_title"}}</h2></div>
+      <div class="panel__body">
+        <form class="form" method="post" action="{{.Action}}">
+          {{csrfField .Page.CSRFToken}}
+          {{- with .TemplateKey}}<input type="hidden" name="template" value="{{.}}">{{end}}
+          <div class="field">
+            <label class="field__label" for="policy-name">{{T "policy_form.name"}}</label>
+            <input class="input" id="policy-name" name="name" type="text" maxlength="100" required value="{{.Form.Name}}"{{if eq .Error.Field "name"}} aria-invalid="true"{{end}}>
+          </div>
+          <div class="field">
+            <label class="field__label" for="policy-description">{{T "policy_form.summary"}}</label>
+            <textarea class="input input--multiline" id="policy-description" name="description" rows="2" maxlength="{{.DescMax}}"{{if eq .Error.Field "description"}} aria-invalid="true"{{end}}>{{.Form.Description}}</textarea>
+          </div>
+          <fieldset class="field">
+            <legend class="field__label">{{T "policy_form.subject"}}</legend>
+            <ul class="choice-list">
+              {{- range .Subjects}}
+              <li><label class="choice"><input type="radio" name="subject" value="{{.Value}}"{{if .Selected}} checked{{end}}{{if eq $.Error.Field "subject"}} aria-invalid="true"{{end}}><span class="choice__label">{{T .LabelKey}}</span><span class="choice__desc">{{T (print .LabelKey "_desc")}}</span></label></li>
+              {{- end}}
+            </ul>
+          </fieldset>
+          <div class="field">
+            <label class="field__label" for="policy-expression">{{T "policy_form.expression"}}</label>
+            <textarea class="input input--code input--multiline" id="policy-expression" name="expression" rows="5" maxlength="{{.ExpressionMax}}" required spellcheck="false" aria-describedby="policy-expression-hint"{{if eq .Error.Field "expression"}} aria-invalid="true"{{end}}>{{.Form.Expression}}</textarea>
+            <p class="field__hint" id="policy-expression-hint">{{T "policy_form.expression_hint"}}</p>
+          </div>
+          <div class="field">
+            <label class="check"><input type="checkbox" name="enabled" value="1"{{if .Form.Enabled}} checked{{end}}> <span>{{T "policy_form.enabled"}}</span></label>
+            <label class="check"><input type="checkbox" name="blocking" value="1"{{if .Form.Blocking}} checked{{end}} aria-describedby="policy-blocking-hint"> <span>{{T "policy_form.blocking"}}</span></label>
+            <p class="field__hint" id="policy-blocking-hint">{{T "policy_form.blocking_hint"}}</p>
+          </div>
+          <div class="field">
+            <label class="field__label" for="policy-delivery">{{T "policy_form.delivery"}}</label>
+            <select class="select" id="policy-delivery" name="delivery"{{if eq .Error.Field "delivery"}} aria-invalid="true"{{end}}>
+              {{- range .Deliveries}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>{{end}}
+            </select>
+          </div>
+          <fieldset class="field">
+            <legend class="field__label">{{T "policy_form.channels"}}</legend>
+            {{- if .Channels}}
+            {{- range .Channels}}
+            <label class="check"><input type="checkbox" name="channels" value="{{.ID}}"{{if .Checked}} checked{{end}}{{if eq $.Error.Field "channels"}} aria-invalid="true"{{end}}> <span>{{.Name}} <span class="muted">({{T .KindKey}}{{if not .Enabled}} · {{T "channels.disabled"}}{{end}})</span></span></label>
+            {{- end}}
+            {{- else}}
+            <p class="muted">{{T "policy_form.no_channels"}} <a href="{{.ChannelsHref}}">{{T "policy_form.add_channel"}}</a></p>
+            {{- end}}
+          </fieldset>
+          <p class="cluster">
+            <button type="submit" class="btn btn--primary" name="action" value="{{.SaveValue}}">{{T "form.save"}}</button>
+            <button type="submit" class="btn" name="action" value="{{.PreviewValue}}">{{T "policy_form.preview"}}</button>
+            <a href="{{.Cancel}}">{{T "form.cancel"}}</a>
+          </p>
+        </form>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="policy-help-title">
+      <div class="panel__head"><h2 class="panel__title" id="policy-help-title">{{T "policy_help.title"}}</h2></div>
+      <div class="panel__body stack stack--sm rule-help">
+        <p>{{T "policy_help.intro"}}</p>
+        {{- range .Help}}
+        <h3 class="rule-help__title">{{T .TitleKey}}</h3>
+        <dl class="kv">
+          {{- range .Vars}}
+          <dt><code class="mono">{{.Name}}</code></dt><dd>{{T .DescKey}}{{with .Fields}}<span class="rule-help__fields mono">{{.}}</span>{{end}}</dd>
+          {{- end}}
+        </dl>
+        {{- end}}
+        <p>{{T "policy_help.examples"}}</p>
+        <pre class="rule-help__code"><code>{{range .Examples}}{{.}}
+{{end}}</code></pre>
+      </div>
+    </section>
+  </div>
+</div>
+{{- end}}

@@ -53,6 +53,15 @@ catchup:
   interval: 15m
   max_commits: 20        # au plus, les plus récents ; les plus anciens sont sautés
 
+# Statut de commit (T15, ADR 0047) : après chaque envoi, attendre le verdict des politiques
+# et le publier sur le commit. Demande le droit « Commit statuses » (GitHub) ou la portée
+# api et le rôle Developer (GitLab) : voir docs/operations.md, « Statut de commit ».
+status:
+  enabled: false         # true : publier le verdict
+  context: lotor         # nom du statut sur la forge
+  timeout: 15m           # attente maximale du verdict (le commit suivant attend)
+  poll: 5s               # premier intervalle d'interrogation, doublé jusqu'à 30 s
+
 # Forges. Le nom (minuscules, chiffres, tirets) termine l'URL du webhook ; l'URL web est
 # comparée à l'« URL de forge » de chaque projet confié. allowed_namespaces (obligatoire)
 # borne les dépôts analysés : propriétaires GitHub ou groupes GitLab (sous-groupes

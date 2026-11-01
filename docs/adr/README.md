@@ -49,3 +49,6 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0042](0042-fournisseurs-de-modeles.md) | Fournisseurs de modèles : SDK Go officiel d'Anthropic sans environnement, Ollama par HTTP | Accepté |
 | [0043](0043-enrichissement-ia-prouve.md) | Enrichissement IA prouvé : réglage par projet, politique d'envoi de code, vérificateur, statut | Accepté |
 | [0044](0044-confinement-de-l-analyse-ia.md) | Confinement de l'analyse IA : os.Root et surface d'outils, sans processus fils | Accepté |
+| [0045](0045-politiques-cel-et-verdicts.md) | Politiques en CEL (contexte typé, coût borné), violations datées et dédoublonnées, verdict d'un instantané | Accepté |
+| [0046](0046-notifications.md) | Notifications : canaux et secrets chiffrés, envois uniques par canal et violation, réessais, webhook signé, garde SSRF, SMTP | Accepté |
+| [0047](0047-statut-de-commit.md) | Statut de commit publié par l'agent dépôt après une attente bornée du verdict | Accepté |

@@ -73,6 +73,11 @@ var flashes = map[string]string{
 	"triage_saved":     "flash.triage_saved",
 	"triage_withdrawn": "flash.triage_withdrawn",
 	"vex_empty":        "flash.vex_empty",
+
+	"policy_saved":    "flash.policy_saved",
+	"policy_deleted":  "flash.policy_deleted",
+	"channel_saved":   "flash.channel_saved",
+	"channel_deleted": "flash.channel_deleted",
 }
 
 func flashKey(r *http.Request) string { return flashes[r.URL.Query().Get("done")] }

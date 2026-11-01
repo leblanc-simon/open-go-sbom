@@ -91,3 +91,39 @@ func compareSilence(x, y Agent) int {
 // SilentSince renvoie l'instant d'où se compte le silence d'un agent (Activity.Since :
 // dernier inventaire d'un agent serveur, dernier contact d'un agent dépôt).
 func (a Agent) SilentSince() time.Time { return a.Activity().Since().UTC() }
+
+// ForEach appelle fn pour chaque agent non désactivé de l'organisation de tx, par pages
+// (évaluation des politiques sur les agents, T15). Une erreur de fn arrête le parcours.
+func ForEach(ctx context.Context, tx *db.OrgTx, now time.Time, fn func(Agent) error) error {
+	after := uuid.Nil
+	for {
+		rows, err := tx.QueryContext(ctx, `SELECT `+agentColumns+` FROM agents a
+			 WHERE a.disabled_at IS NULL AND a.id > $2 ORDER BY a.id LIMIT $3`, now, after, silentPage)
+		if err != nil {
+			return wrap("parcours des agents", err)
+		}
+		var page []Agent
+		for rows.Next() {
+			a, err := scanAgent(rows)
+			if err != nil {
+				rows.Close()
+				return wrap("parcours des agents", err)
+			}
+			page = append(page, a)
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return wrap("parcours des agents", err)
+		}
+		rows.Close()
+		for _, a := range page {
+			after = a.ID
+			if err := fn(a); err != nil {
+				return err
+			}
+		}
+		if len(page) < silentPage {
+			return nil
+		}
+	}
+}

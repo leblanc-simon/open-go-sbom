@@ -40,6 +40,9 @@ type ServerInterface interface {
 	// ListAIComponents Composants IA de l'instantané courant d'une référence
 	// (GET /agent/refs/{id}/ai-components)
 	ListAIComponents(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// GetSnapshotVerdict Verdict des politiques sur un instantané
+	// (GET /agent/snapshots/{id}/verdict)
+	GetSnapshotVerdict(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -85,6 +88,12 @@ func (_ Unimplemented) ListAgentProjects(w http.ResponseWriter, r *http.Request,
 // ListAIComponents Composants IA de l'instantané courant d'une référence
 // (GET /agent/refs/{id}/ai-components)
 func (_ Unimplemented) ListAIComponents(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSnapshotVerdict Verdict des politiques sur un instantané
+// (GET /agent/snapshots/{id}/verdict)
+func (_ Unimplemented) GetSnapshotVerdict(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -251,6 +260,32 @@ func (siw *ServerInterfaceWrapper) ListAIComponents(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// GetSnapshotVerdict operation middleware
+func (siw *ServerInterfaceWrapper) GetSnapshotVerdict(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSnapshotVerdict(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -384,6 +419,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/agent/refs/{id}/ai-components", wrapper.ListAIComponents)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/agent/snapshots/{id}/verdict", wrapper.GetSnapshotVerdict)
 	})
 
 	return r
@@ -951,6 +989,86 @@ func (response ListAIComponents429ApplicationProblemPlusJSONResponse) VisitListA
 	return err
 }
 
+type GetSnapshotVerdictRequestObject struct {
+	Id openapi_types.UUID `json:"id"`
+}
+
+type GetSnapshotVerdictResponseObject interface {
+	VisitGetSnapshotVerdictResponse(w http.ResponseWriter) error
+}
+
+type GetSnapshotVerdict200JSONResponse Verdict
+
+func (response GetSnapshotVerdict200JSONResponse) VisitGetSnapshotVerdictResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSnapshotVerdict400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetSnapshotVerdict400ApplicationProblemPlusJSONResponse) VisitGetSnapshotVerdictResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSnapshotVerdict401ApplicationProblemPlusJSONResponse Problem
+
+func (response GetSnapshotVerdict401ApplicationProblemPlusJSONResponse) VisitGetSnapshotVerdictResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSnapshotVerdict404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetSnapshotVerdict404ApplicationProblemPlusJSONResponse) VisitGetSnapshotVerdictResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSnapshotVerdict429ApplicationProblemPlusJSONResponse Problem
+
+func (response GetSnapshotVerdict429ApplicationProblemPlusJSONResponse) VisitGetSnapshotVerdictResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// ReportContainers Signale les conteneurs qui tournent sur l'hôte
@@ -974,6 +1092,9 @@ type StrictServerInterface interface {
 	// ListAIComponents Composants IA de l'instantané courant d'une référence
 	// (GET /agent/refs/{id}/ai-components)
 	ListAIComponents(ctx context.Context, request ListAIComponentsRequestObject) (ListAIComponentsResponseObject, error)
+	// GetSnapshotVerdict Verdict des politiques sur un instantané
+	// (GET /agent/snapshots/{id}/verdict)
+	GetSnapshotVerdict(ctx context.Context, request GetSnapshotVerdictRequestObject) (GetSnapshotVerdictResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -1210,6 +1331,32 @@ func (sh *strictHandler) ListAIComponents(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListAIComponentsResponseObject); ok {
 		if err := validResponse.VisitListAIComponentsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetSnapshotVerdict operation middleware
+func (sh *strictHandler) GetSnapshotVerdict(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	var request GetSnapshotVerdictRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSnapshotVerdict(ctx, request.(GetSnapshotVerdictRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSnapshotVerdict")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSnapshotVerdictResponseObject); ok {
+		if err := validResponse.VisitGetSnapshotVerdictResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

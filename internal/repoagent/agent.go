@@ -26,6 +26,8 @@ type Options struct {
 	AI      AIConfig
 	// LocalModel et ExternalModel sont les modèles configurés (nil : absent).
 	LocalModel, ExternalModel llm.Provider
+	// Status règle la publication du statut de commit (T15).
+	Status StatusConfig
 	// Now remplace l'horloge (tests).
 	Now func() time.Time
 }
@@ -408,10 +410,15 @@ func (a *Agent) analyze(ctx context.Context, k refKey, t tracked, commit string,
 	if err != nil {
 		return err
 	}
-	return a.opts.Server.Upload(ctx, Upload{
+	rc, err := a.opts.Server.Upload(ctx, Upload{
 		ProjectID: t.project.ID, Ref: t.ref.Ref, Commit: commit,
 		AgentVersion: a.opts.Version, ScannedAt: a.now().UTC(), SBOM: doc,
 	})
+	if err != nil {
+		return err
+	}
+	a.reportStatus(ctx, t, commit, rc)
+	return nil
 }
 
 // boundedSet est un ensemble borné : au-delà de sa capacité, il oublie les plus anciens.

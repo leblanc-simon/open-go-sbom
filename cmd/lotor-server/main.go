@@ -25,13 +25,16 @@ import (
 	"leblanc.io/lotor/internal/config"
 	"leblanc.io/lotor/internal/dashboard"
 	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/delivery"
 	"leblanc.io/lotor/internal/download"
 	"leblanc.io/lotor/internal/finding"
 	"leblanc.io/lotor/internal/ingest"
 	"leblanc.io/lotor/internal/inventory"
 	"leblanc.io/lotor/internal/jobs"
 	"leblanc.io/lotor/internal/locale"
+	"leblanc.io/lotor/internal/notify"
 	"leblanc.io/lotor/internal/org"
+	"leblanc.io/lotor/internal/policy"
 	"leblanc.io/lotor/internal/project"
 	"leblanc.io/lotor/internal/render"
 	"leblanc.io/lotor/internal/sbom"
@@ -169,7 +172,23 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	triager := triage.NewService(triage.Options{Pool: pool, Comparer: grypeversion.New(), Logger: logger})
+	triager := triage.NewService(triage.Options{Pool: pool, Comparer: grypeversion.New(), Logger: logger,
+		OnChange: policy.OnTriageChange})
+	compiler, err := policy.NewCompiler()
+	if err != nil {
+		return err
+	}
+	policies := policy.NewService(policy.Options{Pool: pool, Compiler: compiler, PublicURL: cfg.Notify.PublicURL, Logger: logger})
+	sender := delivery.New(delivery.Options{Timeout: cfg.Notify.Timeout, AllowPrivate: cfg.Notify.AllowPrivateNetworks,
+		UserAgent: name + "/" + version, SMTP: delivery.SMTPConfig{Host: cfg.SMTP.Host, Port: cfg.SMTP.Port, TLS: cfg.SMTP.TLS,
+			Username: cfg.SMTP.Username, Password: cfg.SMTP.Password, From: cfg.SMTP.From, HELO: cfg.SMTP.HELO}})
+	notifier := notify.NewService(notify.Options{Pool: pool, Secrets: box, Sender: sender, Loader: policies, Catalog: catalog,
+		PublicURL: cfg.Notify.PublicURL, DigestHour: cfg.Notify.DigestHour, Logger: logger})
+	if n, err := notifier.RotateSecrets(ctx); err != nil {
+		return err
+	} else if n > 0 {
+		logger.Info("secrets des canaux rechiffrés avec la clé active", "count", n)
+	}
 	exports := search.NewExportLimiter(cfg.UserAPI.MaxExports, cfg.UserAPI.ExportTimeout)
 	reencodes := search.NewExportLimiter(cfg.Ingest.MaxReencodes, cfg.UserAPI.ExportTimeout)
 	vulndbScreen := web.VulnDBOptions{MaxAge: cfg.VulnDB.MaxAge, Offline: cfg.VulnDB.Offline, ListingURL: cfg.VulnDB.ListingURL,
@@ -200,6 +219,8 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Exports:               exports,
 			Reencodes:             reencodes,
 			Dashboard:             dash,
+			Policies:              policies,
+			Notify:                notifier,
 			VulnDB:                vulndbScreen,
 			Secrets:               box,
 			Auth:                  cfg.Auth,
@@ -212,6 +233,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		AgentAPI: &api.AgentOptions{
 			Agents:           agents,
 			Ingest:           ingester,
+			Verdicts:         policies,
 			RateLimit:        cfg.AgentAPI.RateLimit,
 			FailureRateLimit: cfg.AgentAPI.FailureRateLimit,
 			// La validation de la configuration garantit le TLS natif avec client_ca_file.
@@ -314,6 +336,9 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		if err := registerHistory(runner, scheduler, history); err != nil {
 			return err
 		}
+		if err := registerAlerts(runner, scheduler, policies, notifier); err != nil {
+			return err
+		}
 		if err := registerContainers(runner, scheduler, project.NewArchiver(pool, cfg.Containers.ArchiveAfter, nil)); err != nil {
 			return err
 		}
@@ -326,7 +351,8 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 // réanalyse du parc, vérification de la liste de distribution (sauf hors ligne).
 func registerAnalysis(cfg config.Config, runner *jobs.Runner, scheduler *jobs.Scheduler, pool *db.Pool, vulndb *vuln.Manager,
 	ingester *ingest.Service, triager *triage.Service, logger *slog.Logger) error {
-	analyzer := finding.NewAnalyzer(finding.Options{Pool: pool, Engine: vulndb, Blobs: ingester, Triage: triager, Logger: logger})
+	analyzer := finding.NewAnalyzer(finding.Options{Pool: pool, Engine: vulndb, Blobs: ingester, Triage: triager,
+		OnAnalyzed: policy.OnAnalyzed, Logger: logger})
 	source, err := grype.NewSource(download.New(name+"/"+version, cfg.VulnDB.DownloadTimeout), cfg.VulnDB.ListingURL)
 	if err != nil {
 		return err
@@ -390,6 +416,29 @@ func registerHistory(runner *jobs.Runner, scheduler *jobs.Scheduler, h *inventor
 		}
 	}
 	return scheduler.Register(inventory.RetentionSchedule())
+}
+
+// registerAlerts enregistre l'évaluation des politiques et l'envoi des notifications (T15).
+func registerAlerts(runner *jobs.Runner, scheduler *jobs.Scheduler, policies *policy.Service, notifier *notify.Service) error {
+	for _, r := range []struct {
+		kind string
+		h    jobs.Handler
+	}{
+		{policy.ProjectKind, policies.ProjectHandler()},
+		{policy.OrgKind, policies.OrgHandler()},
+		{policy.AllKind, policies.AllHandler()},
+		{notify.SendKind, notifier.SendHandler()},
+		{notify.DigestAllKind, notifier.DigestAllHandler()},
+		{notify.DigestOrgKind, notifier.DigestOrgHandler()},
+	} {
+		if err := runner.Register(r.kind, r.h); err != nil {
+			return err
+		}
+	}
+	if err := scheduler.Register(policy.Schedule()); err != nil {
+		return err
+	}
+	return scheduler.Register(notifier.DigestSchedule())
 }
 
 // registerContainers enregistre l'archivage des conteneurs absents (T13).

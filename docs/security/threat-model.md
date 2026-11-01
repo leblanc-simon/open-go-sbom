@@ -76,6 +76,17 @@ SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T1
 | Variable de secours oubliée en configuration | sans effet après application (ticket déjà journalisé), rappel à chaque démarrage | T03 |
 | Administrateur d'instance qui lit une organisation | non membre : 404 ; il ne voit que les métadonnées (liste, administrateurs) et chaque réinitialisation est auditée — rôle privilégié assumé | T03 |
 
+### Serveur — politiques et notifications
+
+| Menace | Parade | Lot |
+| --- | --- | --- |
+| Requête vers le réseau interne par une URL de canal (SSRF) : un administrateur d'organisation vise `169.254.169.254`, `localhost` ou un service interne | adresse vérifiée à la connexion, après la résolution DNS (un nom qui change d'adresse ne contourne rien) : bouclage, privé, lien local, partagé, non spécifié et multidiffusion refusés sauf `notify.allow_private_networks` ; aucune redirection suivie, aucun mandataire ; durée et réponse bornées ; l'erreur ne cite pas l'URL (ADR 0046) | T15 |
+| Vol des secrets des canaux (clé HMAC, jeton Matrix, URL de webhook entrant) | chiffrés par `internal/secret`, ligne en données associées (un chiffré recopié ne se déchiffre pas), rechiffrés au démarrage ; jamais réaffichés, jamais journalisés, absents de l'audit (`TestChannelSecretsAreSealed`) | T15 |
+| Faux message de lotor ou message rejoué chez le destinataire d'un webhook | `HMAC-SHA256(clé, horodatage + "." + corps)` dans `X-Lotor-Signature`, horodatage dans `X-Lotor-Timestamp`, identifiant de message stable pour écarter un doublon ; vérification documentée (`docs/notifications.md`) | T15 |
+| Règle CEL qui épuise le worker | coût estimé borné à l'enregistrement, même limite au coût réel de chaque évaluation, interruption dans les boucles, expression de 4 000 caractères au plus, 100 politiques par organisation (ADR 0045) | T15 |
+| Injection dans un message (en-têtes de courriel, liens ou mentions Slack) par un nom de projet ou de règle | retours à la ligne retirés des en-têtes, objet encodé ; `& < >` échappés pour Slack et Mattermost ; Matrix en texte brut | T15 |
+| Un membre voit les violations d'une autre équipe | filtre d'équipe sur la liste et le tableau de bord (projet du constat, équipe de l'agent) ; règles et canaux réservés aux administrateurs (`policy.manage`, `channel.manage`) | T15 |
+
 ### Serveur — API agent et ingestion
 
 | Menace | Parade | Lot |
@@ -155,6 +166,7 @@ SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T1
 | Saturation du récepteur exposé | corps borné, débit limité par IP, réponse immédiate, file bornée | T08 |
 | Dépôt trop gros ou trop lent | taille mesurée pendant le clonage (git tué au-delà), délais de clonage et de scan, répertoire supprimé quoi qu'il arrive | T08 |
 | Exécution de code du dépôt | aucun crochet git, LFS inerte, Syft sans `go list` ni réseau (`golang.UsePackagesLib=false`) | T08 |
+| Statut de commit falsifié ou droit d'écriture abusé | statut publié par l'agent seul, à partir du verdict du serveur ; jeton GitHub de statut séparé, restreint au dépôt et à `statuses: write` (le jeton du clonage reste en lecture) ; désactivé par défaut (ADR 0047) | T15 |
 | Vol des secrets de forge | détenus par l'agent seul, jamais en base ni en configuration en clair ; credentials systemd ou fichiers `0600` ; jamais dans les arguments de git, l'URL ni les journaux ; jeton GitHub restreint à `contents: read` et au dépôt analysé ; les droits du jeton GitLab bornent ce qu'une organisation peut faire analyser | T08, T11 |
 | Injection d'instructions vers l'IA : le dépôt fait lire au modèle des fichiers hors de l'arborescence ou des secrets | quatre outils seulement (lecture seule, sans réseau ni écriture), tout accès par un `os.Root` sur l'arborescence de l'analyse, chemins absolus et remontées refusés, fichiers sensibles (motifs, clés privées détectées) ni listés, ni lus, ni fouillés et indiscernables d'un fichier absent ; l'analyse ne reçoit aucun secret de l'agent ; prouvé par les dépôts hostiles du corpus avec un faux fournisseur enregistré (ADR 0043, 0044) | T12 |
 | Injection d'instructions vers l'IA : le dépôt fait inventer ou accepter un composant | seule sortie acceptée : `submit_candidates` validé par schéma ; vérificateur déterministe seul juge (extrait relu à la ligne, nom et version présents, purl cohérent) ; aucune preuve tirée de la documentation, d'un manifeste ou d'un fichier qui s'adresse au modèle, ni d'un extrait qui cite un purl (ADR 0043) | T12 |

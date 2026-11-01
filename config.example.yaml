@@ -212,3 +212,21 @@ retention:
 # son projet archivé ; il revient s'il redémarre.
 containers:
   archive_after: 168h         # 7 jours
+
+# Notifications des politiques (T15, docs/notifications.md, ADR 0046). Les canaux sont
+# créés par organisation dans l'interface ; leurs secrets sont chiffrés par secrets.keys.
+notify:
+  public_url: ""                 # URL publique du serveur (https://sbom.example.org) : liens des messages et des verdicts
+  timeout: 30s                   # durée maximale d'un envoi (requête HTTP ou session SMTP)
+  allow_private_networks: false  # true : les canaux peuvent viser une adresse privée ou locale (relais interne) ; sinon refusé (SSRF)
+  digest_hour: 7                 # heure UTC du résumé quotidien des violations (0 à 23)
+
+# Serveur d'envoi des courriels (canaux e-mail). Sans hôte, les canaux e-mail échouent.
+smtp:
+  host: ""            # serveur SMTP (vide : pas de courriel)
+  port: 587           # 587 avec starttls, 465 avec tls
+  tls: starttls       # starttls (exigé), tls (TLS implicite) ou none (relais local, sans authentification)
+  username: ""        # authentification PLAIN, toujours sous TLS ; vide : sans authentification
+  password: ""        # de préférence par LOTOR_SMTP_PASSWORD plutôt que dans ce fichier
+  from: ""            # expéditeur des notifications (lotor@example.org)
+  helo: localhost     # nom annoncé par EHLO

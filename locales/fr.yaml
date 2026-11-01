@@ -9,6 +9,9 @@ layout:
   home_link: Accueil
 
 nav:
+  violations: "Violations"
+  policies: "Politiques"
+  channels: "Canaux"
   triage: "Triage"
   search: Recherche
   tokens: Jetons d'accès
@@ -71,10 +74,15 @@ format:
   sbom_syft: Syft JSON
 
 form:
+  cancel: "Annuler"
   error_title: La saisie n'a pas été acceptée
   save: Enregistrer
 
 flash:
+  policy_saved: "Politique enregistrée ; son évaluation est en file."
+  policy_deleted: "Politique supprimée avec ses violations."
+  channel_saved: "Canal enregistré."
+  channel_deleted: "Canal supprimé."
   triage_saved: "Décision de triage enregistrée."
   triage_withdrawn: "Décision de triage retirée."
   vex_empty: "Aucune décision à exporter : triez d'abord des constats ouverts de ce projet."
@@ -124,6 +132,32 @@ pagination:
   next: Page suivante
 
 validation:
+  policy_expression_required: "Saisissez la règle (expression CEL)."
+  policy_expression_too_long: "La règle dépasse 4 000 caractères."
+  policy_syntax: "Erreur de syntaxe ligne {{.Line}}, colonne {{.Column}}."
+  policy_unknown_field: "Champ inconnu « {{.Name}} » ligne {{.Line}}, colonne {{.Column}}."
+  policy_unknown_name: "Nom inconnu « {{.Name}} » ligne {{.Line}}, colonne {{.Column}} : les variables sont listées dans l'aide."
+  policy_type: "Types incompatibles ligne {{.Line}}, colonne {{.Column}} (par exemple un texte comparé à un nombre)."
+  policy_invalid: "Règle invalide ligne {{.Line}}, colonne {{.Column}}."
+  policy_not_bool: "La règle doit donner vrai ou faux."
+  policy_too_costly: "La règle est trop coûteuse à évaluer : simplifiez les boucles imbriquées."
+  policy_name_invalid: "Le nom compte de 1 à 100 caractères."
+  policy_name_taken: "Une politique porte déjà ce nom."
+  policy_description_too_long: "La description dépasse 1 000 caractères."
+  policy_subject_invalid: "Choisissez ce que la règle évalue."
+  policy_delivery_invalid: "Choisissez un mode d'envoi."
+  policy_channels_invalid: "Un canal choisi n'existe plus, ou plus de 20 canaux sont choisis."
+  policies_too_many: "L'organisation a déjà 100 politiques."
+  policy_template_invalid: "Ce modèle n'est pas disponible pour ce sujet."
+  channel_name_invalid: "Le nom compte de 1 à 100 caractères."
+  channel_name_taken: "Un canal porte déjà ce nom."
+  channel_kind_invalid: "Nature de canal inconnue (elle ne change pas après la création)."
+  channel_recipients_invalid: "Saisissez de 1 à 20 adresses e-mail valides."
+  channel_url_invalid: "Adresse http(s) invalide."
+  channel_room_invalid: "Identifiant de salon Matrix attendu (!abc:serveur)."
+  channel_secret_required: "Ce canal exige un secret."
+  channel_secret_invalid: "Secret invalide (clé HMAC de 16 caractères au moins ; URL https d'un webhook entrant)."
+  channels_too_many: "L'organisation a déjà 50 canaux."
   triage_status_invalid: "Choisissez un statut de triage."
   triage_justification_required: "La justification VEX est obligatoire pour « non affecté »."
   triage_justification_invalid: "Justification VEX inconnue."
@@ -305,6 +339,11 @@ org:
   slug_hint: "Minuscules, chiffres et tirets ; il apparaît dans les adresses (/o/identifiant)."
 
 dashboard:
+  alerts_title: "Alertes"
+  alerts_meta: "{{.Open}} ouvertes · {{.Blocking}} bloquantes"
+  alerts_caption: "Violations de politiques les plus récentes"
+  alerts_none: "Aucune violation ouverte."
+  see_violations: "Toutes les violations"
   search_package: Rechercher le paquet
   title: Tableau de bord
   heading: Tableau de bord
@@ -416,6 +455,13 @@ audit:
   system: Système (démarrage)
   empty: Aucun événement pour l'instant.
   action:
+    policy_created: "Politique créée : {{.Target}}"
+    policy_updated: "Politique modifiée : {{.Target}}"
+    policy_deleted: "Politique supprimée : {{.Target}}"
+    channel_created: "Canal de notification créé : {{.Target}}"
+    channel_updated: "Canal de notification modifié : {{.Target}}"
+    channel_deleted: "Canal de notification supprimé : {{.Target}}"
+    channel_tested: "Message de test envoyé sur {{.Target}} ({{.D_outcome}})"
     triage_decided: "Décision de triage {{.D_status}} ({{.D_scope}}) sur {{.Target}}"
     triage_withdrawn: "Décision de triage retirée ({{.D_scope}}) sur {{.Target}}"
     triage_expired: "Risque accepté échu le {{.D_expires_on}} : {{.Target}} revient à analyser"
@@ -564,6 +610,14 @@ admin_org:
   unarchive: Réactiver
 
 error:
+  notify:
+    failed: "L'envoi a échoué."
+    unreachable: "Le destinataire est injoignable (réseau, nom ou délai)."
+    private_address: "Adresse privée ou locale refusée (protection contre les requêtes internes)."
+    status: "Le destinataire a refusé le message (statut HTTP hors 2xx)."
+    smtp: "Le serveur SMTP a refusé le message."
+    smtp_unconfigured: "Aucun serveur SMTP n'est configuré sur cette instance."
+    secret: "Le secret du canal est illisible : saisissez-le de nouveau."
   vex_empty:
     title: "Aucune décision à exporter"
     text: "Ce projet n'a aucun constat ouvert portant une décision de triage."
@@ -1545,6 +1599,12 @@ sitemap:
   admin: "Administration de l'instance"
 
 confirm:
+  policy_heading: "Supprimer la politique « {{.Name}} » ?"
+  policy_text: "La politique, ses {{.Count}} violations ouvertes et leur historique sont supprimés ; les notifications en attente ne partiront pas. L'action est journalisée."
+  policy_submit: "Supprimer la politique"
+  channel_heading: "Supprimer le canal « {{.Name}} » ?"
+  channel_text: "Le canal est retiré des {{.Count}} politiques qui l'utilisent ; ses envois en attente sont abandonnés et son secret effacé."
+  channel_submit: "Supprimer le canal"
   triage_withdraw_heading: "Retirer la décision « {{.Status}} » sur {{.ID}} ?"
   triage_withdraw_project_text: "Les constats de {{.Component}} dans ce projet reprendront la décision de l'organisation, ou « à analyser ». La décision reste dans l'historique."
   triage_withdraw_org_text: "Les constats de {{.Component}} qui en héritaient, dans tous les projets, reprendront « à analyser » (sauf décision propre à un projet). La décision reste dans l'historique."
@@ -1884,3 +1944,186 @@ compare:
   approximate: "Versions incomparables : sens déduit de l'ordre alphabétique"
   none_of_kind: Aucun changement de cette nature.
   identical: Les deux instantanés ont le même inventaire.
+
+policies:
+  title: "Politiques"
+  heading: "Politiques"
+  lead: "Des règles déclaratives évaluées après chaque analyse et chaque jour ; chaque violation est datée, et une règle bloquante rend non conforme le statut des commits."
+  new: "Nouvelle politique"
+  list_title: "Règles de l'organisation"
+  limit: "{{.Max}} politiques au plus"
+  col_name: "Nom"
+  col_subject: "Évalue"
+  col_state: "État"
+  col_delivery: "Envoi"
+  col_open: "Violations ouvertes"
+  enabled: "Active"
+  disabled: "Inactive"
+  blocking: "Bloquante"
+  eval_error: "Erreur d'évaluation"
+  see_violations: "violations de {{.Name}}"
+  delete: "Supprimer"
+  empty: "Aucune politique pour l'instant : partez d'un modèle ci-dessous."
+  templates_title: "Modèles fournis"
+  use_template: "Utiliser ce modèle"
+  template_unavailable: "Disponible avec l'analyse des licences"
+policy_subject:
+  finding: "Constats"
+  finding_desc: "Chaque constat ouvert, avec son projet, son composant, sa référence et son statut de triage."
+  agent: "Agents"
+  agent_desc: "Chaque agent non désactivé, avec son état et la durée de son silence."
+policy_delivery:
+  immediate: "Envoi immédiat"
+  digest: "Résumé quotidien"
+  none: "Aucun envoi"
+policy_template:
+  kev_production:
+    name: "KEV sur un projet de production"
+    text: "Une vulnérabilité du catalogue KEV, encore à traiter, sur un projet étiqueté env=production."
+  critical_fix_30d:
+    name: "Critique avec correctif depuis plus de 30 jours"
+    text: "Une vulnérabilité critique, encore à traiter, dont un correctif est connu depuis plus de 30 jours."
+  agent_silent_7d:
+    name: "Agent muet depuis 7 jours"
+    text: "Un agent qui n'a rien envoyé (serveur) ou rien contacté (dépôt) depuis 7 jours."
+  license_agpl:
+    name: "Licence AGPL dans un produit distribué"
+    text: "Un composant sous licence AGPL dans un projet distribué ; livré avec l'analyse des licences (lot 3)."
+policy_form:
+  title_new: "Nouvelle politique"
+  title_edit: "Politique {{.Name}}"
+  heading_new: "Nouvelle politique"
+  heading_edit: "Politique {{.Name}}"
+  lead: "La règle est vérifiée avant l'enregistrement ; l'aperçu compte les violations qu'elle ouvrirait aujourd'hui, sans rien enregistrer."
+  form_title: "Règle"
+  name: "Nom"
+  summary: "Description"
+  subject: "Ce que la règle évalue"
+  expression: "Règle (expression CEL)"
+  expression_hint: "Une expression vraie pour chaque sujet en violation ; variables et exemples dans l'aide."
+  enabled: "Active"
+  blocking: "Bloquante"
+  blocking_hint: "Une violation bloquante rend non conforme le statut du commit publié par l'agent dépôt."
+  delivery: "Envoi des violations"
+  channels: "Canaux"
+  no_channels: "Aucun canal de notification."
+  add_channel: "Créer un canal"
+  preview: "Aperçu"
+  preview_title: "Aperçu"
+  preview_finding:
+    one: "La règle serait violée par {{.Count}} constat ouvert aujourd'hui."
+    other: "La règle serait violée par {{.Count}} constats ouverts aujourd'hui."
+  preview_agent:
+    one: "La règle serait violée par {{.Count}} agent aujourd'hui."
+    other: "La règle serait violée par {{.Count}} agents aujourd'hui."
+  preview_failures:
+    one: "{{.Count}} évaluation a échoué (par exemple une étiquette absente) et compte comme non violée."
+    other: "{{.Count}} évaluations ont échoué (par exemple une étiquette absente) et comptent comme non violées."
+  expr_error_title: "La règle n'est pas valide"
+  expr_detail: "Détail :"
+  last_error_title: "Dernière erreur d'évaluation"
+policy_help:
+  title: "Aide"
+  intro: "Une règle est une expression CEL vraie pour chaque sujet en violation. Les champs disponibles sont listés sous chaque variable ; un champ inconnu est refusé."
+  project: "Le projet du constat : nom, slug, nature (repo, host, container), équipe, étiquettes (table : has(project.labels.env) teste une étiquette ; un conteneur hérite de celles de son hôte), hôte d'un conteneur."
+  component: "Le composant : purl, famille (purl_base), type, nom, version."
+  finding: "Le constat : identifiant, sévérité, scores, KEV, correctif (fix_available, fix_age_days en jours), âge en jours, actionable (à analyser ou affecté)."
+  triage: "Le statut de triage effectif : in_triage, affected, not_affected, false_positive, risk_accepted, fixed."
+  ref: "La référence suivie : nature (branch, tag, host, container) et nom."
+  agent: "L'agent : nom, nature, version, équipe, état, jours de silence, dernier contact."
+  now: "L'instant de l'évaluation (horodatage)."
+  examples: "Exemples, ceux des modèles fournis :"
+violations:
+  title: "Violations"
+  heading: "Violations"
+  lead: "Les sujets qui violent une politique active, de leur ouverture à leur résolution ; une violation n'est notifiée qu'une fois."
+  tabs_label: "État des violations"
+  tab_open: "Ouvertes"
+  tab_resolved: "Résolues"
+  open_title: "Violations ouvertes"
+  resolved_title: "Violations résolues"
+  filtered: "Politique :"
+  clear_filter: "Toutes les politiques"
+  col_policy: "Politique"
+  col_subject: "Sujet"
+  col_project: "Projet"
+  col_opened: "Ouverte"
+  col_resolved: "Résolue"
+  agent: "Agent"
+  no_project: "Sans projet"
+  empty_open: "Aucune violation ouverte."
+  empty_resolved: "Aucune violation résolue."
+channels:
+  title: "Canaux de notification"
+  heading: "Canaux de notification"
+  lead: "Où partent les violations : e-mail, webhook signé, Matrix, Mattermost ou Slack. Les secrets sont chiffrés et ne sont jamais réaffichés."
+  new: "Nouveau canal"
+  list_title: "Canaux de l'organisation"
+  limit: "{{.Max}} canaux au plus"
+  col_name: "Nom"
+  col_kind: "Nature"
+  col_target: "Destination"
+  col_last: "Derniers envois"
+  col_policies: "Politiques"
+  disabled: "inactif"
+  target_secret: "URL secrète"
+  last_success: "Réussi"
+  last_failure: "Échec"
+  never: "Aucun envoi"
+  test: "Envoyer un test"
+  delete: "Supprimer"
+  empty: "Aucun canal pour l'instant."
+  test_sent_title: "Message de test envoyé"
+  test_sent: "Le message de test est parti sur « {{.Name}} »."
+  test_failed_title: "Message de test en échec"
+  test_failed: "Le message de test n'a pas pu partir sur « {{.Name}} »."
+channel_form:
+  title_new: "Nouveau canal"
+  title_edit: "Canal {{.Name}}"
+  heading_new: "Nouveau canal"
+  heading_edit: "Canal {{.Name}}"
+  lead: "Seuls les champs de la nature choisie sont lus ; les autres sont ignorés."
+  form_title: "Canal"
+  name: "Nom"
+  kind: "Nature"
+  fields_hint: "E-mail : destinataires. Webhook : URL et clé HMAC. Matrix : serveur, salon et jeton. Mattermost et Slack : URL du webhook entrant, comme secret."
+  recipients: "Destinataires (e-mail)"
+  recipients_hint: "Une adresse par ligne ou séparées par des virgules, 20 au plus."
+  url: "URL (webhook générique)"
+  url_hint: "Adresse qui reçoit un POST JSON signé ; format décrit dans la documentation des notifications."
+  homeserver: "Serveur (Matrix)"
+  homeserver_hint: "Adresse du serveur, par exemple https://matrix.example.org."
+  room: "Salon (Matrix)"
+  room_hint: "Identifiant interne du salon, par exemple !abcdef:example.org."
+  secret: "Secret"
+  secret_hint: "Clé HMAC du webhook (16 caractères au moins), jeton d'accès Matrix, ou URL du webhook entrant Mattermost ou Slack. Chiffré, jamais réaffiché."
+  secret_keep: "Laisser vide pour garder le secret actuel."
+  enabled: "Actif"
+channel_kind:
+  email: "E-mail"
+  email_desc: "Un courriel par le serveur SMTP de l'instance."
+  webhook: "Webhook générique"
+  webhook_desc: "Un POST JSON signé en HMAC-SHA256 avec horodatage."
+  matrix: "Matrix"
+  matrix_desc: "Un message dans un salon, par un compte et son jeton d'accès."
+  mattermost: "Mattermost"
+  mattermost_desc: "Un message par un webhook entrant."
+  slack: "Slack"
+  slack_desc: "Un message par un webhook entrant."
+notify:
+  subject_test: "lotor : message de test ({{.Org}})"
+  test_text: "Ce canal reçoit les alertes des politiques de l'organisation {{.Org}}."
+  subject_digest: "lotor : résumé quotidien des violations ({{.Org}})"
+  digest_text: "Violations ouvertes depuis le dernier résumé : {{.Count}}."
+  subject_opened: "lotor : nouvelles violations ({{.Org}})"
+  opened_text: "Nouvelles violations de politiques : {{.Count}}."
+  more: "… et {{.Count}} autres"
+  line_finding: "{{.Policy}} : {{.Vuln}} ({{.Severity}}) dans {{.Component}}, projet {{.Project}} ({{.Ref}})"
+  line_agent: "{{.Policy}} : agent {{.Agent}}"
+  kev: "[KEV]"
+  blocking: "[bloquante]"
+verdict:
+  pending: "Analyse et politiques en cours"
+  pass: "Conforme aux politiques"
+  pass_warnings: "Conforme ; avertissements : {{.Count}}"
+  fail: "Non conforme : violations bloquantes {{.Count}} ({{.Policies}})"

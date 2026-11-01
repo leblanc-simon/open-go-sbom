@@ -12,10 +12,12 @@ tool (
 )
 
 require (
+	cel.dev/cel-go v0.32.0
 	github.com/CycloneDX/cyclonedx-go v0.12.0
 	github.com/anchore/clio v0.1.1
 	github.com/anchore/grype v0.121.0
 	github.com/anchore/syft v1.55.0
+	github.com/anthropics/anthropic-sdk-go/v2 v2.4.0
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.12.0
@@ -77,7 +79,7 @@ require (
 	github.com/anchore/packageurl-go v0.2.0 // indirect
 	github.com/anchore/stereoscope v0.3.4 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
-	github.com/anthropics/anthropic-sdk-go/v2 v2.4.0 // indirect
+	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v17 v17.0.1 // indirect

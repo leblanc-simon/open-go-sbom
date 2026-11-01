@@ -31,6 +31,7 @@ type Config struct {
 	Work    WorkConfig      `yaml:"work"    env-prefix:"LOTOR_REPO_"`
 	Catchup CatchupConfig   `yaml:"catchup" env-prefix:"LOTOR_REPO_"`
 	AI      AIConfig        `yaml:"ai"      env-prefix:"LOTOR_REPO_"`
+	Status  StatusConfig    `yaml:"status"  env-prefix:"LOTOR_REPO_"`
 	// Forges ne se déclarent que dans le fichier de configuration.
 	Forges []Forge `yaml:"forges"`
 }
@@ -202,6 +203,10 @@ func (c Config) Validate() error {
 	}
 	if c.Work.QueueSize < 1 || c.Work.QueueSize > maxQueue {
 		errs = append(errs, fmt.Errorf("work.queue_size entre 1 et %d", maxQueue))
+	}
+	if c.Status.Enabled && (c.Status.Context == "" || len(c.Status.Context) > 100 || c.Status.Timeout <= 0 ||
+		c.Status.Timeout > 2*time.Hour || c.Status.Poll <= 0) {
+		errs = append(errs, errors.New("status : context de 1 à 100 caractères, timeout dans ]0, 2h], poll positif"))
 	}
 	if c.Work.CloneTimeout <= 0 || c.Work.ScanTimeout <= 0 {
 		errs = append(errs, errors.New("work.clone_timeout et work.scan_timeout doivent être positifs"))

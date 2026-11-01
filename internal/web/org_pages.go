@@ -25,9 +25,16 @@ func orgNav(acc tenant.Access, current string) []render.NavItem {
 		{LabelKey: "nav.agents", Href: base + "/agents", Current: current == "agents"},
 		{LabelKey: "nav.teams", Href: base + "/teams", Current: current == "teams"},
 		{LabelKey: "nav.members", Href: base + "/members", Current: current == "members"},
+		{LabelKey: "nav.violations", Href: base + "/violations", Current: current == "violations"},
 	}
 	if acc.Can(tenant.PermTriageOrg, uuid.Nil) {
 		nav = append(nav, render.NavItem{LabelKey: "nav.triage", Href: base + "/triage", Current: current == "triage"})
+	}
+	if acc.Can(tenant.PermPolicyManage, uuid.Nil) {
+		nav = append(nav, render.NavItem{LabelKey: "nav.policies", Href: base + "/policies", Current: current == "policies"})
+	}
+	if acc.Can(tenant.PermChannelManage, uuid.Nil) {
+		nav = append(nav, render.NavItem{LabelKey: "nav.channels", Href: base + "/channels", Current: current == "channels"})
 	}
 	if acc.Can(tenant.PermOrgManage, uuid.Nil) {
 		nav = append(nav,

@@ -40,7 +40,9 @@ import (
 	"leblanc.io/lotor/internal/inventory"
 	"leblanc.io/lotor/internal/jobs"
 	"leblanc.io/lotor/internal/locale"
+	"leblanc.io/lotor/internal/notify"
 	"leblanc.io/lotor/internal/org"
+	"leblanc.io/lotor/internal/policy"
 	"leblanc.io/lotor/internal/project"
 	"leblanc.io/lotor/internal/render"
 	"leblanc.io/lotor/internal/sbom"
@@ -92,6 +94,9 @@ type app struct {
 	reencode *search.ExportLimiter
 	dash     *dashboard.Service
 	triage   *triage.Service
+	policies *policy.Service
+	notify   *notify.Service
+	sent     *notifyRecorder
 	clock    *testClock
 	box      *secret.Box
 	handler  http.Handler
@@ -116,6 +121,29 @@ func (s *syncBuffer) String() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.buf.String()
+}
+
+// notifyRecorder est un envoyeur de notifications de test : il garde les requêtes et
+// les courriels, et échoue si err est posé.
+type notifyRecorder struct {
+	mu       sync.Mutex
+	requests []notify.Request
+	mails    []notify.Mail
+	err      error
+}
+
+func (n *notifyRecorder) Do(_ context.Context, r notify.Request) error {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.requests = append(n.requests, r)
+	return n.err
+}
+
+func (n *notifyRecorder) Mail(_ context.Context, m notify.Mail) error {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.mails = append(n.mails, m)
+	return n.err
 }
 
 type appOption func(*RouterOptions)
@@ -156,7 +184,16 @@ func newApp(t *testing.T, opts ...appOption) *app {
 		inv: inventory.NewService(tdb.App), search: search.NewService(tdb.App, grypeversion.New()),
 		exports: search.NewExportLimiter(2, time.Minute), reencode: search.NewExportLimiter(2, time.Minute),
 		dash: dashboard.NewService(tdb.App, dashboard.WithClock(clock.Now))}
-	a.triage = triage.NewService(triage.Options{Pool: tdb.App, Comparer: grypeversion.New(), Now: clock.Now})
+	a.triage = triage.NewService(triage.Options{Pool: tdb.App, Comparer: grypeversion.New(), Now: clock.Now,
+		OnChange: policy.OnTriageChange})
+	compiler, err := policy.NewCompiler()
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.policies = policy.NewService(policy.Options{Pool: tdb.App, Compiler: compiler, PublicURL: "https://sbom.example.org", Now: clock.Now})
+	a.sent = &notifyRecorder{}
+	a.notify = notify.NewService(notify.Options{Pool: tdb.App, Secrets: box, Sender: a.sent, Loader: a.policies, Catalog: cat,
+		PublicURL: "https://sbom.example.org", Now: clock.Now})
 	if a.history, err = inventory.NewHistory(inventory.HistoryOptions{Pool: tdb.App, Comparer: grypeversion.New(),
 		Retention: inventory.DefaultRetention(), Clock: jobs.ClockFunc(clock.Now)}); err != nil {
 		t.Fatal(err)
@@ -175,13 +212,14 @@ func newApp(t *testing.T, opts ...appOption) *app {
 			Inventory: a.inv, History: a.history, Ingest: a.ingest, Findings: finding.NewService(tdb.App), Triage: a.triage,
 			Search: a.search, Exports: a.exports, Reencodes: a.reencode,
 			Dashboard: dashboard.NewService(tdb.App, dashboard.WithClock(clock.Now)),
+			Policies:  a.policies, Notify: a.notify,
 			VulnDB: VulnDBOptions{MaxAge: 120 * time.Hour, ListingURL: "https://grype.anchore.io/databases/v6/latest.json",
 				SyncInterval: time.Minute, MaxArchive: 1 << 20, UploadTimeout: time.Minute},
 			Auth:           appconf.Auth{SessionTTL: time.Hour, CookieName: "lotor_session", CookieSecure: "off", BcryptCost: testCost},
 			MFA:            appconf.MFA{Issuer: "lotor", ChallengeTTL: time.Minute, MaxAttempts: 3},
 			LoginRateLimit: 0,
 		},
-		AgentAPI: &apiv1.AgentOptions{Agents: a.agents, Ingest: a.ingest},
+		AgentAPI: &apiv1.AgentOptions{Agents: a.agents, Ingest: a.ingest, Verdicts: a.policies},
 		UserAPI: &apiv1.UserOptions{Pool: tdb.App, Accounts: a.accounts, Orgs: a.orgs, Search: a.search,
 			Exports: search.NewExportLimiter(2, time.Minute), Projects: a.projects, Inventory: a.inv, History: a.history,
 			Findings: finding.NewService(tdb.App), Triage: a.triage, Version: "test"},

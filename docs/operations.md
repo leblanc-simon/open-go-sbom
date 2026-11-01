@@ -822,6 +822,46 @@ statut effectif est recopié sur chaque constat (`findings.triage_status`).
 - Décisions et imports sont au journal d'audit de l'organisation (`triage.decided`,
   `triage.withdrawn`, `triage.expired`, `triage.vex_imported`).
 
+## Politiques et notifications
+
+Les politiques (ADR 0045) s'évaluent dans les workers : après chaque analyse
+(`policy.evaluate_project`, priorité haute), après chaque changement de triage ou de règle,
+et chaque jour à 02:00 UTC (`policy.evaluate_all`, puis `policy.evaluate_org` par
+organisation). Les notifications (ADR 0046) partent par le job `notify.send` d'un canal ;
+le résumé quotidien par `notify.digest_all` à `notify.digest_hour`. Il faut une instance à
+workers. Format des messages et du webhook : [`notifications.md`](notifications.md).
+
+Configuration (`config.example.yaml`) :
+
+- `notify.public_url` : URL publique du serveur, pour les liens des messages et des
+  verdicts de commit (`https://sbom.example.org`). Vide : messages sans lien.
+- `notify.timeout` (30 s) : durée maximale d'un envoi.
+- `notify.allow_private_networks` (`false`) : les canaux saisis par les administrateurs
+  d'organisation ne peuvent joindre **aucune adresse de bouclage, privée, de lien local,
+  partagée ni de multidiffusion** (protection contre les requêtes vers le réseau interne,
+  SSRF) ; la vérification se fait à la connexion, après la résolution DNS. Ne le passer à
+  `true` que si toutes les organisations de l'instance sont de confiance (relais
+  interne). Les envois HTTP ne passent par **aucun mandataire** (`HTTPS_PROXY` est ignoré) :
+  un serveur qui ne sort que par un proxy ne joint que les canaux e-mail.
+- `smtp.*` : serveur d'envoi des courriels. `tls: starttls` (port 587, STARTTLS exigé
+  avant tout mot de passe), `tls` (TLS implicite, port 465) ou `none` (relais local, sans
+  authentification). `smtp.from` est l'expéditeur ; le mot de passe se donne de préférence
+  par `LOTOR_SMTP_PASSWORD`. Sans `smtp.host`, un canal e-mail échoue avec « Aucun serveur
+  SMTP n'est configuré » (visible sur la liste des canaux et à l'essai).
+
+Exploitation :
+
+- Un canal en panne voit ses envois réessayés une dizaine d'heures (30 tentatives), puis
+  relancés chaque jour ; un job `notify.send` épuisé apparaît dans « Administration » →
+  « Traitements » et peut être relancé.
+- Les secrets des canaux sont chiffrés par `secrets.keys` (voir « Clés de chiffrement des
+  secrets ») et rechiffrés avec la clé active au démarrage.
+- Journal d'audit de l'organisation : `policy.created`, `policy.updated`,
+  `policy.deleted`, `channel.created`, `channel.updated`, `channel.deleted`,
+  `channel.tested`.
+- La migration 021 crée les tables des politiques et des canaux et date le correctif des
+  constats existants (`fixed_seen_at`) à leur première détection.
+
 ## Agent dépôt
 
 `lotor-repo-agent` est un service externe aux CI : il détient seul les accès aux forges,
@@ -916,8 +956,9 @@ commentée et unité systemd durcie : `deploy/lotor-repo-agent/`.
    valeur aléatoire (`openssl rand -hex 32`), conservée pour l'agent.
 2. **Droits minimaux** (*Repository permissions*) : **Contents : Read-only** (clonage,
    lecture des références et comparaisons) ; *Metadata : Read-only* est imposé par GitHub.
-   Aucun autre droit, aucun droit d'organisation ni de compte. (T15 ajoutera *Commit
-   statuses : Read and write* pour publier le verdict.) Événements : **Push** seulement.
+   Aucun autre droit, aucun droit d'organisation ni de compte, sauf **Commit statuses :
+   Read and write** si l'agent publie le verdict des politiques (« Statut de commit »
+   ci-dessous). Événements : **Push** seulement.
 3. Générer une clé privée (fichier PEM) ; noter l'*App ID*.
 4. Installer l'application sur l'organisation, en limitant l'accès aux dépôts suivis
    (*Only select repositories*). L'installation est trouvée pour chaque dépôt ; la fixer
@@ -949,6 +990,25 @@ réponse 202.
 
 Le secret est comparé en temps constant à `X-Gitlab-Token`. Vérification : *Test › Push
 events* sur la page du webhook doit répondre 202 ; un secret faux, 401.
+
+### Statut de commit
+
+Avec `status.enabled: true` (`LOTOR_REPO_STATUS_ENABLED`), l'agent attend le verdict des
+politiques après chaque envoi (au plus `status.timeout`, 15 min) et le publie sur le commit
+sous le nom `status.context` (`lotor`) ; voir [`notifications.md`](notifications.md#statut-de-commit-agent-dépôt)
+et l'ADR 0047. Désactivé par défaut, car il demande un droit de plus :
+
+- **GitHub** : permission *Commit statuses : Read and write* de l'application (puis
+  accepter la nouvelle permission sur chaque installation). L'agent demande pour cela un
+  jeton séparé, restreint au dépôt et à `statuses: write` ; le jeton du clonage reste en
+  lecture seule.
+- **GitLab** : portée `api` (au lieu de `read_api`) et rôle **Developer** sur les projets
+  suivis pour le compte de service.
+
+Le serveur doit avoir `notify.public_url` pour que le statut porte un lien. Pendant
+l'attente, le commit suivant de la même référence attend son tour ; un verdict non rendu
+dans le délai laisse le statut « en attente » (journal : `verdict non rendu dans le
+délai`). Un refus de la forge est journalisé et n'empêche pas l'envoi du SBOM.
 
 ### Recette sur une vraie forge
 
@@ -1104,8 +1164,8 @@ T18) et confirmer ou changer le modèle par défaut.
 
 ## Clés de chiffrement des secrets
 
-Les secrets stockés en base (canaux de notification, OIDC, dans les lots qui les
-introduisent) sont chiffrés en AES-256-GCM par des clés nommées :
+Les secrets stockés en base (secrets TOTP, secrets des canaux de notification, puis OIDC)
+sont chiffrés en AES-256-GCM par des clés nommées :
 `secrets.keys` (`LOTOR_SECRETS_KEYS=id:base64,…`) et `secrets.active_key`. Générer une
 clé : `openssl rand -base64 32`. Un nom de clé : minuscules, chiffres, `-` et `_`, 32
 caractères au plus (par exemple la date : `2026-10`).
@@ -1115,8 +1175,9 @@ perdre toutes impose de réinitialiser le TOTP de chaque compte.
 
 Rotation : ajouter la nouvelle clé à côté de l'ancienne, la désigner comme active,
 redémarrer ; les nouveaux secrets sont chiffrés avec elle, les anciens restent lisibles.
-Au démarrage, le serveur rechiffre les secrets TOTP avec la clé active (le journal donne
-leur nombre) : l'ancienne clé peut être retirée au démarrage suivant.
+Au démarrage, le serveur rechiffre les secrets TOTP et ceux des canaux de notification
+avec la clé active (le journal donne leur nombre) : l'ancienne clé peut être retirée au
+démarrage suivant.
 
 ## Sauvegarde et restauration
 

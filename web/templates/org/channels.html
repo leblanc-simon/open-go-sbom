@@ -1,0 +1,77 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{T "channels.heading"}}</h1>
+      <a class="btn btn--primary" href="{{.NewHref}}">{{T "channels.new"}}</a>
+    </div>
+    <p class="page-head__lead">{{T "channels.lead"}}</p>
+  </div>
+  {{template "flash" .FlashKey}}
+  {{- with .Test}}
+  {{- if .OK}}
+  <div class="callout callout--success" role="status">
+    <div class="callout__body">
+      <p class="callout__title">{{T "channels.test_sent_title"}}</p>
+      <p class="callout__text">{{T "channels.test_sent" "Name" .Name}}</p>
+    </div>
+  </div>
+  {{- else}}
+  <div class="callout callout--danger" role="alert">
+    <div class="callout__body">
+      <p class="callout__title">{{T "channels.test_failed_title"}}</p>
+      <p class="callout__text">{{T "channels.test_failed" "Name" .Name}} {{T .ErrorKey}}</p>
+    </div>
+  </div>
+  {{- end}}
+  {{- end}}
+  <section class="panel" aria-labelledby="channels-list">
+    <div class="panel__head">
+      <h2 class="panel__title" id="channels-list">{{T "channels.list_title"}}</h2>
+      <span class="panel__meta">{{T "channels.limit" "Max" .Max}}</span>
+    </div>
+    {{- if .Rows}}
+    <div class="table-wrap" role="group" aria-labelledby="channels-list" tabindex="0">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "channels.list_title"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "channels.col_name"}}</th>
+            <th scope="col">{{T "channels.col_kind"}}</th>
+            <th scope="col">{{T "channels.col_target"}}</th>
+            <th scope="col">{{T "channels.col_last"}}</th>
+            <th scope="col" class="num">{{T "channels.col_policies"}}</th>
+            <th scope="col"><span class="visually-hidden">{{T "table.actions"}}</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{- range .Rows}}
+          <tr>
+            <th scope="row"><span class="cell-stack"><a href="{{.Href}}">{{.Name}}</a>{{if not .Enabled}}<span class="status status--revoked">{{T "channels.disabled"}}</span>{{end}}</span></th>
+            <td>{{T .KindKey}}</td>
+            <td><span class="mono">{{with .Target}}{{.}}{{else}}<span class="muted">{{T "channels.target_secret"}}</span>{{end}}</span></td>
+            <td><span class="cell-stack">
+              {{- with .Success}}<span>{{T "channels.last_success"}} {{template "stamp" .}}</span>{{end}}
+              {{- with .Failure}}<span>{{T "channels.last_failure"}} {{template "stamp" .}}</span>{{end}}
+              {{- with .LastErrorKey}}<span class="status status--warning">{{T .}}</span>{{end}}
+              {{- if and (not .Success) (not .Failure)}}<span class="muted">{{T "channels.never"}}</span>{{end}}
+            </span></td>
+            <td class="num">{{.Policies}}</td>
+            <td class="cell-actions">
+              <form class="form--inline" method="post" action="{{.TestAction}}">
+                {{csrfField $.Page.CSRFToken}}
+                <button type="submit" class="btn btn--sm">{{T "channels.test"}}<span class="visually-hidden"> {{.Name}}</span></button>
+              </form>
+              <a class="btn btn--sm" href="{{.DeleteHref}}">{{T "channels.delete"}}<span class="visually-hidden"> {{.Name}}</span></a>
+            </td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{- else}}
+    <div class="panel__body"><p>{{T "channels.empty"}}</p></div>
+    {{- end}}
+  </section>
+</div>
+{{- end}}

@@ -101,6 +101,8 @@ type Provider interface {
 	// intérêt (ping, autre événement) donne (nil, nil) ; un webhook mal signé,
 	// ErrSignature ; un corps illisible, ErrPayload.
 	VerifyWebhook(header http.Header, body []byte) (*Push, error)
+	// SetStatus publie le statut d'un commit (verdict des politiques, T15).
+	SetStatus(ctx context.Context, repo, commit string, s CommitStatus) error
 }
 
 // Erreurs communes aux forges.

@@ -290,3 +290,71 @@ son historique.
 - **Listes et recherche** : les conteneurs n'y figurent que si « Inclure les conteneurs »
   est coché ; le tableau de bord de l'organisation, lui, les compte avec les autres
   projets.
+## Politiques et alertes
+
+Une **politique** est une règle évaluée sur chaque constat ouvert, ou sur chaque agent :
+quand elle est vraie, une **violation** s'ouvre, datée ; elle se résout d'elle-même quand la
+règle cesse d'être vraie (version corrigée, constat déclaré non affecté, agent revenu…).
+Les administrateurs de l'organisation gèrent les politiques dans **Politiques** et les
+canaux dans **Canaux** ; tout membre voit les violations des projets de ses équipes dans
+**Violations**, et les plus récentes dans la section « Alertes » du tableau de bord.
+
+### Modèles fournis
+
+| Modèle | Règle | Par défaut |
+| --- | --- | --- |
+| KEV sur un projet de production | `finding.kev && finding.actionable && has(project.labels.env) && project.labels.env == "production"` | bloquante, envoi immédiat |
+| Critique avec correctif depuis plus de 30 jours | `finding.severity == "critical" && finding.actionable && finding.fix_available && finding.fix_age_days > 30` | bloquante, résumé quotidien |
+| Agent muet depuis 7 jours | `agent.silent_days >= 7` | résumé quotidien |
+| Licence AGPL dans un produit distribué | — | disponible avec l'analyse des licences (lot 3) |
+
+« Production » se dit par l'étiquette `env=production` du projet. La date d'un correctif
+est celle où lotor l'a vu pour la première fois sur le constat.
+
+### Écrire une règle
+
+Les règles s'écrivent en [CEL](https://cel.dev). Variables d'une règle de constat :
+
+- `project` : `name`, `slug`, `kind` (`repo`, `host`, `container`), `team`, `labels`
+  (table : `has(project.labels.env)` teste une étiquette, `project.labels.env` la lit),
+  `host` (nom du projet de l'hôte d'un conteneur, vide sinon) ; un conteneur **hérite des
+  étiquettes de son hôte**, les siennes l'emportant ;
+- `component` : `purl`, `purl_base`, `type`, `name`, `version` ;
+- `finding` : `vuln_id`, `severity` (`critical`, `high`, `medium`, `low`, `negligible`,
+  `unknown`), `cvss`, `epss`, `epss_percentile`, `risk` (0 à 100), `kev`,
+  `fix_available`, `fixed_versions`, `fix_age_days`, `first_seen`, `age_days`,
+  `match_type`, `actionable` (statut « à analyser » ou « affecté ») ;
+- `triage` : `status` (`in_triage`, `affected`, `not_affected`, `false_positive`,
+  `risk_accepted`, `fixed`) ;
+- `ref` : `kind` (`branch`, `tag`, `host`, `container`), `name` ;
+- `now` : l'instant de l'évaluation.
+
+Les violations d'un conteneur archivé après 7 jours d'absence quittent aussitôt les
+listes et sont résolues à l'évaluation suivante ; un conteneur n'a pas d'agent propre :
+« agent muet » porte sur l'agent de son hôte.
+
+Une règle d'agent lit `agent` : `name`, `kind` (`host`, `repo`), `version`, `team`,
+`state` (`pending`, `active`, `silent`), `silent_days`, `last_seen`.
+
+Exemples : `finding.epss_percentile > 0.95 && finding.actionable` ;
+`component.purl_base == "pkg:npm/lodash" && finding.severity in ["critical", "high"]` ;
+`ref.kind == "tag" && finding.kev`.
+
+Avant l'enregistrement, la règle est vérifiée : une erreur de syntaxe, un champ inconnu,
+des types incompatibles, un résultat qui n'est pas vrai ou faux, ou une règle trop coûteuse
+(boucles imbriquées) sont refusés avec la ligne et la colonne. Le bouton **Aperçu** compte
+les violations que la règle ouvrirait aujourd'hui, sans rien enregistrer. Une règle valide
+peut encore échouer sur une donnée (lire `project.labels["env"]` sur un projet sans cette
+étiquette) : le sujet compte alors comme non violé et l'erreur s'affiche sur la politique.
+
+### Évaluation, envoi et verdict
+
+- Les politiques sont évaluées après chaque analyse, à chaque décision de triage, à chaque
+  changement de règle et chaque jour (le décompte des jours avance).
+- Une politique choisit ses **canaux** et son **mode d'envoi** : immédiat, résumé
+  quotidien, ou aucun. Une violation n'est notifiée qu'une fois par canal tant qu'elle
+  reste ouverte. Canaux et format des messages : [`notifications.md`](notifications.md).
+- Une politique **bloquante** rend **non conforme** le verdict d'un instantané dont la
+  référence garde une violation ouverte de cette politique ; l'agent dépôt peut publier ce
+  verdict comme statut du commit sur GitHub ou GitLab. Les politiques d'agent ne bloquent
+  jamais un commit.

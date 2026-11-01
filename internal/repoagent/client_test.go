@@ -88,9 +88,50 @@ func newAPITestServer(t *testing.T, uploadStatus int) (*httptest.Server, *[]map[
 		w.WriteHeader(uploadStatus)
 		_, _ = io.WriteString(w, `{"type":"error.ingest.ref_unknown","title":"x","status":404}`)
 	})
+	ingestion := func(id, status, extra string) string {
+		return `{"id":"` + id + `","status":"` + status + `","project_id":"` + projectUUID +
+			`","ref_id":"0192f3a0-0000-7000-8000-000000000002","received_at":"2026-10-31T00:00:00Z"` + extra + `}`
+	}
+	mux.HandleFunc("GET /api/v1/agent/ingestions/{id}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch id := r.PathValue("id"); id {
+		case "0192f3a0-0000-7000-8000-000000000009":
+			_, _ = io.WriteString(w, ingestion(id, "done", `,"snapshot_id":"0192f3a0-0000-7000-8000-000000000010"`))
+		case "0192f3a0-0000-7000-8000-000000000011":
+			_, _ = io.WriteString(w, ingestion(id, "failed", `,"error":{"key":"error.sbom.schema_invalid","title":"SBOM refusé","detail":"x"}`))
+		default:
+			_, _ = io.WriteString(w, ingestion(id, "processing", ""))
+		}
+	})
+	mux.HandleFunc("GET /api/v1/agent/snapshots/0192f3a0-0000-7000-8000-000000000010/verdict", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"state":"fail","summary":"Non conforme","blocking":1,"warnings":0,"policies":["KEV"],"url":"https://sbom.example.org/o/acme"}`)
+	})
 	srv := httptest.NewTLSServer(mux)
 	t.Cleanup(srv.Close)
 	return srv, &uploads
+}
+
+func TestServerVerdict(t *testing.T) {
+	srv, _ := newAPITestServer(t, http.StatusAccepted)
+	s, err := NewServer(ServerConfig{Retries: 1, URL: srv.URL, CAFile: caFile(t, srv), Timeout: 10 * time.Second}, "lotor_agt_x", ServerOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	for id, want := range map[string]PolicyVerdict{
+		"0192f3a0-0000-7000-8000-000000000009": {State: VerdictFail, Summary: "Non conforme", URL: "https://sbom.example.org/o/acme"},
+		"0192f3a0-0000-7000-8000-000000000011": {State: VerdictError, Summary: "SBOM refusé"},
+		"0192f3a0-0000-7000-8000-000000000012": {State: VerdictPending},
+	} {
+		got, err := s.Verdict(ctx, Receipt{IngestionID: id})
+		if err != nil || got != want {
+			t.Errorf("%s : %+v, %v", id, got, err)
+		}
+	}
+	if _, err := s.Verdict(ctx, Receipt{IngestionID: "x"}); err == nil {
+		t.Error("reçu invalide accepté")
+	}
 }
 
 func caFile(t *testing.T, srv *httptest.Server) string {
@@ -159,8 +200,12 @@ func TestServerUpload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := s.Upload(ctx, u); err != nil {
+	rc, err := s.Upload(ctx, u)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if rc.IngestionID == "" {
+		t.Fatal("reçu sans ingestion")
 	}
 	got := (*uploads)[0]
 	if got["part0"] != "context" || got["part1"] != "sbom" || got["sbomType"] != "application/gzip" || got["sbom"] != string(u.SBOM) {
@@ -175,7 +220,7 @@ func TestServerUpload(t *testing.T) {
 	for status, rejected := range map[int]bool{http.StatusNotFound: true, http.StatusRequestEntityTooLarge: true, http.StatusTooManyRequests: false, http.StatusBadGateway: false} {
 		srv, _ := newAPITestServer(t, status)
 		s, _ := NewServer(ServerConfig{Retries: 1, URL: srv.URL, CAFile: caFile(t, srv), Timeout: 10 * time.Second}, "lotor_agt_x", ServerOptions{})
-		err := s.Upload(ctx, u)
+		_, err := s.Upload(ctx, u)
 		if err == nil || errors.Is(err, ErrRejected) != rejected {
 			t.Errorf("%d : %v", status, err)
 		}
@@ -185,7 +230,7 @@ func TestServerUpload(t *testing.T) {
 	}
 	bad := u
 	bad.ProjectID = "pas-un-uuid"
-	if err := s.Upload(ctx, bad); err == nil {
+	if _, err := s.Upload(ctx, bad); err == nil {
 		t.Fatal("projet invalide accepté")
 	}
 }

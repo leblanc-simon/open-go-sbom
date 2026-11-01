@@ -34,7 +34,30 @@ type Config struct {
 	Ingest     Ingest          `yaml:"ingest"     env-prefix:"LOTOR_"`
 	VulnDB     VulnDB          `yaml:"vulndb"     env-prefix:"LOTOR_"`
 	Retention  Retention       `yaml:"retention"  env-prefix:"LOTOR_"`
+	Notify     Notify          `yaml:"notify"     env-prefix:"LOTOR_"`
+	SMTP       SMTP            `yaml:"smtp"       env-prefix:"LOTOR_"`
 	Containers Containers      `yaml:"containers" env-prefix:"LOTOR_"`
+}
+
+// Notify règle les notifications des politiques et les liens des verdicts (T15,
+// ADR 0046).
+type Notify struct {
+	PublicURL            string        `yaml:"public_url"             env:"NOTIFY_PUBLIC_URL"             env-description:"Public URL of the server (https://sbom.example.org), for links in notifications and commit verdicts; empty: no link"`
+	Timeout              time.Duration `yaml:"timeout"                env:"NOTIFY_TIMEOUT"                env-default:"30s" env-description:"Maximum duration of one notification sent (HTTP request or SMTP session)"`
+	AllowPrivateNetworks bool          `yaml:"allow_private_networks" env:"NOTIFY_ALLOW_PRIVATE_NETWORKS" env-description:"Allow notification channels to reach loopback, private and link-local addresses (default false: refused, against SSRF)"`
+	DigestHour           int           `yaml:"digest_hour"            env:"NOTIFY_DIGEST_HOUR"            env-default:"7"   env-description:"Hour (UTC, 0 to 23) of the daily digest of violations"`
+}
+
+// SMTP décrit le serveur d'envoi des courriels (canaux e-mail, T15). Sans hôte, les
+// canaux e-mail échouent avec une erreur explicite.
+type SMTP struct {
+	Host     string `yaml:"host"     env:"SMTP_HOST"     env-description:"SMTP server host; empty: e-mail channels disabled"`
+	Port     int    `yaml:"port"     env:"SMTP_PORT"     env-default:"587"      env-description:"SMTP server port (587 for starttls, 465 for tls)"`
+	TLS      string `yaml:"tls"      env:"SMTP_TLS"      env-default:"starttls" env-description:"Connection security: starttls (required), tls (implicit TLS) or none (local relay only, no authentication)"`
+	Username string `yaml:"username" env:"SMTP_USERNAME" env-description:"SMTP user (PLAIN authentication over TLS); empty: no authentication"`
+	Password string `yaml:"password" env:"SMTP_PASSWORD" env-description:"SMTP password"`
+	From     string `yaml:"from"     env:"SMTP_FROM"     env-description:"Sender address of notifications (lotor@example.org)"`
+	HELO     string `yaml:"helo"     env:"SMTP_HELO"     env-default:"localhost" env-description:"Name announced in EHLO"`
 }
 
 // Containers règle les conteneurs en projets enfants des hôtes (T13, ADR 0040).

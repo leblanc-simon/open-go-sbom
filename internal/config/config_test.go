@@ -51,6 +51,8 @@ func valid() Config {
 	c.VulnDB = defaultVulnDB
 	c.Containers = Containers{ArchiveAfter: 168 * time.Hour}
 	c.Retention.Days = 90
+	c.Notify = Notify{Timeout: 30 * time.Second, DigestHour: 7}
+	c.SMTP = SMTP{Port: 587, TLS: "starttls", HELO: "localhost"}
 	return c
 }
 
@@ -87,6 +89,9 @@ func TestLoadFromEnvironmentWithDefaults(t *testing.T) {
 	}
 	if cfg.VulnDB != defaultVulnDB {
 		t.Errorf("défauts de la base de vulnérabilités : %+v", cfg.VulnDB)
+	}
+	if cfg.Notify != (Notify{Timeout: 30 * time.Second, DigestHour: 7}) || cfg.SMTP != (SMTP{Port: 587, TLS: "starttls", HELO: "localhost"}) {
+		t.Errorf("défauts des notifications : %+v %+v", cfg.Notify, cfg.SMTP)
 	}
 	// Hors ligne, la liste n'est pas exigée.
 	off := valid()
@@ -158,6 +163,29 @@ func TestLoadReportsInvalidConfiguration(t *testing.T) {
 func TestValidate(t *testing.T) {
 	if err := valid().Validate(); err != nil {
 		t.Fatalf("configuration valide refusée : %v", err)
+	}
+	for name, mutate := range map[string]func(*Config){
+		"notify.public_url":  func(c *Config) { c.Notify.PublicURL = "ftp://x" },
+		"notify.timeout":     func(c *Config) { c.Notify.Timeout = time.Hour },
+		"notify.digest_hour": func(c *Config) { c.Notify.DigestHour = 24 },
+		"smtp.tls":           func(c *Config) { c.SMTP.Host, c.SMTP.From, c.SMTP.TLS = "smtp", "a@example.org", "ssl" },
+		"smtp.from":          func(c *Config) { c.SMTP.Host, c.SMTP.From = "smtp", "Lotor <a@example.org>" },
+		"smtp.port":          func(c *Config) { c.SMTP.Host, c.SMTP.From, c.SMTP.Port = "smtp", "a@example.org", 0 },
+		"smtp.username": func(c *Config) {
+			c.SMTP.Host, c.SMTP.From, c.SMTP.TLS, c.SMTP.Username = "smtp", "a@example.org", "none", "u"
+		},
+	} {
+		c := valid()
+		mutate(&c)
+		if err := c.Validate(); err == nil || !strings.Contains(err.Error(), name) {
+			t.Errorf("%s : %v", name, err)
+		}
+	}
+	ok := valid()
+	ok.Notify.PublicURL = "https://sbom.example.org"
+	ok.SMTP = SMTP{Host: "smtp.example.org", Port: 465, TLS: "tls", Username: "u", Password: "p", From: "lotor@example.org"}
+	if err := ok.Validate(); err != nil {
+		t.Errorf("notifications valides refusées : %v", err)
 	}
 	dir := t.TempDir()
 	certFile := filepath.Join(dir, "cert.pem")

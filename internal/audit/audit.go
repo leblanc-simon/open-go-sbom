@@ -83,6 +83,13 @@ const (
 	TriageWithdrawn        Action = "triage.withdrawn"
 	TriageExpired          Action = "triage.expired"
 	TriageVEXImported      Action = "triage.vex_imported"
+	PolicyCreated          Action = "policy.created"
+	PolicyUpdated          Action = "policy.updated"
+	PolicyDeleted          Action = "policy.deleted"
+	ChannelCreated         Action = "channel.created"
+	ChannelUpdated         Action = "channel.updated"
+	ChannelDeleted         Action = "channel.deleted"
+	ChannelTested          Action = "channel.tested"
 )
 
 // Actions renvoie toutes les actions connues (tests de traduction).
@@ -101,6 +108,7 @@ func Actions() []Action {
 		EnrollmentTokenCreated, EnrollmentTokenRevoked, PersonalTokenCreated, PersonalTokenRevoked,
 		JobRetried, JobDiscarded, VulnDBImportRequested, VulnDBImported, VulnDBImportFailed, VulnDBArchivesPurged,
 		TriageDecided, TriageWithdrawn, TriageExpired, TriageVEXImported,
+		PolicyCreated, PolicyUpdated, PolicyDeleted, ChannelCreated, ChannelUpdated, ChannelDeleted, ChannelTested,
 	}
 }
 

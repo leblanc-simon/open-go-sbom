@@ -46,11 +46,37 @@ type Server interface {
 	Projects(ctx context.Context) ([]Project, error)
 	Heartbeat(ctx context.Context, version string) error
 	// Upload envoie un SBOM ; il revient dès que le serveur l'a accepté (202, ou 200 pour
-	// un renvoi identique). Une erreur qui enveloppe ErrRejected est définitive.
-	Upload(ctx context.Context, u Upload) error
+	// un renvoi identique), avec le reçu de l'ingestion. Une erreur qui enveloppe
+	// ErrRejected est définitive.
+	Upload(ctx context.Context, u Upload) (Receipt, error)
+	// Verdict lit, en une fois, le verdict des politiques sur l'instantané d'un envoi :
+	// en attente tant que l'ingestion ou l'analyse ne sont pas terminées (T15).
+	Verdict(ctx context.Context, r Receipt) (PolicyVerdict, error)
 	// AIComponents renvoie les composants IA de l'instantané courant d'une référence
 	// (analyse incrémentale après un redémarrage).
 	AIComponents(ctx context.Context, refID string) ([]PreviousComponent, error)
+}
+
+// Receipt est le reçu d'un envoi : l'ingestion à suivre.
+type Receipt struct {
+	IngestionID string
+}
+
+// États d'un verdict.
+const (
+	VerdictPending = "pending"
+	VerdictPass    = "pass"
+	VerdictFail    = "fail"
+	// VerdictError : l'ingestion a échoué, il n'y aura pas d'instantané.
+	VerdictError = "error"
+)
+
+// PolicyVerdict est le verdict des politiques sur un instantané ; Summary est traduit par le
+// serveur dans la langue de l'organisation (vide tant que l'ingestion n'est pas finie).
+type PolicyVerdict struct {
+	State   string
+	Summary string
+	URL     string
 }
 
 // ErrRejected signale un envoi refusé définitivement par le serveur (référence inconnue,

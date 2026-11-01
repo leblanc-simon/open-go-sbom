@@ -64,7 +64,7 @@ func run(ctx context.Context, cfg repoagent.Config, log *slog.Logger) error {
 		return err
 	}
 	agent, err := repoagent.New(repoagent.Options{
-		Server: server, Forges: forges, Logger: log, Version: version, Work: cfg.Work, Catchup: cfg.Catchup,
+		Server: server, Forges: forges, Logger: log, Version: version, Work: cfg.Work, Catchup: cfg.Catchup, Status: cfg.Status,
 		AI: cfg.AI, LocalModel: local, ExternalModel: external,
 	})
 	if err != nil {
