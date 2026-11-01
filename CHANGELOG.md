@@ -48,6 +48,15 @@ appliquées automatiquement, sans retour arrière.
   automatique des risques acceptés ; export OpenVEX et CycloneDX VEX d'un projet
   (interface et `GET /api/v1/orgs/{org}/projects/{project}/vex`), import des VEX
   d'éditeurs pour un projet ou pour l'organisation ; chaque décision est journalisée.
+- Conteneurs en projets enfants (T13, ADR 0040 et 0041) : l'agent serveur inventorie les
+  conteneurs Docker et Podman en cours d'exécution (option `containers.enabled`,
+  **désactivée par défaut** : l'accès à la socket d'un moteur équivaut à root) ; chaque
+  service Compose, ou chaque conteneur hors Compose, devient un projet enfant du serveur,
+  dans son équipe, avec son SBOM ; une image partagée n'est analysée qu'une fois. Fiche du
+  serveur avec ses conteneurs et leurs constats par périmètre ; filtre « Inclure les
+  conteneurs » des listes de projets et de la recherche (écran et API, `containers=1`) ;
+  un conteneur absent depuis `containers.archive_after` (7 jours) est archivé et revient
+  s'il redémarre. Nouvelle opération de l'API des agents `reportContainers`.
 
 ### Modifié
 
@@ -59,6 +68,10 @@ appliquées automatiquement, sans retour arrière.
   entrer chaque membre avec son ancien rôle : aucun accès n'est perdu.
 - La migration 017 rend facultatif l'instantané d'un constat et de son historique : un
   constat dont la rétention supprime le dernier instantané reste, sans lien vers lui.
+- Le scan de l'hôte par l'agent serveur se fait hors ligne, comme celui des images : Syft
+  n'exécute plus `go list` sur les modules Go trouvés sous `/` et ne cherche plus de
+  licences sur le réseau. L'inventaire d'un hôte qui porte des modules Go peut changer une
+  fois (renvoi de son SBOM).
 
 ### Sécurité
 

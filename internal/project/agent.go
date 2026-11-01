@@ -112,14 +112,16 @@ func RefOfAgent(ctx context.Context, tx *db.OrgTx, agentID, refID uuid.UUID) (uu
 }
 
 // RefForAgent renvoie la référence active (kind, name) du projet projectID si ce projet,
-// actif, est confié à agentID ; ErrNotFound sinon, que le projet existe ou non. C'est le
-// contrôle d'écriture des envois d'un agent (T05).
+// actif, est confié à agentID ; ErrNotFound sinon, que le projet existe ou non. Un
+// conteneur est confié à l'agent de son hôte, actif lui aussi. C'est le contrôle
+// d'écriture des envois d'un agent (T05).
 func RefForAgent(ctx context.Context, tx *db.OrgTx, agentID, projectID uuid.UUID, kind RefKind, name string) (Ref, error) {
 	r := Ref{Kind: kind, Name: name}
 	err := tx.QueryRowContext(ctx, `
 		SELECT r.id FROM tracked_refs r
 		  JOIN projects p ON p.org_id = r.org_id AND p.id = r.project_id
-		 WHERE p.id = $1 AND p.agent_id = $2 AND p.archived_at IS NULL
+		  LEFT JOIN projects h ON h.org_id = p.org_id AND h.id = p.parent_id
+		 WHERE p.id = $1 AND coalesce(p.agent_id, h.agent_id) = $2 AND p.archived_at IS NULL AND h.archived_at IS NULL
 		   AND r.kind = $3 AND r.name = $4 AND r.removed_at IS NULL`,
 		projectID, agentID, string(kind), name).Scan(&r.ID)
 	if errors.Is(err, sql.ErrNoRows) {

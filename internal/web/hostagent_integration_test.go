@@ -71,8 +71,10 @@ func (a *app) decoder() {
 	})
 }
 
-// hostAgent construit un lotor-host-agent réel (Syft sur testdata/rootfs) vers srv.
-func (a *app) hostAgent(srv *httptest.Server, caFile, enrollment string, tlsOpts agentclient.TLSOptions) *hostagent.Agent {
+// hostAgent construit un lotor-host-agent réel (Syft sur testdata/rootfs) vers srv ;
+// mutate complète ses options (inventaire des conteneurs).
+func (a *app) hostAgent(srv *httptest.Server, caFile, enrollment string, tlsOpts agentclient.TLSOptions,
+	mutate ...func(*hostagent.Options)) *hostagent.Agent {
 	a.t.Helper()
 	dir := a.t.TempDir()
 	tokFile := filepath.Join(dir, "enrollment-token")
@@ -97,9 +99,13 @@ func (a *app) hostAgent(srv *httptest.Server, caFile, enrollment string, tlsOpts
 	if err != nil {
 		a.t.Fatal(err)
 	}
-	ag, err := hostagent.New(hostagent.Options{Config: cfg, Version: "1.0.0-test", Client: client, Store: store,
+	o := hostagent.Options{Config: cfg, Version: "1.0.0-test", Client: client, Store: store,
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), IngestionPoll: 20 * time.Millisecond,
-		Scanner: hostagent.SyftScanner{Root: root, Hostname: cfg.Hostname, Parallelism: 2, Version: "1.0.0-test"}})
+		Scanner: hostagent.SyftScanner{Root: root, Hostname: cfg.Hostname, Parallelism: 2, Version: "1.0.0-test"}}
+	for _, m := range mutate {
+		m(&o)
+	}
+	ag, err := hostagent.New(o)
 	if err != nil {
 		a.t.Fatal(err)
 	}

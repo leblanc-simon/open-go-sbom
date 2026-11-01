@@ -108,13 +108,8 @@ func hitsSQL(t target, f Filters, projectIDs []uuid.UUID, a *args) string {
 	if projectIDs != nil {
 		where = append(where, "h.project_id = ANY("+a.add(projectIDs)+"::uuid[])")
 	}
-	if len(f.ProjectKinds) > 0 {
-		kinds := make([]string, len(f.ProjectKinds))
-		for i, k := range f.ProjectKinds {
-			kinds[i] = string(k)
-		}
-		where = append(where, "h.kind = ANY("+a.add(kinds)+"::text[])")
-	}
+	// Toujours posé : les conteneurs ne figurent que s'ils sont inclus.
+	where = append(where, "h.kind = ANY("+a.add(f.kinds())+"::text[])")
 	if len(f.Labels) > 0 {
 		docs := make([]string, 0, len(f.Labels))
 		for _, l := range f.Labels {

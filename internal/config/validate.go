@@ -215,6 +215,9 @@ func (c Config) Validate() error {
 	if c.Retention.Count < 0 || c.Retention.Count > 100000 {
 		v.fail("retention.count", "doit être compris entre 0 et 100000 (reçu %d)", c.Retention.Count)
 	}
+	if c.Containers.ArchiveAfter < time.Hour {
+		v.fail("containers.archive_after", "au moins 1h (reçu %s)", c.Containers.ArchiveAfter)
+	}
 
 	return errors.Join(v.errs...)
 }

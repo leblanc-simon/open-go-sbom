@@ -32,6 +32,8 @@ const (
 	KeyAgentInvalid    = "validation.agent_invalid"
 	KeyProjectArchived = "validation.project_archived"
 	KeyTeamInvalid     = "validation.project_team_invalid"
+	KeyContainerTeam   = "validation.container_team"
+	KeyContainerAbsent = "validation.container_absent"
 	KeyAIModeInvalid   = "validation.project_ai_mode_invalid"
 	KeyAIExternalOff   = "validation.project_ai_external_forbidden"
 )
@@ -40,7 +42,8 @@ const (
 func ValidationKeys() []string {
 	return []string{KeyKindInvalid, KeySlugInvalid, KeySlugTaken, KeyNameInvalid, KeyDescription,
 		KeyLabelInvalid, KeyLabelsTooMany, KeyForgeURL, KeyRefInvalid, KeyRefsTooMany, KeyRefsMissing,
-		KeyHostRefInvalid, KeyHostRefTaken, KeyAgentInvalid, KeyProjectArchived, KeyTeamInvalid}
+		KeyHostRefInvalid, KeyHostRefTaken, KeyAgentInvalid, KeyProjectArchived, KeyTeamInvalid, KeyContainerTeam,
+		KeyContainerAbsent, KeyContainerInvalid, KeyContainersTooMany}
 }
 
 func invalid(field, key string) error { return &account.ValidationError{Field: field, Key: key} }

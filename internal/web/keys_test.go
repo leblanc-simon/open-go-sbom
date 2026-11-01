@@ -74,16 +74,19 @@ func TestDynamicKeysExist(t *testing.T) {
 	for _, f := range []sbom.Format{sbom.FormatCycloneDX, sbom.FormatSPDX, sbom.FormatSyft} {
 		want = append(want, "format.sbom_"+string(f))
 	}
-	for _, k := range []project.RefKind{project.RefBranch, project.RefTag, project.RefHost} {
+	for _, k := range []project.RefKind{project.RefBranch, project.RefTag, project.RefHost, project.RefContainer} {
 		want = append(want, "ref_kind."+string(k))
 	}
-	for _, k := range project.Kinds() {
+	for _, k := range append(project.Kinds(), project.KindContainer) {
 		want = append(want, "project_type."+string(k))
+	}
+	for _, e := range []string{project.EngineDocker, project.EnginePodman} {
+		want = append(want, "container_engine."+e)
 	}
 	for _, k := range agent.Kinds() {
 		want = append(want, "agent_type."+string(k))
 	}
-	for _, k := range project.Kinds() {
+	for _, k := range append(project.Kinds(), project.KindContainer) {
 		want = append(want, "dashboard.kind_"+string(k))
 	}
 	for _, p := range dashboard.Periods() {

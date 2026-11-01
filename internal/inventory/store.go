@@ -97,7 +97,7 @@ func Store(ctx context.Context, tx *db.OrgTx, r Record, now time.Time) (Result, 
 	if err != nil {
 		return Result{}, wrap("verrou de la référence", err)
 	}
-	host := refKind == "host"
+	host := machineRef(refKind)
 	if host != (r.Commit == "") {
 		return Result{}, fmt.Errorf("inventory: commit %q incompatible avec une référence %s", r.Commit, refKind)
 	}
@@ -404,3 +404,8 @@ func newer(scannedAt time.Time, id uuid.UUID, cur current) bool {
 	}
 	return strings.Compare(id.String(), cur.snapshotID.String()) > 0
 }
+
+// machineRef dit si une référence suit une machine (un hôte ou un conteneur) plutôt
+// qu'un dépôt : pas de commit, et un inventaire identique au courant ne fait qu'avancer
+// la date de dernière analyse.
+func machineRef(kind string) bool { return kind == "host" || kind == "container" }

@@ -167,8 +167,8 @@ relevées en T00 (une montée de version ultérieure ne demande pas de nouvelle 
 | OIDC | `oidcx` dans open-go-base, ou paquet local | — | Point ouvert, T25 |
 
 Sans dépendance : client Git (binaire `git` du système), clients des forges (HTTP + JWT
-RS256 en stdlib), client de l'API Docker (celui du graphe de stereoscope s'il y est, sinon
-HTTP sur socket Unix), envoi de courriels (`net/smtp`), graphiques (SVG côté serveur),
+RS256 en stdlib), client de l'API Docker et Podman (HTTP sur socket Unix, quatre appels ;
+le client moby du graphe de stereoscope est écarté, ADR 0041), envoi de courriels (`net/smtp`), graphiques (SVG côté serveur),
 confinement des fichiers (`os.Root`).
 
 ## 6. Configuration
@@ -192,7 +192,9 @@ jetons refusés par IP, durée et nombre simultané des exports de la recherche,
 `AI` (`forbid_external` : interdire tout fournisseur de modèle externe aux agents dépôt,
 T12, ADR 0043),
 `Retention` (rétention des instantanés : fenêtre en jours, nombre gardé, dernier
-instantané de chaque mois au-delà, T17, ADR 0039), `Migration`
+instantané de chaque mois au-delà, T17, ADR 0039),
+`Containers` (absence au-delà de laquelle le projet d'un conteneur est archivé, T13),
+`Migration`
 (`migration_dsn` : connexion du rôle propriétaire, utilisée uniquement pour migrer).
 `Database.DSN` est la connexion du rôle d'exécution. `--help` liste toutes les variables
 d'environnement. Un `config.example.yaml` commenté accompagne chaque binaire. Un fragment
@@ -272,8 +274,8 @@ Données **par organisation** (toutes portent `org_id`) :
 | --- | --- |
 | `organizations`, `org_memberships` | organisation (slug, nom, langue par défaut) ; compte × organisation × rôle (`member`, `admin`) |
 | `teams`, `team_members`, `org_invitations` | équipes ; membre de l'organisation × équipe × rôle d'équipe (`reader`, `analyst`, `admin`) ; invitations à rejoindre l'organisation (T16, ADR 0034) |
-| `projects` | type (`repo`, `host`, `container`), nom, slug, étiquettes, `parent_id` (T13), équipe (obligatoire, T16), archivage, réglage de l'enrichissement IA `ai_mode` (`disabled` par défaut, `local`, `external` ; T12, ADR 0043) |
-| `tracked_refs` | référence suivie (branche, tag, ou l'hôte) |
+| `projects` | type (`repo`, `host`, `container`), nom, slug, étiquettes, équipe (obligatoire, T16), archivage, réglage de l'enrichissement IA `ai_mode` (`disabled` par défaut, `local`, `external` ; T12, ADR 0043) ; pour un conteneur, `parent_id` (l'hôte, dont il garde l'équipe par clé étrangère en cascade), identité dans l'hôte, contexte, dernier signalement, archivage pour absence (T13, ADR 0040) |
+| `tracked_refs` | référence suivie (branche, tag, l'hôte, ou le conteneur nommé par son identité) |
 | `agents`, `agent_tokens`, `enrollment_tokens` | agents (équipe facultative : sans équipe, agent d'organisation) et jetons hachés ; jeton d'inscription rattaché à une équipe, dont héritent projet et agent inscrits ; pour un agent serveur, demande de scan en attente et dernier contexte d'hôte (T07) |
 | `components` | composant de l'organisation : purl canonique (unique par organisation), `purl_base`, type, nom, version, CPE, empreintes |
 | `component_sets`, `component_set_items` | ensemble d'inventaire adressé par son empreinte ; ses composants avec origine (`syft`, `ia`), confiance, modèle, preuve, portée, licences, identification faible |
@@ -575,6 +577,9 @@ qu'aucune mesure ne la justifie (ADR 0015).
   GIN composites (`btree_gin`) qui commencent par `org_id` ; le reste de la recherche
   s'exécute sous la RLS sur des index B-tree (ADR 0024). Versions comparées par
   `internal/version` (ADR 0026).
+- Les conteneurs (projets enfants des hôtes) sont écartés des résultats, comme des listes
+  de projets, sauf avec le filtre « inclure les conteneurs » (`containers=1`), qui
+  s'ajoute aux types retenus (ADR 0040).
 - Cible : moins de 2 s au 95e centile pour 1 000 projets et 1 million de liens, **RLS
   active**, selon le protocole de `docs/benchmarks.md`.
 
@@ -674,7 +679,7 @@ qu'aucune mesure ne la justifie (ADR 0015).
   dont le bail expire est repris. Chaque handler est idempotent (exigence de revue).
 - La table `jobs` est globale ; un handler qui touche des données d'organisation travaille
   dans `InOrg(job.OrgID)`. Les rares jobs inter-organisations (`analysis.rescan_all`,
-  statistiques quotidiennes) obtiennent leur liste par une fonction de `crossorg`, puis
+  statistiques quotidiennes, archivage des conteneurs absents) obtiennent leur liste par une fonction de `crossorg`, puis
   mettent en file un job par organisation.
 - Réessais à délai exponentiel avec gigue ; au-delà du maximum, statut `dead`.
 - Clé d'unicité sur les jobs en attente ; une seconde mise en file **relève la priorité** et
@@ -721,7 +726,13 @@ qu'aucune mesure ne la justifie (ADR 0015).
   muet d'un agent serveur fondé sur son dernier inventaire, d'un agent dépôt sur son
   dernier contact, au-delà de 7 jours (T10, ADR 0027). Unités systemd durcies (`CAP_DAC_READ_SEARCH` seule), paquets deb et
   rpm (nfpm, `make packages`). Avec `tls.client_ca_file`, l'API des agents exige un
-  certificat client vérifié. Suite : T13 (conteneurs), T22 (Windows), T23 (hors ligne).
+  certificat client vérifié. Conteneurs (T13, ADR 0040 et 0041) : inventaire désactivé
+  par défaut (`containers.enabled` ; sans lui, aucune socket ouverte), API Docker de
+  Docker ou Podman sur socket Unix, identité `projet/service` Compose sinon nom du
+  conteneur (`hostagent.Identity`), signalement `POST /api/v1/agent/containers` (le
+  serveur crée les projets enfants sous l'hôte de l'agent seul), image exportée
+  (`docker save`) et scannée hors ligne une fois par image, empreintes d'images gardées
+  et confirmées par le serveur. Suite : T22 (Windows, containerd), T23 (hors ligne).
 - `lotor-repo-agent` : service externe qui détient seul les secrets des forges. Il reçoit les
   webhooks, clone, analyse, envoie, puis attend le verdict du serveur pour publier le statut
   de commit (T15). Tout accès au contenu d'un dépôt passe par `os.Root` (aucune sortie de

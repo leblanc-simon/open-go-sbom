@@ -57,18 +57,54 @@ func (e AgentProjectKind) Valid() bool {
 	}
 }
 
+// Defines values for ContainerSightingEngine.
+const (
+	Docker ContainerSightingEngine = "docker"
+	Podman ContainerSightingEngine = "podman"
+)
+
+// Valid indicates whether the value is a known member of the ContainerSightingEngine enum.
+func (e ContainerSightingEngine) Valid() bool {
+	switch e {
+	case Docker:
+		return true
+	case Podman:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ContainerStateInventory.
+const (
+	ContainerStateInventoryCurrent  ContainerStateInventory = "current"
+	ContainerStateInventoryOutdated ContainerStateInventory = "outdated"
+)
+
+// Valid indicates whether the value is a known member of the ContainerStateInventory enum.
+func (e ContainerStateInventory) Valid() bool {
+	switch e {
+	case ContainerStateInventoryCurrent:
+		return true
+	case ContainerStateInventoryOutdated:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for HeartbeatStatusInventory.
 const (
-	Current  HeartbeatStatusInventory = "current"
-	Outdated HeartbeatStatusInventory = "outdated"
+	HeartbeatStatusInventoryCurrent  HeartbeatStatusInventory = "current"
+	HeartbeatStatusInventoryOutdated HeartbeatStatusInventory = "outdated"
 )
 
 // Valid indicates whether the value is a known member of the HeartbeatStatusInventory enum.
 func (e HeartbeatStatusInventory) Valid() bool {
 	switch e {
-	case Current:
+	case HeartbeatStatusInventoryCurrent:
 		return true
-	case Outdated:
+	case HeartbeatStatusInventoryOutdated:
 		return true
 	default:
 		return false
@@ -143,15 +179,18 @@ func (e IngestionStatus) Valid() bool {
 
 // Defines values for IngestionContextRefKind.
 const (
-	IngestionContextRefKindBranch IngestionContextRefKind = "branch"
-	IngestionContextRefKindHost   IngestionContextRefKind = "host"
-	IngestionContextRefKindTag    IngestionContextRefKind = "tag"
+	IngestionContextRefKindBranch    IngestionContextRefKind = "branch"
+	IngestionContextRefKindContainer IngestionContextRefKind = "container"
+	IngestionContextRefKindHost      IngestionContextRefKind = "host"
+	IngestionContextRefKindTag       IngestionContextRefKind = "tag"
 )
 
 // Valid indicates whether the value is a known member of the IngestionContextRefKind enum.
 func (e IngestionContextRefKind) Valid() bool {
 	switch e {
 	case IngestionContextRefKindBranch:
+		return true
+	case IngestionContextRefKindContainer:
 		return true
 	case IngestionContextRefKindHost:
 		return true
@@ -251,6 +290,72 @@ type AgentProjectList struct {
 	Projects []AgentProject `json:"projects"`
 }
 
+// ContainerReport defines model for ContainerReport.
+type ContainerReport struct {
+	// Containers Conteneurs en cours d'exécution, une entrée par identité (500 au plus).
+	Containers []ContainerSighting `json:"containers"`
+
+	// Version Version de l'agent.
+	Version string `json:"version"`
+}
+
+// ContainerReportResult defines model for ContainerReportResult.
+type ContainerReportResult struct {
+	Containers []ContainerState `json:"containers"`
+}
+
+// ContainerSighting defines model for ContainerSighting.
+type ContainerSighting struct {
+	ComposeProject *string                 `json:"compose_project,omitempty"`
+	ComposeService *string                 `json:"compose_service,omitempty"`
+	Engine         ContainerSightingEngine `json:"engine"`
+
+	// Image Référence de l'image telle que le moteur la donne (`nginx:1.27`).
+	Image string `json:"image"`
+
+	// ImageId Empreinte de l'image (identifiant du moteur).
+	ImageId string `json:"image_id"`
+
+	// Inventory Inventaire déjà connu de l'image du conteneur.
+	Inventory *ImageInventory `json:"inventory,omitempty"`
+
+	// Key Identité dans l'hôte, `projet/service` (Compose) ou nom du conteneur.
+	//
+	// Examples: shop/web, redis-cache
+	Key string `json:"key"`
+
+	// Names Noms des conteneurs de cette identité (répliques), 16 au plus.
+	Names []string `json:"names"`
+
+	// Replicas Nombre de conteneurs de cette identité en cours d'exécution.
+	Replicas int `json:"replicas"`
+
+	// StartedAt Démarrage du conteneur le plus récent de cette identité.
+	StartedAt *time.Time `json:"started_at,omitempty"`
+}
+
+// ContainerSightingEngine defines model for ContainerSighting.Engine.
+type ContainerSightingEngine string
+
+// ContainerState defines model for ContainerState.
+type ContainerState struct {
+	// Ignored Projet archivé par un utilisateur ; l'agent ne l'inventorie pas.
+	Ignored bool `json:"ignored"`
+
+	// Inventory Réponse à `inventory` : `current`, l'inventaire du projet enfant est à jour et
+	// sa date de dernière analyse a avancé ; `outdated`, l'agent doit envoyer le SBOM.
+	Inventory *ContainerStateInventory `json:"inventory,omitempty"`
+	Key       string                   `json:"key"`
+	Project   ProjectRef               `json:"project"`
+
+	// RefId Référence `container` du projet enfant, nommée par `key`.
+	RefId openapi_types.UUID `json:"ref_id"`
+}
+
+// ContainerStateInventory Réponse à `inventory` : `current`, l'inventaire du projet enfant est à jour et
+// sa date de dernière analyse a avancé ; `outdated`, l'agent doit envoyer le SBOM.
+type ContainerStateInventory string
+
 // EnrollRequest defines model for EnrollRequest.
 type EnrollRequest struct {
 	// Hostname Nom de l'hôte, qui devient sa référence (mis en minuscules).
@@ -327,6 +432,15 @@ type HostContext struct {
 	ScanDurationMs *int `json:"scan_duration_ms,omitempty"`
 }
 
+// ImageInventory Inventaire déjà connu de l'image du conteneur.
+type ImageInventory struct {
+	// Fingerprint Empreinte d'inventaire (SHA-256 en hexadécimal minuscule).
+	Fingerprint string `json:"fingerprint"`
+
+	// ScannedAt Date du scan de l'image (au plus une heure d'avance sur l'horloge du serveur).
+	ScannedAt time.Time `json:"scanned_at"`
+}
+
 // Ingestion defines model for Ingestion.
 type Ingestion struct {
 	Commit *string `json:"commit,omitempty"`
@@ -370,13 +484,13 @@ type IngestionStatus string
 type IngestionContext struct {
 	AgentVersion string `json:"agent_version"`
 
-	// Commit Commit analysé (SHA-1 ou SHA-256 en hexadécimal) ; exigé pour une branche ou une étiquette, interdit pour un hôte.
+	// Commit Commit analysé (SHA-1 ou SHA-256 en hexadécimal) ; exigé pour une branche ou une étiquette, interdit pour un hôte ou un conteneur.
 	Commit *string `json:"commit,omitempty"`
 
 	// Host Contexte de l'hôte au moment du scan.
 	Host *HostContext `json:"host,omitempty"`
 
-	// ProjectId Projet confié à l'agent (`listAgentProjects`).
+	// ProjectId Projet confié à l'agent (`listAgentProjects`), ou projet enfant d'un conteneur de son hôte (`reportContainers`).
 	ProjectId openapi_types.UUID `json:"project_id"`
 	Ref       struct {
 		Kind IngestionContextRefKind `json:"kind"`
@@ -500,6 +614,9 @@ type ListAgentProjectsParams struct {
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// ReportContainersJSONRequestBody defines body for ReportContainers for application/json ContentType.
+type ReportContainersJSONRequestBody = ContainerReport
+
 // EnrollJSONRequestBody defines body for Enroll for application/json ContentType.
 type EnrollJSONRequestBody = EnrollRequest
 
@@ -582,6 +699,54 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+
+	// ReportContainersWithBody Signale les conteneurs qui tournent sur l'hôte
+	//
+	// Agent serveur seulement, inventaire des conteneurs activé. L'agent signale à chaque
+	// cycle les conteneurs en cours d'exécution sur son hôte, un par identité : `key` vaut
+	// `projet/service` pour un service Compose (ses répliques forment un seul projet), le
+	// nom du conteneur sinon. Le serveur crée au besoin le projet enfant de chaque
+	// identité, sous le projet de l'hôte confié à l'agent (jamais sous un autre), dans
+	// son équipe, avec une référence de nature `container` nommée par l'identité, et
+	// renvoie son identifiant ; un projet archivé pour absence revient. L'agent envoie
+	// ensuite le SBOM de chaque conteneur par `createIngestion`, sur cette référence.
+	//
+	// Quand l'image d'un conteneur a déjà été inventoriée, l'agent joint son empreinte
+	// d'inventaire (`inventory`) : si c'est celle de l'ensemble courant du projet enfant,
+	// seule sa date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+	// envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
+	// est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
+	// depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
+	// Le signalement vaut signal de vie.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /agent/containers (the `ReportContainers` operationId).
+	ReportContainersWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ReportContainers Signale les conteneurs qui tournent sur l'hôte
+	//
+	// Agent serveur seulement, inventaire des conteneurs activé. L'agent signale à chaque
+	// cycle les conteneurs en cours d'exécution sur son hôte, un par identité : `key` vaut
+	// `projet/service` pour un service Compose (ses répliques forment un seul projet), le
+	// nom du conteneur sinon. Le serveur crée au besoin le projet enfant de chaque
+	// identité, sous le projet de l'hôte confié à l'agent (jamais sous un autre), dans
+	// son équipe, avec une référence de nature `container` nommée par l'identité, et
+	// renvoie son identifiant ; un projet archivé pour absence revient. L'agent envoie
+	// ensuite le SBOM de chaque conteneur par `createIngestion`, sur cette référence.
+	//
+	// Quand l'image d'un conteneur a déjà été inventoriée, l'agent joint son empreinte
+	// d'inventaire (`inventory`) : si c'est celle de l'ensemble courant du projet enfant,
+	// seule sa date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+	// envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
+	// est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
+	// depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
+	// Le signalement vaut signal de vie.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /agent/containers (the `ReportContainers` operationId).
+	ReportContainers(ctx context.Context, body ReportContainersJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// EnrollWithBody Inscrit un agent serveur
 	//
@@ -694,6 +859,74 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /agent/refs/{id}/ai-components (the `ListAIComponents` operationId).
 	ListAIComponents(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+// ReportContainersWithBody Signale les conteneurs qui tournent sur l'hôte
+//
+// Agent serveur seulement, inventaire des conteneurs activé. L'agent signale à chaque
+// cycle les conteneurs en cours d'exécution sur son hôte, un par identité : `key` vaut
+// `projet/service` pour un service Compose (ses répliques forment un seul projet), le
+// nom du conteneur sinon. Le serveur crée au besoin le projet enfant de chaque
+// identité, sous le projet de l'hôte confié à l'agent (jamais sous un autre), dans
+// son équipe, avec une référence de nature `container` nommée par l'identité, et
+// renvoie son identifiant ; un projet archivé pour absence revient. L'agent envoie
+// ensuite le SBOM de chaque conteneur par `createIngestion`, sur cette référence.
+//
+// Quand l'image d'un conteneur a déjà été inventoriée, l'agent joint son empreinte
+// d'inventaire (`inventory`) : si c'est celle de l'ensemble courant du projet enfant,
+// seule sa date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+// envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
+// est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
+// depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
+// Le signalement vaut signal de vie.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /agent/containers (the `ReportContainers` operationId).
+func (c *Client) ReportContainersWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReportContainersRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ReportContainers Signale les conteneurs qui tournent sur l'hôte
+//
+// Agent serveur seulement, inventaire des conteneurs activé. L'agent signale à chaque
+// cycle les conteneurs en cours d'exécution sur son hôte, un par identité : `key` vaut
+// `projet/service` pour un service Compose (ses répliques forment un seul projet), le
+// nom du conteneur sinon. Le serveur crée au besoin le projet enfant de chaque
+// identité, sous le projet de l'hôte confié à l'agent (jamais sous un autre), dans
+// son équipe, avec une référence de nature `container` nommée par l'identité, et
+// renvoie son identifiant ; un projet archivé pour absence revient. L'agent envoie
+// ensuite le SBOM de chaque conteneur par `createIngestion`, sur cette référence.
+//
+// Quand l'image d'un conteneur a déjà été inventoriée, l'agent joint son empreinte
+// d'inventaire (`inventory`) : si c'est celle de l'ensemble courant du projet enfant,
+// seule sa date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+// envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
+// est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
+// depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
+// Le signalement vaut signal de vie.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /agent/containers (the `ReportContainers` operationId).
+func (c *Client) ReportContainers(ctx context.Context, body ReportContainersJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReportContainersRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 // EnrollWithBody Inscrit un agent serveur
@@ -886,6 +1119,46 @@ func (c *Client) ListAIComponents(ctx context.Context, id openapi_types.UUID, re
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewReportContainersRequest calls the generic ReportContainers builder with application/json body
+func NewReportContainersRequest(server string, body ReportContainersJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewReportContainersRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewReportContainersRequestWithBody constructs an http.Request for the ReportContainers method, with any body, and a specified content type
+func NewReportContainersRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/agent/containers")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
 }
 
 // NewEnrollRequest calls the generic Enroll builder with application/json body
@@ -1175,6 +1448,54 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 
+	// ReportContainersWithBodyWithResponse Signale les conteneurs qui tournent sur l'hôte
+	//
+	// Agent serveur seulement, inventaire des conteneurs activé. L'agent signale à chaque
+	// cycle les conteneurs en cours d'exécution sur son hôte, un par identité : `key` vaut
+	// `projet/service` pour un service Compose (ses répliques forment un seul projet), le
+	// nom du conteneur sinon. Le serveur crée au besoin le projet enfant de chaque
+	// identité, sous le projet de l'hôte confié à l'agent (jamais sous un autre), dans
+	// son équipe, avec une référence de nature `container` nommée par l'identité, et
+	// renvoie son identifiant ; un projet archivé pour absence revient. L'agent envoie
+	// ensuite le SBOM de chaque conteneur par `createIngestion`, sur cette référence.
+	//
+	// Quand l'image d'un conteneur a déjà été inventoriée, l'agent joint son empreinte
+	// d'inventaire (`inventory`) : si c'est celle de l'ensemble courant du projet enfant,
+	// seule sa date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+	// envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
+	// est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
+	// depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
+	// Le signalement vaut signal de vie.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /agent/containers (the `ReportContainers` operationId).
+	ReportContainersWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReportContainersResponse, error)
+
+	// ReportContainersWithResponse Signale les conteneurs qui tournent sur l'hôte
+	//
+	// Agent serveur seulement, inventaire des conteneurs activé. L'agent signale à chaque
+	// cycle les conteneurs en cours d'exécution sur son hôte, un par identité : `key` vaut
+	// `projet/service` pour un service Compose (ses répliques forment un seul projet), le
+	// nom du conteneur sinon. Le serveur crée au besoin le projet enfant de chaque
+	// identité, sous le projet de l'hôte confié à l'agent (jamais sous un autre), dans
+	// son équipe, avec une référence de nature `container` nommée par l'identité, et
+	// renvoie son identifiant ; un projet archivé pour absence revient. L'agent envoie
+	// ensuite le SBOM de chaque conteneur par `createIngestion`, sur cette référence.
+	//
+	// Quand l'image d'un conteneur a déjà été inventoriée, l'agent joint son empreinte
+	// d'inventaire (`inventory`) : si c'est celle de l'ensemble courant du projet enfant,
+	// seule sa date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+	// envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
+	// est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
+	// depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
+	// Le signalement vaut signal de vie.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /agent/containers (the `ReportContainers` operationId).
+	ReportContainersWithResponse(ctx context.Context, body ReportContainersJSONRequestBody, reqEditors ...RequestEditorFn) (*ReportContainersResponse, error)
+
 	// EnrollWithBodyWithResponse Inscrit un agent serveur
 	//
 	// Échange un jeton d'inscription contre un jeton d'agent. Le serveur crée l'agent et le
@@ -1292,6 +1613,75 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /agent/refs/{id}/ai-components (the `ListAIComponents` operationId).
 	ListAIComponentsWithResponse(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*ListAIComponentsResponse, error)
+}
+
+type ReportContainersResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ContainerReportResult
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ReportContainersResponse) GetJSON200() *ContainerReportResult {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ReportContainersResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ReportContainersResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r ReportContainersResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r ReportContainersResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetBody returns the raw response body bytes
+func (r ReportContainersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ReportContainersResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ReportContainersResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ReportContainersResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 type EnrollResponse struct {
@@ -1708,6 +2098,66 @@ func (r ListAIComponentsResponse) ContentType() string {
 	return ""
 }
 
+// ReportContainersWithBodyWithResponse Signale les conteneurs qui tournent sur l'hôte
+//
+// Agent serveur seulement, inventaire des conteneurs activé. L'agent signale à chaque
+// cycle les conteneurs en cours d'exécution sur son hôte, un par identité : `key` vaut
+// `projet/service` pour un service Compose (ses répliques forment un seul projet), le
+// nom du conteneur sinon. Le serveur crée au besoin le projet enfant de chaque
+// identité, sous le projet de l'hôte confié à l'agent (jamais sous un autre), dans
+// son équipe, avec une référence de nature `container` nommée par l'identité, et
+// renvoie son identifiant ; un projet archivé pour absence revient. L'agent envoie
+// ensuite le SBOM de chaque conteneur par `createIngestion`, sur cette référence.
+//
+// Quand l'image d'un conteneur a déjà été inventoriée, l'agent joint son empreinte
+// d'inventaire (`inventory`) : si c'est celle de l'ensemble courant du projet enfant,
+// seule sa date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+// envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
+// est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
+// depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
+// Le signalement vaut signal de vie.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /agent/containers (the `ReportContainers` operationId).
+func (c *ClientWithResponses) ReportContainersWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReportContainersResponse, error) {
+	rsp, err := c.ReportContainersWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReportContainersResponse(rsp)
+}
+
+// ReportContainersWithResponse Signale les conteneurs qui tournent sur l'hôte
+//
+// Agent serveur seulement, inventaire des conteneurs activé. L'agent signale à chaque
+// cycle les conteneurs en cours d'exécution sur son hôte, un par identité : `key` vaut
+// `projet/service` pour un service Compose (ses répliques forment un seul projet), le
+// nom du conteneur sinon. Le serveur crée au besoin le projet enfant de chaque
+// identité, sous le projet de l'hôte confié à l'agent (jamais sous un autre), dans
+// son équipe, avec une référence de nature `container` nommée par l'identité, et
+// renvoie son identifiant ; un projet archivé pour absence revient. L'agent envoie
+// ensuite le SBOM de chaque conteneur par `createIngestion`, sur cette référence.
+//
+// Quand l'image d'un conteneur a déjà été inventoriée, l'agent joint son empreinte
+// d'inventaire (`inventory`) : si c'est celle de l'ensemble courant du projet enfant,
+// seule sa date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+// envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
+// est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
+// depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
+// Le signalement vaut signal de vie.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /agent/containers (the `ReportContainers` operationId).
+func (c *ClientWithResponses) ReportContainersWithResponse(ctx context.Context, body ReportContainersJSONRequestBody, reqEditors ...RequestEditorFn) (*ReportContainersResponse, error) {
+	rsp, err := c.ReportContainers(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReportContainersResponse(rsp)
+}
+
 // EnrollWithBodyWithResponse Inscrit un agent serveur
 //
 // Échange un jeton d'inscription contre un jeton d'agent. Le serveur crée l'agent et le
@@ -1872,6 +2322,60 @@ func (c *ClientWithResponses) ListAIComponentsWithResponse(ctx context.Context, 
 		return nil, err
 	}
 	return ParseListAIComponentsResponse(rsp)
+}
+
+// ParseReportContainersResponse parses an HTTP response from a ReportContainersWithResponse call
+func ParseReportContainersResponse(rsp *http.Response) (*ReportContainersResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ReportContainersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ContainerReportResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseEnrollResponse parses an HTTP response from a EnrollWithResponse call

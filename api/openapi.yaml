@@ -126,6 +126,51 @@ paths:
           $ref: "#/components/responses/Problem"
         "429":
           $ref: "#/components/responses/Problem"
+  /agent/containers:
+    post:
+      operationId: reportContainers
+      tags: [agent]
+      summary: Signale les conteneurs qui tournent sur l'hôte
+      description: |
+        Agent serveur seulement, inventaire des conteneurs activé. L'agent signale à chaque
+        cycle les conteneurs en cours d'exécution sur son hôte, un par identité : `key` vaut
+        `projet/service` pour un service Compose (ses répliques forment un seul projet), le
+        nom du conteneur sinon. Le serveur crée au besoin le projet enfant de chaque
+        identité, sous le projet de l'hôte confié à l'agent (jamais sous un autre), dans
+        son équipe, avec une référence de nature `container` nommée par l'identité, et
+        renvoie son identifiant ; un projet archivé pour absence revient. L'agent envoie
+        ensuite le SBOM de chaque conteneur par `createIngestion`, sur cette référence.
+
+        Quand l'image d'un conteneur a déjà été inventoriée, l'agent joint son empreinte
+        d'inventaire (`inventory`) : si c'est celle de l'ensemble courant du projet enfant,
+        seule sa date de dernière analyse avance (`inventory: current`) ; sinon l'agent doit
+        envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
+        est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
+        depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
+        Le signalement vaut signal de vie.
+      security:
+        - agentToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContainerReport"
+      responses:
+        "200":
+          description: Conteneurs enregistrés, dans l'ordre des identités.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContainerReportResult"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
   /agent/ingestions:
     post:
       operationId: createIngestion
@@ -279,6 +324,7 @@ paths:
         - $ref: "#/components/parameters/Org"
         - $ref: "#/components/parameters/SearchQuery"
         - $ref: "#/components/parameters/SearchType"
+        - $ref: "#/components/parameters/SearchContainers"
         - $ref: "#/components/parameters/SearchLabel"
         - $ref: "#/components/parameters/SearchOrigin"
         - $ref: "#/components/parameters/SearchKEV"
@@ -331,6 +377,7 @@ paths:
             enum: [csv, json]
         - $ref: "#/components/parameters/SearchQuery"
         - $ref: "#/components/parameters/SearchType"
+        - $ref: "#/components/parameters/SearchContainers"
         - $ref: "#/components/parameters/SearchLabel"
         - $ref: "#/components/parameters/SearchOrigin"
         - $ref: "#/components/parameters/SearchKEV"
@@ -554,6 +601,15 @@ components:
         items:
           type: string
           enum: [repo, host]
+    SearchContainers:
+      name: containers
+      in: query
+      description: |
+        `1` : inclut les conteneurs (projets enfants des hôtes), écartés sinon ; ils
+        s'ajoutent aux types retenus.
+      schema:
+        type: string
+        enum: ["1"]
     SearchLabel:
       name: label
       in: query
@@ -805,6 +861,110 @@ components:
           description: |
             Réponse à `inventory` : `current`, l'inventaire du serveur est à jour et sa
             date de dernière analyse a avancé ; `outdated`, l'agent doit envoyer son SBOM.
+    ContainerReport:
+      type: object
+      additionalProperties: false
+      required: [version, containers]
+      properties:
+        version:
+          type: string
+          description: Version de l'agent.
+          maxLength: 64
+        containers:
+          type: array
+          description: Conteneurs en cours d'exécution, une entrée par identité (500 au plus).
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/ContainerSighting"
+    ContainerSighting:
+      type: object
+      additionalProperties: false
+      required: [key, engine, names, replicas, image, image_id]
+      properties:
+        key:
+          type: string
+          description: Identité dans l'hôte, `projet/service` (Compose) ou nom du conteneur.
+          pattern: "^(?:[A-Za-z0-9][A-Za-z0-9_.-]{0,127}/[A-Za-z0-9][A-Za-z0-9_.-]{0,126}|[A-Za-z0-9][A-Za-z0-9_.-]{0,254})$"
+          examples: [shop/web, redis-cache]
+        engine:
+          type: string
+          enum: [docker, podman]
+        names:
+          type: array
+          description: Noms des conteneurs de cette identité (répliques), 16 au plus.
+          minItems: 1
+          maxItems: 16
+          items:
+            type: string
+            maxLength: 255
+        replicas:
+          type: integer
+          description: Nombre de conteneurs de cette identité en cours d'exécution.
+          minimum: 1
+          maximum: 10000
+        image:
+          type: string
+          description: Référence de l'image telle que le moteur la donne (`nginx:1.27`).
+          maxLength: 255
+        image_id:
+          type: string
+          description: Empreinte de l'image (identifiant du moteur).
+          pattern: "^sha256:[0-9a-f]{64}$"
+        compose_project:
+          type: string
+          maxLength: 128
+        compose_service:
+          type: string
+          maxLength: 128
+        started_at:
+          type: string
+          format: date-time
+          description: Démarrage du conteneur le plus récent de cette identité.
+        inventory:
+          $ref: "#/components/schemas/ImageInventory"
+    ImageInventory:
+      type: object
+      description: Inventaire déjà connu de l'image du conteneur.
+      additionalProperties: false
+      required: [fingerprint, scanned_at]
+      properties:
+        fingerprint:
+          type: string
+          description: Empreinte d'inventaire (SHA-256 en hexadécimal minuscule).
+          pattern: "^[0-9a-f]{64}$"
+        scanned_at:
+          type: string
+          format: date-time
+          description: Date du scan de l'image (au plus une heure d'avance sur l'horloge du serveur).
+    ContainerReportResult:
+      type: object
+      required: [containers]
+      properties:
+        containers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContainerState"
+    ContainerState:
+      type: object
+      required: [key, project, ref_id, ignored]
+      properties:
+        key:
+          type: string
+        project:
+          $ref: "#/components/schemas/ProjectRef"
+        ref_id:
+          type: string
+          format: uuid
+          description: Référence `container` du projet enfant, nommée par `key`.
+        ignored:
+          type: boolean
+          description: Projet archivé par un utilisateur ; l'agent ne l'inventorie pas.
+        inventory:
+          type: string
+          enum: [current, outdated]
+          description: |
+            Réponse à `inventory` : `current`, l'inventaire du projet enfant est à jour et
+            sa date de dernière analyse a avancé ; `outdated`, l'agent doit envoyer le SBOM.
     AgentProjectList:
       type: object
       required: [projects, page]
@@ -918,7 +1078,7 @@ components:
         project_id:
           type: string
           format: uuid
-          description: Projet confié à l'agent (`listAgentProjects`).
+          description: Projet confié à l'agent (`listAgentProjects`), ou projet enfant d'un conteneur de son hôte (`reportContainers`).
         ref:
           type: object
           additionalProperties: false
@@ -926,14 +1086,14 @@ components:
           properties:
             kind:
               type: string
-              enum: [branch, tag, host]
+              enum: [branch, tag, host, container]
             name:
               type: string
               minLength: 1
               maxLength: 255
         commit:
           type: string
-          description: Commit analysé (SHA-1 ou SHA-256 en hexadécimal) ; exigé pour une branche ou une étiquette, interdit pour un hôte.
+          description: Commit analysé (SHA-1 ou SHA-256 en hexadécimal) ; exigé pour une branche ou une étiquette, interdit pour un hôte ou un conteneur.
           pattern: "^[0-9a-fA-F]{40}([0-9a-fA-F]{24})?$"
         agent_version:
           type: string
@@ -1101,7 +1261,9 @@ components:
           type: string
         kind:
           type: string
-          enum: [repo, host]
+          enum: [repo, host, container]
+        parent:
+          $ref: "#/components/schemas/ProjectRef"
         labels:
           type: object
           additionalProperties:
@@ -1160,7 +1322,7 @@ components:
           format: uuid
         kind:
           type: string
-          enum: [branch, tag, host]
+          enum: [branch, tag, host, container]
         name:
           type: string
     SearchComponent:

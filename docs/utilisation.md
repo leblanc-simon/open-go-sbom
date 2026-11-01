@@ -53,7 +53,8 @@ affichées, mais elles ne sont pas oubliées.
 
 ### Filtres, ordre et partage
 
-Les filtres se combinent : type de projet, étiquette, origine de la détection (Syft ou
+Les filtres se combinent : type de projet (« Inclure les conteneurs » ajoute les
+conteneurs des serveurs, écartés sinon ; paramètre `containers=1`), étiquette, origine de la détection (Syft ou
 IA), vulnérabilité activement exploitée (KEV), sévérité maximale (ou « sans
 vulnérabilité »), et, pour une recherche par vulnérabilité, les constats déjà résolus.
 Dans un même filtre, les valeurs cochées s'additionnent. Les résultats sont groupés par
@@ -229,6 +230,7 @@ En sens inverse, `component_not_present` et `vulnerable_code_not_present` devien
 note `[lotor:…]` dans `status_notes` ; CycloneDX a `false_positive`, et « risque accepté »
 y devient `exploitable` avec la réponse `will_not_fix` et des propriétés `lotor:`. Le
 détail est dans l'ADR 0036.
+
 ## Composants trouvés par l'IA
 
 Pour un dépôt, l'agent dépôt peut compléter l'inventaire de Syft par les composants
@@ -258,3 +260,33 @@ instantané marqué **Enrichissement IA incomplet** ne contient que les composan
 (analyse interrompue : budget dépassé ou erreur du fournisseur) ; **Composants IA
 reportés** signale un commit intermédiaire dont les composants IA du commit précédent ont
 été revérifiés sans nouvelle analyse.
+
+## Conteneurs des serveurs
+
+Quand l'agent d'un serveur inventorie aussi ses conteneurs (option de l'agent, désactivée
+par défaut : voir `docs/operations.md`, « Conteneurs »), chaque conteneur qui tourne
+devient un **projet enfant** du projet du serveur, avec son propre SBOM, ses constats et
+son historique.
+
+- **Identité** : un service Compose forme un seul projet, nommé `serveur/projet/service`,
+  quel que soit le nombre de ses répliques et même s'il est recréé à chaque déploiement ;
+  un conteneur lancé sans Compose est suivi par son nom. Deux services sur la même image
+  font deux projets, mais l'image n'est analysée qu'une fois.
+- **Équipe** : un conteneur appartient toujours à l'équipe de son serveur ; rattacher le
+  serveur à une autre équipe y emmène ses conteneurs, et voir le serveur, c'est voir ses
+  conteneurs.
+- **Fiche du serveur** : le tableau « Conteneurs et constats par périmètre » montre, pour
+  le serveur et chacun de ses conteneurs, l'image, l'état (en cours, absent, archivé) et
+  les vulnérabilités ouvertes par sévérité. Chaque projet compte ses vulnérabilités
+  distinctes : une CVE présente sur le serveur et dans deux conteneurs compte trois fois
+  au total, une CVE présente dans deux composants d'un même conteneur une fois.
+- **Fiche d'un conteneur** : moteur (Docker, Podman), image et son empreinte, projet et
+  service Compose, noms des répliques, démarrage, dernier signalement par l'agent ; son
+  fil d'Ariane remonte au serveur.
+- **Disparition** : un conteneur que l'agent ne signale plus depuis 7 jours (réglage du
+  serveur) est archivé ; il revient de lui-même, avec son historique, s'il redémarre.
+  Archiver soi-même le projet d'un conteneur (Paramètres) arrête son inventaire, même
+  s'il tourne encore.
+- **Listes et recherche** : les conteneurs n'y figurent que si « Inclure les conteneurs »
+  est coché ; le tableau de bord de l'organisation, lui, les compte avec les autres
+  projets.
