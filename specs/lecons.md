@@ -683,5 +683,15 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   chaque rôle modifierait les données d'un cas à l'autre. Règle : un point d'essai non
   exporté remplace les gestionnaires derrière leur garde (`routeStub`) ; un test à part
   vérifie que la table des droits est exactement celle du routeur réel (`chi.Walk`).
+- **Délai de `Stop` trop court dans un test** : `TestStopReleaseYieldsToPendingTwin` (T02)
+  donnait 500 ms à `Runner.Stop`, qui ne libère les jobs que dans le dernier quart du délai
+  (125 ms) ; sa libération enchaîne deux transactions (remise en attente refusée par la clé
+  d'unicité, puis suppression) et a dépassé la marge en CI (`-race`, paquets en parallèle).
+  Reproduit à 14 échecs sur 15 sur un cœur partagé (`GOMAXPROCS=1 taskset -c 0`, 30
+  boucles actives sur le même cœur). Règle : un test d'arrêt donne à `Stop` un délai dont
+  le quart couvre plusieurs allers-retours chargés (4 s, marge 1 s), et l'instabilité se
+  vérifie sous contention avant et après le correctif.
+- **`pkill -f motif`** tue aussi la commande shell qui contient ce motif (code 144). Règle :
+  borner les boucles de charge par `timeout`, sans `pkill`.
 - **Outil d'isolement des agents (suite)** : `sleep N` suivi d'une autre commande est
   refusé. Règle : `run_in_background` pour une commande longue, puis lecture de sa sortie.
