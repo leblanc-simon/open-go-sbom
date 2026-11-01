@@ -1,0 +1,42 @@
+{{define "violation_subject" -}}
+{{- if .Agent}}
+<td><span class="cell-stack"><span class="muted">{{T "violations.agent"}}</span><a href="{{.AgentHref}}">{{.AgentName}}</a></span></td>
+<td><span class="muted">{{T "violations.no_project"}}</span></td>
+{{- else}}
+<td><span class="cell-stack"><span class="cluster"><a class="mono" href="{{.FindingHref}}">{{.VulnID}}<span class="visually-hidden"> {{.Component}}</span></a>{{template "sev" .Sev}}{{if .KEV}}{{template "kev"}}{{end}}</span><span class="mono muted">{{.Component}}</span></span></td>
+<td><span class="cell-stack"><a href="{{.ProjectHref}}">{{.Project}}</a>{{with .Ref}}<span class="muted">{{.}}</span>{{end}}</span></td>
+{{- end}}
+{{- end}}
+
+{{define "dash_alerts" -}}
+{{- with .}}
+<section class="panel" aria-labelledby="alerts-title">
+  <div class="panel__head">
+    <h2 class="panel__title" id="alerts-title">{{T "dashboard.alerts_title"}}</h2>
+    <span class="panel__meta">{{T "dashboard.alerts_meta" "Open" .Open "Blocking" .Blocking}}</span>
+    <a class="panel__action" href="{{.Href}}">{{T "dashboard.see_violations"}}</a>
+  </div>
+  {{- if .Recent}}
+  <div class="panel__body panel__body--flush">
+    <div class="table-wrap" role="group" aria-labelledby="alerts-title" tabindex="0">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "dashboard.alerts_caption"}}</caption>
+        <thead><tr><th scope="col">{{T "violations.col_policy"}}</th><th scope="col">{{T "violations.col_subject"}}</th><th scope="col">{{T "violations.col_project"}}</th><th scope="col">{{T "violations.col_opened"}}</th></tr></thead>
+        <tbody>
+          {{- range .Recent}}
+          <tr>
+            <th scope="row"><span class="cell-stack"><span>{{.Policy}}</span>{{if .Blocking}}<span class="status status--warning">{{T "policies.blocking"}}</span>{{end}}</span></th>
+            {{template "violation_subject" .}}
+            <td>{{template "stamp" .Opened}}</td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {{- else}}
+  <div class="panel__body"><p class="muted">{{T "dashboard.alerts_none"}}</p></div>
+  {{- end}}
+</section>
+{{- end}}
+{{- end}}

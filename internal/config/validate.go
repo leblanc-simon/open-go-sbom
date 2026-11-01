@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net/mail"
 	"net/netip"
 	"net/url"
 	"os"
@@ -215,6 +216,8 @@ func (c Config) Validate() error {
 	if c.Retention.Count < 0 || c.Retention.Count > 100000 {
 		v.fail("retention.count", "doit être compris entre 0 et 100000 (reçu %d)", c.Retention.Count)
 	}
+	c.Notify.validate(&v)
+	c.SMTP.validate(&v)
 
 	return errors.Join(v.errs...)
 }
@@ -297,5 +300,41 @@ func (b Bootstrap) validate(v *validator) {
 		if len([]rune(strings.TrimSpace(b.RescueTicket))) < account.MinRescueTicket {
 			v.fail("bootstrap.rescue_ticket", "%d caractères au moins", account.MinRescueTicket)
 		}
+	}
+}
+
+func (n Notify) validate(v *validator) {
+	if n.PublicURL != "" {
+		u, err := url.Parse(n.PublicURL)
+		if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" || u.User != nil || u.RawQuery != "" ||
+			u.Fragment != "" {
+			v.fail("notify.public_url", "adresse http(s) sans requête attendue (reçu %q)", n.PublicURL)
+		}
+	}
+	if n.Timeout < time.Second || n.Timeout > 5*time.Minute {
+		v.fail("notify.timeout", "doit être compris entre 1s et 5m (reçu %s)", n.Timeout)
+	}
+	if n.DigestHour < 0 || n.DigestHour > 23 {
+		v.fail("notify.digest_hour", "doit être compris entre 0 et 23 (reçu %d)", n.DigestHour)
+	}
+}
+
+func (s SMTP) validate(v *validator) {
+	if s.Host == "" {
+		return
+	}
+	switch s.TLS {
+	case "starttls", "tls", "none":
+	default:
+		v.fail("smtp.tls", "starttls, tls ou none attendu (reçu %q)", s.TLS)
+	}
+	if s.Port < 1 || s.Port > 65535 {
+		v.fail("smtp.port", "doit être compris entre 1 et 65535 (reçu %d)", s.Port)
+	}
+	if a, err := mail.ParseAddress(s.From); err != nil || a.Name != "" || strings.ContainsAny(s.From, "\r\n") {
+		v.fail("smtp.from", "adresse e-mail nue attendue (reçu %q)", s.From)
+	}
+	if s.TLS == "none" && s.Username != "" {
+		v.fail("smtp.username", "aucune authentification sans TLS (smtp.tls: none)")
 	}
 }

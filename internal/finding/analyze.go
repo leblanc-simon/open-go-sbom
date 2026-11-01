@@ -62,8 +62,12 @@ type Options struct {
 	// Triage classe les constats créés ou rouverts ; nil seulement dans les tests qui
 	// n'ont pas de décision de triage.
 	Triage Classifier
-	Logger *slog.Logger
-	Now    func() time.Time
+	// OnAnalyzed, facultatif, est appelé dans la transaction qui écrit les constats
+	// d'une référence analysée (évaluation des politiques de T15 : mise en file dans la
+	// transaction).
+	OnAnalyzed func(ctx context.Context, tx *db.OrgTx, refID, projectID uuid.UUID) error
+	Logger     *slog.Logger
+	Now        func() time.Time
 }
 
 // Analyzer exécute les analyses de vulnérabilités et tient les constats.
@@ -291,7 +295,10 @@ func (a *Analyzer) write(ctx context.Context, tx *db.OrgTx, refID uuid.UUID, st 
 		    analyzed_at = EXCLUDED.analyzed_at, match_count = EXCLUDED.match_count, unmatched_count = EXCLUDED.unmatched_count`,
 		tx.OrgID(), refID, st.ProjectID, st.SetID, st.SnapshotID, res.Version.ArchiveID, res.Version.Built, now,
 		len(seen), unmatched)
-	return err
+	if err != nil || a.o.OnAnalyzed == nil {
+		return err
+	}
+	return a.o.OnAnalyzed(ctx, tx, refID, st.ProjectID)
 }
 
 func closeRows(rows *sql.Rows) error {
@@ -428,10 +435,11 @@ func (w writer) create(ctx context.Context, os []observed) ([]uuid.UUID, error) 
 		if _, err := w.tx.ExecContext(ctx, `
 			INSERT INTO findings (org_id, id, project_id, ref_id, component_id, vuln_id, status, severity, cvss_score, epss,
 			                      epss_percentile, kev, risk, fixed_versions, fix_state, match_type, first_seen_at, last_seen_at,
-			                      snapshot_id, vulndb_archive, vulndb_built, updated_at)
+			                      snapshot_id, vulndb_archive, vulndb_built, updated_at, fixed_seen_at)
 			SELECT $13, u.id, $14, $15, u.component_id, u.vuln_id, 'open', u.severity, NULLIF(u.cvss, '')::numeric,
 			       NULLIF(u.epss, '')::numeric, NULLIF(u.pct, '')::numeric, u.kev::boolean, u.risk::numeric,
-			       string_to_array(u.fixed, E'\x1f'), u.fix_state, u.match_type, $16, $16, $17, $18, $19, $16
+			       string_to_array(u.fixed, E'\x1f'), u.fix_state, u.match_type, $16, $16, $17, $18, $19, $16,
+			       CASE WHEN u.fix_state = 'fixed' THEN $16::timestamptz END
 			  FROM `+unnestColumns, args...); err != nil {
 			return nil, err
 		}
@@ -458,6 +466,7 @@ func (w writer) update(ctx context.Context, cs []change) error {
 			       cvss_score = NULLIF(u.cvss, '')::numeric, epss = NULLIF(u.epss, '')::numeric,
 			       epss_percentile = NULLIF(u.pct, '')::numeric, kev = u.kev::boolean, risk = u.risk::numeric,
 			       fixed_versions = string_to_array(u.fixed, E'\x1f'), fix_state = u.fix_state, match_type = u.match_type,
+			       fixed_seen_at = CASE WHEN u.fix_state = 'fixed' THEN COALESCE(f.fixed_seen_at, $13::timestamptz) END,
 			       last_seen_at = $13, snapshot_id = $14, vulndb_archive = $15, vulndb_built = $16, updated_at = $13
 			  FROM `+unnestColumns+` WHERE f.id = u.id`, args...); err != nil {
 			return err

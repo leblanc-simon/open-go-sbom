@@ -1,0 +1,68 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{T "policies.heading"}}</h1>
+      <a class="btn btn--primary" href="{{.NewHref}}">{{T "policies.new"}}</a>
+    </div>
+    <p class="page-head__lead">{{T "policies.lead"}}</p>
+  </div>
+  {{template "flash" .FlashKey}}
+  <section class="panel" aria-labelledby="policies-list">
+    <div class="panel__head">
+      <h2 class="panel__title" id="policies-list">{{T "policies.list_title"}}</h2>
+      <span class="panel__meta">{{T "policies.limit" "Max" .Max}}</span>
+    </div>
+    {{- if .Rows}}
+    <div class="table-wrap" role="group" aria-labelledby="policies-list" tabindex="0">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "policies.list_title"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "policies.col_name"}}</th>
+            <th scope="col">{{T "policies.col_subject"}}</th>
+            <th scope="col">{{T "policies.col_state"}}</th>
+            <th scope="col">{{T "policies.col_delivery"}}</th>
+            <th scope="col" class="num">{{T "policies.col_open"}}</th>
+            <th scope="col"><span class="visually-hidden">{{T "table.actions"}}</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{- range .Rows}}
+          <tr>
+            <th scope="row"><span class="cell-stack"><a href="{{.Href}}">{{.Name}}</a>{{with .LastError}}<span class="status status--warning">{{T "policies.eval_error"}}</span>{{end}}</span></th>
+            <td>{{T .SubjectKey}}</td>
+            <td><span class="cluster">{{if .Enabled}}<span class="status status--active">{{T "policies.enabled"}}</span>{{else}}<span class="status status--revoked">{{T "policies.disabled"}}</span>{{end}}{{if .Blocking}}<span class="status status--warning">{{T "policies.blocking"}}</span>{{end}}</span></td>
+            <td>{{T .DeliveryKey}}</td>
+            <td class="num"><a href="{{.ViolationsURL}}">{{.Open}}<span class="visually-hidden"> {{T "policies.see_violations" "Name" .Name}}</span></a></td>
+            <td class="cell-actions"><a class="btn btn--sm" href="{{.DeleteHref}}">{{T "policies.delete"}}<span class="visually-hidden"> {{.Name}}</span></a></td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{- else}}
+    <div class="panel__body"><p>{{T "policies.empty"}}</p></div>
+    {{- end}}
+  </section>
+  <section class="panel" aria-labelledby="policies-templates">
+    <div class="panel__head"><h2 class="panel__title" id="policies-templates">{{T "policies.templates_title"}}</h2></div>
+    <div class="panel__body">
+      <ul class="template-list">
+        {{- range .Templates}}
+        <li class="template-list__item">
+          <span class="template-list__name">{{T (print "policy_template." .Key ".name")}}</span>
+          <span class="template-list__text">{{T (print "policy_template." .Key ".text")}}</span>
+          <span class="cluster"><span class="muted">{{T (print "policy_subject." .Subject)}}</span>{{if .Blocking}}<span class="status status--warning">{{T "policies.blocking"}}</span>{{end}}</span>
+          {{- if .Available}}
+          <a class="btn btn--sm" href="{{.Href}}">{{T "policies.use_template"}}<span class="visually-hidden"> {{T (print "policy_template." .Key ".name")}}</span></a>
+          {{- else}}
+          <span class="status status--revoked">{{T "policies.template_unavailable"}}</span>
+          {{- end}}
+        </li>
+        {{- end}}
+      </ul>
+    </div>
+  </section>
+</div>
+{{- end}}

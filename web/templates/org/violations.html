@@ -1,0 +1,48 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T "violations.heading"}}</h1>
+    <p class="page-head__lead">{{T "violations.lead"}}</p>
+  </div>
+  <nav class="tabs" aria-label="{{T "violations.tabs_label"}}">
+    {{- range .Tabs}}<a href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}><span>{{T .LabelKey}}</span></a>{{end}}
+  </nav>
+  {{- if .PolicyID}}
+  <p class="cluster"><span>{{T "violations.filtered"}}{{with .PolicyName}} <strong>{{.}}</strong>{{end}}</span><a href="{{.ClearHref}}">{{T "violations.clear_filter"}}</a></p>
+  {{- end}}
+  <section class="panel" aria-labelledby="violations-list">
+    <div class="panel__head"><h2 class="panel__title" id="violations-list">{{if .Resolved}}{{T "violations.resolved_title"}}{{else}}{{T "violations.open_title"}}{{end}}</h2></div>
+    {{- if .Rows}}
+    <div class="table-wrap" role="group" aria-labelledby="violations-list" tabindex="0">
+      <table class="data-table">
+        <caption class="visually-hidden">{{if .Resolved}}{{T "violations.resolved_title"}}{{else}}{{T "violations.open_title"}}{{end}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "violations.col_policy"}}</th>
+            <th scope="col">{{T "violations.col_subject"}}</th>
+            <th scope="col">{{T "violations.col_project"}}</th>
+            <th scope="col">{{T "violations.col_opened"}}</th>
+            {{- if .Resolved}}<th scope="col">{{T "violations.col_resolved"}}</th>{{end}}
+          </tr>
+        </thead>
+        <tbody>
+          {{- range .Rows}}
+          <tr>
+            <th scope="row"><span class="cell-stack"><span>{{.Policy}}</span>{{if .Blocking}}<span class="status status--warning">{{T "policies.blocking"}}</span>{{end}}</span></th>
+            {{template "violation_subject" .}}
+            <td>{{template "stamp" .Opened}}</td>
+            {{- if $.Resolved}}<td>{{template "stamp" .Resolved}}</td>{{end}}
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{- with .NextHref}}
+    <nav class="pagination" aria-label="{{T "pagination.label"}}"><a class="btn btn--sm" href="{{.}}">{{T "pagination.next"}}</a></nav>
+    {{- end}}
+    {{- else}}
+    <div class="panel__body"><p>{{if .Resolved}}{{T "violations.empty_resolved"}}{{else}}{{T "violations.empty_open"}}{{end}}</p></div>
+    {{- end}}
+  </section>
+</div>
+{{- end}}

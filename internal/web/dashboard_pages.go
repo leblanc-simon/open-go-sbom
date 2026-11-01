@@ -187,6 +187,7 @@ type dashboardView struct {
 	SilentCount  int
 	Silent       []silentRow
 	SilentDays   int
+	Alerts       *alertsView
 }
 
 func periodFormOf(action string, selected dashboard.Period) periodForm {
@@ -213,6 +214,10 @@ func (id *identity) orgOverview(w http.ResponseWriter, r *http.Request) {
 		Base: base, Name: acc.Name, Period: periodFormOf(base, period), ProjectCount: d.ProjectCount(),
 		LastAnalysis: stampOf(d.LastAnalysis), Summary: summaryOf("org", d.Summary), SilentCount: d.SilentAgents,
 		SilentDays: int(agent.SilentAfter / (24 * time.Hour)),
+	}
+	if view.Alerts, err = id.alertsOf(r, base); err != nil {
+		id.serverError(w, r, err)
+		return
 	}
 	for _, k := range project.Kinds() {
 		if n := d.Projects[k]; n > 0 {

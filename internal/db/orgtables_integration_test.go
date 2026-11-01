@@ -168,6 +168,36 @@ var orgTables = []orgTable{
 			tx.OrgID(), seedID(tx, "ref"), seedID(tx, "project"), seedID(tx, "set"), seedID(tx, "snapshot"), uuid.Must(uuid.NewV7()))
 		return err
 	}},
+	{"notification_channels", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO notification_channels (org_id, id, name, kind, settings, created_at, updated_at)
+			VALUES ($1, $2, 'ops', 'email', '{"recipients": ["ops@example.org"]}', now(), now())`, tx.OrgID(), seedID(tx, "channel"))
+		return err
+	}},
+	{"policies", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO policies (org_id, id, name, subject, expression, delivery, created_at, updated_at)
+			VALUES ($1, $2, 'muets', 'agent', 'agent.silent_days >= 7', 'immediate', now(), now())`, tx.OrgID(), seedID(tx, "policy"))
+		return err
+	}},
+	{"policy_channels", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO policy_channels (org_id, policy_id, channel_id) VALUES ($1, $2, $3)`,
+			tx.OrgID(), seedID(tx, "policy"), seedID(tx, "channel"))
+		return err
+	}},
+	{"policy_violations", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO policy_violations (org_id, id, policy_id, subject, agent_id, opened_at, last_seen_at)
+			VALUES ($1, $2, $3, 'agent', $4, now(), now())`, tx.OrgID(), seedID(tx, "violation"), seedID(tx, "policy"), seedID(tx, "agent"))
+		return err
+	}},
+	{"notification_deliveries", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO notification_deliveries (org_id, channel_id, violation_id, mode, state, created_at)
+			VALUES ($1, $2, $3, 'immediate', 'pending', now())`, tx.OrgID(), seedID(tx, "channel"), seedID(tx, "violation"))
+		return err
+	}},
+	{"policy_evaluations", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO policy_evaluations (org_id, ref_id, project_id, analyzed_at, evaluated_at)
+			VALUES ($1, $2, $3, now(), now())`, tx.OrgID(), seedID(tx, "ref"), seedID(tx, "project"))
+		return err
+	}},
 	{"agent_tokens", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
 		_, err := tx.ExecContext(ctx, `INSERT INTO agent_tokens (org_id, id, agent_id, public_id, secret_hash, name)
 			VALUES ($1, $2, $3, $4, sha256('a'::bytea), 'initial')`,

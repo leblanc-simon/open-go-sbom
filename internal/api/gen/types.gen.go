@@ -1175,6 +1175,27 @@ type TrackedRef struct {
 // TrackedRefKind defines model for TrackedRef.Kind.
 type TrackedRefKind string
 
+// Verdict Verdict des politiques sur un instantané.
+type Verdict struct {
+	// Blocking Violations ouvertes de politiques bloquantes sur la référence de l'instantané.
+	Blocking int `json:"blocking"`
+
+	// Policies Politiques bloquantes violées, par nom (10 au plus).
+	Policies []string `json:"policies"`
+
+	// State `pending` (analyse ou évaluation en cours), `pass` (conforme) ou `fail` (non conforme).
+	State string `json:"state"`
+
+	// Summary Résumé traduit dans la langue de l'organisation.
+	Summary string `json:"summary"`
+
+	// Url Page des constats du projet, si l'URL publique du serveur est configurée.
+	Url *string `json:"url,omitempty"`
+
+	// Warnings Violations ouvertes de politiques non bloquantes sur la référence.
+	Warnings int `json:"warnings"`
+}
+
 // Cursor defines model for Cursor.
 type Cursor = string
 

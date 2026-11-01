@@ -9,6 +9,9 @@ layout:
   home_link: Home
 
 nav:
+  violations: "Violations"
+  policies: "Policies"
+  channels: "Channels"
   triage: "Triage"
   search: Search
   tokens: Access tokens
@@ -71,10 +74,15 @@ format:
   sbom_syft: Syft JSON
 
 form:
+  cancel: "Cancel"
   error_title: The form was not accepted
   save: Save
 
 flash:
+  policy_saved: "Policy saved; its evaluation is queued."
+  policy_deleted: "Policy deleted with its violations."
+  channel_saved: "Channel saved."
+  channel_deleted: "Channel deleted."
   triage_saved: "Triage decision saved."
   triage_withdrawn: "Triage decision withdrawn."
   vex_empty: "No decision to export: triage some open findings of this project first."
@@ -123,6 +131,32 @@ pagination:
   next: Next page
 
 validation:
+  policy_expression_required: "Enter the rule (CEL expression)."
+  policy_expression_too_long: "The rule exceeds 4,000 characters."
+  policy_syntax: "Syntax error at line {{.Line}}, column {{.Column}}."
+  policy_unknown_field: "Unknown field “{{.Name}}” at line {{.Line}}, column {{.Column}}."
+  policy_unknown_name: "Unknown name “{{.Name}}” at line {{.Line}}, column {{.Column}}: variables are listed in the help."
+  policy_type: "Incompatible types at line {{.Line}}, column {{.Column}} (for instance text compared with a number)."
+  policy_invalid: "Invalid rule at line {{.Line}}, column {{.Column}}."
+  policy_not_bool: "The rule must give true or false."
+  policy_too_costly: "The rule is too costly to evaluate: simplify nested loops."
+  policy_name_invalid: "The name has 1 to 100 characters."
+  policy_name_taken: "A policy already has this name."
+  policy_description_too_long: "The description exceeds 1,000 characters."
+  policy_subject_invalid: "Choose what the rule evaluates."
+  policy_delivery_invalid: "Choose a delivery mode."
+  policy_channels_invalid: "A chosen channel no longer exists, or more than 20 channels are chosen."
+  policies_too_many: "The organization already has 100 policies."
+  policy_template_invalid: "This template is not available for this subject."
+  channel_name_invalid: "The name has 1 to 100 characters."
+  channel_name_taken: "A channel already has this name."
+  channel_kind_invalid: "Unknown channel kind (it does not change after creation)."
+  channel_recipients_invalid: "Enter 1 to 20 valid e-mail addresses."
+  channel_url_invalid: "Invalid http(s) address."
+  channel_room_invalid: "Matrix room identifier expected (!abc:server)."
+  channel_secret_required: "This channel requires a secret."
+  channel_secret_invalid: "Invalid secret (HMAC key of at least 16 characters; https URL of an incoming webhook)."
+  channels_too_many: "The organization already has 50 channels."
   triage_status_invalid: "Choose a triage status."
   triage_justification_required: "A VEX justification is required for “not affected”."
   triage_justification_invalid: "Unknown VEX justification."
@@ -297,6 +331,11 @@ org:
   slug_hint: "Lowercase letters, digits and hyphens; it appears in addresses (/o/identifier)."
 
 dashboard:
+  alerts_title: "Alerts"
+  alerts_meta: "{{.Open}} open · {{.Blocking}} blocking"
+  alerts_caption: "Most recent policy violations"
+  alerts_none: "No open violation."
+  see_violations: "All violations"
   search_package: Search the package
   title: Dashboard
   heading: Dashboard
@@ -405,6 +444,13 @@ audit:
   system: System (startup)
   empty: No event yet.
   action:
+    policy_created: "Policy created: {{.Target}}"
+    policy_updated: "Policy updated: {{.Target}}"
+    policy_deleted: "Policy deleted: {{.Target}}"
+    channel_created: "Notification channel created: {{.Target}}"
+    channel_updated: "Notification channel updated: {{.Target}}"
+    channel_deleted: "Notification channel deleted: {{.Target}}"
+    channel_tested: "Test message sent to {{.Target}} ({{.D_outcome}})"
     triage_decided: "Triage decision {{.D_status}} ({{.D_scope}}) on {{.Target}}"
     triage_withdrawn: "Triage decision withdrawn ({{.D_scope}}) on {{.Target}}"
     triage_expired: "Accepted risk expired on {{.D_expires_on}}: {{.Target}} back in triage"
@@ -552,6 +598,14 @@ admin_org:
   unarchive: Reactivate
 
 error:
+  notify:
+    failed: "Sending failed."
+    unreachable: "The recipient is unreachable (network, name or timeout)."
+    private_address: "Private or local address refused (protection against internal requests)."
+    status: "The recipient refused the message (HTTP status outside 2xx)."
+    smtp: "The SMTP server refused the message."
+    smtp_unconfigured: "No SMTP server is configured on this instance."
+    secret: "The channel secret cannot be read: enter it again."
   vex_empty:
     title: "No decision to export"
     text: "This project has no open finding with a triage decision."
@@ -1493,6 +1547,12 @@ sitemap:
   admin: "Instance administration"
 
 confirm:
+  policy_heading: "Delete the policy “{{.Name}}”?"
+  policy_text: "The policy, its {{.Count}} open violations and their history are deleted; pending notifications will not be sent. The action is logged."
+  policy_submit: "Delete the policy"
+  channel_heading: "Delete the channel “{{.Name}}”?"
+  channel_text: "The channel is removed from the {{.Count}} policies that use it; its pending deliveries are dropped and its secret erased."
+  channel_submit: "Delete the channel"
   triage_withdraw_heading: "Withdraw the “{{.Status}}” decision on {{.ID}}?"
   triage_withdraw_project_text: "Findings of {{.Component}} in this project will go back to the organization's decision, or “in triage”. The decision stays in the history."
   triage_withdraw_org_text: "Findings of {{.Component}} that inherited it, in every project, will go back to “in triage” (unless a project has its own decision). The decision stays in the history."
@@ -1768,3 +1828,186 @@ compare:
   approximate: "Versions not comparable: direction taken from alphabetical order"
   none_of_kind: No change of this kind.
   identical: Both snapshots have the same inventory.
+
+policies:
+  title: "Policies"
+  heading: "Policies"
+  lead: "Declarative rules evaluated after each analysis and every day; each violation is dated, and a blocking rule makes commit statuses fail."
+  new: "New policy"
+  list_title: "Organization rules"
+  limit: "{{.Max}} policies at most"
+  col_name: "Name"
+  col_subject: "Evaluates"
+  col_state: "State"
+  col_delivery: "Delivery"
+  col_open: "Open violations"
+  enabled: "Active"
+  disabled: "Inactive"
+  blocking: "Blocking"
+  eval_error: "Evaluation error"
+  see_violations: "violations of {{.Name}}"
+  delete: "Delete"
+  empty: "No policy yet: start from a template below."
+  templates_title: "Provided templates"
+  use_template: "Use this template"
+  template_unavailable: "Available with license analysis"
+policy_subject:
+  finding: "Findings"
+  finding_desc: "Each open finding, with its project, component, reference and triage status."
+  agent: "Agents"
+  agent_desc: "Each agent not disabled, with its state and how long it has been silent."
+policy_delivery:
+  immediate: "Immediate"
+  digest: "Daily digest"
+  none: "No delivery"
+policy_template:
+  kev_production:
+    name: "KEV on a production project"
+    text: "A vulnerability of the KEV catalog, still to be handled, on a project labelled env=production."
+  critical_fix_30d:
+    name: "Critical with a fix for more than 30 days"
+    text: "A critical vulnerability, still to be handled, with a fix known for more than 30 days."
+  agent_silent_7d:
+    name: "Agent silent for 7 days"
+    text: "An agent that has sent nothing (server) or made no contact (repository) for 7 days."
+  license_agpl:
+    name: "AGPL license in a distributed product"
+    text: "A component under an AGPL license in a distributed project; delivered with license analysis (phase 3)."
+policy_form:
+  title_new: "New policy"
+  title_edit: "Policy {{.Name}}"
+  heading_new: "New policy"
+  heading_edit: "Policy {{.Name}}"
+  lead: "The rule is checked before it is saved; the preview counts the violations it would open today, without saving anything."
+  form_title: "Rule"
+  name: "Name"
+  summary: "Description"
+  subject: "What the rule evaluates"
+  expression: "Rule (CEL expression)"
+  expression_hint: "An expression that is true for each subject in violation; variables and examples in the help."
+  enabled: "Active"
+  blocking: "Blocking"
+  blocking_hint: "A blocking violation makes the commit status published by the repository agent fail."
+  delivery: "Violation delivery"
+  channels: "Channels"
+  no_channels: "No notification channel."
+  add_channel: "Create a channel"
+  preview: "Preview"
+  preview_title: "Preview"
+  preview_finding:
+    one: "The rule would be violated by {{.Count}} open finding today."
+    other: "The rule would be violated by {{.Count}} open findings today."
+  preview_agent:
+    one: "The rule would be violated by {{.Count}} agent today."
+    other: "The rule would be violated by {{.Count}} agents today."
+  preview_failures:
+    one: "{{.Count}} evaluation failed (for instance a missing label) and counts as not violated."
+    other: "{{.Count}} evaluations failed (for instance a missing label) and count as not violated."
+  expr_error_title: "The rule is not valid"
+  expr_detail: "Detail:"
+  last_error_title: "Last evaluation error"
+policy_help:
+  title: "Help"
+  intro: "A rule is a CEL expression that is true for each subject in violation. The available fields are listed under each variable; an unknown field is refused."
+  project: "The finding's project: name, slug, kind, team, labels (a map: has(project.labels.env) tests a label)."
+  component: "The component: purl, family (purl_base), type, name, version."
+  finding: "The finding: identifier, severity, scores, KEV, fix (fix_available, fix_age_days in days), age in days, actionable (in triage or affected)."
+  triage: "The effective triage status: in_triage, affected, not_affected, false_positive, risk_accepted, fixed."
+  ref: "The tracked reference: kind (branch, tag, host) and name."
+  agent: "The agent: name, kind, version, team, state, silent days, last contact."
+  now: "The evaluation instant (timestamp)."
+  examples: "Examples, those of the provided templates:"
+violations:
+  title: "Violations"
+  heading: "Violations"
+  lead: "Subjects that violate an active policy, from their opening to their resolution; a violation is notified only once."
+  tabs_label: "Violation state"
+  tab_open: "Open"
+  tab_resolved: "Resolved"
+  open_title: "Open violations"
+  resolved_title: "Resolved violations"
+  filtered: "Policy:"
+  clear_filter: "All policies"
+  col_policy: "Policy"
+  col_subject: "Subject"
+  col_project: "Project"
+  col_opened: "Opened"
+  col_resolved: "Resolved"
+  agent: "Agent"
+  no_project: "No project"
+  empty_open: "No open violation."
+  empty_resolved: "No resolved violation."
+channels:
+  title: "Notification channels"
+  heading: "Notification channels"
+  lead: "Where violations go: e-mail, signed webhook, Matrix, Mattermost or Slack. Secrets are encrypted and never shown again."
+  new: "New channel"
+  list_title: "Organization channels"
+  limit: "{{.Max}} channels at most"
+  col_name: "Name"
+  col_kind: "Kind"
+  col_target: "Destination"
+  col_last: "Last deliveries"
+  col_policies: "Policies"
+  disabled: "inactive"
+  target_secret: "Secret URL"
+  last_success: "Succeeded"
+  last_failure: "Failed"
+  never: "No delivery yet"
+  test: "Send a test"
+  delete: "Delete"
+  empty: "No channel yet."
+  test_sent_title: "Test message sent"
+  test_sent: "The test message was sent to “{{.Name}}”."
+  test_failed_title: "Test message failed"
+  test_failed: "The test message could not be sent to “{{.Name}}”."
+channel_form:
+  title_new: "New channel"
+  title_edit: "Channel {{.Name}}"
+  heading_new: "New channel"
+  heading_edit: "Channel {{.Name}}"
+  lead: "Only the fields of the chosen kind are read; the others are ignored."
+  form_title: "Channel"
+  name: "Name"
+  kind: "Kind"
+  fields_hint: "E-mail: recipients. Webhook: URL and HMAC key. Matrix: server, room and token. Mattermost and Slack: incoming webhook URL, as the secret."
+  recipients: "Recipients (e-mail)"
+  recipients_hint: "One address per line or separated by commas, 20 at most."
+  url: "URL (generic webhook)"
+  url_hint: "Address that receives a signed JSON POST; format described in the notification documentation."
+  homeserver: "Server (Matrix)"
+  homeserver_hint: "Server address, for instance https://matrix.example.org."
+  room: "Room (Matrix)"
+  room_hint: "Internal room identifier, for instance !abcdef:example.org."
+  secret: "Secret"
+  secret_hint: "Webhook HMAC key (at least 16 characters), Matrix access token, or Mattermost or Slack incoming webhook URL. Encrypted, never shown again."
+  secret_keep: "Leave empty to keep the current secret."
+  enabled: "Active"
+channel_kind:
+  email: "E-mail"
+  email_desc: "An e-mail through the instance SMTP server."
+  webhook: "Generic webhook"
+  webhook_desc: "A JSON POST signed with HMAC-SHA256 and a timestamp."
+  matrix: "Matrix"
+  matrix_desc: "A message in a room, through an account and its access token."
+  mattermost: "Mattermost"
+  mattermost_desc: "A message through an incoming webhook."
+  slack: "Slack"
+  slack_desc: "A message through an incoming webhook."
+notify:
+  subject_test: "lotor: test message ({{.Org}})"
+  test_text: "This channel receives the policy alerts of the {{.Org}} organization."
+  subject_digest: "lotor: daily digest of violations ({{.Org}})"
+  digest_text: "Violations opened since the last digest: {{.Count}}."
+  subject_opened: "lotor: new violations ({{.Org}})"
+  opened_text: "New policy violations: {{.Count}}."
+  more: "… and {{.Count}} more"
+  line_finding: "{{.Policy}}: {{.Vuln}} ({{.Severity}}) in {{.Component}}, project {{.Project}} ({{.Ref}})"
+  line_agent: "{{.Policy}}: agent {{.Agent}}"
+  kev: "[KEV]"
+  blocking: "[blocking]"
+verdict:
+  pending: "Analysis and policies in progress"
+  pass: "Compliant with policies"
+  pass_warnings: "Compliant; warnings: {{.Count}}"
+  fail: "Not compliant: blocking violations {{.Count}} ({{.Policies}})"

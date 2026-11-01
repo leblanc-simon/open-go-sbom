@@ -12,7 +12,9 @@ import (
 	"leblanc.io/lotor/internal/dashboard"
 	"leblanc.io/lotor/internal/ingest"
 	"leblanc.io/lotor/internal/inventory"
+	"leblanc.io/lotor/internal/notify"
 	"leblanc.io/lotor/internal/org"
+	"leblanc.io/lotor/internal/policy"
 	"leblanc.io/lotor/internal/project"
 	"leblanc.io/lotor/internal/sbom"
 	"leblanc.io/lotor/internal/tenant"
@@ -99,6 +101,32 @@ func TestDynamicKeysExist(t *testing.T) {
 		want = append(want, "enrollment.expiry_"+strconv.Itoa(h))
 	}
 	want = append(want, apiv1.KeyClientCertRequired+".title", apiv1.KeyClientCertRequired+".text")
+	// Politiques et notifications (T15).
+	want = append(want, policy.KeyExprRequired, policy.KeyExprTooLong, policy.KeyExprSyntax, policy.KeyExprUnknownField,
+		policy.KeyExprUnknownName, policy.KeyExprType, policy.KeyExprInvalid, policy.KeyExprNotBool, policy.KeyExprTooCostly,
+		policy.KeyNameInvalid, policy.KeyNameTaken, policy.KeyDescriptionTooLong, policy.KeySubjectInvalid,
+		policy.KeyDeliveryInvalid, policy.KeyChannelsInvalid, policy.KeyTooMany, policy.KeyTemplateInvalid,
+		notify.KeyNameInvalid, notify.KeyNameTaken, notify.KeyKindInvalid, notify.KeyRecipientsInvalid, notify.KeyURLInvalid,
+		notify.KeyRoomInvalid, notify.KeySecretRequired, notify.KeySecretInvalid, notify.KeyTooMany,
+		notify.KeySendFailed, notify.KeySendUnreachable, notify.KeySendForbidden, notify.KeySendStatus, notify.KeySendSMTP,
+		notify.KeySendUnconfigured, notify.KeySendSecret, "verdict.pending", "verdict.pass", "verdict.pass_warnings", "verdict.fail")
+	for _, s := range policy.Subjects() {
+		want = append(want, "policy_subject."+string(s), "policy_subject."+string(s)+"_desc", "policy_form.preview_"+string(s))
+	}
+	for _, d := range policy.Deliveries() {
+		want = append(want, "policy_delivery."+string(d))
+	}
+	for _, tpl := range policy.Templates() {
+		want = append(want, "policy_template."+tpl.Key+".name", "policy_template."+tpl.Key+".text")
+	}
+	for _, k := range notify.Kinds() {
+		want = append(want, "channel_kind."+string(k), "channel_kind."+string(k)+"_desc")
+	}
+	for _, s := range policy.Subjects() {
+		for _, v := range policy.Variables(s) {
+			want = append(want, "policy_help."+v.Name)
+		}
+	}
 	for _, st := range hostAgentInstall("https://sbom.example.org", "t") {
 		want = append(want, st.TitleKey)
 		if st.HintKey != "" {

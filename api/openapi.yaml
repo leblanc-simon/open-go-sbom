@@ -222,6 +222,48 @@ paths:
           $ref: "#/components/responses/Problem"
         "429":
           $ref: "#/components/responses/Problem"
+  /agent/snapshots/{id}/verdict:
+    get:
+      operationId: getSnapshotVerdict
+      tags: [agent]
+      summary: Verdict des politiques sur un instantané
+      description: |
+        Le verdict des politiques de l'organisation sur un instantané envoyé par cet agent
+        (identifiant donné par `getIngestion` une fois l'ingestion `done`) :
+
+        - `pending` : l'analyse de l'instantané ou l'évaluation des politiques n'est pas
+          terminée ; interroger de nouveau plus tard ;
+        - `pass` : aucune violation d'une politique bloquante sur la référence ;
+        - `fail` : au moins une violation d'une politique bloquante (`policies` les nomme).
+
+        `summary` est un résumé traduit dans la langue de l'organisation, assez court pour la
+        description d'un statut de commit (140 caractères au plus) ; `url` mène aux constats
+        du projet quand l'URL publique du serveur est configurée. L'agent dépôt l'utilise
+        pour publier le statut du commit sur la forge (T15).
+      security:
+        - agentToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Le verdict.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Verdict"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
   /orgs/{org}/search:
     get:
       operationId: searchOrganization
@@ -867,6 +909,35 @@ components:
           description: Date du scan (au plus une heure d'avance sur l'horloge du serveur).
         host:
           $ref: "#/components/schemas/HostContext"
+    Verdict:
+      type: object
+      description: Verdict des politiques sur un instantané.
+      required: [state, summary, blocking, warnings, policies]
+      properties:
+        state:
+          type: string
+          description: "`pending` (analyse ou évaluation en cours), `pass` (conforme) ou `fail` (non conforme)."
+        summary:
+          type: string
+          maxLength: 140
+          description: Résumé traduit dans la langue de l'organisation.
+        blocking:
+          type: integer
+          minimum: 0
+          description: Violations ouvertes de politiques bloquantes sur la référence de l'instantané.
+        warnings:
+          type: integer
+          minimum: 0
+          description: Violations ouvertes de politiques non bloquantes sur la référence.
+        policies:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+          description: Politiques bloquantes violées, par nom (10 au plus).
+        url:
+          type: string
+          description: Page des constats du projet, si l'URL publique du serveur est configurée.
     Ingestion:
       type: object
       required: [id, status, project_id, ref_id, received_at]

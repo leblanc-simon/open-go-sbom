@@ -428,6 +428,27 @@ type TrackedRef struct {
 // TrackedRefKind defines model for TrackedRef.Kind.
 type TrackedRefKind string
 
+// Verdict Verdict des politiques sur un instantané.
+type Verdict struct {
+	// Blocking Violations ouvertes de politiques bloquantes sur la référence de l'instantané.
+	Blocking int `json:"blocking"`
+
+	// Policies Politiques bloquantes violées, par nom (10 au plus).
+	Policies []string `json:"policies"`
+
+	// State `pending` (analyse ou évaluation en cours), `pass` (conforme) ou `fail` (non conforme).
+	State string `json:"state"`
+
+	// Summary Résumé traduit dans la langue de l'organisation.
+	Summary string `json:"summary"`
+
+	// Url Page des constats du projet, si l'URL publique du serveur est configurée.
+	Url *string `json:"url,omitempty"`
+
+	// Warnings Violations ouvertes de politiques non bloquantes sur la référence.
+	Warnings int `json:"warnings"`
+}
+
 // Cursor defines model for Cursor.
 type Cursor = string
 
@@ -630,6 +651,24 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /agent/projects (the `ListAgentProjects` operationId).
 	ListAgentProjects(ctx context.Context, params *ListAgentProjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetSnapshotVerdict Verdict des politiques sur un instantané
+	//
+	// Le verdict des politiques de l'organisation sur un instantané envoyé par cet agent
+	// (identifiant donné par `getIngestion` une fois l'ingestion `done`) :
+	//
+	// - `pending` : l'analyse de l'instantané ou l'évaluation des politiques n'est pas
+	//   terminée ; interroger de nouveau plus tard ;
+	// - `pass` : aucune violation d'une politique bloquante sur la référence ;
+	// - `fail` : au moins une violation d'une politique bloquante (`policies` les nomme).
+	//
+	// `summary` est un résumé traduit dans la langue de l'organisation, assez court pour la
+	// description d'un statut de commit (140 caractères au plus) ; `url` mène aux constats
+	// du projet quand l'URL publique du serveur est configurée. L'agent dépôt l'utilise
+	// pour publier le statut du commit sur la forge (T15).
+	//
+	// Corresponds with GET /agent/snapshots/{id}/verdict (the `GetSnapshotVerdict` operationId).
+	GetSnapshotVerdict(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 // EnrollWithBody Inscrit un agent serveur
@@ -792,6 +831,34 @@ func (c *Client) GetIngestion(ctx context.Context, id openapi_types.UUID, reqEdi
 // Corresponds with GET /agent/projects (the `ListAgentProjects` operationId).
 func (c *Client) ListAgentProjects(ctx context.Context, params *ListAgentProjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListAgentProjectsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetSnapshotVerdict Verdict des politiques sur un instantané
+//
+// Le verdict des politiques de l'organisation sur un instantané envoyé par cet agent
+// (identifiant donné par `getIngestion` une fois l'ingestion `done`) :
+//
+//   - `pending` : l'analyse de l'instantané ou l'évaluation des politiques n'est pas
+//     terminée ; interroger de nouveau plus tard ;
+//   - `pass` : aucune violation d'une politique bloquante sur la référence ;
+//   - `fail` : au moins une violation d'une politique bloquante (`policies` les nomme).
+//
+// `summary` est un résumé traduit dans la langue de l'organisation, assez court pour la
+// description d'un statut de commit (140 caractères au plus) ; `url` mène aux constats
+// du projet quand l'URL publique du serveur est configurée. L'agent dépôt l'utilise
+// pour publier le statut du commit sur la forge (T15).
+//
+// Corresponds with GET /agent/snapshots/{id}/verdict (the `GetSnapshotVerdict` operationId).
+func (c *Client) GetSnapshotVerdict(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetSnapshotVerdictRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -1011,6 +1078,40 @@ func NewListAgentProjectsRequest(server string, params *ListAgentProjectsParams)
 	return req, nil
 }
 
+// NewGetSnapshotVerdictRequest constructs an http.Request for the GetSnapshotVerdict method
+func NewGetSnapshotVerdictRequest(server string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/agent/snapshots/%s/verdict", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -1158,6 +1259,26 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /agent/projects (the `ListAgentProjects` operationId).
 	ListAgentProjectsWithResponse(ctx context.Context, params *ListAgentProjectsParams, reqEditors ...RequestEditorFn) (*ListAgentProjectsResponse, error)
+
+	// GetSnapshotVerdictWithResponse Verdict des politiques sur un instantané
+	//
+	// Le verdict des politiques de l'organisation sur un instantané envoyé par cet agent
+	// (identifiant donné par `getIngestion` une fois l'ingestion `done`) :
+	//
+	// - `pending` : l'analyse de l'instantané ou l'évaluation des politiques n'est pas
+	//   terminée ; interroger de nouveau plus tard ;
+	// - `pass` : aucune violation d'une politique bloquante sur la référence ;
+	// - `fail` : au moins une violation d'une politique bloquante (`policies` les nomme).
+	//
+	// `summary` est un résumé traduit dans la langue de l'organisation, assez court pour la
+	// description d'un statut de commit (140 caractères au plus) ; `url` mène aux constats
+	// du projet quand l'URL publique du serveur est configurée. L'agent dépôt l'utilise
+	// pour publier le statut du commit sur la forge (T15).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /agent/snapshots/{id}/verdict (the `GetSnapshotVerdict` operationId).
+	GetSnapshotVerdictWithResponse(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetSnapshotVerdictResponse, error)
 }
 
 type EnrollResponse struct {
@@ -1505,6 +1626,75 @@ func (r ListAgentProjectsResponse) ContentType() string {
 	return ""
 }
 
+type GetSnapshotVerdictResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Verdict
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetSnapshotVerdictResponse) GetJSON200() *Verdict {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetSnapshotVerdictResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetSnapshotVerdictResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetSnapshotVerdictResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r GetSnapshotVerdictResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetBody returns the raw response body bytes
+func (r GetSnapshotVerdictResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetSnapshotVerdictResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetSnapshotVerdictResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetSnapshotVerdictResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // EnrollWithBodyWithResponse Inscrit un agent serveur
 //
 // Échange un jeton d'inscription contre un jeton d'agent. Le serveur crée l'agent et le
@@ -1649,6 +1839,32 @@ func (c *ClientWithResponses) ListAgentProjectsWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseListAgentProjectsResponse(rsp)
+}
+
+// GetSnapshotVerdictWithResponse Verdict des politiques sur un instantané
+//
+// Le verdict des politiques de l'organisation sur un instantané envoyé par cet agent
+// (identifiant donné par `getIngestion` une fois l'ingestion `done`) :
+//
+//   - `pending` : l'analyse de l'instantané ou l'évaluation des politiques n'est pas
+//     terminée ; interroger de nouveau plus tard ;
+//   - `pass` : aucune violation d'une politique bloquante sur la référence ;
+//   - `fail` : au moins une violation d'une politique bloquante (`policies` les nomme).
+//
+// `summary` est un résumé traduit dans la langue de l'organisation, assez court pour la
+// description d'un statut de commit (140 caractères au plus) ; `url` mène aux constats
+// du projet quand l'URL publique du serveur est configurée. L'agent dépôt l'utilise
+// pour publier le statut du commit sur la forge (T15).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /agent/snapshots/{id}/verdict (the `GetSnapshotVerdict` operationId).
+func (c *ClientWithResponses) GetSnapshotVerdictWithResponse(ctx context.Context, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetSnapshotVerdictResponse, error) {
+	rsp, err := c.GetSnapshotVerdict(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetSnapshotVerdictResponse(rsp)
 }
 
 // ParseEnrollResponse parses an HTTP response from a EnrollWithResponse call
@@ -1908,6 +2124,60 @@ func ParseListAgentProjectsResponse(rsp *http.Response) (*ListAgentProjectsRespo
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetSnapshotVerdictResponse parses an HTTP response from a GetSnapshotVerdictWithResponse call
+func ParseGetSnapshotVerdictResponse(rsp *http.Response) (*GetSnapshotVerdictResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetSnapshotVerdictResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Verdict
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
 		var dest Problem

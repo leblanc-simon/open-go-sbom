@@ -20,6 +20,7 @@ import (
 	"leblanc.io/lotor/internal/ingest"
 	"leblanc.io/lotor/internal/locale"
 	"leblanc.io/lotor/internal/pagination"
+	"leblanc.io/lotor/internal/policy"
 	"leblanc.io/lotor/internal/project"
 	"leblanc.io/lotor/internal/sbom"
 	"leblanc.io/lotor/internal/web/middleware"
@@ -41,10 +42,11 @@ const (
 
 // AgentOptions réunit les dépendances de l'API des agents.
 type AgentOptions struct {
-	Agents  *agent.Service
-	Ingest  *ingest.Service
-	Catalog *locale.Catalog
-	Logger  *slog.Logger
+	Agents   *agent.Service
+	Ingest   *ingest.Service
+	Verdicts Verdicts
+	Catalog  *locale.Catalog
+	Logger   *slog.Logger
 	// RateLimit borne les requêtes par minute et par jeton (0 : sans limite).
 	RateLimit int
 	// FailureRateLimit borne les jetons refusés par minute et par IP (0 : sans limite).
@@ -62,7 +64,7 @@ type AgentOptions struct {
 // MountAgent monte les opérations de l'API des agents sur r, routeur de /api/v1 : corps
 // borné, authentification par jeton, limitation par jeton, puis le serveur strict généré.
 func MountAgent(r chi.Router, o AgentOptions) error {
-	if o.Agents == nil || o.Ingest == nil || o.Catalog == nil || o.Logger == nil || o.ClientIP == nil {
+	if o.Agents == nil || o.Ingest == nil || o.Verdicts == nil || o.Catalog == nil || o.Logger == nil || o.ClientIP == nil {
 		return errors.New("api: dépendances de l'API des agents incomplètes")
 	}
 	h := &agentAPI{AgentOptions: o}
@@ -189,11 +191,12 @@ func (h *agentAPI) writeRefusal(w http.ResponseWriter, r *http.Request) {
 
 // operationKinds associe chaque opération à la nature de jeton qu'elle exige.
 var operationKinds = map[string]agent.TokenKind{
-	"Enroll":            agent.KindEnrollment,
-	"Heartbeat":         agent.KindAgent,
-	"ListAgentProjects": agent.KindAgent,
-	"CreateIngestion":   agent.KindAgent,
-	"GetIngestion":      agent.KindAgent,
+	"Enroll":             agent.KindEnrollment,
+	"Heartbeat":          agent.KindAgent,
+	"ListAgentProjects":  agent.KindAgent,
+	"CreateIngestion":    agent.KindAgent,
+	"GetIngestion":       agent.KindAgent,
+	"GetSnapshotVerdict": agent.KindAgent,
 }
 
 // requireKind refuse un jeton d'une autre nature que celle de l'opération : un jeton
@@ -230,7 +233,7 @@ func (h *agentAPI) responseError(w http.ResponseWriter, r *http.Request, err err
 		problem.Write(w, r, h.Catalog, http.StatusConflict, ce.Key, nil)
 	case errors.Is(err, ingest.ErrRefUnknown):
 		problem.Write(w, r, h.Catalog, http.StatusNotFound, ingest.KeyRefUnknown, nil)
-	case errors.Is(err, ingest.ErrNotFound):
+	case errors.Is(err, ingest.ErrNotFound), errors.Is(err, policy.ErrNotFound):
 		problem.Write(w, r, h.Catalog, http.StatusNotFound, problem.KeyNotFound, nil)
 	case errors.Is(err, ingest.ErrUploadTooLarge):
 		problem.Write(w, r, h.Catalog, http.StatusRequestEntityTooLarge, sbom.KeyTooLarge, nil)
