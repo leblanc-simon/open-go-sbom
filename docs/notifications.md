@@ -35,7 +35,10 @@ Un canal appartient à une organisation ; ses administrateurs le créent dans
   partent une fois par jour (`notify.digest_hour`, 7 h UTC par défaut).
 - **Sans doublon** : une violation n'est envoyée qu'une fois par canal, tant qu'elle reste
   ouverte ; si elle est résolue puis réapparaît, c'est une nouvelle violation, de nouveau
-  envoyée. Une violation résolue avant son envoi n'est pas envoyée.
+  envoyée. Une violation résolue avant son envoi n'est pas envoyée. Deux envois simultanés du
+  même canal ne partagent jamais une violation (chacun réserve son lot, ADR 0052) ; seul
+  un message dont la réponse s'est perdue peut être renvoyé, avec le même
+  `X-Lotor-Delivery`.
 - **Canal en panne** : l'envoi est réessayé à délai croissant (10 s, 20 s, 40 s… jusqu'à
   30 min, 30 tentatives, soit une dizaine d'heures), puis relancé chaque jour. Les messages
   partent après le rétablissement. La dernière réussite, le dernier échec et sa cause sont

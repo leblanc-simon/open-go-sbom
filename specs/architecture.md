@@ -297,7 +297,7 @@ Données **par organisation** (toutes portent `org_id`) :
 | `triage_decisions` | journal des décisions de triage, en ajout seul : portée (projet et purl, ou organisation et `purl_base` avec plage `vers`), statut, justification VEX d'origine, commentaire, échéance d'un risque accepté, auteur (T14, ADR 0035) |
 | `policies`, `policy_channels` | politiques : règle CEL, sujet (constat ou agent), active, bloquante, mode d'envoi, dernière erreur d'évaluation ; canaux de chaque politique (T15, ADR 0045) |
 | `policy_violations`, `policy_evaluations` | violation d'une politique par un sujet (constat avec son projet et sa référence, ou agent), ouverte, prolongée, résolue, une seule ouverte par couple ; dernière évaluation de chaque référence, pour le verdict d'un instantané (T15) |
-| `notification_channels`, `notification_deliveries` | canaux (e-mail, webhook, Matrix, Mattermost, Slack ; réglages en `jsonb`, secret chiffré par `internal/secret`, derniers envois) ; un envoi par couple (canal, violation), immédiat ou de résumé, en attente, envoyé ou écarté (T15, ADR 0046) |
+| `notification_channels`, `notification_deliveries` | canaux (e-mail, webhook, Matrix, Mattermost, Slack ; réglages en `jsonb`, secret chiffré par `internal/secret`, derniers envois) ; un envoi par couple (canal, violation), immédiat ou de résumé, en attente, envoyé ou écarté, réservé par l'envoi en cours (`claimed_at`) (T15, ADR 0046 ; T18, ADR 0052) |
 
 Les **ensembles d'inventaire** sont adressés par contenu : deux instantanés au même
 inventaire partagent le même ensemble. Un nouveau commit sans changement de dépendances

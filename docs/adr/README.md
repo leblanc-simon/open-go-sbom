@@ -56,3 +56,4 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0049](0049-purge-des-conteneurs-archives.md) | Purge des conteneurs archivés pour absence depuis 180 jours, par la rétention nocturne | Accepté |
 | [0050](0050-equipe-et-triage-dans-la-recherche.md) | Équipe et statut de triage dans la recherche : filtres, résultats, export | Accepté |
 | [0051](0051-corrections-revue-securite-lot2.md) | Corrections de la revue de sécurité du lot 2 : enrôlement du TOTP, reconfiguration avec nouveau mot de passe, inscription bornée à l'équipe, IA externe et secrets liés à leur destination, conteneurs bornés par hôte | Accepté |
+| [0052](0052-envois-de-notification-reserves.md) | Envois de notification réservés avant l'appel réseau : un seul envoi par violation même avec deux jobs simultanés | Accepté |
