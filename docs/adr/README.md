@@ -39,3 +39,6 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0032](0032-publication-des-versions.md) | Publication des versions : étiquette, workflow de préversion, fichiers livrés, unité du serveur | Accepté |
 | [0033](0033-renommage-en-lotor.md) | Renommage du projet en lotor : correspondance unique, migrations réécrites avant toute publication, identité visuelle | Accepté |
 | [0034](0034-equipes-et-droits.md) | Équipes et droits : rôle d'organisation membre ou administrateur, droits par équipe, filtre d'équipe déclaré à la transaction, invitations | Accepté |
+| [0042](0042-fournisseurs-de-modeles.md) | Fournisseurs de modèles : SDK Go officiel d'Anthropic sans environnement, Ollama par HTTP | Accepté |
+| [0043](0043-enrichissement-ia-prouve.md) | Enrichissement IA prouvé : réglage par projet, politique d'envoi de code, vérificateur, statut | Accepté |
+| [0044](0044-confinement-de-l-analyse-ia.md) | Confinement de l'analyse IA : os.Root et surface d'outils, sans processus fils | Accepté |

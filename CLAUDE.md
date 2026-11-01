@@ -98,6 +98,14 @@ Tests de référence : `TestRoutePermissionsFollowMatrix`, `TestTeamFilterOnEver
 Prochains lots, en parallèle : [T12](specs/lots/T12-enrichissement-ia.md),
 [T13](specs/lots/T13-conteneurs.md), [T14](specs/lots/T14-triage-vex.md) et
 [T17](specs/lots/T17-differences-instantanes.md).
+T12 terminé : enrichissement IA de l'agent dépôt (`internal/llm` : `Provider`, boucle
+`Run`, Anthropic par le SDK officiel sans environnement, Ollama, faux fournisseur
+`llmtest` ; `internal/repoagent/ai_*.go` : outils sous `os.Root`, exclusions,
+vérificateur seul juge, fusion, statut `lotor:enrichment`, analyse incrémentale ; ADR 0042
+à 0044). Réglage par dépôt `ai_mode` (désactivé par défaut ; externe : permission
+`ai.external`, audité ; `ai.forbid_external`), route agent `refs/{id}/ai-components`, bloc
+« preuve » de la fiche composant. Corpus annoté `testdata/ai-corpus`, `make eval-ai`
+(vrai modèle, hors CI : mesure à faire par l'utilisateur).
 
 ## Règles de travail
 
@@ -159,6 +167,7 @@ make test-grypedb       # vraie base Grype (LOTOR_TEST_GRYPEDB_DIR : base v6 ins
 make bench              # mesures sur le jeu de référence (docs/benchmarks.md)
 make bench-search       # mesures de la recherche sur le jeu de référence, RLS active
 make bench-ingest       # ingestion et analyse de 5 000 composants, vraie base Grype
+make eval-ai            # enrichissement IA sur le corpus annoté, vrai modèle (LOTOR_EVAL_AI_*), hors CI
 make selfscan           # SBOM des binaires (Syft) et analyse (Grype) ; échec sur une KEV
 make build              # bin/lotor-server, bin/lotor-host-agent, bin/lotor-repo-agent (CGO_ENABLED=0)
 make release VERSION=v0.1.0 RELEASE_DIR=/chemin/vide  # archives, paquets, SHA256SUMS (ADR 0032)

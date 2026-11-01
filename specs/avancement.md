@@ -13,6 +13,7 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 | Lot | PR | Statut | Décisions à relire |
 | --- | --- | --- | --- |
 | T16 | #21 | Terminé (PR à fusionner) | Filtre d'équipe déclaré à la transaction, fermé par défaut ; matrice des droits (administrateur d'équipe sans gestion des équipes ni des membres de l'organisation, rattachement avec droit dans les deux équipes) ; 404 pour une équipe invisible ; agents sans équipe = agents d'organisation, agents dépôt existants d'organisation ; équipe « Général » aussi pour une nouvelle organisation, « General » en anglais ; invitations de 30 jours, sans équipe, bornées, nouvelle fonction `crossorg` ; tendance d'un membre additionnée par projet ; point d'essai `routeStub` — tous **[à relire]** |
+| T12 | (à venir) | Terminé, mesure avec un vrai modèle à faire par l'utilisateur | SDK officiel d'Anthropic construit sans environnement (ADR 0042) ; réglage par dépôt, permission `ai.external`, `ai.forbid_external` ramène à « local » (ADR 0043) ; règles du vérificateur au-delà de la fiche (documentation, manifestes, marqueurs d'injection, purl dans l'extrait) ; statut `carried` et commits intermédiaires sans modèle ; confinement sans processus fils (ADR 0044) ; exclusions intégrées ; budgets par défaut ; prompt système en anglais — tous **[à relire]** |
 
 ### Décisions à relire, par thème
 
@@ -45,8 +46,33 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
   `lotor_user_invitations` ([ADR 0034](../docs/adr/0034-equipes-et-droits.md),
   [modèle de menace](../docs/security/threat-model.md)).
 
+#### Enrichissement IA (T12)
+
+- SDK Go officiel d'Anthropic v2.4.0 validé (six lignes de plus dans `go.mod`), construit
+  par `option.WithoutEnvironmentDefaults()` ; client HTTP maison écarté ; pas de repli de
+  modèle côté serveur sur refus ; Ollama par `/api/chat`
+  ([ADR 0042](../docs/adr/0042-fournisseurs-de-modeles.md)).
+- Réglage `disabled`/`local`/`external` par dépôt, permission d'organisation
+  `ai.external`, audit `project.ai_mode_changed`, `ai.forbid_external` qui transmet
+  `external` comme `local` sans réécrire les projets ; l'agent prend le fournisseur externe,
+  à défaut le modèle local ([ADR 0043](../docs/adr/0043-enrichissement-ia-prouve.md)).
+- Vérificateur : preuve refusée dans la documentation, un manifeste que Syft lit, un
+  fichier qui s'adresse à un modèle, ou un extrait qui cite un purl ; tolérance de trois
+  lignes ; cohérence type/fichier limitée ([ADR 0043](../docs/adr/0043-enrichissement-ia-prouve.md)).
+- Statut `lotor:enrichment` dans les métadonnées CycloneDX (`complete`, `incomplete`,
+  `carried`), commits intermédiaires d'un rattrapage sans appel au modèle, analyse
+  complète tous les 7 jours ([ADR 0043](../docs/adr/0043-enrichissement-ia-prouve.md)).
+- Analyse confinée par la surface d'outils et `os.Root`, sans processus fils
+  ([ADR 0044](../docs/adr/0044-confinement-de-l-analyse-ia.md)).
+- Liste d'exclusion intégrée, détection des clés privées, budgets par défaut (40 tours,
+  600 000 / 40 000 jetons, 1 Mio lu, 20 min), prompt système en anglais, écarts à la
+  maquette ([T12](lots/T12-enrichissement-ia.md#décisions)).
+
 #### Écarts
 
+- T12 : **mesure de la précision, du rappel et du coût avec un vrai modèle non faite**
+  (aucune clé d'API dans l'environnement) : critère des seuils non vérifié ; captures clair
+  et sombre non faites ([T12](lots/T12-enrichissement-ia.md#écarts)).
 - T16 : captures d'écran clair et sombre non faites (aucune CSS nouvelle ; audit RGAA du
   lot 2 en T18) ; filtre « équipe » de la recherche non livré (recherche filtrée par les
   équipes visibles) ([T16](lots/T16-equipes-droits.md#écarts)).
@@ -58,6 +84,15 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 2. Après la publication d'une version contenant T16 : vérifier sur une instance réelle
    que la migration 016 a placé chaque membre dans l'équipe « Général » avec son ancien
    rôle (page **Équipes** de chaque organisation).
+3. **Mesurer l'enrichissement IA avec un vrai modèle** (T12, non fait faute de clé
+   d'API) : `LOTOR_EVAL_AI_PROVIDER=anthropic LOTOR_EVAL_AI_API_KEY_FILE=<fichier 0600>
+   LOTOR_EVAL_AI_RUNS=3 LOTOR_EVAL_AI_REPORT=/tmp/eval-ai.json make eval-ai`
+   (procédure : [`docs/operations.md`](../docs/operations.md#évaluer-lenrichissement-ia)) ;
+   reporter taux de faux positifs, rappel et coût moyen par analyse dans le Journal de T12
+   (ou de T18, qui reprend la mesure pour la recette) ; confirmer ou changer le modèle par
+   défaut `claude-sonnet-5-5` ; si un seuil n'est pas tenu (faux positifs ≤ 5 %, rappel
+   ≥ 80 %), ajuster le prompt (nouvelle version) avant d'activer l'IA sur des projets.
+   Facultatif : la même mesure avec un modèle local (`LOTOR_EVAL_AI_PROVIDER=ollama`).
 
 ## Lot 1
 

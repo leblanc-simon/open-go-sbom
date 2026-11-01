@@ -891,6 +891,102 @@ invisible` cache aux autres comptes.
   sont tués et leurs répertoires supprimés ; le travail perdu est rattrapé au démarrage.
 - Décision de conception : ADR 0023.
 
+### Enrichissement IA
+
+L'agent dépôt peut compléter l'inventaire de Syft par les composants qu'aucun manifeste ne
+déclare : bibliothèques recopiées (JavaScript minifié, C, PHP), images de base des
+Dockerfile, scripts chargés depuis un CDN, outils installés par `curl … | sh`. Décisions :
+ADR 0042 (fournisseurs), 0043 (réglages, politique d'envoi de code, vérificateur), 0044
+(confinement).
+
+**Qui décide de quoi**
+
+| Niveau | Réglage | Effet |
+| --- | --- | --- |
+| Instance (serveur) | `ai.forbid_external` (`LOTOR_AI_FORBID_EXTERNAL`, faux par défaut) | Vrai : aucun dépôt ne peut être envoyé à un fournisseur externe ; un dépôt réglé « fournisseur externe » est traité comme « modèle local uniquement » |
+| Projet (interface) | **Paramètres du dépôt → Enrichissement IA** : IA désactivée (défaut), modèle local uniquement, fournisseur externe autorisé | « Fournisseur externe » est réservé aux administrateurs d'organisation ; les autres réglages aux administrateurs de l'équipe du projet ; chaque changement est journalisé (`project.ai_mode_changed`) |
+| Agent dépôt | `ai.local` (Ollama) et `ai.external` (Anthropic) | Sans modèle configuré, l'agent envoie le SBOM Syft seul, quel que soit le réglage des projets |
+
+Un dépôt réglé « IA désactivée » n'appelle jamais de modèle. « Modèle local uniquement »
+n'utilise que `ai.local` (s'il est absent, pas d'IA) ; « fournisseur externe » utilise
+`ai.external`, à défaut `ai.local`.
+
+**Politique d'envoi de code.** Ce qui part vers le modèle : le prompt système (versionné,
+embarqué dans le binaire), le slug du projet, le commit, la liste des fichiers modifiés,
+et le contenu des fichiers que le modèle lit ou fouille par les outils, dans
+l'arborescence du commit analysé et nulle part ailleurs. Ne partent jamais : les fichiers
+exclus (`.env*`, `*.pem`, `*.key`, `id_rsa*`, `.ssh/`, `.aws/`, `.npmrc`, `.netrc`,
+`*.tfstate`, `*.tfvars`, `credentials*`, `secrets*`, `kubeconfig*`… et `ai.exclude`), tout
+fichier qui contient une clé privée, les fichiers binaires ou de plus de 2 Mio, le
+répertoire `.git`, les secrets de l'agent (jeton, clés des forges, clé d'API) et son
+environnement. Le volume lu est borné par `ai.max_read_kib` par analyse.
+
+**Modèle local (Ollama).** Un modèle qui sait appeler des outils, servi par Ollama dans
+l'infrastructure de l'exploitant :
+
+```yaml
+ai:
+  local:
+    url: http://127.0.0.1:11434
+    model: qwen3:14b
+    context_tokens: 32768
+```
+
+L'URL doit rester dans le périmètre de confiance : l'agent ne vérifie pas où tourne le
+serveur Ollama.
+
+**Fournisseur externe (Anthropic).** Modèle par défaut `claude-sonnet-5-5`, à confirmer
+ou changer au vu de l'évaluation ci-dessous. La clé d'API est un secret, comme les autres :
+
+```bash
+systemd-creds encrypt --name=anthropic-api-key anthropic-key.txt /etc/lotor-repo-agent/anthropic-api-key.cred
+shred -u anthropic-key.txt
+```
+
+puis décommenter `LoadCredentialEncrypted=anthropic-api-key:…` dans l'unité et régler
+`ai.external.provider: anthropic` (`api_key_file: credential:anthropic-api-key` par
+défaut). Le client ignore toute variable `ANTHROPIC_*` de la machine : seule la
+configuration de l'agent fixe l'adresse (`ai.external.base_url`, https) et la clé.
+
+**Budget et repli.** Une analyse s'arrête au-delà de `ai.max_turns` (40),
+`ai.max_input_tokens` (600 000, cache compris), `ai.max_output_tokens` (40 000),
+`ai.max_read_kib` (1 Mio) ou `ai.timeout` (20 min) ; une erreur ou un refus du fournisseur
+a le même effet : le SBOM part avec les seuls composants de Syft, marqué « enrichissement
+incomplet » (fiche de l'instantané). L'analyse est incrémentale (fichiers modifiés depuis
+le dernier commit analysé par le modèle, selon la forge, et fichiers des composants IA
+précédents), complète au premier passage, après un redémarrage et au moins tous les
+`ai.full_interval` (7 jours). Les commits intermédiaires d'un rattrapage n'appellent pas
+le modèle : leurs composants IA précédents sont revérifiés et reportés.
+
+**Preuve.** Aucun composant n'est retenu sans que le vérificateur de l'agent ait relu sa
+preuve dans le fichier, au commit analysé : extrait à la ligne annoncée (à trois lignes
+près), nom et version présents, purl valide et cohérent avec le fichier ; jamais une
+preuve tirée de la documentation (README, CHANGELOG, `*.md`), d'un manifeste que Syft lit
+déjà, ou d'un fichier qui s'adresse à un modèle. Les motifs de rejet sont comptés dans
+le journal (`enrichissement IA`, champs `rejected_*`), comme la consommation de jetons ;
+jamais le contenu d'un fichier ni d'un candidat. La fiche d'un composant d'origine IA
+montre sa preuve (fichier, ligne, extrait, confiance, modèle).
+
+### Évaluer l'enrichissement IA
+
+La qualité (taux de faux positifs, rappel) et le coût se mesurent avec un vrai modèle sur
+le corpus annoté `testdata/ai-corpus` ; seuils : faux positifs ≤ 5 %, rappel ≥ 80 %.
+Hors CI, car l'évaluation consomme des appels payants :
+
+```bash
+install -m 0600 /dev/null /tmp/anthropic-key && echo "sk-ant-…" > /tmp/anthropic-key
+LOTOR_EVAL_AI_PROVIDER=anthropic LOTOR_EVAL_AI_API_KEY_FILE=/tmp/anthropic-key \
+LOTOR_EVAL_AI_RUNS=3 LOTOR_EVAL_AI_REPORT=/tmp/eval-ai.json make eval-ai
+# modèle local : LOTOR_EVAL_AI_PROVIDER=ollama LOTOR_EVAL_AI_MODEL=qwen3:14b make eval-ai
+```
+
+Le rapport donne, pour chaque cas et passage, composants acceptés à raison, faux positifs,
+oubliés, motifs de rejet, tours, jetons, coût et durée, puis le taux de faux positifs, le
+rappel et le coût moyen par analyse (tarif de `claude-sonnet-5-5` par défaut, réglable par
+`LOTOR_EVAL_AI_PRICE_*`). La cible échoue si un seuil n'est pas tenu ou si un témoin des
+dépôts hostiles atteint le fournisseur. Reporter le résultat dans le Journal de T12 (ou de
+T18) et confirmer ou changer le modèle par défaut.
+
 ## Clés de chiffrement des secrets
 
 Les secrets stockés en base (canaux de notification, OIDC, dans les lots qui les
