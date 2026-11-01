@@ -792,3 +792,33 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   `TestSnapshotScreens` reprenait la place avant sa libération (« place de réencodage »).
   Règle : une place qui borne un calcul se libère dès la fin du calcul, avant l'écriture
   de la réponse, pas par `defer`.
+
+## Politiques, alertes et statuts de commit (T15)
+
+- **Module renommé en amont** : `github.com/google/cel-go` v0.32.0 déclare
+  `module cel.dev/cel-go` ; `go get` échoue (« module declares its path as »). Règle :
+  lire `go list -m -versions` sous les deux chemins et la date des versions (`go list -m
+  -json …@vX`) avant de choisir ; consigner le changement de chemin dans l'ADR.
+- **Contrainte « ssi » sur une colonne ajoutée** : `CHECK ((fix_state = 'fixed') =
+  (fixed_seen_at IS NOT NULL))` cassait tous les jeux de test qui insèrent un constat
+  `fixed` à la main (harnais RLS). Règle : une colonne ajoutée à une table très utilisée
+  par les jeux de test ne contraint que le sens nécessaire (`fix_state = 'fixed' OR
+  fixed_seen_at IS NULL`).
+- **Nouvelle opération de l'API des agents** : `requireKind` refuse toute opération absente
+  d'`operationKinds` (401 « jeton refusé ») ; le test de bout en bout l'a montré. Règle :
+  ajouter l'opération à la table dans le commit qui l'ajoute au contrat.
+- **Envoi qui lit un secret avant de savoir s'il y a quelque chose à envoyer** : un canal au
+  secret illisible faisait échouer chaque passage, même sans envoi en attente. Règle :
+  déchiffrer le secret au dernier moment, seulement s'il y a un message.
+- **Base factice republiée à la même date** : deux `publish` de `vulntest` au même
+  horodatage ne changent pas la cible ; l'analyse suivante ne voit rien. Règle : un
+  compteur de publications fait avancer la date de construction de chaque base de test.
+- **Colonne d'erreur de CEL** : CEL situe un champ inconnu sur le « . » qui le précède
+  (`finding.sevrity` : colonne 8), pas sur le nom. Règle : les tests de position lisent la
+  position de CEL au lieu de la supposer.
+- **Fusion d'un lot parallèle et noms de types** : T12 a ajouté un type `Verdict` au
+  paquet `repoagent` ; le mien est devenu `PolicyVerdict` à la fusion. Règle : dans un
+  paquet partagé avec un lot en vol, préfixer les types nouveaux par leur domaine.
+- **Valeurs d'attribut en dur** (piège de T06 retrouvé) : `value="save"` d'un bouton est
+  refusé par le test de `render`. Règle : la valeur vient de la vue (constantes Go).
+

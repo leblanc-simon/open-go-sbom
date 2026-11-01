@@ -15,6 +15,7 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 | T16 | #21 | Terminé | Filtre d'équipe déclaré à la transaction, fermé par défaut ; matrice des droits (administrateur d'équipe sans gestion des équipes ni des membres de l'organisation, rattachement avec droit dans les deux équipes) ; 404 pour une équipe invisible ; agents sans équipe = agents d'organisation, agents dépôt existants d'organisation ; équipe « Général » aussi pour une nouvelle organisation, « General » en anglais ; invitations de 30 jours, sans équipe, bornées, nouvelle fonction `crossorg` ; tendance d'un membre additionnée par projet ; point d'essai `routeStub` — tous **[à relire]** |
 | T17 | #22 | Terminé | Différences enregistrées pour les seuls couples consécutifs, par job ; appariement par `purl_base` et version, même version = retrait + ajout, versions incomparables « approchées » ; effet sur la sécurité calculé à la lecture, sans `not_matched` ; « un par mois » = le dernier du mois, instantané en vigueur à la coupure toujours gardé ; fenêtre sur scan et réception ; `count` en plus de `days` ; réceptions hors fenêtre supprimées, orphelins même rétention désactivée, composants jamais purgés ; constat sans instantané (`SET NULL`) ; verrous ingestion / rétention ; horizon pour T21 ; frise = liste enrichie — tous **[à relire]** |
 | T14 | #23 | Terminé (PR à fusionner) | Statut effectif rangé sur chaque constat, verrou consultatif ; journal en ajout seul avec retrait, échéance qui ramène « à analyser » à sa portée ; décision de projet sur le purl exact ; permission `triage.org` ; échéance par job ; audit d'un import groupé ; tableau de bord sans non affectés ni faux positifs ; VEX (structures OpenVEX propres, marques `[lotor:…]`, justification d'origine toujours notée, export des seuls constats ouverts décidés, import de projet par famille et version) ; fiche du constat en page au lieu du tiroir — tous **[à relire]** |
+| T15 | à venir | Terminé (PR à fusionner) | `cel.dev/cel-go` v0.32.0 (nouveau chemin de `github.com/google/cel-go`) ; contexte typé à deux sujets, `finding.actionable`, coût borné ; « correctif depuis » = première vue par lotor ; violations par couple règle × sujet ; verdict sur l'état courant de la référence ; modèle AGPL indisponible jusqu'à T20 ; objectifs de délai exprimés par des règles ; règles et canaux aux administrateurs ; envois uniques par canal × violation, 30 tentatives puis relance quotidienne ; clé HMAC fournie, garde SSRF sans mandataire ; statut de commit synchrone, désactivé par défaut, jeton GitHub séparé ; rotation des secrets des canaux — tous **[à relire]** |
 | T12 | #25 | Terminé (PR à fusionner), mesure avec un vrai modèle à faire par l'utilisateur | SDK officiel d'Anthropic construit sans environnement (ADR 0042) ; réglage par dépôt, permission `ai.external`, `ai.forbid_external` ramène à « local » (ADR 0043) ; règles du vérificateur au-delà de la fiche (documentation, manifestes, marqueurs d'injection, purl dans l'extrait) ; statut `carried` et commits intermédiaires sans modèle ; confinement sans processus fils (ADR 0044) ; exclusions intégrées ; budgets par défaut ; prompt système en anglais — tous **[à relire]** |
 
 ### Décisions à relire, par thème
@@ -107,7 +108,36 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
   commentaire exigés, deux vocabulaires proposés, onglet VEX, rubrique Triage
   ([ADR 0037](../docs/adr/0037-ecrans-du-triage.md)).
 
+#### Politiques, alertes et statuts de commit (T15)
+
+- Dépendance `cel.dev/cel-go` v0.32.0 : `github.com/google/cel-go` sous son nouveau chemin
+  de module (le chemin GitHub s'arrête à v0.31.0), version la plus récente de plus de deux
+  semaines, `antlr4-go` en transitive ([ADR 0045](../docs/adr/0045-politiques-cel-et-verdicts.md)).
+- Règles sur un contexte typé (constat ou agent), `finding.actionable` = « à analyser » ou
+  « affecté », coût borné (50 000), 100 politiques par organisation ; « correctif disponible
+  depuis » = première vue par lotor (`findings.fixed_seen_at`) ; modèle « licence AGPL »
+  indisponible jusqu'à T20, « production » = étiquette `env=production`
+  ([ADR 0045](../docs/adr/0045-politiques-cel-et-verdicts.md)).
+- Violations par couple (règle, sujet), résolues dès que la règle cesse d'être vraie ;
+  verdict d'un instantané sur l'état courant de sa référence, en attente tant qu'il n'est
+  pas analysé et évalué ; règles d'agent jamais bloquantes ; objectifs de délai du tableau
+  de bord exprimés par des règles, section « Alertes » livrée
+  ([ADR 0045](../docs/adr/0045-politiques-cel-et-verdicts.md)).
+- Notifications : un envoi par couple (canal, violation), regroupés, 30 tentatives puis
+  relance quotidienne, violation résolue écartée, identifiant de message stable ; clé HMAC
+  fournie par l'administrateur ; garde SSRF sans mandataire
+  (`notify.allow_private_networks`) ; résumé à 7 h UTC ; rotation des secrets des canaux
+  au démarrage ([ADR 0046](../docs/adr/0046-notifications.md)).
+- Statut de commit : attente synchrone bornée, « en attente » laissé à l'expiration,
+  `canceled` sur GitLab pour une ingestion refusée, désactivé par défaut, jeton GitHub
+  séparé limité à `statuses: write` ([ADR 0047](../docs/adr/0047-statut-de-commit.md)).
+
 #### Écarts
+
+- T15 : statut de commit vérifié contre des forges simulées seulement ; canaux Matrix,
+  Slack et Mattermost vérifiés par la forme des requêtes ; pas de réglage d'objectifs de
+  délai ; captures et audit RGAA des nouveaux écrans et mesure de l'aperçu renvoyés à T18
+  ([T15](lots/T15-politiques-alertes.md#écarts)).
 
 - T12 : **mesure de la précision, du rappel et du coût avec un vrai modèle non faite**
   (aucune clé d'API dans l'environnement) : critère des seuils non vérifié ; captures clair
@@ -147,6 +177,13 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
    défaut `claude-sonnet-5-5` ; si un seuil n'est pas tenu (faux positifs ≤ 5 %, rappel
    ≥ 80 %), ajuster le prompt (nouvelle version) avant d'activer l'IA sur des projets.
    Facultatif : la même mesure avec un modèle local (`LOTOR_EVAL_AI_PROVIDER=ollama`).
+6. Relire les décisions de T15 (ADR 0045 à 0047). Pour publier le verdict des politiques
+   sur les commits : accorder *Commit statuses : Read and write* à la GitHub App (et
+   l'accepter sur chaque installation), donner la portée `api` et le rôle Developer au
+   compte de service GitLab, poser `status.enabled: true` sur l'agent dépôt et
+   `notify.public_url` sur le serveur, puis vérifier un statut sur un vrai commit
+   ([`docs/operations.md`](../docs/operations.md#statut-de-commit)). Pour les courriels :
+   configurer `smtp.*`, puis « Envoyer un test » depuis un canal e-mail.
 
 ## Lot 1
 

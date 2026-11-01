@@ -120,6 +120,13 @@ sur chaque constat (`findings.triage_status`), recalculé à chaque décision et
 l'analyse (`finding.Classifier`) ; échéance des risques acceptés (job `triage.expire`) ;
 export OpenVEX et CycloneDX (écran et API), import de VEX d'éditeurs. T15 réutilise
 `triage_status` et `triage.Options.OnChange` (voir le `doc.go` de `triage`).
+T15 terminé : politiques en CEL (`internal/policy` : contexte typé constat ou agent, coût
+borné, modèles, violations datées, verdict `GET /api/v1/agent/snapshots/{id}/verdict` ;
+ADR 0045), notifications (`internal/notify` : canaux e-mail, webhook signé, Matrix,
+Mattermost, Slack, secrets chiffrés, envois uniques par canal × violation et réessayés ;
+`internal/delivery` : HTTP gardé contre la SSRF, SMTP ; ADR 0046), statut de commit de
+l'agent dépôt (`status.*`, désactivé par défaut ; ADR 0047), écrans des politiques, des
+violations et des canaux, section « Alertes » du tableau de bord ; `docs/notifications.md`.
 
 ## Règles de travail
 
