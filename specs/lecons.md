@@ -633,3 +633,20 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   échoue même si le code régénéré est juste. Règle : commiter avant de lancer `make ci`.
 - `git grep -lz` : l'option `-z` se place avant les motifs, sinon la commande échoue et
   le `xargs` qui suit ne reçoit rien.
+
+## Tests d'intégration sur un poste de développement
+
+- **Connexions épuisées** : `go test` lance un paquet et un test parallèle par cœur, et
+  chaque test de `dbtest` ouvre jusqu'à douze connexions (pool d'exécution à dix,
+  propriétaire à deux). Environ 160 connexions au pic sur 16 cœurs, contre 100 par
+  défaut : des dizaines d'échecs « remaining connection slots are reserved for roles with
+  the SUPERUSER attribute » (SQLSTATE 53300). La CI, sur 4 vCPU, ne le voit pas. Règle :
+  `max_connections=500` dans `deploy/compose.yaml` ; tout autre serveur de test reçoit la
+  même limite, et un 53300 se règle par la limite, pas par moins de parallélisme.
+- **Fuseau horaire** : pgx rend un `timestamptz` dans le fuseau local du processus Go,
+  quel que soit le `timezone` de la session. Un `got.Hour() != 3` passe en CI (UTC) et
+  échoue en Europe/Paris. Règle : comparer les instants par `Equal`, et passer par `.UTC()`
+  avant `Hour`, `Day` ou `Format` ; vérifier un test qui lit une heure avec
+  `TZ=Europe/Paris` et `TZ=UTC`.
+- Un échec de `make ci` juste après une montée d'open-go-base n'en vient pas forcément :
+  comparer d'abord les commits (`go mod download -json …@vX` donne `Origin.Hash`).
