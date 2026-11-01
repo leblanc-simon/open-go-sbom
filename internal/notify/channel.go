@@ -350,8 +350,12 @@ func (s *Service) CreateChannel(ctx context.Context, org tenant.OrgID, actor aud
 	return c, wrap("création d'un canal", err)
 }
 
-// UpdateChannel modifie un canal ; un secret vide garde le secret existant. Réactiver un
-// canal remet en file ses envois en attente.
+// UpdateChannel modifie un canal ; un secret vide garde le secret existant, sauf si la
+// destination change (serveur Matrix, URL du webhook générique) : le secret doit alors être
+// ressaisi (KeySecretRequired). Sans cette règle, un administrateur qui ne connaît pas le
+// jeton Matrix le ferait envoyer au serveur de son choix, et un webhook redirigé recevrait
+// des messages signés valides (SEC2-04). Réactiver un canal remet en file ses envois en
+// attente.
 func (s *Service) UpdateChannel(ctx context.Context, org tenant.OrgID, actor audit.Actor, id uuid.UUID, in Input) (Channel, error) {
 	in, err := normalize(in, false)
 	if err != nil {
@@ -371,6 +375,12 @@ func (s *Service) UpdateChannel(ctx context.Context, org tenant.OrgID, actor aud
 			return invalid("kind", KeyKindInvalid)
 		}
 		changed := map[string]string{}
+		if destination(old.Kind, old.Settings) != destination(in.Kind, in.Settings) {
+			if in.Secret == "" && old.HasSecret {
+				return invalid("secret", KeySecretRequired)
+			}
+			changed["destination"] = "changed"
+		}
 		if in.Secret != "" {
 			ct, keyID, err := s.seal(org, id, in.Secret)
 			if err != nil {
@@ -403,6 +413,19 @@ func (s *Service) UpdateChannel(ctx context.Context, org tenant.OrgID, actor aud
 		return err
 	})
 	return c, wrap("modification d'un canal", err)
+}
+
+// destination renvoie l'adresse à laquelle part le secret d'un canal : serveur Matrix
+// (jeton en Authorization), URL du webhook générique (messages signés par la clé). Pour
+// Slack et Mattermost, l'URL est le secret lui-même ; l'e-mail n'a pas de secret.
+func destination(k Kind, s Settings) string {
+	switch k {
+	case KindMatrix:
+		return s.Homeserver
+	case KindWebhook:
+		return s.URL
+	}
+	return ""
 }
 
 // DeleteChannel supprime un canal, ses liens aux politiques et ses envois.

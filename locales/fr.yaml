@@ -274,7 +274,7 @@ login:
   submit: Continuer
   help: "Mot de passe oublié ? Adressez-vous à un administrateur de l'instance. Appareil perdu : utilisez un code de secours à l'étape suivante."
   info_title: "Information"
-  totp_reconfigured: "Votre second facteur a été retiré et vos sessions fermées. Connectez-vous pour configurer votre nouvelle application d'authentification."
+  totp_reconfigured: "Votre second facteur a été retiré et vos sessions fermées. Connectez-vous avec votre nouveau mot de passe pour configurer votre nouvelle application d'authentification."
   error:
     title: Connexion refusée
     invalid_credentials: Adresse e-mail ou mot de passe incorrect.
@@ -311,6 +311,7 @@ totp_setup:
   submit: Activer
   error:
     invalid_code: "Ce code est incorrect : une nouvelle clé a été générée, scannez à nouveau le code QR."
+    locked: "Trop de codes incorrects : le compte est verrouillé pour un temps, réessayez plus tard avec la nouvelle clé ci-dessous."
 
 profile:
   title: Mon compte
@@ -747,6 +748,9 @@ error:
       title: Jeton expiré
       text: Ce jeton a dépassé sa date d'expiration. Demandez-en un nouveau à un administrateur de l'organisation.
   agent:
+    containers_limit:
+      title: "Trop de conteneurs pour cet hôte"
+      text: "Ce signalement créerait plus de projets de conteneurs que la borne de l'instance n'en permet pour un hôte (containers.max_per_host) ; rien n'a été créé. Archivez les conteneurs disparus ou demandez à l'exploitant de relever la borne."
     no_host_project:
       title: Agent sans hôte actif
       text: "Le projet de l'hôte de cet agent est archivé : ses conteneurs ne peuvent être rattachés à rien. Réactivez le projet de l'hôte."
@@ -1607,9 +1611,11 @@ security:
   regenerate_hint: "Confirmez par le code de votre application d'authentification."
   regenerate: "Générer de nouveaux codes"
   reconfigure_title: "Changer d'application d'authentification"
-  reconfigure_text: "Nouveau téléphone, application perdue : retirez votre second facteur actuel. Toutes vos sessions seront fermées ; à la connexion suivante, votre mot de passe vous mènera à la configuration d'une nouvelle application et de nouveaux codes de secours. Vos jetons d'accès personnels sont gardés."
+  reconfigure_text: "Nouveau téléphone, application perdue : retirez votre second facteur actuel et choisissez un nouveau mot de passe. Toutes vos sessions seront fermées ; à la connexion suivante, ce nouveau mot de passe vous mènera à la configuration d'une nouvelle application et de nouveaux codes de secours. Vos jetons d'accès personnels sont gardés."
   reconfigure_code: "Code TOTP ou code de secours"
   reconfigure_hint: "Le code à six chiffres de votre application ou, si vous l'avez perdue, un code de secours (il sera consommé)."
+  reconfigure_password: "Nouveau mot de passe"
+  reconfigure_password_hint: "{{.Min}} caractères au moins. Obligatoire : tant que la nouvelle application n'est pas configurée, le mot de passe seul y donne accès ; l'ancien a pu être dérobé."
   reconfigure: "Retirer et reconfigurer"
   error:
     invalid_code: "Ce code est incorrect, expiré ou déjà utilisé."
@@ -2155,7 +2161,7 @@ channel_form:
   room_hint: "Identifiant interne du salon, par exemple !abcdef:example.org."
   secret: "Secret"
   secret_hint: "Clé HMAC du webhook (16 caractères au moins), jeton d'accès Matrix, ou URL du webhook entrant Mattermost ou Slack. Chiffré, jamais réaffiché."
-  secret_keep: "Laisser vide pour garder le secret actuel."
+  secret_keep: "Laisser vide pour garder le secret actuel, sauf si vous changez le serveur Matrix ou l'URL du webhook : ressaisissez-le alors (un secret ne suit jamais une nouvelle destination)."
   enabled: "Actif"
 channel_kind:
   email: "E-mail"

@@ -138,7 +138,7 @@ func TestLongLinesAreBounded(t *testing.T) {
 	if err != nil || !ex.Truncated || len(ex.Content) > maxLineChars*4+32 {
 		t.Fatalf("%v %d", err, len(ex.Content))
 	}
-	hits, _, err := ws.search(regexp.MustCompile("MARK"), "", 5)
+	hits, _, err := ws.search(context.Background(), regexp.MustCompile("MARK"), "", 5)
 	if err != nil || len(hits) != 1 || !strings.Contains(hits[0].Text, "MARK") || len([]rune(hits[0].Text)) > maxHitChars+2 {
 		t.Fatalf("%v %+v", err, hits)
 	}
@@ -176,5 +176,40 @@ func TestSubmitSchema(t *testing.T) {
 	}
 	if _, err := parseSubmission(json.RawMessage(`{"candidates":[]`)); err == nil {
 		t.Fatal("JSON tronqué accepté")
+	}
+}
+
+// TestSearchIsChargedAndCancellable : SEC2-09. Une recherche sans résultat coûte au budget
+// de lecture, et un délai dépassé l'interrompt.
+func TestSearchIsChargedAndCancellable(t *testing.T) {
+	dir := t.TempDir()
+	for i := range 50 {
+		if err := os.WriteFile(filepath.Join(dir, "f"+strings.Repeat("x", i%5)+string(rune('a'+i%26))+".txt"), []byte("rien\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	excl, _ := newExclusions(nil)
+	ws, _ := openWorkspace(dir, excl, 10*searchCost)
+	defer ws.Close()
+	var err error
+	n := 0
+	for ; n < 100; n++ {
+		if _, _, err = ws.search(context.Background(), regexp.MustCompile("ABSENT"), "", 5); err != nil {
+			break
+		}
+	}
+	if !errors.Is(err, errReadBudget) || n != 10 {
+		t.Fatalf("recherches sans résultat : %d avant %v", n, err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	ws2, _ := openWorkspace(dir, excl, 0)
+	defer ws2.Close()
+	if _, _, err := ws2.search(ctx, regexp.MustCompile("rien"), "", 5); !errors.Is(err, context.Canceled) {
+		t.Fatalf("recherche après le délai : %v", err)
+	}
+	tb := &toolbox{ws: ws2}
+	if _, err := tb.search(ctx, json.RawMessage(`{"pattern":"rien"}`)); !errors.Is(err, context.Canceled) {
+		t.Fatalf("outil search après le délai : %v", err)
 	}
 }

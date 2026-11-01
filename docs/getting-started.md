@@ -22,7 +22,7 @@ and the agents is covered in [`operations.md`](operations.md) (French); search i
 
 From then on, each sign-in asks for the password, then a code. Lost phone: at the code
 step, choose “Use a recovery code”, then, in **My account › Two-factor authentication**,
-“Change authenticator app” to set up the new phone. Without a recovery code, an instance
+“Change authenticator app” (with a new password) to set up the new phone. Without a recovery code, an instance
 administrator resets your second factor and gives you a new temporary password. **My
 account** (top right) sets the language (English or French) and the theme, changes the
 password, manages your recovery codes and your access tokens.

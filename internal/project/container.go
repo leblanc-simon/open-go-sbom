@@ -183,14 +183,29 @@ type ChildState struct {
 // ErrNoHost : l'agent n'a pas de projet d'hôte actif (agent dépôt, hôte archivé).
 var ErrNoHost = errors.New("project: aucun hôte actif confié à l'agent")
 
+// ErrContainerLimit : le signalement créerait plus de projets enfants que la borne par
+// hôte n'en permet ; rien n'est créé.
+var ErrContainerLimit = errors.New("project: trop de conteneurs pour cet hôte")
+
+// DefaultMaxContainersPerHost borne par défaut les projets enfants d'un hôte
+// (containers.max_per_host).
+const DefaultMaxContainersPerHost = 1000
+
 // SightContainers enregistre, dans la transaction InOrg de l'appelant, les conteneurs
 // qui tournent sur l'hôte confié à agentID : un conteneur inconnu devient un projet
 // enfant de cet hôte (et de lui seul : l'agent ne désigne jamais l'hôte), dans son
 // équipe ; un conteneur connu met à jour son contexte et sa date de signalement, et
 // revient s'il était archivé pour absence. Le projet de l'hôte est verrouillé : deux
 // signalements du même agent se succèdent. actor journalise créations et retours.
+//
+// Les projets enfants d'un hôte, actifs ou archivés, sont bornés à maxChildren (SEC2-05) :
+// un signalement qui en créerait davantage est refusé en entier (ErrContainerLimit), sans
+// rien créer ni journaliser. Sans borne, un jeton d'agent volé créerait des dizaines de
+// milliers de projets et de lignes d'audit indélébiles par minute ; seule la purge, après
+// containers.purge_after, supprime un enfant, la borne totale borne donc aussi les
+// créations dans le temps.
 func SightContainers(ctx context.Context, tx *db.OrgTx, actor audit.Actor, agentID uuid.UUID, sightings []ContainerSighting,
-	now time.Time) ([]ChildState, error) {
+	now time.Time, maxChildren int) ([]ChildState, error) {
 	var host ParentRef
 	var team uuid.UUID
 	err := tx.QueryRowContext(ctx, `SELECT id, slug, name, team_id FROM projects
@@ -201,6 +216,9 @@ func SightContainers(ctx context.Context, tx *db.OrgTx, actor audit.Actor, agent
 	}
 	if err != nil {
 		return nil, wrap("hôte d'un agent", err)
+	}
+	if err := checkContainerLimit(ctx, tx, host.ID, sightings, maxChildren); err != nil {
+		return nil, err
 	}
 	sorted := slices.Clone(sightings)
 	slices.SortFunc(sorted, func(a, b ContainerSighting) int { return strings.Compare(a.Key, b.Key) })
@@ -213,6 +231,27 @@ func SightContainers(ctx context.Context, tx *db.OrgTx, actor audit.Actor, agent
 		out = append(out, st)
 	}
 	return out, nil
+}
+
+// checkContainerLimit vérifie que les identités nouvelles de sightings tiennent sous la
+// borne des projets enfants de l'hôte (verrouillé par l'appelant).
+func checkContainerLimit(ctx context.Context, tx *db.OrgTx, hostID uuid.UUID, sightings []ContainerSighting, maxChildren int) error {
+	if len(sightings) == 0 {
+		return nil
+	}
+	keys := make([]string, len(sightings))
+	for i, s := range sightings {
+		keys[i] = s.Key
+	}
+	var children, known int
+	if err := tx.QueryRowContext(ctx, `SELECT count(*), count(*) FILTER (WHERE container_key = ANY($2::text[]))
+		 FROM projects WHERE parent_id = $1 AND kind = 'container'`, hostID, keys).Scan(&children, &known); err != nil {
+		return wrap("conteneurs d'un hôte", err)
+	}
+	if children+len(sightings)-known > maxChildren {
+		return ErrContainerLimit
+	}
+	return nil
 }
 
 func sightContainer(ctx context.Context, tx *db.OrgTx, actor audit.Actor, host ParentRef, team uuid.UUID, s ContainerSighting,

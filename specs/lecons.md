@@ -875,6 +875,35 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   l'étape commune avant la purge des conteneurs ; un test qui veut vérifier que la purge
   supprime une réception doit en créer une dans la fenêtre.
 
+## Recette du lot 2, revue de sécurité (T18, partie 2)
+
+- **Une protection qui suit une ressource doit tomber quand la ressource change** :
+  l'autorisation d'IA externe survivait au changement d'URL du dépôt (SEC2-03), le secret
+  d'un canal au changement de serveur (SEC2-04). Règle : pour tout réglage ou secret lié à
+  une destination, se demander ce qui se passe quand la destination est modifiée par
+  quelqu'un qui n'a pas le droit de poser le réglage ou ne connaît pas le secret.
+- **Un nouvel acteur casse les hypothèses des risques acceptés** : le rattachement par le
+  nom d'hôte (SEC-13, accepté au lot 1) devenait une faille inter-équipes avec T16
+  (SEC2-02). Règle : à chaque nouvel acteur ou nouvelle frontière, relire les risques
+  acceptés du modèle de menace.
+- **Toutes les vérifications d'un code passent par le même verrou** : `EnablePOST`
+  vérifiait le code hors du verrouillage par compte (SEC2-01) ; la v1.4.0 en a fait une
+  source de codes de secours. Règle : dans mfax, tout code passe par `confirm` ; une
+  option qui ajoute un effet à un chemin existant relit d'abord les gardes de ce chemin.
+- **Données d'une source externe dans un prompt** : la liste des fichiers modifiés venait
+  de la forge, sans le filtre appliqué aux outils (SEC2-07). Règle : tout ce qui part vers
+  le modèle passe par les mêmes exclusions, quelle que soit sa provenance.
+- **Valider avant de consommer** : la reconfiguration valide le nouveau mot de passe avant
+  le code de secours, sinon une faute de frappe coûte un code. Règle : dans un formulaire
+  qui consomme un facteur à usage unique, toutes les validations bon marché d'abord.
+- **Tests qui comptent des objets partagés** : ajouter un cas à un test existant qui
+  compte agents et jetons visibles a cassé ses totaux. Règle : un test de non-régression
+  de sécurité vit dans sa propre fonction, avec ses propres données.
+- **Tests de non-régression** : chaque test de reproduction de la revue a été rejoué sans
+  le correctif (`git stash` des seuls fichiers de production, ou condition neutralisée)
+  pour vérifier qu'il échoue. Règle : un test de non-régression qui passe sans le
+  correctif ne prouve rien.
+
 ## Audit RGAA du lot 2 (T18, partie 3)
 
 - **Champ dans l'étiquette d'un choix** : le panneau de triage mettait la justification

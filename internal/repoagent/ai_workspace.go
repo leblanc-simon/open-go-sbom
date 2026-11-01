@@ -3,6 +3,7 @@ package repoagent
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -114,6 +115,15 @@ const (
 	maxScannedFile  = 2 << 20 // un fichier plus gros n'est ni lu ni fouillé
 	maxHitChars     = 300
 	maxVerifyWindow = 64 << 10
+	// maxKeySniff : listDir et le filtre du périmètre incrémental cherchent une clé privée
+	// dans les fichiers de cette taille au plus (une clé tient en quelques Kio) ; au-delà,
+	// le fichier est listé, puis refusé à la lecture s'il en contient une.
+	maxKeySniff = 64 << 10
+	// searchCost est décompté du budget de lecture à chaque recherche, en plus des
+	// résultats : une recherche sans résultat n'est pas gratuite (SEC2-09).
+	searchCost = 2 << 10
+	// maxToolCallsPerTurn borne les outils exécutés pour une réponse du modèle.
+	maxToolCallsPerTurn = 20
 )
 
 func openWorkspace(dir string, excl exclusions, maxRead int64) (*workspace, error) {
@@ -178,6 +188,10 @@ func (w *workspace) listDir(rel string) ([]dirEntry, bool, error) {
 		if w.excl.match(path.Join(rel, e.Name())) {
 			continue
 		}
+		if e.Type().IsRegular() && w.holdsPrivateKey(path.Join(rel, e.Name())) {
+			// Exclu par son contenu : ni listé, ni lu, comme un fichier absent (SEC2-07).
+			continue
+		}
 		if len(out) == maxListEntries {
 			truncated = true
 			break
@@ -189,6 +203,42 @@ func (w *workspace) listDir(rel string) ([]dirEntry, bool, error) {
 		out = append(out, d)
 	}
 	return out, truncated, nil
+}
+
+// holdsPrivateKey indique si le fichier régulier rel, de maxKeySniff octets au plus,
+// contient une clé privée (content le refuserait). Une erreur de lecture vaut « non » :
+// la lecture refusera le fichier de toute façon.
+func (w *workspace) holdsPrivateKey(rel string) bool {
+	f, err := w.root.Open(rel)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil || !info.Mode().IsRegular() || info.Size() > maxKeySniff {
+		return false
+	}
+	data, err := io.ReadAll(io.LimitReader(f, maxKeySniff+1))
+	if err != nil {
+		return false
+	}
+	for _, m := range privateKeyMarkers {
+		if m.Match(data) {
+			return true
+		}
+	}
+	return false
+}
+
+// visible indique si un chemin du dépôt peut être nommé au modèle : ni exclu par un
+// motif, ni fichier à clé privée détectée (SEC2-07). Un chemin absent reste visible (un
+// fichier supprimé d'une analyse incrémentale).
+func (w *workspace) visible(rel string) bool {
+	c, err := w.clean(rel)
+	if err != nil {
+		return false
+	}
+	return !w.excl.match(c) && !w.holdsPrivateKey(c)
 }
 
 // content lit un fichier entier (borné), refuse un fichier exclu, binaire ou qui contient
@@ -302,13 +352,20 @@ type searchHit struct {
 
 // search cherche re dans les fichiers texte non exclus dont le chemin correspond à glob
 // (motif path.Match sur le chemin, ou sur le nom s'il n'a pas de « / » ; vide : tous),
-// au plus max résultats, dans l'ordre des chemins.
-func (w *workspace) search(re *regexp.Regexp, glob string, max int) ([]searchHit, bool, error) {
+// au plus max résultats, dans l'ordre des chemins. Chaque recherche coûte searchCost au
+// budget de lecture, en plus de ses résultats ; ctx est vérifié entre deux fichiers.
+func (w *workspace) search(ctx context.Context, re *regexp.Regexp, glob string, max int) ([]searchHit, bool, error) {
 	if max < 1 || max > maxSearchHits {
 		max = maxSearchHits
 	}
+	if err := w.charge(searchCost); err != nil {
+		return nil, false, err
+	}
 	var paths []string
 	err := fs.WalkDir(w.root.FS(), ".", func(p string, d fs.DirEntry, err error) error {
+		if cerr := ctx.Err(); cerr != nil {
+			return cerr
+		}
 		if err != nil {
 			return nil
 		}
@@ -343,6 +400,9 @@ func (w *workspace) search(re *regexp.Regexp, glob string, max int) ([]searchHit
 	var hits []searchHit
 	size := 0
 	for _, p := range paths {
+		if err := ctx.Err(); err != nil {
+			return nil, false, err
+		}
 		data, err := w.content(p)
 		if err != nil {
 			continue

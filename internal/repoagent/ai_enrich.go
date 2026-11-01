@@ -193,14 +193,20 @@ func (e *enricher) enrich(ctx context.Context, in enrichInput) enrichResult {
 		return res
 	}
 	defer ws.Close()
+	// Les fichiers modifiés viennent de la forge, sans filtre : un fichier exclu (secret,
+	// clé) n'est jamais nommé dans le prompt (SEC2-07).
+	if in.Scope != nil {
+		in.Scope = slices.DeleteFunc(slices.Clone(in.Scope), func(f string) bool { return !ws.visible(f) })
+	}
 	ctx, cancel := context.WithTimeout(ctx, e.cfg.Timeout)
 	defer cancel()
 	tb := &toolbox{ws: ws}
 	out, err := llm.Run(ctx, llm.Session{
 		Provider: p, System: systemPrompt, Prompt: userPrompt(in), Tools: aiTools, Handlers: tb.handlers(),
 		MaxTokens: e.cfg.ResponseTokens,
-		Budget:    llm.Budget{MaxTurns: e.cfg.MaxTurns, MaxInputTokens: e.cfg.MaxInputTokens, MaxOutputTokens: e.cfg.MaxOutputTokens},
-		Reminder:  "Call submit_candidates now with the candidates found so far (an empty list is valid).",
+		Budget: llm.Budget{MaxTurns: e.cfg.MaxTurns, MaxInputTokens: e.cfg.MaxInputTokens, MaxOutputTokens: e.cfg.MaxOutputTokens,
+			MaxCallsPerTurn: maxToolCallsPerTurn},
+		Reminder: "Call submit_candidates now with the candidates found so far (an empty list is valid).",
 	})
 	res.Usage, res.Turns = out.Usage, out.Turns
 	if err == nil && !tb.done {

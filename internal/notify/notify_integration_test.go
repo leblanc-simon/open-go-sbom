@@ -160,7 +160,7 @@ func TestChannelsCRUDAndIsolation(t *testing.T) {
 		t.Fatalf("envoi sur un canal inactif : %v", err)
 	}
 	if _, err := f.svc.UpdateChannel(ctx, f.org, actor, hook.ID, Input{Name: "Hook", Kind: KindWebhook, Enabled: true,
-		Settings: Settings{URL: "https://hooks.example.org/y"}}); err != nil {
+		Settings: Settings{URL: "https://hooks.example.org/y"}, Secret: "0123456789abcdef"}); err != nil {
 		t.Fatal(err)
 	}
 	var pending int
@@ -250,5 +250,61 @@ func TestQueueDigestAndRetries(t *testing.T) {
 	// Rotation : rien à faire avec la seule clé active.
 	if n, err := f.svc.RotateSecrets(ctx); err != nil || n != 0 {
 		t.Fatalf("rotation : %d, %v", n, err)
+	}
+}
+
+// TestChannelSecretNeverFollowsNewDestination : SEC2-04. Changer le serveur Matrix ou l'URL
+// du webhook générique d'un canal exige de ressaisir le secret : un administrateur qui ne
+// le connaît pas ne le fait pas envoyer (jeton Matrix) ni signer des messages (clé HMAC)
+// vers l'adresse de son choix. Les autres réglages se modifient sans le secret.
+func TestChannelSecretNeverFollowsNewDestination(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	a1 := audit.Actor{Email: "admin1@example.org"}
+	a2 := audit.Actor{Email: "admin2@example.org"}
+	matrix := Input{Name: "Salon", Kind: KindMatrix, Enabled: true,
+		Settings: Settings{Homeserver: "https://matrix.example.org", Room: "!abc:example.org"}, Secret: "syt_SECRET_BOT_TOKEN"}
+	c, err := f.svc.CreateChannel(ctx, f.org, a1, matrix)
+	if err != nil {
+		t.Fatal(err)
+	}
+	moved := matrix
+	moved.Secret, moved.Settings.Homeserver = "", "https://attacker.example.net"
+	if _, err := f.svc.UpdateChannel(ctx, f.org, a2, c.ID, moved); err == nil {
+		t.Fatal("serveur Matrix changé sans ressaisir le jeton")
+	} else if v, ok := account.IsValidation(err); !ok || v.Key != KeySecretRequired || v.Field != "secret" {
+		t.Fatal(err)
+	}
+	if _, err := f.svc.TestChannel(ctx, f.org, a2, c.ID); err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range f.rec.requests {
+		if strings.Contains(r.URL, "attacker.example.net") {
+			t.Fatalf("jeton envoyé au nouveau serveur : %s %s", r.Method, r.URL)
+		}
+	}
+	// Autre salon, même serveur : le jeton est gardé.
+	room := matrix
+	room.Secret, room.Settings.Room = "", "!def:example.org"
+	if _, err := f.svc.UpdateChannel(ctx, f.org, a2, c.ID, room); err != nil {
+		t.Fatalf("changement de salon sans le jeton : %v", err)
+	}
+	// Nouveau serveur avec le jeton ressaisi : accepté, journalisé.
+	moved.Secret = "syt_OTHER_TOKEN"
+	if _, err := f.svc.UpdateChannel(ctx, f.org, a2, c.ID, moved); err != nil {
+		t.Fatal(err)
+	}
+	if n := f.count(`SELECT count(*) FROM audit_events WHERE action = 'channel.updated' AND details->>'destination' = 'changed'`); n != 1 {
+		t.Fatalf("changements de destination journalisés : %d", n)
+	}
+	// Webhook générique : la clé HMAC ne suit pas une nouvelle URL.
+	hook, err := f.svc.CreateChannel(ctx, f.org, a1, Input{Name: "Hook", Kind: KindWebhook, Enabled: true,
+		Settings: Settings{URL: "https://hooks.example.org/x"}, Secret: "0123456789abcdef"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.svc.UpdateChannel(ctx, f.org, a2, hook.ID, Input{Name: "Hook", Kind: KindWebhook, Enabled: true,
+		Settings: Settings{URL: "https://attacker.example.net/hook"}}); err == nil {
+		t.Fatal("URL du webhook changée sans ressaisir la clé")
 	}
 }

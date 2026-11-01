@@ -219,6 +219,7 @@ retention:
 containers:
   archive_after: 168h         # 7 jours
   purge_after: 4320h          # 180 jours
+  max_per_host: 1000          # projets de conteneurs (actifs ou archivés) par hôte ; au-delà, signalement refusé
 
 # Notifications des politiques (T15, docs/notifications.md, ADR 0046). Les canaux sont
 # créés par organisation dans l'interface ; leurs secrets sont chiffrés par secrets.keys.

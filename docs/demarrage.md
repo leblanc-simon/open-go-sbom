@@ -24,8 +24,8 @@ de la recherche dans [`utilisation.md`](utilisation.md).
 
 Ensuite, chaque connexion demande le mot de passe puis un code. Perte du téléphone : à
 l'étape du code, choisissez « Utiliser un code de secours », puis, dans **Mon compte ›
-Second facteur**, « Changer d'application d'authentification » pour configurer le
-nouveau téléphone. Sans code de secours, un administrateur d'instance réinitialise votre
+Second facteur**, « Changer d'application d'authentification » (avec un nouveau mot de
+passe) pour configurer le nouveau téléphone. Sans code de secours, un administrateur d'instance réinitialise votre
 second facteur et vous transmet un nouveau mot de passe temporaire. **Mon compte** (en
 haut à droite) règle la langue (français ou anglais) et le thème, change le mot de passe,
 gère vos codes de secours et vos jetons d'accès.

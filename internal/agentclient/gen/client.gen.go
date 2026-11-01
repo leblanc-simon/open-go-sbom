@@ -738,7 +738,10 @@ type ClientInterface interface {
 	// envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
 	// est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
 	// depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
-	// Le signalement vaut signal de vie.
+	// Le signalement vaut signal de vie. Les projets enfants d'un hôte, actifs ou
+	// archivés, sont bornés (`containers.max_per_host`, 1 000 par défaut) : un
+	// signalement qui en créerait davantage est refusé en entier (409,
+	// `error.agent.containers_limit`), sans rien créer.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -762,7 +765,10 @@ type ClientInterface interface {
 	// envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
 	// est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
 	// depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
-	// Le signalement vaut signal de vie.
+	// Le signalement vaut signal de vie. Les projets enfants d'un hôte, actifs ou
+	// archivés, sont bornés (`containers.max_per_host`, 1 000 par défaut) : un
+	// signalement qui en créerait davantage est refusé en entier (409,
+	// `error.agent.containers_limit`), sans rien créer.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -917,7 +923,10 @@ type ClientInterface interface {
 // envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
 // est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
 // depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
-// Le signalement vaut signal de vie.
+// Le signalement vaut signal de vie. Les projets enfants d'un hôte, actifs ou
+// archivés, sont bornés (`containers.max_per_host`, 1 000 par défaut) : un
+// signalement qui en créerait davantage est refusé en entier (409,
+// `error.agent.containers_limit`), sans rien créer.
 //
 // Takes any type of body and a specified content type.
 //
@@ -951,7 +960,10 @@ func (c *Client) ReportContainersWithBody(ctx context.Context, contentType strin
 // envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
 // est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
 // depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
-// Le signalement vaut signal de vie.
+// Le signalement vaut signal de vie. Les projets enfants d'un hôte, actifs ou
+// archivés, sont bornés (`containers.max_per_host`, 1 000 par défaut) : un
+// signalement qui en créerait davantage est refusé en entier (409,
+// `error.agent.containers_limit`), sans rien créer.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -1566,7 +1578,10 @@ type ClientWithResponsesInterface interface {
 	// envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
 	// est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
 	// depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
-	// Le signalement vaut signal de vie.
+	// Le signalement vaut signal de vie. Les projets enfants d'un hôte, actifs ou
+	// archivés, sont bornés (`containers.max_per_host`, 1 000 par défaut) : un
+	// signalement qui en créerait davantage est refusé en entier (409,
+	// `error.agent.containers_limit`), sans rien créer.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -1590,7 +1605,10 @@ type ClientWithResponsesInterface interface {
 	// envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
 	// est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
 	// depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
-	// Le signalement vaut signal de vie.
+	// Le signalement vaut signal de vie. Les projets enfants d'un hôte, actifs ou
+	// archivés, sont bornés (`containers.max_per_host`, 1 000 par défaut) : un
+	// signalement qui en créerait davantage est refusé en entier (409,
+	// `error.agent.containers_limit`), sans rien créer.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -2305,7 +2323,10 @@ func (r GetSnapshotVerdictResponse) ContentType() string {
 // envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
 // est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
 // depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
-// Le signalement vaut signal de vie.
+// Le signalement vaut signal de vie. Les projets enfants d'un hôte, actifs ou
+// archivés, sont bornés (`containers.max_per_host`, 1 000 par défaut) : un
+// signalement qui en créerait davantage est refusé en entier (409,
+// `error.agent.containers_limit`), sans rien créer.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -2335,7 +2356,10 @@ func (c *ClientWithResponses) ReportContainersWithBodyWithResponse(ctx context.C
 // envoyer le SBOM (`inventory: outdated`). Un projet enfant archivé par un utilisateur
 // est `ignored` : l'agent ne l'inventorie pas. Un conteneur absent des signalements
 // depuis `containers.archive_after` (7 jours par défaut) voit son projet archivé.
-// Le signalement vaut signal de vie.
+// Le signalement vaut signal de vie. Les projets enfants d'un hôte, actifs ou
+// archivés, sont bornés (`containers.max_per_host`, 1 000 par défaut) : un
+// signalement qui en créerait davantage est refusé en entier (409,
+// `error.agent.containers_limit`), sans rien créer.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //

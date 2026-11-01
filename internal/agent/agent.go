@@ -18,6 +18,7 @@ import (
 	"leblanc.io/lotor/internal/audit"
 	"leblanc.io/lotor/internal/db"
 	"leblanc.io/lotor/internal/pagination"
+	"leblanc.io/lotor/internal/project"
 	"leblanc.io/lotor/internal/tenant"
 )
 
@@ -180,8 +181,9 @@ func (t Token) ActiveAt(now time.Time) bool {
 // Service gère les agents et leurs jetons. Toute lecture et toute écriture passent par
 // InOrg ; chaque modification est journalisée dans la même transaction.
 type Service struct {
-	pool *db.Pool
-	now  func() time.Time
+	pool          *db.Pool
+	now           func() time.Time
+	maxContainers int
 }
 
 // Option règle le service.
@@ -190,9 +192,19 @@ type Option func(*Service)
 // WithClock remplace l'horloge du système (tests d'expiration).
 func WithClock(now func() time.Time) Option { return func(s *Service) { s.now = now } }
 
+// WithMaxContainersPerHost borne les projets enfants d'un hôte (containers.max_per_host ;
+// project.DefaultMaxContainersPerHost par défaut).
+func WithMaxContainersPerHost(n int) Option {
+	return func(s *Service) {
+		if n > 0 {
+			s.maxContainers = n
+		}
+	}
+}
+
 // NewService construit le service.
 func NewService(pool *db.Pool, opts ...Option) *Service {
-	s := &Service{pool: pool, now: time.Now}
+	s := &Service{pool: pool, now: time.Now, maxContainers: project.DefaultMaxContainersPerHost}
 	for _, o := range opts {
 		o(s)
 	}

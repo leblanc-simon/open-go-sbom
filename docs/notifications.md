@@ -21,6 +21,10 @@ Un canal appartient à une organisation ; ses administrateurs le créent dans
 | Mattermost | — | URL du webhook entrant |
 | Slack | — | URL du webhook entrant |
 
+- À la modification d'un canal, un secret laissé vide est gardé, **sauf** si le serveur
+  Matrix ou l'URL du webhook générique change : le secret doit alors être ressaisi, pour
+  qu'il ne parte jamais vers une destination choisie par quelqu'un qui ne le connaît pas
+  (changement de destination journalisé).
 - Le bouton **Envoyer un test** envoie tout de suite un message de test et affiche
   l'issue ; l'essai est journalisé (`channel.tested`).
 - Les messages sont rédigés dans la **langue de l'organisation** (paramètres de

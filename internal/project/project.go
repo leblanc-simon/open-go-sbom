@@ -577,7 +577,13 @@ func (s *Service) Get(ctx context.Context, org tenant.OrgID, vis tenant.Visibili
 
 // Update modifie un projet : nom, description, étiquettes, et selon sa nature URL de
 // forge et références, ou référence d'hôte. Nature et slug ne changent pas.
-func (s *Service) Update(ctx context.Context, actor audit.Actor, org tenant.OrgID, slug string, in Input) error {
+//
+// L'autorisation d'un fournisseur d'IA externe vaut pour un dépôt (SEC2-03) : changer
+// l'URL de forge d'un dépôt réglé sur « externe » ramène le réglage à « désactivé », dans
+// la même transaction et journalisé (project.ai_mode_changed, motif forge_url_changed),
+// sauf si l'acteur peut lui-même autoriser l'IA externe (externalAI : droit ai.external,
+// et instance qui ne l'interdit pas).
+func (s *Service) Update(ctx context.Context, actor audit.Actor, org tenant.OrgID, slug string, in Input, externalAI bool) error {
 	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
 		p, err := load(ctx, tx, slug, true, false)
 		if err != nil {
@@ -602,7 +608,17 @@ func (s *Service) Update(ctx context.Context, actor audit.Actor, org tenant.OrgI
 		if err := syncRefs(ctx, tx, p, in); err != nil {
 			return err
 		}
-		return audit.RecordOrg(ctx, tx, actor, event(audit.ProjectUpdated, p, changes(p, in)))
+		if err := audit.RecordOrg(ctx, tx, actor, event(audit.ProjectUpdated, p, changes(p, in))); err != nil {
+			return err
+		}
+		if p.AIMode != AIExternal || p.ForgeURL == in.ForgeURL || externalAI {
+			return nil
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE projects SET ai_mode = $2 WHERE id = $1`, p.ID, string(AIDisabled)); err != nil {
+			return err
+		}
+		return audit.RecordOrg(ctx, tx, actor, event(audit.ProjectAIModeChanged, p,
+			map[string]string{"from": string(AIExternal), "to": string(AIDisabled), "reason": "forge_url_changed"}))
 	})
 	return wrap("modification d'un projet", err)
 }

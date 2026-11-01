@@ -94,10 +94,18 @@ func TestPolicyScreens(t *testing.T) {
 	a.sent.mu.Lock()
 	a.sent.err = nil
 	a.sent.mu.Unlock()
-	// Modification sans secret : le secret est gardé.
+	// Modification sans secret : le secret est gardé, sauf si l'URL change (SEC2-04).
 	if p := ab.post(chURL, url.Values{"name": {"Astreinte"}, "kind": {"webhook"}, "enabled": {"1"},
-		"url": {"https://hooks.example.org/lotor2"}}); p.status != http.StatusSeeOther {
+		"url": {"https://hooks.example.org/lotor2"}}); p.status != http.StatusUnprocessableEntity || !strings.Contains(p.body, `aria-invalid="true"`) {
+		t.Fatalf("URL changée sans ressaisir la clé : %d", p.status)
+	}
+	if p := ab.post(chURL, url.Values{"name": {"Astreinte (jour)"}, "kind": {"webhook"}, "enabled": {"1"},
+		"url": {"https://hooks.example.org/lotor"}}); p.status != http.StatusSeeOther {
 		t.Fatalf("modification du canal : %d %s", p.status, p.body)
+	}
+	if p := ab.post(chURL, url.Values{"name": {"Astreinte"}, "kind": {"webhook"}, "enabled": {"1"},
+		"url": {"https://hooks.example.org/lotor2"}, "secret": {secret}}); p.status != http.StatusSeeOther {
+		t.Fatalf("nouvelle URL avec la clé ressaisie : %d %s", p.status, p.body)
 	}
 
 	// Règle invalide : refusée, message traduit situé, saisie conservée.
@@ -240,7 +248,7 @@ func TestPolicyScreens(t *testing.T) {
 		t.Fatalf("suppression du canal : %d", p.status)
 	}
 	if n := a.countIn(f.org.ID, `SELECT count(*) FROM audit_events WHERE action IN ('policy.created', 'policy.deleted',
-		'channel.created', 'channel.updated', 'channel.deleted', 'channel.tested')`); n != 7 {
+		'channel.created', 'channel.updated', 'channel.deleted', 'channel.tested')`); n != 8 {
 		t.Fatalf("audit : %d événements", n)
 	}
 	if n := a.countIn(f.org.ID, `SELECT count(*) FROM audit_events WHERE details::text LIKE '%' || $1 || '%'`, secret); n != 0 {

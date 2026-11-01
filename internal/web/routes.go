@@ -31,7 +31,7 @@ func registerUI(r chi.Router, h *handlers, loginLimit func(http.Handler) http.Ha
 	// est obligatoire : seul un administrateur le réinitialise, ou son titulaire le
 	// reconfigure depuis /account/security (nouvel enrôlement imposé à la connexion suivante).
 	r.With(requireSession).Get(pathTOTPSetup, id.mfa.SetupGET)
-	r.With(requireSession).Post(pathTOTPOn, id.mfa.EnablePOST)
+	r.With(requireSession).Post(pathTOTPOn, id.enableTOTP)
 
 	r.Group(func(r chi.Router) {
 		r.Use(requireAuth)
