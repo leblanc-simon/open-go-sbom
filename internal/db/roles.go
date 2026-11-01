@@ -110,8 +110,9 @@ func CheckOrgIsolation(ctx context.Context, q Querier) error {
 	return nil
 }
 
-// auditTables sont les journaux d'audit, en ajout seul pour le rôle d'exécution.
-var auditTables = []string{"audit_events", "instance_audit_events"}
+// auditTables sont les journaux en ajout seul pour le rôle d'exécution : journaux d'audit
+// (ADR 0030) et journal des décisions de triage (ADR 0035).
+var auditTables = []string{"audit_events", "instance_audit_events", "triage_decisions"}
 
 // hardeningReasons complète CheckRuntimeRole : le rôle d'exécution ne crée aucun objet
 // (droit CREATE sur la base ou sur le schéma public : un objet à lui échapperait à la RLS)

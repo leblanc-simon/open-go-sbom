@@ -142,7 +142,7 @@ marquées **[à relire]** n'ont pas été validées explicitement.
   - prompt système versionné et embarqué (`prompts/system-v1.md`, `PromptVersion`).
 - `internal/agentclient` : `AIComponents` ; API : `AgentProject.ai_mode` (réglage
   effectif) et `GET /api/v1/agent/refs/{id}/ai-components` (`listAIComponents`).
-- Serveur : migration **018** (renumérotée après la fusion de T17) (`projects.ai_mode`, `snapshots.enrichment`,
+- Serveur : migration **019** (renumérotée après la fusion de T17 puis de T14) (`projects.ai_mode`, `snapshots.enrichment`,
   `snapshots.enrichment_model`) ; `project.SetAIMode` (audit `project.ai_mode_changed`),
   `project.RefOfAgent`, `AIMode.Effective` ; permission d'organisation `ai.external`
   (matrice, `permissions.md` régénéré) ; fragment `AI` (`ai.forbid_external`) ; statut

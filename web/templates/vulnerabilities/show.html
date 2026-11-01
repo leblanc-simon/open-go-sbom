@@ -123,6 +123,7 @@
               <th scope="col">{{T "vulnerability.col_ref"}}</th>
               <th scope="col">{{T "vulnerability.col_component"}}</th>
               <th scope="col">{{T "vulnerability.col_fixed_in"}}</th>
+              <th scope="col">{{T "findings.col_triage"}}</th>
               <th scope="col">{{if $.Resolved}}{{T "findings.col_resolved"}}{{else}}{{T "findings.col_first_seen"}}{{end}}</th>
               <th scope="col" class="num" aria-sort="descending">{{T "findings.col_risk"}}</th>
             </tr>
@@ -134,6 +135,7 @@
               <td><span class="cell-stack"><span class="mono">{{.RefName}}</span><span class="muted">{{T (print "ref_kind." .RefKind)}}</span></span></td>
               <td><span class="cell-stack"><a href="{{.ComponentHref}}">{{.Component}}</a><span class="version">{{.Version}}</span></span></td>
               <td>{{template "fixed" .}}</td>
+              <td>{{template "triage_link" .}}</td>
               <td>{{if $.Resolved}}<span class="cell-stack">{{template "stamp" .ResolvedAt}}<span class="muted">{{T (print "finding_resolution." .Resolution)}}</span></span>{{else}}{{template "stamp" .FirstSeen}}{{end}}</td>
               <td class="num">{{template "risk" .Risk}}</td>
             </tr>

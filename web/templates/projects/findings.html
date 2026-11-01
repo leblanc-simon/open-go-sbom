@@ -19,6 +19,7 @@
     </p>
   </div>
   {{template "project_tabs" .Tabs}}
+  {{template "flash" .FlashKey}}
   <div class="layout layout--rail">
     <section class="panel" aria-labelledby="refs-title">
       <div class="panel__head"><h2 class="panel__title" id="refs-title">{{T "findings.refs_title"}}</h2></div>
@@ -63,9 +64,18 @@
                 {{- range $.Severities}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>{{end}}
               </select>
             </div>
+            <div class="field field--narrow">
+              <label class="field__label" for="findings-triage">{{T "findings.triage"}}</label>
+              <select class="select" id="findings-triage" name="triage">
+                {{- range $.Triages}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>{{end}}
+              </select>
+            </div>
             <label class="check"><input type="checkbox" name="kev" value="1"{{if $.KEVOnly}} checked{{end}}> <span>{{T "findings.kev_only"}}</span></label>
             <button class="btn" type="submit">{{T "findings.apply"}}</button>
           </form>
+          {{- if $.Muted}}
+          <p class="muted">{{Tn "findings.muted" $.Muted}} <a href="{{$.ShowAllHref}}">{{T "findings.show_muted"}}</a></p>
+          {{- end}}
           {{- if $.Rows}}
           <div class="table-wrap" role="group" aria-labelledby="findings-title" tabindex="0">
             <table class="data-table">
@@ -73,6 +83,7 @@
                 <tr>
                   <th scope="col">{{T "findings.col_vulnerability"}}</th>
                   <th scope="col">{{T "findings.col_severity"}}</th>
+                  <th scope="col">{{T "findings.col_triage"}}</th>
                   <th scope="col">{{T "findings.col_epss"}}</th>
                   <th scope="col">{{T "findings.col_component"}}</th>
                   <th scope="col">{{T "findings.col_fixed_in"}}</th>
@@ -85,6 +96,7 @@
                 <tr>
                   <th scope="row"><span class="cell-stack"><a class="mono" href="{{.VulnHref}}">{{.VulnID}}</a>{{if .KEV}}{{template "kev"}}{{end}}</span></th>
                   <td>{{template "sev" .Sev}}</td>
+                  <td>{{template "triage_link" .}}</td>
                   <td>{{with .EPSS}}<span class="mono">{{percent . 1}}</span>{{else}}<span class="muted">{{T "common.none"}}</span>{{end}}</td>
                   <td><span class="cell-stack"><a href="{{.ComponentHref}}">{{.Component}}</a><span class="version">{{.Version}}</span></span></td>
                   <td>{{template "fixed" .}}</td>

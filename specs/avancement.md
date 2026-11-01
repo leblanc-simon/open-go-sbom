@@ -12,8 +12,9 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 
 | Lot | PR | Statut | Décisions à relire |
 | --- | --- | --- | --- |
-| T16 | #21 | Terminé (PR à fusionner) | Filtre d'équipe déclaré à la transaction, fermé par défaut ; matrice des droits (administrateur d'équipe sans gestion des équipes ni des membres de l'organisation, rattachement avec droit dans les deux équipes) ; 404 pour une équipe invisible ; agents sans équipe = agents d'organisation, agents dépôt existants d'organisation ; équipe « Général » aussi pour une nouvelle organisation, « General » en anglais ; invitations de 30 jours, sans équipe, bornées, nouvelle fonction `crossorg` ; tendance d'un membre additionnée par projet ; point d'essai `routeStub` — tous **[à relire]** |
-| T17 | #22 | Terminé (PR à fusionner) | Différences enregistrées pour les seuls couples consécutifs, par job ; appariement par `purl_base` et version, même version = retrait + ajout, versions incomparables « approchées » ; effet sur la sécurité calculé à la lecture, sans `not_matched` ; « un par mois » = le dernier du mois, instantané en vigueur à la coupure toujours gardé ; fenêtre sur scan et réception ; `count` en plus de `days` ; réceptions hors fenêtre supprimées, orphelins même rétention désactivée, composants jamais purgés ; constat sans instantané (`SET NULL`) ; verrous ingestion / rétention ; horizon pour T21 ; frise = liste enrichie — tous **[à relire]** |
+| T16 | #21 | Terminé | Filtre d'équipe déclaré à la transaction, fermé par défaut ; matrice des droits (administrateur d'équipe sans gestion des équipes ni des membres de l'organisation, rattachement avec droit dans les deux équipes) ; 404 pour une équipe invisible ; agents sans équipe = agents d'organisation, agents dépôt existants d'organisation ; équipe « Général » aussi pour une nouvelle organisation, « General » en anglais ; invitations de 30 jours, sans équipe, bornées, nouvelle fonction `crossorg` ; tendance d'un membre additionnée par projet ; point d'essai `routeStub` — tous **[à relire]** |
+| T17 | #22 | Terminé | Différences enregistrées pour les seuls couples consécutifs, par job ; appariement par `purl_base` et version, même version = retrait + ajout, versions incomparables « approchées » ; effet sur la sécurité calculé à la lecture, sans `not_matched` ; « un par mois » = le dernier du mois, instantané en vigueur à la coupure toujours gardé ; fenêtre sur scan et réception ; `count` en plus de `days` ; réceptions hors fenêtre supprimées, orphelins même rétention désactivée, composants jamais purgés ; constat sans instantané (`SET NULL`) ; verrous ingestion / rétention ; horizon pour T21 ; frise = liste enrichie — tous **[à relire]** |
+| T14 | #23 | Terminé (PR à fusionner) | Statut effectif rangé sur chaque constat, verrou consultatif ; journal en ajout seul avec retrait, échéance qui ramène « à analyser » à sa portée ; décision de projet sur le purl exact ; permission `triage.org` ; échéance par job ; audit d'un import groupé ; tableau de bord sans non affectés ni faux positifs ; VEX (structures OpenVEX propres, marques `[lotor:…]`, justification d'origine toujours notée, export des seuls constats ouverts décidés, import de projet par famille et version) ; fiche du constat en page au lieu du tiroir — tous **[à relire]** |
 | T12 | #25 | Terminé (PR à fusionner), mesure avec un vrai modèle à faire par l'utilisateur | SDK officiel d'Anthropic construit sans environnement (ADR 0042) ; réglage par dépôt, permission `ai.external`, `ai.forbid_external` ramène à « local » (ADR 0043) ; règles du vérificateur au-delà de la fiche (documentation, manifestes, marqueurs d'injection, purl dans l'extrait) ; statut `carried` et commits intermédiaires sans modèle ; confinement sans processus fils (ADR 0044) ; exclusions intégrées ; budgets par défaut ; prompt système en anglais — tous **[à relire]** |
 
 ### Décisions à relire, par thème
@@ -87,11 +88,33 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
   600 000 / 40 000 jetons, 1 Mio lu, 20 min), prompt système en anglais, écarts à la
   maquette ([T12](lots/T12-enrichissement-ia.md#décisions)).
 
+#### Triage et VEX (T14)
+
+- Statut effectif rangé sur chaque constat, recalculé à chaque décision et classé par
+  l'analyse sous un verrou consultatif ; journal `triage_decisions` en ajout seul avec
+  retrait explicite ; échéance qui ramène « à analyser » à sa portée ; décision de projet
+  sur le purl exact ; permission `triage.org` pour les administrateurs ; échéance par un
+  job par décision, risque accepté borné à 3 ans ; un événement d'audit par import ;
+  tableau de bord et effet sur la sécurité des comparaisons d'instantanés (T17) sans les
+  constats non affectés ni faux positifs
+  ([ADR 0035](../docs/adr/0035-decisions-de-triage.md)).
+- VEX : OpenVEX par des structures propres (`openvex/go-vex` écarté), marques
+  `[lotor:…]` et propriétés `lotor:`, justification d'origine toujours notée quand elle
+  change de liste, export des seuls constats ouverts qui ont une décision, import de
+  projet par famille, version et qualificatifs compatibles, bornes 1 Mio et 5 000
+  déclarations, pas d'import par l'API ([ADR 0036](../docs/adr/0036-echanges-vex.md)).
+- Écrans : fiche du constat en page au lieu du tiroir de la maquette, justification et
+  commentaire exigés, deux vocabulaires proposés, onglet VEX, rubrique Triage
+  ([ADR 0037](../docs/adr/0037-ecrans-du-triage.md)).
+
 #### Écarts
 
 - T12 : **mesure de la précision, du rappel et du coût avec un vrai modèle non faite**
   (aucune clé d'API dans l'environnement) : critère des seuils non vérifié ; captures clair
   et sombre non faites ([T12](lots/T12-enrichissement-ia.md#écarts)).
+- T14 : triage livré en page (pas en tiroir) ; audit RGAA manuel des écrans en T18 ;
+  statut de triage absent des résultats de recherche (à reprendre en T18 avec le filtre
+  d'équipe) ([T14](lots/T14-triage-vex.md#écarts)).
 - T16 : captures d'écran clair et sombre non faites (aucune CSS nouvelle ; audit RGAA du
   lot 2 en T18) ; filtre « équipe » de la recherche non livré (recherche filtrée par les
   équipes visibles) ([T16](lots/T16-equipes-droits.md#écarts)).
@@ -111,7 +134,11 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
    rétention réduit l'historique antérieur à 90 jours (un instantané par mois) ; régler
    `retention.*` avant la mise à jour si une autre politique est voulue
    ([`operations.md`](../docs/operations.md#rétention-des-instantanés)).
-4. **Mesurer l'enrichissement IA avec un vrai modèle** (T12, non fait faute de clé
+4. Relire les décisions de T14 (ADR 0035 à 0037), en particulier la correspondance des
+   justifications VEX (ADR 0036) et le choix d'une page plutôt que du tiroir (ADR 0037) ;
+   vérifier qu'un mandataire inverse en production laisse passer 1 Mio sur les routes
+   d'import VEX (`docs/operations.md`, « Triage et VEX »).
+5. **Mesurer l'enrichissement IA avec un vrai modèle** (T12, non fait faute de clé
    d'API) : `LOTOR_EVAL_AI_PROVIDER=anthropic LOTOR_EVAL_AI_API_KEY_FILE=<fichier 0600>
    LOTOR_EVAL_AI_RUNS=3 LOTOR_EVAL_AI_REPORT=/tmp/eval-ai.json make eval-ai`
    (procédure : [`docs/operations.md`](../docs/operations.md#évaluer-lenrichissement-ia)) ;

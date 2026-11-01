@@ -1,0 +1,78 @@
+/* Fiche d'un constat et son panneau de triage (planche « 6 · Triage d'un constat »).
+   La maquette ouvre le panneau en tiroir au-dessus de la fiche vulnérabilité ; sans
+   JavaScript, il devient une page à part entière, de même structure. */
+.triage {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 48rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+
+  .triage__summary {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    background: var(--color-surface-2);
+    border-bottom: 1px solid var(--color-border);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .triage__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding: var(--space-5);
+
+    fieldset {
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+  }
+
+  .triage__legend {
+    margin-bottom: var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+  }
+
+  .triage__foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-5);
+    background: var(--color-surface-2);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .triage__history {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-5);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .purl {
+    font-size: var(--text-xs);
+    overflow-wrap: anywhere;
+  }
+
+  @media (width < 40rem) {
+    .triage__summary, .triage__body, .triage__history {
+      padding: var(--space-4);
+    }
+  }
+}
+
+/* Statut de triage d'une ligne de constat : lien vers sa fiche. */
+.triage-link {
+  text-decoration: none;
+
+  &:hover .status, &:focus-visible .status {
+    text-decoration: underline;
+  }
+}

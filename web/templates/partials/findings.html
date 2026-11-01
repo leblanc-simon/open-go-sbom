@@ -26,3 +26,39 @@
 {{- else if eq .FixState "wont-fix"}}<span class="muted">{{T "findings.wont_fix"}}</span>
 {{- else}}<span class="muted">{{T "findings.no_fix"}}</span>{{end}}
 {{- end}}
+
+{{define "triage_status" -}}
+<span class="{{.Class}}">{{T .LabelKey}}</span>
+{{- end}}
+
+{{define "triage_link" -}}
+<a class="triage-link" href="{{.Href}}">{{template "triage_status" .Triage}}<span class="visually-hidden"> {{T "findings.open_finding" "ID" .VulnID "Component" .Component}}</span></a>
+{{- end}}
+
+{{define "vex_import_form" -}}
+<form class="form" method="post" action="{{.Action}}" enctype="multipart/form-data">
+  {{csrfField .Page.CSRFToken}}
+  <div class="field">
+    <label class="field__label" for="vex-file">{{T "vex.import_file"}}</label>
+    <input class="input input--file" id="vex-file" name="file" type="file" accept=".json,application/json" required aria-describedby="vex-file-hint"{{if eq .Error.Field "file"}} aria-invalid="true"{{end}}>
+    <span class="field__hint" id="vex-file-hint">{{T "vex.import_file_hint" "Max" .MaxKiB}}</span>
+  </div>
+  <div class="field">
+    <label class="field__label" for="vex-source">{{T "vex.import_source"}}</label>
+    <input class="input" id="vex-source" name="source" value="{{.Source}}" maxlength="100" aria-describedby="vex-source-hint"{{if eq .Error.Field "source"}} aria-invalid="true"{{end}}>
+    <span class="field__hint" id="vex-source-hint">{{T "vex.import_source_hint"}}</span>
+  </div>
+  <div><button type="submit" class="btn btn--primary">{{T "vex.import_submit"}}</button></div>
+</form>
+{{- end}}
+
+{{define "vex_result" -}}
+{{- with .}}
+<div class="callout callout--success" role="status">
+  <div class="callout__body">
+    <p class="callout__title">{{T "vex.result_title" "Source" .Source}}</p>
+    <p class="callout__text">{{Tn "vex.result_decisions" .Decisions}} {{Tn "vex.result_changed" .Changed}} {{Tn "vex.result_ignored" .Ignored}}</p>
+  </div>
+</div>
+{{- end}}
+{{- end}}

@@ -79,7 +79,9 @@ internal/
   benchdata/             # jeu synthétique et SBOM des mesures (docs/benchmarks.md)
   search/                # analyse de requête, plan, exécution, export
   dashboard/             # agrégats et statistiques quotidiennes
-  triage/ policy/ notify/ # lot 2
+  triage/                # décisions de triage, statut effectif des constats, échéances (T14)
+    vex/                 # OpenVEX et CycloneDX VEX : écriture, lecture, schéma OpenVEX embarqué
+  policy/ notify/        # lot 2
   license/
     grant/               # lot 3
   web/                   # routeur chi, handlers HTML par écran, gestion, serveurs
@@ -281,10 +283,11 @@ Données **par organisation** (toutes portent `org_id`) :
 | `ref_current` | instantané et ensemble courants de chaque référence (lecture rapide) |
 | `set_diffs`, `set_diff_items` | différence entre deux ensembles d'inventaire d'instantanés consécutifs : décomptes, puis changements (ajout, retrait, montée, descente de version) (T17, ADR 0038) |
 | `snapshot_retention` | dernier passage de la rétention : horizon (plus récente coupure appliquée), bilan (T17, ADR 0039) |
-| `findings`, `finding_events` | constat (référence × composant × vulnérabilité) : première et dernière détection, résolution et motif, risque, base ; historique (ouvert, résolu, rouvert) ; instantané qui l'a vu, mis à nul si la rétention le supprime |
+| `findings`, `finding_events` | constat (référence × composant × vulnérabilité) : première et dernière détection, résolution et motif, risque, base, statut de triage effectif et décision qui le donne (T14) ; historique (ouvert, résolu, rouvert) ; instantané qui l'a vu, mis à nul si la rétention le supprime |
 | `ref_analyses` | dernière analyse de chaque référence : ensemble et base analysés |
 | `audit_events`, `org_daily_stats`, `project_daily_stats` | journal d'audit ; statistiques quotidiennes de l'organisation et de chaque projet actif (une ligne par jour UTC, réécrite à chaque passage horaire, ADR 0027) |
-| `triage_decisions`, `policies`, `notification_channels`… | lots 2 et 3 |
+| `triage_decisions` | journal des décisions de triage, en ajout seul : portée (projet et purl, ou organisation et `purl_base` avec plage `vers`), statut, justification VEX d'origine, commentaire, échéance d'un risque accepté, auteur (T14, ADR 0035) |
+| `policies`, `notification_channels`… | lots 2 et 3 |
 
 Les **ensembles d'inventaire** sont adressés par contenu : deux instantanés au même
 inventaire partagent le même ensemble. Un nouveau commit sans changement de dépendances
@@ -419,8 +422,9 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
 - Rôles (T16, décision du 1er novembre 2026, ADR 0034) : le rôle d'organisation vaut
   `member` ou `admin` (qui voit et gère tout) ; les droits sur un projet, un agent ou une
   équipe viennent du rôle dans l'équipe de la ressource : `reader` (consulte), `analyst`
-  (trie les constats, demande un scan), `admin` (gère les projets, les agents, les jetons
-  d'inscription et les membres de l'équipe). Créer, renommer ou supprimer une équipe,
+  (trie les constats, importe un VEX pour un projet, demande un scan), `admin` (gère les
+  projets, les agents, les jetons d'inscription et les membres de l'équipe). Décider du
+  triage pour toute l'organisation (`triage.org`) revient à ses administrateurs (ADR 0035). Créer, renommer ou supprimer une équipe,
   inviter ou retirer un membre, les paramètres et le journal de l'organisation restent à
   ses administrateurs. La matrice est la source unique des contrôles, du document
   `docs/security/permissions.md` et des tests par route (`tenant.Matrix`, table
@@ -539,6 +543,16 @@ qu'aucune mesure ne la justifie (ADR 0015).
   basse.
 - Une base plus vieille que `vulndb.max_age` (5 jours) déclenche une alerte sur chaque page
   d'administration et la métrique `lotor_vulndb_stale`.
+- **Triage** (T14, ADR 0035) : les décisions s'appliquent aux constats après la
+  correspondance, jamais dans Grype. Le statut effectif (décision du projet pour le
+  composant, sinon la plus récente décision de l'organisation dont la plage contient la
+  version, sinon « à analyser ») est rangé sur chaque constat ; `internal/triage` le
+  recalcule à chaque décision pour tout le couple (`purl_base`, vulnérabilité), et
+  `analysis.ref` classe les constats qu'il crée ou rouvre dans sa transaction
+  (`finding.Classifier`), sous un verrou consultatif partagé par organisation que les
+  décisions prennent en exclusif. Un risque accepté échoit par le job `triage.expire`,
+  mis en file pour le lendemain de sa date à minuit UTC. Échanges VEX : OpenVEX 0.2.0 et
+  CycloneDX 1.6 (ADR 0036).
 
 ## 13. Recherche
 
@@ -587,7 +601,9 @@ qu'aucune mesure ne la justifie (ADR 0015).
     d'organisation à chaque requête (404 hors des organisations du compte), limitation par
     jeton ; la session avec en-tête CSRF viendra avec le premier écran qui appelle l'API
     en JavaScript (ADR 0025).
-- Corps des requêtes de l'interface bornés à 64 Kio avant CSRF ; seule exception, le
+- Corps des requêtes de l'interface bornés à 64 Kio avant CSRF ; l'import d'un VEX
+  (T14) est borné à 1 Mio pour un compte authentifié, lu en mémoire par csrfx (ADR 0036) ;
+  seule autre exception, le
   téléversement d'une archive de la base (`POST /admin/vulndb/import`), borné à
   `vulndb.max_archive_mib` pour un administrateur d'instance seulement, lu en flux, jeton
   CSRF exigé en première partie du formulaire (ADR 0028).
@@ -640,7 +656,8 @@ qu'aucune mesure ne la justifie (ADR 0015).
   jour.
 - Préfixe `/api/v1`. Routes des agents sous `/api/v1/agent/`, routes utilisateur sous
   `/api/v1/orgs/{org}/`. Le point compatible Dependency-Track (T19) vit sous `/dt/` pour ne
-  pas mêler son espace d'URL au nôtre.
+  pas mêler son espace d'URL au nôtre. L'API utilisateur exporte le VEX d'un projet
+  (`GET /api/v1/orgs/{org}/projects/{project}/vex`, T14).
 - Erreurs au format RFC 9457 (`application/problem+json`) : `type` porte une clé stable
   (`error.ingest.too_large`), `title` et `detail` les messages traduits de
   `<clé>.title` et `<clé>.text` selon la langue de la requête, `instance` le chemin et
@@ -765,7 +782,7 @@ qu'aucune mesure ne la justifie (ADR 0015).
 - L'accès à la socket d'un moteur de conteneurs équivaut à root : désactivé par défaut,
   documenté comme tel.
 - Journal d'audit : connexions et échecs, comptes et rôles, invitations, jetons, organisations, équipes et leurs membres, rattachement des projets,
-  décisions de triage, politiques, canaux, paramètres d'organisation. **En ajout seul**
+  décisions de triage (et leur journal `triage_decisions`), politiques, canaux, paramètres d'organisation. **En ajout seul**
   pour le rôle d'exécution (ni `UPDATE`, ni `DELETE`, ni `TRUNCATE`, vérifié au
   démarrage), qui n'a pas non plus de droit `CREATE` (ADR 0030).
 - Ressources bornées par compte autant que par instance : un export de recherche et un

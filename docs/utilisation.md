@@ -135,7 +135,7 @@ composants, les exports et l'API —, et vous y agissez selon votre **rôle d'é
 | Rôle d'équipe | Ce qu'il permet sur les projets de l'équipe |
 | --- | --- |
 | Lecteur | Consulter les projets, leurs constats, instantanés et SBOM, et les agents de l'équipe |
-| Analyste | En plus : demander un scan à un agent serveur, trier les constats (lot de triage) |
+| Analyste | En plus : demander un scan à un agent serveur, trier les constats, importer un VEX pour un projet |
 | Administrateur d'équipe | En plus : créer, modifier, archiver un projet de l'équipe, le confier à un agent, le rattacher à une autre équipe qu'il administre aussi ; gérer les agents et jetons d'inscription de l'équipe ; ajouter et retirer les membres de l'équipe |
 
 Un **administrateur de l'organisation** voit et gère tout : il crée, renomme et supprime
@@ -159,6 +159,76 @@ ses administrateurs, puis **accepter** l'invitation depuis « Mon compte » → 
 si l'adresse a déjà un compte : un compte créé plus tard par l'administration de
 l'instance peut encore accepter l'invitation tant qu'elle court.
 
+## Triage des constats et VEX
+
+Chaque constat porte un **statut de triage** :
+
+| Statut | Sens |
+| --- | --- |
+| À analyser | Aucune conclusion pour l'instant (statut par défaut, sans décision) |
+| Affecté | Le code vulnérable est atteignable : la correction doit être planifiée |
+| Non affecté | Présent mais sans impact, avec une justification VEX |
+| Faux positif | Le composant ou sa version ont été mal identifiés |
+| Risque accepté | Accepté jusqu'à une date ; le lendemain, le constat revient « à analyser » |
+| Corrigé | Correctif déployé ; le prochain instantané le confirmera |
+
+**Trier un constat.** Depuis l'onglet « Constats » d'un projet (ou la fiche d'une
+vulnérabilité), le statut d'une ligne mène à la **fiche du constat** : son résumé, le
+panneau de triage (rôle analyste ou administrateur dans l'équipe du projet) et son
+historique. Une décision demande un commentaire, repris dans l'historique et dans les
+exports VEX ; « non affecté » demande une justification VEX, « risque accepté » une date.
+
+**Portée.** Une décision vaut pour **ce projet** — ce composant, dans toutes les références
+du projet — ou, pour un administrateur de l'organisation, pour **toute l'organisation** —
+tous les composants de la même famille (même purl sans version), éventuellement
+restreints à une plage `vers` (`vers:maven/<2.17.0`). Le statut d'un constat est celui de
+la décision du projet, sinon de la plus récente décision de l'organisation qui le couvre,
+sinon « à analyser ». Une décision vaut aussi pour les constats à venir : un nouveau
+projet qui embarque le même composant en hérite dès son analyse. Une décision se retire
+depuis l'historique (le constat reprend alors la décision de l'organisation, ou « à
+analyser ») ; les décisions de l'organisation se gèrent dans la rubrique **Triage**.
+
+**Constats masqués.** L'onglet « Constats » masque par défaut les constats « non
+affecté » et « faux positif » (le nombre masqué s'affiche, « Tout afficher » les montre) ;
+le filtre « Statut de triage » choisit un statut. Le tableau de bord ne les compte pas
+parmi les constats ouverts.
+
+**Exporter.** L'onglet « VEX » d'un projet télécharge ses décisions en **OpenVEX 0.2.0**
+ou en **CycloneDX 1.6** : une déclaration par composant et vulnérabilité des constats
+ouverts qui ont une décision. Par l'API :
+
+```bash
+curl -H "Authorization: Bearer $LOTOR_TOKEN" -o portail.openvex.json \
+  "https://lotor.example/api/v1/orgs/<organisation>/projects/<projet>/vex?format=openvex"
+```
+
+**Importer le VEX d'un éditeur** (OpenVEX ou CycloneDX, JSON, 1 Mio au plus) : depuis
+l'onglet « VEX » d'un projet, chaque déclaration devient une décision du projet sur les
+composants de ses constats de même paquet et de même version ; depuis la rubrique
+« Triage » de l'organisation, une décision de l'organisation sur la famille du composant,
+restreinte à la version déclarée. Les décisions importées ont pour auteur
+`vex:<source>`. Un export réimporté dans le même format redonne les mêmes décisions.
+
+**Correspondance entre les formats.** Les deux formats n'ont pas les mêmes statuts ni les
+mêmes justifications. lotor garde la justification telle qu'elle a été donnée et, à
+l'export vers l'autre format, écrit la plus proche en notant l'originale :
+
+| CycloneDX | OpenVEX |
+| --- | --- |
+| `code_not_present` | `vulnerable_code_not_present` |
+| `code_not_reachable` | `vulnerable_code_not_in_execute_path` |
+| `requires_configuration`, `requires_environment` | `vulnerable_code_cannot_be_controlled_by_adversary` |
+| `requires_dependency` | `component_not_present` |
+| `protected_by_compiler`, `protected_at_runtime`, `protected_at_perimeter`, `protected_by_mitigating_control` | `inline_mitigations_already_exist` |
+
+En sens inverse, `component_not_present` et `vulnerable_code_not_present` deviennent
+`code_not_present`, `vulnerable_code_not_in_execute_path` `code_not_reachable`,
+`vulnerable_code_cannot_be_controlled_by_adversary` `requires_environment`,
+`inline_mitigations_already_exist` `protected_by_mitigating_control`. « Faux positif » et
+« risque accepté », absents d'OpenVEX, y sont écrits `not_affected` et `affected` avec une
+note `[lotor:…]` dans `status_notes` ; CycloneDX a `false_positive`, et « risque accepté »
+y devient `exploitable` avec la réponse `will_not_fix` et des propriétés `lotor:`. Le
+détail est dans l'ADR 0036.
 ## Composants trouvés par l'IA
 
 Pour un dépôt, l'agent dépôt peut compléter l'inventaire de Syft par les composants

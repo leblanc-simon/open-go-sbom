@@ -21,7 +21,7 @@ l'analyse incrémentale.
 
 **Réglage et politique**
 
-1. `projects.ai_mode` (migration 018) : `disabled` (défaut, aussi pour l'existant),
+1. `projects.ai_mode` (migration 019) : `disabled` (défaut, aussi pour l'existant),
    `local` (modèle local seulement), `external` (fournisseur externe permis, à défaut le
    modèle local). Réglable pour un dépôt actif dans ses paramètres
    (`POST /o/{org}/projects/{slug}/ai`, droit `project.manage`).

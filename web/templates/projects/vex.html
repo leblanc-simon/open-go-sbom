@@ -1,0 +1,43 @@
+{{define "content" -}}
+{{- $p := .Project}}
+<div class="stack">
+  <div class="page-head">
+    <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
+      <ol>
+        <li><a href="{{.Base}}/projects">{{T "nav.projects"}}</a></li>
+        <li><a href="{{.Base}}/projects/{{$p.Slug}}">{{$p.Name}}</a></li>
+        <li><span aria-current="page">{{T "project.tab_vex"}}</span></li>
+      </ol>
+    </nav>
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{$p.Name}}</h1>
+      {{template "project_kind" $p.Kind}}
+    </div>
+  </div>
+  {{template "project_tabs" .Tabs}}
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  {{template "vex_result" .Result}}
+  <section class="panel" aria-labelledby="vex-export">
+    <div class="panel__head"><h2 class="panel__title" id="vex-export">{{T "vex.export_title"}}</h2></div>
+    <div class="panel__body stack stack--sm">
+      <p>{{Tn "vex.export_text" .Statements}}</p>
+      {{- if .Statements}}
+      <ul class="cluster" aria-label="{{T "vex.export_formats"}}">
+        {{- range .Exports}}<li><a class="btn" href="{{.Href}}" download>{{T .Label}}</a></li>{{end}}
+      </ul>
+      {{- end}}
+      <p class="muted">{{T "vex.export_hint"}}</p>
+    </div>
+  </section>
+  {{- if .CanImport}}
+  <section class="panel" aria-labelledby="vex-import">
+    <div class="panel__head"><h2 class="panel__title" id="vex-import">{{T "vex.import_title"}}</h2></div>
+    <div class="panel__body stack stack--sm">
+      <p>{{T "vex.import_project_text"}}</p>
+      {{template "vex_import_form" .}}
+    </div>
+  </section>
+  {{- end}}
+</div>
+{{- end}}

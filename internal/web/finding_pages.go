@@ -18,12 +18,16 @@ import (
 	"leblanc.io/lotor/internal/inventory"
 	"leblanc.io/lotor/internal/render"
 	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/triage"
 	"leblanc.io/lotor/internal/version"
 	"leblanc.io/lotor/internal/vuln"
 )
 
 // findingPageSize : constats par page de l'onglet « Constats ».
 const findingPageSize = 50
+
+// triageAll est le choix « tous les statuts de triage » du filtre des constats.
+const triageAll = "all"
 
 // sevBadge est une sévérité prête à afficher : classe du badge (forme et couleur), clé
 // de traduction, score CVSS facultatif.
@@ -94,6 +98,9 @@ type findingRow struct {
 	Resolution    string
 	FirstSeen     *stamp
 	ResolvedAt    *stamp
+	// Triage : statut de triage effectif ; Href : fiche du constat (triage, historique).
+	Triage statusBadge
+	Href   string
 }
 
 func (id *identity) findingRow(base string, r finding.Row) findingRow {
@@ -104,6 +111,7 @@ func (id *identity) findingRow(base string, r finding.Row) findingRow {
 		Fixed: r.FixedVersions, FixState: string(r.FixState), RefName: r.RefName, RefKind: r.RefKind,
 		ProjectName: r.ProjectName, ProjectKind: r.ProjectKind, ProjectHref: base + "/projects/" + r.ProjectSlug,
 		Status: string(r.Status), Resolution: string(r.Resolution), FirstSeen: stampAt(r.FirstSeen), ResolvedAt: stampOf(r.ResolvedAt),
+		Triage: triageBadge(r.TriageStatus), Href: base + "/projects/" + r.ProjectSlug + "/findings/" + r.ID.String(),
 	}
 }
 
@@ -138,8 +146,14 @@ type findingsView struct {
 	Built      *stamp
 	States     []segment
 	Severities []option
-	KEVOnly    bool
-	Resolved   bool
+	// Triage : choix du statut de triage (vide : tous sauf « non affecté » et « faux
+	// positif », all : tous) ; Muted : constats masqués par ce choix par défaut.
+	Triages     []option
+	Muted       int
+	ShowAllHref template.URL
+	FlashKey    string
+	KEVOnly     bool
+	Resolved    bool
 	// StatusValue reporte l'état choisi dans le formulaire des filtres.
 	StatusValue string
 	Filtered    bool
@@ -176,6 +190,7 @@ func (id *identity) findings(w http.ResponseWriter, r *http.Request) {
 	view := &findingsView{
 		Page: render.Page{TitleKey: "findings.title", TitleArgs: map[string]any{"Name": p.Name}, Nav: orgNav(acc, "projects")},
 		Base: orgBase(acc), Project: id.projectRow(p, id.Agents.Now()), Tabs: projectTabs(acc, p, "findings"),
+		FlashKey: flashKey(r),
 	}
 	selected := selectedRef(states, q.Get("ref"))
 	for _, st := range states {
@@ -191,7 +206,26 @@ func (id *identity) findings(w http.ResponseWriter, r *http.Request) {
 	if s := vuln.Severity(q.Get("severity")); s != "" && slices.Contains(vuln.Severities(), s) {
 		f.Severity = s
 	}
-	view.KEVOnly, view.Filtered = f.KEVOnly, f.KEVOnly || f.Severity != ""
+	triageChoice := q.Get("triage")
+	switch {
+	case triageChoice == triageAll:
+	case triageChoice != "":
+		st, err := triage.ParseStatus(triageChoice)
+		if err != nil {
+			triageChoice = ""
+			f.HideMuted = true
+		} else {
+			f.Triage = st
+		}
+	default:
+		f.HideMuted = true
+	}
+	view.Triages = append(view.Triages, option{Value: "", LabelKey: "findings.triage_active", Selected: triageChoice == ""},
+		option{Value: triageAll, LabelKey: "common.all", Selected: triageChoice == triageAll})
+	for _, st := range triage.Statuses() {
+		view.Triages = append(view.Triages, option{Value: string(st), LabelKey: "status." + string(st), Selected: triageChoice == string(st)})
+	}
+	view.KEVOnly, view.Filtered = f.KEVOnly, f.KEVOnly || f.Severity != "" || triageChoice != ""
 	view.Severities = append(view.Severities, option{Value: "", LabelKey: "common.all", Selected: f.Severity == ""})
 	for _, s := range vuln.Severities() {
 		view.Severities = append(view.Severities, option{Value: string(s), LabelKey: "severity." + string(s), Selected: f.Severity == s})
@@ -202,6 +236,11 @@ func (id *identity) findings(w http.ResponseWriter, r *http.Request) {
 			view.Analyzed, view.Built = stampAt(a.AnalyzedAt), dateOf(&a.Built)
 		}
 		c := counts[selected]
+		if f.HideMuted && !view.Resolved {
+			view.Muted = c.Muted
+			all := url.Values{"ref": {selected.String()}, "triage": {triageAll}}
+			view.ShowAllHref = template.URL("?" + all.Encode())
+		}
 		keep := url.Values{"ref": {selected.String()}}
 		resolved := url.Values{"ref": {selected.String()}, "status": {string(finding.StatusResolved)}}
 		// Requêtes construites ici par url.Values : sûres comme URL.
@@ -223,7 +262,7 @@ func (id *identity) findings(w http.ResponseWriter, r *http.Request) {
 		}
 		if page.NextCursor != "" {
 			next := url.Values{"ref": {selected.String()}}
-			for _, k := range []string{"status", "severity", "kev"} {
+			for _, k := range []string{"status", "severity", "kev", "triage"} {
 				if v := q.Get(k); v != "" {
 					next.Set(k, v)
 				}

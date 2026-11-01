@@ -1,0 +1,50 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://vendor.example/vex/2026-001",
+  "author": "Vendor Example Security <security@vendor.example>",
+  "role": "Document Creator",
+  "timestamp": "2026-10-20T08:00:00Z",
+  "version": 3,
+  "tooling": "vexctl",
+  "statements": [
+    {
+      "vulnerability": {"name": "CVE-2021-44228", "aliases": ["GHSA-jfh8-c2jp-5v3q"]},
+      "timestamp": "2026-10-21T09:30:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/rapports@sha256%3Aabcdef",
+          "subcomponents": [
+            {"@id": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1"},
+            {"identifiers": {"purl": "pkg:maven/org.apache.logging.log4j/log4j-api@2.14.1"}}
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "JNDI lookups are disabled by configuration."
+    },
+    {
+      "vulnerability": {"name": "CVE-2022-0001"},
+      "products": [{"@id": "pkg:npm/lodash@4.17.20"}],
+      "status": "affected",
+      "action_statement": "Upgrade to 4.17.21."
+    },
+    {
+      "vulnerability": {"name": "CVE-2022-0002"},
+      "products": [{"@id": "pkg:npm/lodash"}],
+      "status": "under_investigation"
+    },
+    {
+      "vulnerability": {"name": "CVE-2022-0003"},
+      "products": [{"@id": "pkg:npm/lodash@4.17.20"}],
+      "status": "fixed",
+      "status_notes": "Backported in our build."
+    },
+    {
+      "vulnerability": {"name": "CVE-2022-0004"},
+      "products": [{"@id": "https://vendor.example/products/appliance"}],
+      "status": "not_affected",
+      "justification": "component_not_present"
+    }
+  ]
+}

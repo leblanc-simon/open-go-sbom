@@ -57,7 +57,7 @@ sur les choix techniques ; une fiche de lot précise le quoi et le comment d'une
 | [T16](lots/T16-equipes-droits.md) | Équipes et droits | 2 | T11 | Terminé |
 | [T12](lots/T12-enrichissement-ia.md) | Enrichissement IA de l'agent dépôt | 2 | T16 | Terminé (mesure avec un vrai modèle à faire par l'utilisateur) |
 | [T13](lots/T13-conteneurs.md) | Conteneurs en projets enfants | 2 | T16 | À faire |
-| [T14](lots/T14-triage-vex.md) | Triage et VEX | 2 | T16 | À faire |
+| [T14](lots/T14-triage-vex.md) | Triage et VEX | 2 | T16 | Terminé |
 | [T15](lots/T15-politiques-alertes.md) | Politiques, alertes et statuts de commit | 2 | T14 | À faire |
 | [T17](lots/T17-differences-instantanes.md) | Différences d'instantanés | 2 | T16 | Terminé |
 | [T18](lots/T18-recette-lot-2.md) | Recette du lot 2 | 2 | T12 à T17 | À faire |

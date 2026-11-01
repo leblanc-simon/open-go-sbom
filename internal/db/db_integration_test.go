@@ -379,6 +379,8 @@ func TestCheckRuntimeRoleRefusesCreateAndAuditRights(t *testing.T) {
 			"REVOKE DELETE ON instance_audit_events FROM " + app, "journal d'audit (instance_audit_events)"},
 		{"TRUNCATE du journal", "GRANT TRUNCATE ON audit_events TO " + app,
 			"REVOKE TRUNCATE ON audit_events FROM " + app, "journal d'audit (audit_events)"},
+		{"DELETE du journal des décisions de triage", "GRANT DELETE ON triage_decisions TO " + app,
+			"REVOKE DELETE ON triage_decisions FROM " + app, "(triage_decisions)"},
 	}
 	for _, c := range cases {
 		tdb.AdminExec(t, c.grant)

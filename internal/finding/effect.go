@@ -47,7 +47,8 @@ func (p prefixed) Scan(dest ...any) error { return p.rows.Scan(append([]any{p.fi
 // viennent de la référence de chaque côté : ceux de from sur les composants retirés ou
 // remplacés, ceux de to sur les composants ajoutés ou de nouvelle version. Un constat
 // résolu parce que la base ne juge plus le composant vulnérable (not_matched) n'est pas
-// compté : ce n'était pas une vulnérabilité. Chaque liste est bornée à limit, par risque
+// compté : ce n'était pas une vulnérabilité. Un constat « non affecté » ou « faux
+// positif » (triage, T14) ne l'est pas non plus, ni introduit ni résolu. Chaque liste est bornée à limit, par risque
 // décroissant ; les totaux comptent tout.
 func SnapshotEffect(ctx context.Context, tx *db.OrgTx, from, to EffectSide, limit int) (Effect, error) {
 	var e Effect
@@ -86,8 +87,9 @@ func SnapshotEffect(ctx context.Context, tx *db.OrgTx, from, to EffectSide, limi
 		     WHERE NOT EXISTS (SELECT 1 FROM fr WHERE fr.purl_base = fa.purl_base AND fr.vuln_id = fa.vuln_id)
 		)
 		SELECT e.side, ` + rowColumns + strings.Replace(rowFrom, "FROM findings f", "FROM effect e JOIN findings f ON f.id = e.id", 1) + `
+		 WHERE f.triage_status <> ALL($5::text[])
 		 ORDER BY e.side, f.risk DESC, f.vuln_id, f.id`
-	rows, err := tx.QueryContext(ctx, query, from.SetID, to.SetID, from.RefID, to.RefID)
+	rows, err := tx.QueryContext(ctx, query, from.SetID, to.SetID, from.RefID, to.RefID, hiddenStatuses())
 	if err != nil {
 		return Effect{}, wrap("effet sur la sécurité", err)
 	}

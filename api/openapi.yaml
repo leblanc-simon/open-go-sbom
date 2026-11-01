@@ -460,6 +460,48 @@ paths:
           $ref: "#/components/responses/Problem"
         "429":
           $ref: "#/components/responses/Problem"
+  /orgs/{org}/projects/{project}/vex:
+    get:
+      operationId: exportProjectVEX
+      tags: [user]
+      summary: Export VEX des décisions de triage d'un projet
+      description: |
+        Les décisions de triage (du projet, ou héritées de l'organisation) qui donnent le
+        statut des constats ouverts du projet, au format OpenVEX 0.2.0 ou CycloneDX 1.6 :
+        une déclaration par couple (composant, vulnérabilité), le composant désigné par
+        son purl. Les constats « à analyser » sans décision n'y figurent pas. Le projet
+        doit être visible du propriétaire du jeton (404 sinon) ; un projet sans aucune
+        décision à exporter répond 404 avec la clé `error.vex_empty`. Correspondance des
+        statuts et des justifications : `docs/utilisation.md`.
+      security:
+        - personalToken: []
+      parameters:
+        - $ref: "#/components/parameters/Org"
+        - $ref: "#/components/parameters/Project"
+        - name: format
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [openvex, cyclonedx]
+      responses:
+        "200":
+          description: Le document VEX.
+          content:
+            application/json:
+              schema:
+                type: object
+            application/vnd.cyclonedx+json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
 components:
   securitySchemes:
     enrollmentToken:

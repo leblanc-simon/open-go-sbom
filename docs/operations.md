@@ -748,6 +748,25 @@ les plus répandus (ADR 0027).
 - Sans instance à workers, les courbes ne s'allongent plus (les chiffres du moment restent
   justes) : `lotor_job_schedule_fires_total{schedule="dashboard.stats_all"}` doit
   progresser d'une unité par heure sur l'ensemble des instances.
+- Depuis T14, les constats « non affecté » et « faux positif » ne comptent plus parmi les
+  constats ouverts ; les statistiques déjà enregistrées ne sont pas réécrites.
+
+## Triage et VEX
+
+Les décisions de triage (ADR 0035) sont rangées dans `triage_decisions`, en **ajout
+seul** pour le rôle d'exécution (vérifié au démarrage, comme le journal d'audit) ; le
+statut effectif est recopié sur chaque constat (`findings.triage_status`).
+
+- Un **risque accepté** échoit par un job `triage.expire` mis en file avec la décision
+  pour le lendemain de sa date, à minuit UTC : il faut une instance à workers pour que les
+  constats reviennent « à analyser » le jour même. Un job en échec se voit, comme les
+  autres, dans « Administration » → « Traitements ».
+- La migration 018 donne à tous les constats existants le statut « à analyser ».
+- L'**import d'un VEX** depuis l'interface accepte un fichier JSON de 1 Mio au plus et
+  5 000 déclarations ; le mandataire inverse doit laisser passer ce corps sur
+  `/o/<slug>/projects/<projet>/vex/import` et `/o/<slug>/triage/import`.
+- Décisions et imports sont au journal d'audit de l'organisation (`triage.decided`,
+  `triage.withdrawn`, `triage.expired`, `triage.vex_imported`).
 
 ## Agent dépôt
 

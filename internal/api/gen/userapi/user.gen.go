@@ -269,6 +269,24 @@ func (e CompareSnapshotsParamsKind) Valid() bool {
 	}
 }
 
+// Defines values for ExportProjectVEXParamsFormat.
+const (
+	Cyclonedx ExportProjectVEXParamsFormat = "cyclonedx"
+	Openvex   ExportProjectVEXParamsFormat = "openvex"
+)
+
+// Valid indicates whether the value is a known member of the ExportProjectVEXParamsFormat enum.
+func (e ExportProjectVEXParamsFormat) Valid() bool {
+	switch e {
+	case Cyclonedx:
+		return true
+	case Openvex:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SearchOrganizationParamsType.
 const (
 	SearchOrganizationParamsTypeHost SearchOrganizationParamsType = "host"
@@ -847,6 +865,14 @@ type ListProjectSnapshotsParams struct {
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// ExportProjectVEXParams defines parameters for ExportProjectVEX.
+type ExportProjectVEXParams struct {
+	Format ExportProjectVEXParamsFormat `form:"format" json:"format"`
+}
+
+// ExportProjectVEXParamsFormat defines parameters for ExportProjectVEX.
+type ExportProjectVEXParamsFormat string
+
 // SearchOrganizationParams defines parameters for SearchOrganization.
 type SearchOrganizationParams struct {
 	// Q Requête de recherche (1 024 octets au plus).
@@ -952,6 +978,9 @@ type ServerInterface interface {
 	// ListProjectSnapshots Frise des instantanés d'un projet
 	// (GET /orgs/{org}/projects/{project}/snapshots)
 	ListProjectSnapshots(w http.ResponseWriter, r *http.Request, org Org, project Project, params ListProjectSnapshotsParams)
+	// ExportProjectVEX Export VEX des décisions de triage d'un projet
+	// (GET /orgs/{org}/projects/{project}/vex)
+	ExportProjectVEX(w http.ResponseWriter, r *http.Request, org Org, project Project, params ExportProjectVEXParams)
 	// SearchOrganization Recherche transverse dans une organisation
 	// (GET /orgs/{org}/search)
 	SearchOrganization(w http.ResponseWriter, r *http.Request, org Org, params SearchOrganizationParams)
@@ -973,6 +1002,12 @@ func (_ Unimplemented) CompareSnapshots(w http.ResponseWriter, r *http.Request, 
 // ListProjectSnapshots Frise des instantanés d'un projet
 // (GET /orgs/{org}/projects/{project}/snapshots)
 func (_ Unimplemented) ListProjectSnapshots(w http.ResponseWriter, r *http.Request, org Org, project Project, params ListProjectSnapshotsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ExportProjectVEX Export VEX des décisions de triage d'un projet
+// (GET /orgs/{org}/projects/{project}/vex)
+func (_ Unimplemented) ExportProjectVEX(w http.ResponseWriter, r *http.Request, org Org, project Project, params ExportProjectVEXParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1168,6 +1203,57 @@ func (siw *ServerInterfaceWrapper) ListProjectSnapshots(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListProjectSnapshots(w, r, org, project, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ExportProjectVEX operation middleware
+func (siw *ServerInterfaceWrapper) ExportProjectVEX(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "org" -------------
+	var org Org
+
+	err = runtime.BindStyledParameterWithOptions("simple", "org", chi.URLParam(r, "org"), &org, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "org", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "project" -------------
+	var project Project
+
+	err = runtime.BindStyledParameterWithOptions("simple", "project", chi.URLParam(r, "project"), &project, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "project", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ExportProjectVEXParams
+
+	// ------------- Required query parameter "format" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "format", r.URL.Query(), &params.Format, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "format"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "format", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExportProjectVEX(w, r, org, project, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1593,6 +1679,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/orgs/{org}/projects/{project}/compare", wrapper.CompareSnapshots)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/orgs/{org}/projects/{project}/vex", wrapper.ExportProjectVEX)
 	})
 
 	return r

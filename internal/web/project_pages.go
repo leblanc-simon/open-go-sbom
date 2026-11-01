@@ -325,6 +325,7 @@ func projectTabs(acc tenant.Access, p project.Project, current string) []project
 		{LabelKey: "project.tab_overview", Href: base, Current: current == "overview"},
 		{LabelKey: "project.tab_findings", Href: base + "/findings", Current: current == "findings"},
 		{LabelKey: "project.tab_snapshots", Href: base + "/snapshots", Current: current == "snapshots"},
+		{LabelKey: "project.tab_vex", Href: base + "/vex", Current: current == "vex"},
 	}
 	if acc.Can(tenant.PermProjectManage, p.TeamID) {
 		tabs = append(tabs, projectTab{LabelKey: "project.tab_settings", Href: base + "/settings", Current: current == "settings"})
