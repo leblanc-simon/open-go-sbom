@@ -10,6 +10,17 @@ appliquées automatiquement, sans retour arrière.
 
 ### Ajouté
 
+- Codes de secours du second facteur (T18, ADR 0048 ; open-go-base v1.4.0) : dix codes à
+  usage unique, hachés, montrés une seule fois à l'enrôlement ; connexion par « Utiliser
+  un code de secours » ; page **Mon compte › Second facteur** : codes restants,
+  régénération (code TOTP exigé), changement d'application d'authentification par un code
+  TOTP ou un code de secours (nouvel enrôlement imposé). Réglage `mfa.recovery_codes`.
+- Recherche (T18, ADR 0050) : filtre « équipe » (`team`) et équipe de chaque projet ;
+  statut de triage de chaque constat d'une recherche par vulnérabilité, filtre `triage` ;
+  colonnes `team` et `triage_status` ajoutées en fin d'export.
+- Purge des conteneurs archivés pour absence depuis 180 jours, avec leur historique, par la
+  rétention nocturne (T18, ADR 0049) ; réglage `containers.purge_after` (`0` : jamais).
+
 - Politiques, alertes et statuts de commit (T15, ADR 0045 à 0047) : règles en CEL sur les
   constats ou les agents, vérifiées avant l'enregistrement (position de l'erreur, coût
   borné) avec un aperçu du nombre de violations ; modèles fournis (KEV sur un projet de
@@ -72,6 +83,12 @@ appliquées automatiquement, sans retour arrière.
 
 ### Modifié
 
+- La recherche par composant ne compte plus les constats « non affecté » ni « faux
+  positif » parmi les vulnérabilités ouvertes d'une occurrence (T18) ; le filtre `triage`
+  sur une recherche qui n'est pas par vulnérabilité répond 400.
+- L'enrôlement du TOTP montre désormais les codes de secours avant de continuer (réponse
+  200 au lieu d'une redirection). La migration 022 accorde les droits sur
+  `mfa_recovery_codes`.
 - Le tableau de bord ne compte plus les constats « non affecté » ni « faux positif »
   parmi les constats ouverts (T14).
 - Le rôle d'organisation vaut désormais « membre » ou « administrateur » (les rôles

@@ -17,12 +17,18 @@ de la recherche dans [`utilisation.md`](utilisation.md).
    (FreeOTP, Aegis, Google Authenticator, 1Password…), ou recopiez la clé affichée, puis
    saisissez le code à six chiffres. Le second facteur est obligatoire pour tous les
    comptes locaux.
-3. Choisissez ensuite votre mot de passe définitif (12 caractères au moins).
+3. L'écran suivant affiche vos **codes de secours**, une seule fois : notez-les ou
+   imprimez-les et rangez-les hors du téléphone. Chacun remplace une fois un code de
+   l'application.
+4. Choisissez ensuite votre mot de passe définitif (12 caractères au moins).
 
-Ensuite, chaque connexion demande le mot de passe puis un code. Perte du téléphone : un
-administrateur d'instance réinitialise votre second facteur et vous transmet un nouveau
-mot de passe temporaire. **Mon compte** (en haut à droite) règle la langue (français ou
-anglais) et le thème, change le mot de passe et gère vos jetons d'accès.
+Ensuite, chaque connexion demande le mot de passe puis un code. Perte du téléphone : à
+l'étape du code, choisissez « Utiliser un code de secours », puis, dans **Mon compte ›
+Second facteur**, « Changer d'application d'authentification » pour configurer le
+nouveau téléphone. Sans code de secours, un administrateur d'instance réinitialise votre
+second facteur et vous transmet un nouveau mot de passe temporaire. **Mon compte** (en
+haut à droite) règle la langue (français ou anglais) et le thème, change le mot de passe,
+gère vos codes de secours et vos jetons d'accès.
 
 ## 2. Créer l'organisation (administrateur d'instance)
 

@@ -54,9 +54,17 @@ affichées, mais elles ne sont pas oubliées.
 ### Filtres, ordre et partage
 
 Les filtres se combinent : type de projet (« Inclure les conteneurs » ajoute les
-conteneurs des serveurs, écartés sinon ; paramètre `containers=1`), étiquette, origine de la détection (Syft ou
-IA), vulnérabilité activement exploitée (KEV), sévérité maximale (ou « sans
-vulnérabilité »), et, pour une recherche par vulnérabilité, les constats déjà résolus.
+conteneurs des serveurs, écartés sinon ; paramètre `containers=1`), **équipe**
+propriétaire (`team=<identifiant>`, parmi les équipes que vous voyez), étiquette, origine
+de la détection (Syft ou IA), vulnérabilité activement exploitée (KEV), sévérité maximale
+(ou « sans vulnérabilité »), et, pour une recherche par vulnérabilité, les constats déjà
+résolus et le **statut de triage** (`triage=`, à analyser, affecté, non affecté…).
+
+Une recherche par vulnérabilité montre le statut de triage de chaque constat, avec un lien
+vers sa fiche ; elle montre aussi les constats triés « non affecté » ou « faux positif »
+(qui répondent à la question « sommes-nous touchés ? »). Une recherche par composant, elle,
+ne compte pas ces constats dans les vulnérabilités ouvertes et la sévérité, comme les
+listes de constats. Chaque projet des résultats indique son équipe.
 Dans un même filtre, les valeurs cochées s'additionnent. Les résultats sont groupés par
 projet, triés par risque, par nom ou par instantané le plus récent, vingt projets par page.
 
@@ -67,8 +75,9 @@ exactement le même résultat avec un autre membre de l'organisation.
 
 « Exporter en CSV » et « Exporter en JSON » donnent toutes les occurrences de la
 recherche (pas seulement la page affichée), avec projet, référence, commit, composant,
-version, purl, origine, vulnérabilités ouvertes, sévérité, KEV, risque et versions
-corrigées. Dans le CSV, une cellule qui commencerait par `=`, `+`, `-` ou `@` est préfixée
+version, purl, origine, vulnérabilités ouvertes, sévérité, KEV, risque, versions
+corrigées, et, en fin de ligne, équipe et statut de triage (colonnes `team` et
+`triage_status`). Dans le CSV, une cellule qui commencerait par `=`, `+`, `-` ou `@` est préfixée
 d'une apostrophe, pour qu'un tableur ne l'interprète pas comme une formule.
 
 ### Par l'API
@@ -286,7 +295,9 @@ son historique.
 - **Disparition** : un conteneur que l'agent ne signale plus depuis 7 jours (réglage du
   serveur) est archivé ; il revient de lui-même, avec son historique, s'il redémarre.
   Archiver soi-même le projet d'un conteneur (Paramètres) arrête son inventaire, même
-  s'il tourne encore.
+  s'il tourne encore. Un conteneur archivé pour absence depuis 180 jours (réglage du
+  serveur) est supprimé avec son historique, sauf s'il porte une décision de triage ; le
+  journal d'audit de l'organisation le dit.
 - **Listes et recherche** : les conteneurs n'y figurent que si « Inclure les conteneurs »
   est coché ; le tableau de bord de l'organisation, lui, les compte avec les autres
   projets.
@@ -358,3 +369,28 @@ peut encore échouer sur une donnée (lire `project.labels["env"]` sur un projet
   référence garde une violation ouverte de cette politique ; l'agent dépôt peut publier ce
   verdict comme statut du commit sur GitHub ou GitLab. Les politiques d'agent ne bloquent
   jamais un commit.
+
+## Second facteur et codes de secours
+
+Le second facteur (code TOTP d'une application d'authentification) est obligatoire. À
+l'enrôlement, lotor affiche **dix codes de secours**, une seule fois : chacun permet de se
+connecter **une fois** à la place d'un code de l'application (« Utiliser un code de
+secours » à l'étape du code). Seules leurs empreintes sont gardées : lotor ne peut pas
+les réafficher.
+
+**Mon compte › Second facteur** :
+
+- indique combien de codes il vous reste, et vous alerte quand il en reste trois ou moins ;
+- **génère un nouveau jeu** de codes contre un code de l'application : les anciens codes,
+  utilisés ou non, cessent alors de valoir ;
+- **change d'application d'authentification** (nouveau téléphone, application perdue) :
+  saisissez un code de l'application ou, à défaut, un code de secours ; votre second
+  facteur actuel est retiré et toutes vos sessions sont fermées. À la connexion suivante,
+  votre mot de passe vous mène à la configuration de la nouvelle application, puis à un
+  nouveau jeu de codes. Vos jetons d'accès personnels sont gardés.
+
+Après une connexion par code de secours, lotor ouvre directement cette page. Les codes
+faux comptent dans le verrouillage du compte comme les codes de l'application. Chaque jeu
+généré, chaque code utilisé ou refusé et chaque changement d'application sont inscrits au
+journal d'audit de l'instance. Sans application ni code de secours, un administrateur de
+l'instance réinitialise votre second facteur.

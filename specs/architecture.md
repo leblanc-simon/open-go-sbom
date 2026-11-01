@@ -316,7 +316,10 @@ ni celui en vigueur au début de la fenêtre ; elle supprime les réceptions ter
 fenêtre, puis les ensembles et SBOM que plus rien ne référence (l'ingestion verrouille
 ce qu'elle réutilise, la rétention le saute). Son horizon (`snapshot_retention`) dit à la
 recherche à une date passée (T21) en deçà de quelle date l'historique est réduit
-(ADR 0039).
+(ADR 0039). Le même passage supprime, avec tout leur historique, les projets des
+conteneurs archivés pour absence depuis `containers.purge_after` (180 jours, jamais un
+conteneur archivé à la main ni porteur d'une décision de triage), chaque suppression
+journalisée (`project.purged`, T18, ADR 0049).
 
 ## 9. Multi-organisation
 
@@ -407,6 +410,13 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
   `mfa_lockouts`) : les codes faux sont comptés tous défis confondus (`mfa.lockout_*`),
   verrouillage journalisé (`account.locked`), levé par la réinitialisation du TOTP
   (ADR 0029).
+- **Codes de secours** (`mfax.WithRecoveryCodes`, table `mfa_recovery_codes`, T18,
+  ADR 0048) : un jeu de `mfa.recovery_codes` (10) codes à usage unique, hachés, montré une
+  seule fois à l'enrôlement et à chaque régénération (code TOTP exigé) ; un code de secours
+  remplace un code TOTP à la connexion et compte dans le verrouillage. Le titulaire
+  reconfigure lui-même son application (`account.ReconfigureTOTP`, après un code TOTP ou
+  un code de secours) : sessions fermées, nouvel enrôlement imposé par le mot de passe ; le
+  TOTP reste obligatoire.
 - `session_auth` enregistre, pour chaque session (clé : SHA-256 du jeton de session), la
   méthode d'authentification : `local_totp`, ou `sso` avec l'organisation dont le
   fournisseur a authentifié. La garde d'organisation s'en sert pour imposer le SSO d'une
@@ -600,6 +610,10 @@ qu'aucune mesure ne la justifie (ADR 0015).
 - Les conteneurs (projets enfants des hôtes) sont écartés des résultats, comme des listes
   de projets, sauf avec le filtre « inclure les conteneurs » (`containers=1`), qui
   s'ajoute aux types retenus (ADR 0040).
+- Filtre « équipe » (`team`, équipes propriétaires, sous la visibilité du compte) pour
+  toute recherche ; une recherche par vulnérabilité montre et filtre (`triage`) le statut
+  de triage effectif de chaque constat ; une recherche par composant ne compte pas les
+  constats « non affecté » ou « faux positif » (T18, ADR 0050).
 - Cible : moins de 2 s au 95e centile pour 1 000 projets et 1 million de liens, **RLS
   active**, selon le protocole de `docs/benchmarks.md`.
 
@@ -885,6 +899,6 @@ dupliquer.
 | Erreurs d'authx, mfax et csrfx exposées comme clés plutôt qu'en texte français | Messages traduits (« Identifiants invalides », « Code invalide », « Accès interdit », réponse 403 de csrfx) | Fait en T03 (PR #1 d'open-go-base) |
 | Gestionnaire d'échec configurable dans csrfx | Page 403 traduite et au format du projet | Fait en T03 (PR #1 d'open-go-base) |
 | Clé de limitation configurable dans `ratelimit` (par jeton) | Évite le limiteur maison de `internal/ratelimit` | Fait en T04 (`WithKeyFunc`, PR #2 d'open-go-base) |
-| Codes de secours dans mfax | Récupération sans administrateur d'instance | Absent d'open-go-base au 31 octobre 2026 (constaté en T11) ; non nécessaire au lot 1 (réinitialisation par un administrateur, procédure de secours) : reporté à T18, confirmé le 1er novembre 2026 (codes à usage unique, hachés, régénérables) |
+| Codes de secours dans mfax | Récupération sans administrateur d'instance | Fait en T18 (PR #5 d'open-go-base, commit `a0f777f`, étiquette `v1.4.0` à pousser ; ADR 0048) |
 | Verrouillage par compte et réauthentification dans mfax ; jeton CSRF lié à la session ; nom du cookie de défi | Revue de sécurité du lot 1 (SEC-01, SEC-02, SEC-08) | Fait en T11 (PR #3 d'open-go-base, commit `9a7b91f`, étiquette `v1.3.0` à pousser) |
 | Composant `oidcx` | SSO réutilisable par les projets open-go | T25 |
