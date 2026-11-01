@@ -671,8 +671,8 @@ qu'aucune mesure ne la justifie (ADR 0015).
 - Accessibilité RGAA / WCAG 2.1 AA : HTML sémantique, lien d'évitement, focus visible,
   sévérité jamais portée par la seule couleur ni la seule forme (libellé écrit, au moins
   abrégé). Des tests Go analysent le HTML rendu ; un audit manuel clôt chaque lot
-  fonctionnel (grille du lot 1 : `docs/accessibilite/grille-rgaa-lot1.md`). Conventions
-  issues de cet audit (T11) :
+  fonctionnel (grilles : `docs/accessibilite/grille-rgaa-lot1.md`,
+  `docs/accessibilite/grille-rgaa-lot2.md`). Conventions issues de ces audits (T11, T18) :
   - **action irréversible** (révoquer, désactiver, retirer, réinitialiser, supprimer) :
     l'écran n'a qu'un lien vers l'URL de l'action ; un `GET` sur cette URL rend la page
     de confirmation commune (`confirm/action`, `identity.confirm` : objet nommé,
@@ -685,6 +685,15 @@ qu'aucune mesure ne la justifie (ADR 0015).
     navigations latérales : une rubrique ajoutée à une navigation y paraît d'elle-même ;
   - zone défilante d'un tableau : `role="group"` nommé et `tabindex="0"`, jamais une
     seconde région du même nom que son panneau.
+  - **une étiquette, un champ** : un champ révélé par un choix (justification d'un statut,
+    date d'échéance) vit hors de l'étiquette du bouton radio, dans l'élément de liste
+    (`li.choice-item`), jamais dans la `<label>` (`webtest` refuse une étiquette imbriquée
+    ou à plusieurs champs) ;
+  - **valeurs traduites** : une valeur d'énumération (statut, nature) paraît par son
+    libellé traduit partout, titres et paramètres de traduction compris, jamais par sa
+    valeur technique ; un décompte passe par `Tn` ;
+  - **titre d'une fiche rattachée à un projet** : il nomme le projet (et la référence)
+    quand le même objet peut exister dans plusieurs projets.
 
 ## 15. API REST
 

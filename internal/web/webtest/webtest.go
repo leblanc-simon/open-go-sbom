@@ -44,8 +44,10 @@ func AssertNoInlineCode(t testing.TB, page []byte) {
 // (aria-hidden) ou nommés (role="img" et un nom : aria-label, aria-labelledby ou
 // <title>), lien d'évitement en premier élément focalisable, vers une cible qui existe,
 // aide de champ (aria-describedby) visible de tous et pas seulement des lecteurs d'écran
-// (RGAA 11.10), et nom de langue d'un choix de langue (<select name="language">)
-// marqué de sa langue (RGAA 8.7 : « English » sur une page française).
+// (RGAA 11.10), nom de langue d'un choix de langue (<select name="language">)
+// marqué de sa langue (RGAA 8.7 : « English » sur une page française), et étiquette
+// qui ne contient ni autre étiquette ni second champ (RGAA 8.2 et 11.1 : le nom du
+// premier champ engloberait l'étiquette et l'aide du second).
 func CheckAccessibility(page []byte) []string {
 	doc, err := html.Parse(bytes.NewReader(page))
 	if err != nil {
@@ -124,6 +126,11 @@ func CheckAccessibility(page []byte) []string {
 				add("%s", p)
 			}
 			return
+		}
+		if n.DataAtom == atom.Label {
+			if p := checkLabel(n); p != "" {
+				add("%s", p)
+			}
 		}
 		switch n.DataAtom {
 		case atom.Img:
@@ -232,6 +239,33 @@ func checkSVG(n *html.Node) string {
 		}
 	}
 	return "<svg role=img> sans nom accessible"
+}
+
+// checkLabel refuse une <label> qui contient une autre <label> ou plus d'un champ.
+func checkLabel(label *html.Node) string {
+	var labels, fields int
+	walk(label, func(n *html.Node) {
+		if n == label || n.Type != html.ElementNode {
+			return
+		}
+		switch n.DataAtom {
+		case atom.Label:
+			labels++
+		case atom.Select, atom.Textarea:
+			fields++
+		case atom.Input:
+			if !strings.EqualFold(attr(n, "type"), "hidden") {
+				fields++
+			}
+		}
+	})
+	switch {
+	case labels > 0:
+		return "<label> imbriquée dans une autre <label>"
+	case fields > 1:
+		return fmt.Sprintf("<label> qui contient %d champs : un seul attendu", fields)
+	}
+	return ""
 }
 
 func walk(n *html.Node, fn func(*html.Node)) {

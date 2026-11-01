@@ -162,7 +162,8 @@ func (id *identity) renderFinding(w http.ResponseWriter, r *http.Request, status
 	canOrg := acc.Can(tenant.PermTriageOrg, uuid.Nil)
 	projectURL := base + "/projects/" + p.Slug
 	view := &triageView{
-		Page: render.Page{TitleKey: "triage.title", TitleArgs: map[string]any{"ID": row.VulnID, "Component": row.ComponentName},
+		Page: render.Page{TitleKey: "triage.title", TitleArgs: map[string]any{"ID": row.VulnID, "Component": row.ComponentName,
+			"Project": p.Name, "Ref": row.RefName},
 			Nav: orgNav(acc, "projects")},
 		Base: base, Project: id.projectRow(p, id.Agents.Now()), Tabs: projectTabs(acc, p, "findings"),
 		Finding: id.findingRow(base, row), PURL: row.ComponentPURL, Effective: triageBadge(row.TriageStatus),
@@ -370,7 +371,9 @@ func (id *identity) decisionFromPath(w http.ResponseWriter, r *http.Request, pro
 	return d, true
 }
 
-func decisionArgs(d triage.Decision) map[string]any {
+// Le statut paraît par son libellé traduit, jamais par sa valeur VEX (« not_affected »
+// dans une page française : audit RGAA du lot 2).
+func (id *identity) decisionArgs(r *http.Request, d triage.Decision) map[string]any {
 	component := d.PURL
 	if component == "" {
 		component = d.PURLBase
@@ -378,7 +381,7 @@ func decisionArgs(d triage.Decision) map[string]any {
 			component += " " + d.Vers
 		}
 	}
-	return map[string]any{"ID": d.VulnID, "Component": component, "Status": d.Status}
+	return map[string]any{"ID": d.VulnID, "Component": component, "Status": id.localizer(r).T(triageBadge(d.Status).LabelKey)}
 }
 
 // confirmWithdrawProjectDecision : retrait d'une décision du projet.
@@ -393,7 +396,7 @@ func (id *identity) confirmWithdrawProjectDecision(w http.ResponseWriter, r *htt
 	}
 	acc := access(r)
 	id.confirm(w, r, confirmation{nav: orgNav(acc, "projects"), heading: "confirm.triage_withdraw_heading",
-		text: "confirm.triage_withdraw_project_text", submit: "confirm.triage_withdraw_submit", args: decisionArgs(d),
+		text: "confirm.triage_withdraw_project_text", submit: "confirm.triage_withdraw_submit", args: id.decisionArgs(r, d),
 		cancel: orgBase(acc) + "/projects/" + p.Slug + "/findings"})
 }
 
@@ -427,7 +430,7 @@ func (id *identity) confirmWithdrawOrgDecision(w http.ResponseWriter, r *http.Re
 	}
 	acc := access(r)
 	id.confirm(w, r, confirmation{nav: orgNav(acc, "triage"), heading: "confirm.triage_withdraw_heading",
-		text: "confirm.triage_withdraw_org_text", submit: "confirm.triage_withdraw_submit", args: decisionArgs(d),
+		text: "confirm.triage_withdraw_org_text", submit: "confirm.triage_withdraw_submit", args: id.decisionArgs(r, d),
 		cancel: orgBase(acc) + "/triage"})
 }
 

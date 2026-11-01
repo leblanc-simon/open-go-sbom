@@ -115,7 +115,7 @@
   <h3 class="subsection-title" id="{{.ID}}">{{T .TitleKey}} <span class="muted">{{.Total}}</span></h3>
   {{- if .Rows}}
   <div class="table-wrap" role="group" aria-labelledby="{{.ID}}" tabindex="0">
-    <table class="data-table">
+    <table class="data-table" aria-labelledby="{{.ID}}">
       <thead>
         <tr>
           <th scope="col">{{T "findings.col_vulnerability"}}</th>

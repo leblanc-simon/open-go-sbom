@@ -349,7 +349,7 @@ org:
 
 dashboard:
   alerts_title: "Alertes"
-  alerts_meta: "{{.Open}} ouvertes · {{.Blocking}} bloquantes"
+  alerts_meta: "Ouvertes : {{.Open}} · bloquantes : {{.Blocking}}"
   alerts_caption: "Violations de politiques les plus récentes"
   alerts_none: "Aucune violation ouverte."
   see_violations: "Toutes les violations"
@@ -1778,7 +1778,7 @@ container_engine:
   docker: Docker
   podman: Podman
 triage:
-  title: "{{.ID}} sur {{.Component}}"
+  title: "{{.ID}} sur {{.Component}} — {{.Project}} ({{.Ref}})"
   summary: "Résumé du constat"
   risk: "Risque"
   effective: "Statut de triage"
@@ -1792,6 +1792,8 @@ triage:
   fixed_in: "Version corrigée"
   first_seen: "Premier constat"
   state: "État"
+  state_open: "Ouvert"
+  state_resolved: "Résolu"
   vulnerability: "Vulnérabilité"
   vulnerability_link: "Fiche de {{.ID}}"
   form_title: "Trier le constat"
@@ -1836,6 +1838,7 @@ triage:
   history_justification: "Justification : {{.Justification}} ({{.Vocabulary}})"
   history_until: "Jusqu'au {{.Date}}"
   withdraw: "Retirer"
+  withdraw_object: "la décision"
 
 vex_justification:
   component_not_present: "Composant absent"

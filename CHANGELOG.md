@@ -107,6 +107,15 @@ appliquées automatiquement, sans retour arrière.
 - SEC-09 corrigé : l'ajout d'un membre passe par une invitation à accepter, avec une
   réponse identique que le compte existe ou non.
 
+### Accessibilité
+
+- Audit RGAA des écrans du lot 2 : 100 % des critères applicables conformes après
+  corrections ([grille](https://github.com/leblanc-simon/lotor/blob/main/docs/accessibilite/grille-rgaa-lot2.md),
+  T18). Panneau de triage : champs complémentaires hors de l'étiquette du statut ; fiche
+  composant lisible à 320 px avec une version longue ; titre des fiches de constat avec
+  le projet et la référence ; statut traduit sur la confirmation du retrait d'une
+  décision ; décomptes accordés (équipe, alertes du tableau de bord).
+
 ## [0.1.0] - 2026-11-01
 
 Préversion du **lot 1 · MVP inventaire** : un parc de serveurs et de dépôts inventorié,

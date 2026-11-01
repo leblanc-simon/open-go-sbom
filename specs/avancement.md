@@ -19,6 +19,7 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 | T12 | #25 | Terminé (PR à fusionner), mesure avec un vrai modèle à faire par l'utilisateur | SDK officiel d'Anthropic construit sans environnement (ADR 0042) ; réglage par dépôt, permission `ai.external`, `ai.forbid_external` ramène à « local » (ADR 0043) ; règles du vérificateur au-delà de la fiche (documentation, manifestes, marqueurs d'injection, purl dans l'extrait) ; statut `carried` et commits intermédiaires sans modèle ; confinement sans processus fils (ADR 0044) ; exclusions intégrées ; budgets par défaut ; prompt système en anglais — tous **[à relire]** |
 | T13 | #24 | Terminé (PR à fusionner) | Client HTTP sur socket Unix plutôt que le client moby (écart au § 5) ; scan de l'image exportée (`docker save`) ; catalogueurs hors ligne aussi pour l'hôte ; équipe imposée par clé étrangère en cascade ; signalement dédié qui vaut signal de vie ; archivage à la main qui tient ; conteneurs écartés des listes et de la recherche, comptés au tableau de bord ; agrégat par vulnérabilités distinctes — tous **[à relire]** |
 | T18 (1/n, compléments) | #27 | Fait (PR à fusionner) ; open-go-base PR #5 fusionnée (`a0f777f`), étiquette `v1.4.0` à pousser | Codes de secours : 16 caractères de Crockford (80 bits), SHA-256 lié au compte, 10 par défaut, régénération après un code TOTP, reconfiguration de l'application par le titulaire (au-delà de la fiche), pas de bannière pour les comptes sans codes ; recherche : statut de triage de tous les constats, filtre `triage` refusé hors vulnérabilité, recherche par composant sans constats masqués ; purge des conteneurs archivés pour absence depuis 180 jours, jamais archivés à la main ni triés ; boutons de revue des détections IA de T12 non livrés — tous **[à relire]** |
+| T18 (3/n, accessibilité) | à venir | Fait (PR à fusionner) | Audit RGAA des écrans du lot 2 : 93,1 % puis 100 %, 4 NC mineures corrigées ; régénération des codes et changement d'application sans page de confirmation (code saisi = confirmation, 11.12) ; champs du triage révélés par `:has()` sans repli ; défaut d'un écran du lot 1 (fiche composant) corrigé ici ; statuts de triage cliquables conformes à 10.6 sans soulignement permanent — tous **[à relire]** |
 
 ### Décisions à relire, par thème
 
@@ -187,6 +188,20 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
   ([ADR 0049](../docs/adr/0049-purge-des-conteneurs-archives.md)).
 - Boutons « Confirmer la détection » / « Signaler une erreur » de T12 non livrés (fonction
   nouvelle, hors T18) ([T18](lots/T18-recette-lot-2.md#écarts)).
+
+#### Audit RGAA du lot 2 (T18, partie 3)
+
+- Régénération des codes de secours et changement d'application d'authentification sans
+  page de confirmation : le code exigé tient lieu de confirmation (RGAA 11.12)
+  ([grille, § 5](../docs/accessibilite/grille-rgaa-lot2.md#5-actions-irréversibles),
+  [T18](lots/T18-recette-lot-2.md#partie-3--audit-rgaa)).
+- Champs complémentaires du triage révélés par `:has()`, sans JavaScript ni repli
+  ([T18](lots/T18-recette-lot-2.md#partie-3--audit-rgaa)).
+- Débordement à 320 px de la fiche composant (écran du lot 1) corrigé dans l'audit du
+  lot 2 ; redistribution repassée sur toutes les pages à chaque audit
+  ([T18](lots/T18-recette-lot-2.md#partie-3--audit-rgaa)).
+- Statuts de triage cliquables (pastilles) jugés conformes à 10.6 sans soulignement
+  permanent ([grille, § 3](../docs/accessibilite/grille-rgaa-lot2.md#3-grille-des-écrans-du-lot-2-106-critères)).
 
 #### Écarts
 

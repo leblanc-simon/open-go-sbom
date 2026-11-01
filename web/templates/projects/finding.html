@@ -42,7 +42,7 @@
         <dt>{{T "triage.first_seen"}}</dt>
         <dd>{{template "stamp" $f.FirstSeen}}</dd>
         <dt>{{T "triage.state"}}</dt>
-        <dd>{{if eq $f.Status "resolved"}}{{T "findings.state_resolved"}} · {{T (print "finding_resolution." $f.Resolution)}}{{else}}{{T "findings.state_open"}}{{end}}</dd>
+        <dd>{{if eq $f.Status "resolved"}}{{T "triage.state_resolved"}} · {{T (print "finding_resolution." $f.Resolution)}}{{else}}{{T "triage.state_open"}}{{end}}</dd>
         <dt>{{T "triage.vulnerability"}}</dt>
         <dd><a href="{{.VulnHref}}">{{T "triage.vulnerability_link" "ID" $f.VulnID}}</a></dd>
       </dl>
@@ -56,10 +56,10 @@
           <legend class="triage__legend">{{T "triage.status"}}</legend>
           <ul class="choice-list">
             {{- range .Statuses}}
-            <li><label class="choice"><input type="radio" name="status" value="{{.Value}}"{{if .Checked}} checked{{end}}{{if eq $.Error.Field "status"}} aria-invalid="true"{{end}}><span class="choice__label">{{template "triage_status" .Badge}}{{if .Current}}<span class="muted choice__note">{{T "triage.current_status"}}</span>{{end}}</span><span class="choice__desc">{{T .DescKey}}</span>
+            <li class="choice-item"><label class="choice"><input type="radio" name="status" value="{{.Value}}"{{if .Checked}} checked{{end}}{{if eq $.Error.Field "status"}} aria-invalid="true"{{end}}><span class="choice__label">{{template "triage_status" .Badge}}{{if .Current}}<span class="muted choice__note">{{T "triage.current_status"}}</span>{{end}}</span><span class="choice__desc">{{T .DescKey}}</span></label>
               {{- if eq .Value "not_affected"}}
-              <span class="choice__extra">
-                <span class="field">
+              <div class="choice__extra">
+                <div class="field">
                   <label class="field__label" for="triage-justification">{{T "triage.justification"}}</label>
                   <select class="select" id="triage-justification" name="justification"{{if eq $.Error.Field "justification"}} aria-invalid="true"{{end}}>
                     <option value="">{{T "triage.justification_choose"}}</option>
@@ -70,18 +70,18 @@
                       {{- range $.JustOVX}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>{{end}}
                     </optgroup>
                   </select>
-                </span>
-              </span>
+                </div>
+              </div>
               {{- else if eq .Value "risk_accepted"}}
-              <span class="choice__extra">
-                <span class="field">
+              <div class="choice__extra">
+                <div class="field">
                   <label class="field__label" for="triage-expires">{{T "triage.until"}}</label>
                   <input class="input" id="triage-expires" type="date" name="expires_on" value="{{$.Form.ExpiresOn}}" min="{{$.MinExpiry}}" max="{{$.MaxExpiry}}" aria-describedby="triage-expires-hint"{{if eq $.Error.Field "expires_on"}} aria-invalid="true"{{end}}>
-                  <span class="field__hint" id="triage-expires-hint">{{T "triage.until_hint"}}</span>
-                </span>
-              </span>
+                  <p class="field__hint" id="triage-expires-hint">{{T "triage.until_hint"}}</p>
+                </div>
+              </div>
               {{- end}}
-            </label></li>
+            </li>
             {{- end}}
           </ul>
         </fieldset>
@@ -89,17 +89,17 @@
           <legend class="triage__legend">{{T "triage.scope"}}</legend>
           <ul class="choice-list">
             {{- range .Scopes}}
-            <li><label class="choice"><input type="radio" name="scope" value="{{.Value}}"{{if .Checked}} checked{{end}}><span class="choice__label">{{T .LabelKey .Args}}</span><span class="choice__desc">{{T .DescKey .Args}}</span>
+            <li class="choice-item"><label class="choice"><input type="radio" name="scope" value="{{.Value}}"{{if .Checked}} checked{{end}}><span class="choice__label">{{T .LabelKey .Args}}</span><span class="choice__desc">{{T .DescKey .Args}}</span></label>
               {{- if and (eq .Value "org") $.ShowVers}}
-              <span class="choice__extra">
-                <span class="field">
+              <div class="choice__extra">
+                <div class="field">
                   <label class="field__label" for="triage-vers">{{T "triage.vers"}}</label>
                   <input class="input input--mono" id="triage-vers" name="vers" value="{{$.Form.Vers}}" maxlength="1024" aria-describedby="triage-vers-hint"{{if eq $.Error.Field "vers"}} aria-invalid="true"{{end}}>
-                  <span class="field__hint" id="triage-vers-hint">{{T "triage.vers_hint"}}</span>
-                </span>
-              </span>
+                  <p class="field__hint" id="triage-vers-hint">{{T "triage.vers_hint"}}</p>
+                </div>
+              </div>
               {{- end}}
-            </label></li>
+            </li>
             {{- end}}
           </ul>
         </fieldset>
@@ -137,7 +137,7 @@
             {{- if .Justification}}<p class="timeline__meta">{{T "triage.history_justification" "Justification" (T (print "vex_justification." .Justification)) "Vocabulary" (T .JustVocabKey)}}</p>{{end}}
             {{- with .ExpiresOn}}<p class="timeline__meta">{{T "triage.history_until" "Date" .Display}}</p>{{end}}
             {{- with .Comment}}<p class="timeline__comment">{{.}}</p>{{end}}
-            {{- with .WithdrawHref}}<p><a class="btn btn--sm" href="{{.}}">{{T "triage.withdraw"}}</a></p>{{end}}
+            {{- if .WithdrawHref}}<p><a class="btn btn--sm" href="{{.WithdrawHref}}">{{T "triage.withdraw"}}<span class="visually-hidden"> {{T "triage.withdraw_object"}}{{with .Badge}} « {{T .LabelKey}} »{{end}}</span></a></p>{{end}}
           </div>
         </li>
         {{- end}}

@@ -117,6 +117,10 @@ func TestTeamScreens(t *testing.T) {
 			webtest.AssertNoInlineCode(t, []byte(pg.body))
 		}
 	}
+	// Décomptes accordés au nombre (audit RGAA du lot 2 : « 1 projets actifs »).
+	if body := unescape(ad.get(teamPath).body); !strings.Contains(body, "2 membres") || !strings.Contains(body, "1 projet actif<") {
+		t.Error("fiche d'équipe : décomptes mal accordés")
+	}
 	// Une équipe qui a encore un projet ne se supprime pas ; vide, elle se supprime.
 	if p := ad.post(teamPath+"/delete", nil); p.status != http.StatusUnprocessableEntity ||
 		!strings.Contains(unescape(p.body), "Cette équipe a encore des projets") {

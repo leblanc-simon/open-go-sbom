@@ -9,8 +9,8 @@
     </nav>
     <h1 class="page-head__title">{{.Team.Name}}</h1>
     <p class="page-head__meta">
-      <span>{{T "team.members_count" "Count" .Team.Members}}</span>
-      <span><a href="{{.ProjectsURL}}">{{T "team.projects_count" "Count" .Team.Projects}}</a></span>
+      <span>{{Tn "team.members_count" .Team.Members}}</span>
+      <span><a href="{{.ProjectsURL}}">{{Tn "team.projects_count" .Team.Projects}}</a></span>
     </p>
   </div>
   {{template "flash" .FlashKey}}

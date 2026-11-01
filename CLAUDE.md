@@ -140,8 +140,11 @@ T18 en cours (partie 1, compléments, faite) : codes de secours du second facteu
 (open-go-base v1.4.0, `mfax.WithRecoveryCodes` ; page `/account/security`, reconfiguration
 de l'application par le titulaire `account.ReconfigureTOTP` ; ADR 0048), purge des
 conteneurs archivés pour absence par la rétention (`containers.purge_after`, 180 jours ;
-ADR 0049), filtre `team` et statut de triage dans la recherche (ADR 0050). Restent la
-revue de sécurité, l'audit RGAA, les mesures, l'évaluation de l'IA, la recette et `v0.2.0`.
+ADR 0049), filtre `team` et statut de triage dans la recherche (ADR 0050). Partie 3
+faite : audit RGAA des écrans du lot 2 (grille
+[`docs/accessibilite/grille-rgaa-lot2.md`](docs/accessibilite/grille-rgaa-lot2.md), 100 %
+après corrections ; conventions ajoutées au § 14 de l'architecture). Restent la revue de
+sécurité, les mesures, l'évaluation de l'IA, la recette et `v0.2.0`.
 
 ## Règles de travail
 
