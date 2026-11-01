@@ -809,7 +809,11 @@ qu'aucune mesure ne la justifie (ADR 0015).
   précédents lus par `GET /api/v1/agent/refs/{id}/ai-components` et revérifiés), complète
   à `ai.full_interval` ; prompt système versionné et embarqué ; analyse dans le processus
   de l'agent, confinée par la surface d'outils et `os.Root` (ADR 0044). Qualité mesurée
-  sur le corpus annoté `testdata/ai-corpus` (`make eval-ai`).
+  sur le corpus annoté `testdata/ai-corpus` et sur l'échantillon pilote annoté
+  `testdata/ai-pilot` (`make eval-ai`) ; chaque composant accepté est revérifié hors du
+  vérificateur (`checkProof`, en CI sur le corpus). Un composant IA est toujours de type
+  CycloneDX `library`, image comprise : le décodeur du serveur ignore le type
+  `container` (T18).
 
 ## 18. Internationalisation
 
