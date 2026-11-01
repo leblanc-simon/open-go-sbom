@@ -848,3 +848,29 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
 - **Valeurs d'attribut en dur** (piège de T06 retrouvé) : `value="save"` d'un bouton est
   refusé par le test de `render`. Règle : la valeur vient de la vue (constantes Go).
 
+## Recette du lot 2, compléments (T18, partie 1)
+
+- **Option ajoutée à open-go-base qui change une réponse existante** : avec les codes de
+  secours, `EnablePOST` répond 200 (codes montrés) au lieu de rediriger ; deux tests
+  d'intégration de lotor attendaient la redirection. Règle : après une montée
+  d'open-go-base, chercher les tests qui frappent les routes de mfax et d'authx
+  (`pathTOTPOn`, `pathVerify`) et lire la note de version.
+- **Nouvelle interface de rendu dans une bibliothèque partagée** : ajouter une méthode à
+  `mfax.Renderer` aurait cassé tous les projets à la compilation ; une interface
+  facultative (`RecoveryRenderer`), vérifiée à l'exécution quand l'option est active,
+  garde la compatibilité. Règle : une option nouvelle n'impose rien à qui ne l'active pas.
+- **Validation de l'API avant celle du domaine** : un identifiant d'équipe illisible
+  (`team=moi`) est refusé par le contrat OpenAPI (`error.invalid_request`) avant d'atteindre
+  `search.ParseRequest` (`error.search.filter_invalid`), alors que l'écran donne le second.
+  Règle : un test d'erreur de l'API attend la clé de la couche qui refuse en premier.
+- **Nom de schéma OpenAPI déjà pris par un paramètre** : `SearchTeam` (schéma) entrait en
+  collision avec le paramètre `SearchTeam` dans le code généré. Règle : nommer les schémas
+  d'objet partagés sans le préfixe des paramètres (`TeamRef`).
+- **Suppression d'un projet** : aucun chemin ne supprimait encore de projet ; références,
+  instantanés, réceptions, constats et courant n'ont pas de cascade, et `triage_decisions`
+  est en ajout seul (le rôle d'exécution ne peut pas l'effacer). Règle : supprimer dans
+  l'ordre courant → analyses → constats → réceptions → instantanés → projet, et écarter un
+  projet qui porte une décision de triage.
+- **Ordre des étapes de la rétention** : une réception hors fenêtre est supprimée par
+  l'étape commune avant la purge des conteneurs ; un test qui veut vérifier que la purge
+  supprime une réception doit en créer une dans la fenêtre.

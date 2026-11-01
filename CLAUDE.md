@@ -136,6 +136,12 @@ Mattermost, Slack, secrets chiffrés, envois uniques par canal × violation et r
 `internal/delivery` : HTTP gardé contre la SSRF, SMTP ; ADR 0046), statut de commit de
 l'agent dépôt (`status.*`, désactivé par défaut ; ADR 0047), écrans des politiques, des
 violations et des canaux, section « Alertes » du tableau de bord ; `docs/notifications.md`.
+T18 en cours (partie 1, compléments, faite) : codes de secours du second facteur
+(open-go-base v1.4.0, `mfax.WithRecoveryCodes` ; page `/account/security`, reconfiguration
+de l'application par le titulaire `account.ReconfigureTOTP` ; ADR 0048), purge des
+conteneurs archivés pour absence par la rétention (`containers.purge_after`, 180 jours ;
+ADR 0049), filtre `team` et statut de triage dans la recherche (ADR 0050). Restent la
+revue de sécurité, l'audit RGAA, les mesures, l'évaluation de l'IA, la recette et `v0.2.0`.
 
 ## Règles de travail
 

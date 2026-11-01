@@ -18,6 +18,7 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 | T15 | #26 | Terminé (PR à fusionner) | `cel.dev/cel-go` v0.32.0 (nouveau chemin de `github.com/google/cel-go`) ; contexte typé à deux sujets, `finding.actionable`, coût borné ; « correctif depuis » = première vue par lotor ; violations par couple règle × sujet ; verdict sur l'état courant de la référence ; modèle AGPL indisponible jusqu'à T20 ; objectifs de délai exprimés par des règles ; règles et canaux aux administrateurs ; envois uniques par canal × violation, 30 tentatives puis relance quotidienne ; clé HMAC fournie, garde SSRF sans mandataire ; statut de commit synchrone, désactivé par défaut, jeton GitHub séparé ; rotation des secrets des canaux — tous **[à relire]** |
 | T12 | #25 | Terminé (PR à fusionner), mesure avec un vrai modèle à faire par l'utilisateur | SDK officiel d'Anthropic construit sans environnement (ADR 0042) ; réglage par dépôt, permission `ai.external`, `ai.forbid_external` ramène à « local » (ADR 0043) ; règles du vérificateur au-delà de la fiche (documentation, manifestes, marqueurs d'injection, purl dans l'extrait) ; statut `carried` et commits intermédiaires sans modèle ; confinement sans processus fils (ADR 0044) ; exclusions intégrées ; budgets par défaut ; prompt système en anglais — tous **[à relire]** |
 | T13 | #24 | Terminé (PR à fusionner) | Client HTTP sur socket Unix plutôt que le client moby (écart au § 5) ; scan de l'image exportée (`docker save`) ; catalogueurs hors ligne aussi pour l'hôte ; équipe imposée par clé étrangère en cascade ; signalement dédié qui vaut signal de vie ; archivage à la main qui tient ; conteneurs écartés des listes et de la recherche, comptés au tableau de bord ; agrégat par vulnérabilités distinctes — tous **[à relire]** |
+| T18 (1/n, compléments) | à ouvrir | Fait (PR à fusionner) ; open-go-base PR #5 fusionnée (`a0f777f`), étiquette `v1.4.0` à pousser | Codes de secours : 16 caractères de Crockford (80 bits), SHA-256 lié au compte, 10 par défaut, régénération après un code TOTP, reconfiguration de l'application par le titulaire (au-delà de la fiche), pas de bannière pour les comptes sans codes ; recherche : statut de triage de tous les constats, filtre `triage` refusé hors vulnérabilité, recherche par composant sans constats masqués ; purge des conteneurs archivés pour absence depuis 180 jours, jamais archivés à la main ni triés ; boutons de revue des détections IA de T12 non livrés — tous **[à relire]** |
 
 ### Décisions à relire, par thème
 
@@ -165,6 +166,28 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
   `canceled` sur GitLab pour une ingestion refusée, désactivé par défaut, jeton GitHub
   séparé limité à `statuses: write` ([ADR 0047](../docs/adr/0047-statut-de-commit.md)).
 
+#### Recette du lot 2, compléments (T18, partie 1)
+
+- Codes de secours dans mfax (open-go-base v1.4.0) : codes de 16 caractères de Crockford
+  (80 bits), empreinte SHA-256 liée au compte, 10 par défaut (`mfa.recovery_codes`),
+  `RecoveryRenderer` facultative, codes faux dans le verrouillage par compte
+  ([ADR 0048](../docs/adr/0048-codes-de-secours.md)).
+- Régénération après un code TOTP, codes montrés une seule fois ; reconfiguration de
+  l'application par le titulaire (code TOTP ou code de secours, sessions fermées, nouvel
+  enrôlement ; mot de passe et jetons gardés ; sans page de confirmation) ; comptes enrôlés
+  avant la mise à jour invités depuis la page du second facteur
+  ([ADR 0048](../docs/adr/0048-codes-de-secours.md)).
+- Recherche : filtre `team`, statut de triage de tous les constats d'une recherche par
+  vulnérabilité, filtre `triage` refusé ailleurs, recherche par composant sans les
+  constats « non affecté » ni « faux positif », colonnes ajoutées en fin d'export
+  ([ADR 0050](../docs/adr/0050-equipe-et-triage-dans-la-recherche.md)).
+- Purge des conteneurs archivés pour absence depuis `containers.purge_after` (180 jours,
+  au moins `retention.days`) par la rétention nocturne, jamais archivés à la main ni
+  porteurs d'une décision de triage, audit `project.purged`
+  ([ADR 0049](../docs/adr/0049-purge-des-conteneurs-archives.md)).
+- Boutons « Confirmer la détection » / « Signaler une erreur » de T12 non livrés (fonction
+  nouvelle, hors T18) ([T18](lots/T18-recette-lot-2.md#écarts)).
+
 #### Écarts
 
 - T15 : statut de commit vérifié contre des forges simulées seulement ; canaux Matrix,
@@ -192,6 +215,16 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 
 ### Actions pour l'utilisateur
 
+0. **Pousser l'étiquette d'open-go-base `v1.4.0`** (créée en local, refus HTTP 403 du
+   mandataire) : `git -C ../open-go-base push origin v1.4.0` (commit `a0f777f`, PR #5 :
+   codes de secours de mfax ; compatible). Puis, dans lotor, sur une branche :
+   `go get leblanc.io/open-go-base@v1.4.0 && go mod tidy` (même code que la pseudo-version
+   `v1.3.1-0.20261101100848-a0f777f827c9`), `make ci`, PR.
+0. Après la publication d'une version contenant T18 (partie 1) : le premier passage
+   nocturne de la rétention supprime les conteneurs archivés pour absence depuis plus de
+   180 jours, avec leur historique ; régler `containers.purge_after` (`0` : jamais) avant
+   la mise à jour si une autre durée est voulue. Les comptes existants n'ont pas de codes
+   de secours : les inviter à en générer (**Mon compte › Second facteur**).
 1. Relire les décisions **[à relire]** ci-dessus (ADR 0034, 0040, 0041, matrice
    [`docs/security/permissions.md`](../docs/security/permissions.md)).
 2. Après la publication d'une version contenant T13 : essayer l'inventaire des conteneurs
