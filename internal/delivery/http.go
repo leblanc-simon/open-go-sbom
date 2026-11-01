@@ -51,15 +51,57 @@ var _ notify.Sender = (*Sender)(nil)
 // errForbidden : adresse refusée par la garde.
 var errForbidden = errors.New("delivery: adresse refusée")
 
-// cgnat est l'espace d'adresses partagé (RFC 6598), non couvert par netip.IsPrivate.
-var cgnat = netip.MustParsePrefix("100.64.0.0/10")
+// reserved liste les plages refusées que netip ne classe pas : espace partagé (RFC 6598),
+// affectations du protocole (192.0.0.0/24), bancs d'essai (198.18.0.0/15), documentation,
+// classe E et diffusion (240.0.0.0/4), NAT64 d'usage local (RFC 8215), IPv6 « site-local »
+// obsolète, Teredo, documentation IPv6 et préfixe de rejet.
+var reserved = []netip.Prefix{
+	netip.MustParsePrefix("100.64.0.0/10"),
+	netip.MustParsePrefix("192.0.0.0/24"),
+	netip.MustParsePrefix("192.0.2.0/24"),
+	netip.MustParsePrefix("198.18.0.0/15"),
+	netip.MustParsePrefix("198.51.100.0/24"),
+	netip.MustParsePrefix("203.0.113.0/24"),
+	netip.MustParsePrefix("240.0.0.0/4"),
+	netip.MustParsePrefix("64:ff9b:1::/48"),
+	netip.MustParsePrefix("fec0::/10"),
+	netip.MustParsePrefix("2001::/32"),
+	netip.MustParsePrefix("2001:db8::/32"),
+	netip.MustParsePrefix("100::/64"),
+}
 
-// Forbidden indique une adresse que la garde refuse sans AllowPrivate.
+// Préfixes IPv6 qui portent une adresse IPv4 traduite : NAT64 bien connu (RFC 6052,
+// 32 derniers bits), 6to4 (RFC 3056, bits 16 à 48), IPv4-compatible obsolète (::/96).
+var (
+	nat64  = netip.MustParsePrefix("64:ff9b::/96")
+	sixto4 = netip.MustParsePrefix("2002::/16")
+	compat = netip.MustParsePrefix("::/96")
+)
+
+// Forbidden indique une adresse que la garde refuse sans AllowPrivate. Une adresse IPv6
+// qui porte une adresse IPv4 traduite (NAT64, 6to4) est jugée sur cette adresse : sur un
+// réseau avec passerelle NAT64, 64:ff9b::a9fe:a9fe atteindrait 169.254.169.254 (SEC2-08).
 func Forbidden(a netip.Addr) bool {
 	a = a.Unmap()
-	return a.IsLoopback() || a.IsPrivate() || a.IsLinkLocalUnicast() || a.IsLinkLocalMulticast() ||
-		a.IsInterfaceLocalMulticast() || a.IsMulticast() || a.IsUnspecified() || cgnat.Contains(a) ||
-		(a.Is4() && a.As4()[0] == 0)
+	if a.IsLoopback() || a.IsPrivate() || a.IsLinkLocalUnicast() || a.IsLinkLocalMulticast() ||
+		a.IsInterfaceLocalMulticast() || a.IsMulticast() || a.IsUnspecified() || (a.Is4() && a.As4()[0] == 0) {
+		return true
+	}
+	for _, p := range reserved {
+		if p.Contains(a) {
+			return true
+		}
+	}
+	if a.Is6() {
+		b := a.As16()
+		switch {
+		case nat64.Contains(a), compat.Contains(a):
+			return Forbidden(netip.AddrFrom4([4]byte{b[12], b[13], b[14], b[15]}))
+		case sixto4.Contains(a):
+			return Forbidden(netip.AddrFrom4([4]byte{b[2], b[3], b[4], b[5]}))
+		}
+	}
+	return false
 }
 
 // New renvoie un Sender.

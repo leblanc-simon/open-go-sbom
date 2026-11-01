@@ -876,8 +876,12 @@ Configuration (`config.example.yaml`) :
 - `notify.timeout` (30 s) : durée maximale d'un envoi.
 - `notify.allow_private_networks` (`false`) : les canaux saisis par les administrateurs
   d'organisation ne peuvent joindre **aucune adresse de bouclage, privée, de lien local,
-  partagée ni de multidiffusion** (protection contre les requêtes vers le réseau interne,
-  SSRF) ; la vérification se fait à la connexion, après la résolution DNS. Ne le passer à
+  partagée ni de multidiffusion**, ni les plages réservées (bancs d'essai, documentation,
+  classe E), ni une adresse IPv6 qui porte une telle adresse IPv4 (NAT64 `64:ff9b::/96`,
+  6to4 `2002::/16`) (protection contre les requêtes vers le réseau interne, SSRF) ; la
+  vérification se fait à la connexion, après la résolution DNS. Les ports ne sont pas
+  restreints : un administrateur d'organisation peut, par le test d'un canal, savoir si
+  un port d'un hôte public répond depuis le serveur (risque accepté, SEC2-08). Ne le passer à
   `true` que si toutes les organisations de l'instance sont de confiance (relais
   interne). Les envois HTTP ne passent par **aucun mandataire** (`HTTPS_PROXY` est ignoré) :
   un serveur qui ne sort que par un proxy ne joint que les canaux e-mail.
