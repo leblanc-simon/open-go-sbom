@@ -254,7 +254,9 @@ modèle que l'exploitant de l'agent fait tourner chez lui), ou *Fournisseur exte
 autorisé* (le code lu par l'analyse peut partir chez le fournisseur configuré sur l'agent,
 hors fichiers sensibles). Seul un administrateur de l'organisation peut autoriser un
 fournisseur externe, et l'instance peut l'interdire à tous ; chaque changement est inscrit
-au journal d'audit. Ce qui part exactement vers le modèle est décrit dans
+au journal d'audit. L'autorisation vaut pour un dépôt : si quelqu'un d'autre qu'un
+administrateur de l'organisation change l'URL du dépôt, le réglage revient à *IA
+désactivée*. Ce qui part exactement vers le modèle est décrit dans
 [`operations.md`](operations.md#enrichissement-ia).
 
 **Preuve.** Un composant IA n'entre dans l'inventaire que si l'agent a relu sa preuve dans

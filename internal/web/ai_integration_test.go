@@ -283,3 +283,69 @@ func TestProjectAISettings(t *testing.T) {
 		}
 	}
 }
+
+// TestForgeURLChangeRevokesExternalAI : SEC2-03. L'IA externe est autorisée pour un dépôt
+// par un administrateur d'organisation ; un administrateur d'équipe qui fait pointer le
+// projet vers un autre dépôt ramène le réglage à « désactivé » (journalisé), l'agent ne
+// reçoit donc jamais le nouveau dépôt en « externe ». L'administrateur d'organisation, qui
+// peut autoriser l'externe, le garde en changeant de dépôt.
+func TestForgeURLChangeRevokesExternalAI(t *testing.T) {
+	t.Parallel()
+	a := newApp(t)
+	ctx := context.Background()
+	admin := a.user("admin@example.org", false)
+	lead := a.user("lead@example.org", false)
+	o := a.org("org-a", admin)
+	a.addTeamMember(o, lead, tenant.TeamAdmin)
+	ag, tok, err := a.agents.CreateRepoAgent(ctx, audit.System, o.ID, nil, "forge", "initial", 90)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := a.projects.Create(ctx, audit.System, o.ID, a.inTeam(o.ID, project.Input{
+		Kind: project.KindRepo, Name: "App", ForgeURL: "https://forge.test/acme/app", Branches: []string{"main"},
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.projects.AssignAgent(ctx, audit.System, o.ID, p.Slug, &ag.ID); err != nil {
+		t.Fatal(err)
+	}
+	ab, lb := a.signIn(admin), a.signIn(lead)
+	settings := func(b *browser, forge string) {
+		t.Helper()
+		if r := b.post("/o/org-a/projects/"+p.Slug+"/settings", url.Values{"name": {"App"}, "forge_url": {forge}, "branches": {"main"}}); r.status != http.StatusSeeOther {
+			t.Fatalf("modification vers %s : %d", forge, r.status)
+		}
+	}
+	agentView := func() string { return a.api(http.MethodGet, "/api/v1/agent/projects", tok.Plaintext, nil).body }
+	if r := ab.post("/o/org-a/projects/"+p.Slug+"/ai", url.Values{"ai_mode": {"external"}}); r.status != http.StatusSeeOther {
+		t.Fatalf("externe par l'administrateur : %d", r.status)
+	}
+
+	// L'administrateur d'organisation change de dépôt : réglage gardé.
+	settings(ab, "https://forge.test/acme/app2")
+	if body := agentView(); !strings.Contains(body, `"ai_mode":"external"`) {
+		t.Fatalf("après le changement par l'administrateur : %s", body)
+	}
+	// Le chef d'équipe, sans changer de dépôt : réglage gardé.
+	settings(lb, "https://forge.test/acme/app2")
+	if body := agentView(); !strings.Contains(body, `"ai_mode":"external"`) {
+		t.Fatalf("modification sans changement de dépôt : %s", body)
+	}
+	// Le chef d'équipe change de dépôt : réglage ramené à « désactivé ».
+	settings(lb, "https://forge.test/acme/secret-payroll")
+	body := agentView()
+	if !strings.Contains(body, "secret-payroll") || strings.Contains(body, `"ai_mode":"external"`) || !strings.Contains(body, `"ai_mode":"disabled"`) {
+		t.Fatalf("après le changement de dépôt par le chef d'équipe : %s", body)
+	}
+	var reasons int
+	if err := a.tdb.App.InOrg(ctx, o.ID, func(tx *db.OrgTx) error {
+		return tx.QueryRowContext(ctx, `SELECT count(*) FROM audit_events WHERE action = $1 AND details->>'reason' = 'forge_url_changed'`,
+			string(audit.ProjectAIModeChanged)).Scan(&reasons)
+	}, db.ReadOnly()); err != nil {
+		t.Fatal(err)
+	}
+	if reasons != 1 {
+		t.Fatalf("journal du retrait de l'IA externe : %d", reasons)
+	}
+}

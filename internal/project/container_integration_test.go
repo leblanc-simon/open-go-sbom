@@ -201,7 +201,7 @@ func TestContainerListsAndTeam(t *testing.T) {
 		t.Errorf("conteneur visible de l'ancienne équipe : %v", err)
 	}
 	// Nom, description et étiquettes d'un conteneur se modifient ; sa référence reste.
-	if err := f.projects.Update(ctx, f.actor, o, states[0].Slug, project.Input{Name: "Boutique", Labels: project.Labels{"env": "prod"}}); err != nil {
+	if err := f.projects.Update(ctx, f.actor, o, states[0].Slug, project.Input{Name: "Boutique", Labels: project.Labels{"env": "prod"}}, false); err != nil {
 		t.Fatal(err)
 	}
 	if child, _ = f.projects.Get(ctx, o, tenant.AllTeams(), states[0].Slug); child.Name != "Boutique" || len(child.Refs) != 1 {

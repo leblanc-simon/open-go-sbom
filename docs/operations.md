@@ -1110,7 +1110,7 @@ ADR 0042 (fournisseurs), 0043 (réglages, politique d'envoi de code, vérificate
 | Niveau | Réglage | Effet |
 | --- | --- | --- |
 | Instance (serveur) | `ai.forbid_external` (`LOTOR_AI_FORBID_EXTERNAL`, faux par défaut) | Vrai : aucun dépôt ne peut être envoyé à un fournisseur externe ; un dépôt réglé « fournisseur externe » est traité comme « modèle local uniquement » |
-| Projet (interface) | **Paramètres du dépôt → Enrichissement IA** : IA désactivée (défaut), modèle local uniquement, fournisseur externe autorisé | « Fournisseur externe » est réservé aux administrateurs d'organisation ; les autres réglages aux administrateurs de l'équipe du projet ; chaque changement est journalisé (`project.ai_mode_changed`) |
+| Projet (interface) | **Paramètres du dépôt → Enrichissement IA** : IA désactivée (défaut), modèle local uniquement, fournisseur externe autorisé | « Fournisseur externe » est réservé aux administrateurs d'organisation ; les autres réglages aux administrateurs de l'équipe du projet ; chaque changement est journalisé (`project.ai_mode_changed`) ; changer l'URL de forge d'un dépôt « externe » sans ce droit ramène le réglage à « désactivé » (motif `forge_url_changed`, SEC2-03) |
 | Agent dépôt | `ai.local` (Ollama) et `ai.external` (Anthropic) | Sans modèle configuré, l'agent envoie le SBOM Syft seul, quel que soit le réglage des projets |
 
 Un dépôt réglé « IA désactivée » n'appelle jamais de modèle. « Modèle local uniquement »

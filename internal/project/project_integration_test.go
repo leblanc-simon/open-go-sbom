@@ -164,7 +164,7 @@ func TestUpdateKeepsRefHistory(t *testing.T) {
 
 	in := repo("API facturation", "main")
 	in.Tags, in.Labels = []string{"v2"}, project.Labels{"pci": ""}
-	if err := f.projects.Update(ctx, f.actor, o, p.Slug, in); err != nil {
+	if err := f.projects.Update(ctx, f.actor, o, p.Slug, in, false); err != nil {
 		t.Fatal(err)
 	}
 	mid, _ := f.projects.Get(ctx, o, tenant.AllTeams(), p.Slug)
@@ -172,7 +172,7 @@ func TestUpdateKeepsRefHistory(t *testing.T) {
 		!slices.Equal(mid.RefNames(project.RefTag), []string{"v2"}) || mid.Labels.String() != "pci" {
 		t.Fatalf("après modification : %+v", mid)
 	}
-	if err := f.projects.Update(ctx, f.actor, o, p.Slug, repo("API facturation", "main", "dev")); err != nil {
+	if err := f.projects.Update(ctx, f.actor, o, p.Slug, repo("API facturation", "main", "dev"), false); err != nil {
 		t.Fatal(err)
 	}
 	after, _ := f.projects.Get(ctx, o, tenant.AllTeams(), p.Slug)
@@ -181,7 +181,7 @@ func TestUpdateKeepsRefHistory(t *testing.T) {
 			t.Errorf("branche %s : nouvel identifiant après réactivation", r.Name)
 		}
 	}
-	if err := f.projects.Update(ctx, f.actor, o, p.Slug, repo("x")); !isKey(err, project.KeyRefsMissing) {
+	if err := f.projects.Update(ctx, f.actor, o, p.Slug, repo("x"), false); !isKey(err, project.KeyRefsMissing) {
 		t.Errorf("sans référence : %v", err)
 	}
 
@@ -190,14 +190,14 @@ func TestUpdateKeepsRefHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 	h, _ = f.projects.Get(ctx, o, tenant.AllTeams(), h.Slug)
-	if err := f.projects.Update(ctx, f.actor, o, h.Slug, project.Input{Name: "srv", HostRef: "srv.example.org"}); err != nil {
+	if err := f.projects.Update(ctx, f.actor, o, h.Slug, project.Input{Name: "srv", HostRef: "srv.example.org"}, false); err != nil {
 		t.Fatal(err)
 	}
 	h2, _ := f.projects.Get(ctx, o, tenant.AllTeams(), h.Slug)
 	if h2.HostRef() != "srv.example.org" || h2.Refs[0].ID != h.Refs[0].ID {
 		t.Errorf("référence d'hôte : %+v", h2.Refs)
 	}
-	if err := f.projects.Update(ctx, f.actor, o, "absent", repo("x", "main")); !errors.Is(err, project.ErrNotFound) {
+	if err := f.projects.Update(ctx, f.actor, o, "absent", repo("x", "main"), false); !errors.Is(err, project.ErrNotFound) {
 		t.Errorf("projet absent : %v", err)
 	}
 	if n := countOf(f.actions(t, o), audit.ProjectUpdated); n != 3 {
@@ -276,7 +276,7 @@ func TestArchiveAndList(t *testing.T) {
 	if got := names(project.Filter{Archived: true}); !slices.Equal(got, []string{"Bravo"}) {
 		t.Errorf("archivés : %v", got)
 	}
-	if err := f.projects.Update(ctx, f.actor, o, "bravo", repo("x", "main")); !isKey(err, project.KeyProjectArchived) {
+	if err := f.projects.Update(ctx, f.actor, o, "bravo", repo("x", "main"), false); !isKey(err, project.KeyProjectArchived) {
 		t.Errorf("modification d'un projet archivé : %v", err)
 	}
 	if err := f.projects.SetArchived(ctx, f.actor, o, "bravo", false); err != nil {
@@ -465,7 +465,7 @@ func TestAgentView(t *testing.T) {
 	}
 	// Une modification sans changement est journalisée sans champ.
 	if err := f.projects.Update(ctx, f.actor, o, "p1", project.Input{Name: "p1", Branches: []string{"main"}, Tags: []string{"v1"},
-		ForgeURL: "https://git.example.org/p1"}); err != nil {
+		ForgeURL: "https://git.example.org/p1"}, false); err != nil {
 		t.Fatal(err)
 	}
 }
