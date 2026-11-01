@@ -146,8 +146,10 @@ v1.4.1 : `EnablePOST` sous verrouillage) : reconfiguration du second facteur ave
 mot de passe, inscription par le nom bornée à l'équipe du jeton, IA externe retirée au
 changement de dépôt, secret de canal à ressaisir au changement de destination,
 `containers.max_per_host`, fichiers exclus jamais nommés au modèle, garde SSRF étendue,
-`llm.Budget.MaxCallsPerTurn`. Restent l'audit RGAA, les mesures, l'évaluation de l'IA, la
-recette et `v0.2.0`.
+`llm.Budget.MaxCallsPerTurn`. Partie 3 faite : audit RGAA des écrans du lot 2 (grille
+[`docs/accessibilite/grille-rgaa-lot2.md`](docs/accessibilite/grille-rgaa-lot2.md), 100 %
+après corrections ; conventions ajoutées au § 14 de l'architecture). Restent les mesures,
+l'évaluation de l'IA, la recette et `v0.2.0`.
 
 ## Règles de travail
 

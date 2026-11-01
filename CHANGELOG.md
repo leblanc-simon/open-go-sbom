@@ -118,6 +118,15 @@ appliquées automatiquement, sans retour arrière.
   adresses NAT64, 6to4 et aux plages réservées (SEC2-08) ; outil de recherche de l'IA
   sous délai et budget, 20 appels d'outils par réponse (SEC2-09).
 
+### Accessibilité
+
+- Audit RGAA des écrans du lot 2 : 100 % des critères applicables conformes après
+  corrections ([grille](https://github.com/leblanc-simon/lotor/blob/main/docs/accessibilite/grille-rgaa-lot2.md),
+  T18). Panneau de triage : champs complémentaires hors de l'étiquette du statut ; fiche
+  composant lisible à 320 px avec une version longue ; titre des fiches de constat avec
+  le projet et la référence ; statut traduit sur la confirmation du retrait d'une
+  décision ; décomptes accordés (équipe, alertes du tableau de bord).
+
 ## [0.1.0] - 2026-11-01
 
 Préversion du **lot 1 · MVP inventaire** : un parc de serveurs et de dépôts inventorié,

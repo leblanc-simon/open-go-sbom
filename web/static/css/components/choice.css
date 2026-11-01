@@ -1,5 +1,7 @@
 /* Liste de choix exclusifs (boutons radio) avec libellé, description et champs
-   complémentaires révélés par le choix coché (panneau de triage, T14). */
+   complémentaires révélés par le choix coché (panneau de triage, T14). Les champs
+   complémentaires vivent hors de l'étiquette du bouton radio (`li.choice-item`) : une
+   étiquette ne contient jamais un autre champ ni une autre étiquette (RGAA 8.2, 11.1). */
 .choice-list {
   display: grid;
   gap: var(--space-1);
@@ -31,6 +33,35 @@
     }
   }
 
+  /* Choix suivi de champs complémentaires : la boîte passe de l'étiquette à l'élément
+     de liste, qui contient l'étiquette puis les champs. */
+  .choice-item {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+
+    &:has(> .choice input:checked) {
+      background: var(--color-accent-soft);
+      border-color: var(--color-accent);
+    }
+
+    &:has(> .choice input:focus-visible) {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 1px;
+    }
+
+    > .choice {
+      border: 0;
+
+      &:has(input:checked) {
+        background: transparent;
+      }
+
+      &:has(input:focus-visible) {
+        outline: 0;
+      }
+    }
+  }
+
   .choice__label {
     display: flex;
     flex-wrap: wrap;
@@ -51,14 +82,14 @@
     color: var(--color-text-2);
   }
 
+  /* Aligné sur le texte du choix : marge de l'étiquette, bouton radio (1rem), écart. */
   .choice__extra {
     display: none;
-    grid-column: 2;
     gap: var(--space-3);
-    margin-top: var(--space-3);
+    padding: 0 var(--space-3) var(--space-3) calc(var(--space-3) * 2 + 1rem);
   }
 
-  .choice:has(input:checked) .choice__extra {
+  .choice-item:has(> .choice input:checked) .choice__extra {
     display: grid;
   }
 }

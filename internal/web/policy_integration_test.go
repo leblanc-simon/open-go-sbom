@@ -192,7 +192,7 @@ func TestPolicyScreens(t *testing.T) {
 		t.Fatal("violation absente de la liste d'un lecteur")
 	}
 	dp := unescape(rb.get("/o/org-a/").body)
-	if !strings.Contains(dp, "Alertes") || !strings.Contains(dp, "1 ouvertes · 1 bloquantes") {
+	if !strings.Contains(dp, "Alertes") || !strings.Contains(dp, "Ouvertes : 1 · bloquantes : 1") {
 		t.Fatal("section Alertes absente du tableau de bord")
 	}
 

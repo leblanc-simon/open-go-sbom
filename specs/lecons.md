@@ -904,3 +904,31 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   pour vérifier qu'il échoue. Règle : un test de non-régression qui passe sans le
   correctif ne prouve rien.
 
+## Audit RGAA du lot 2 (T18, partie 3)
+
+- **Champ dans l'étiquette d'un choix** : le panneau de triage mettait la justification
+  VEX et la date d'échéance dans la `<label>` du bouton radio (étiquette dans une
+  étiquette) ; ni axe-core ni `webtest` ne le voyaient, seul l'arbre d'accessibilité de
+  Chromium (CDP `Accessibility.getPartialAXTree`) montrait le nom du radio gonflé de
+  l'étiquette et de l'aide de la date. Règle : un champ révélé par un choix vit hors de la
+  `<label>` (`li.choice-item`) ; `webtest` refuse une étiquette imbriquée ou à plusieurs
+  champs ; à l'audit, relever les noms accessibles des champs, pas seulement leur présence.
+- **Données qui révèlent un défaut d'un écran ancien** : la fiche composant du lot 1
+  débordait à 320 px avec une version de paquet Alpine (`1.36.1-r29`) apportée par les
+  conteneurs. Règle : l'instance d'audit charge des données réalistes de chaque nouvelle
+  source (conteneurs, IA), et l'audit d'un lot repasse la redistribution sur **toutes**
+  les pages, pas seulement les nouvelles.
+- **Valeur technique dans un paramètre de traduction** : `{{.Status}}` recevait
+  `not_affected` ; les gabarits traduisaient le statut partout sauf dans les paramètres
+  passés depuis Go (titre de la confirmation). Règle : un paramètre de traduction est
+  déjà traduit (`identity.localizer(r).T(…)`) ; rechercher dans le texte visible les mots
+  à tiret bas (`[a-z]+_[a-z]+`) hors `code`.
+- **Le script d'audit qui se déconnecte** : `page.click('form button[type=submit]')`
+  visait le premier formulaire de la page, celui de « Se déconnecter » dans l'en-tête ;
+  la session supprimée côté serveur coupait aussi les autres contextes de Playwright
+  (121 pages auditées sur la page de connexion, sans erreur). Règle : viser
+  `main form …` ; vérifier qu'aucun rendu audité n'a le titre de la connexion ; donner à
+  l'instance d'audit des sessions longues (`SessionTTL`) et une sonde de session.
+- **Fichier de l'instance d'audit** : l'étiquette `integration && rgaaserve` l'écarte de
+  `make test-integration`, mais il ne doit jamais être commité ; le copier dans
+  `internal/web` seulement le temps de la compilation.

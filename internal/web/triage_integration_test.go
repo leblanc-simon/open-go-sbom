@@ -6,6 +6,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -83,6 +84,14 @@ func TestTriageScreens(t *testing.T) {
 	// Un lecteur voit la fiche, sans panneau, et ne peut pas trier.
 	rb := a.signIn(reader)
 	rp := unescape(rb.get(page).body)
+	if !regexp.MustCompile(`<dt>État</dt>\s*<dd>Ouvert</dd>`).MatchString(rp) {
+		t.Error("fiche du constat : état « Ouvert » attendu (au singulier)")
+	}
+	// RGAA 8.6 : la même vulnérabilité sur le même composant d'un autre projet ou d'une
+	// autre référence ne donne pas le même titre.
+	if got := pageTitle(t, rb.get(page).body); got != "CVE-2021-44228 sur log4j-core — Portail client (main) — Org org-a · lotor" {
+		t.Errorf("titre de la fiche du constat : %q", got)
+	}
 	if !strings.Contains(rp, "CVE-2021-44228") || strings.Contains(rp, `action="`+action+`"`) || !strings.Contains(rp, "ne permet pas de trier") {
 		t.Fatal("fiche d'un lecteur")
 	}
@@ -184,8 +193,11 @@ func TestTriageScreens(t *testing.T) {
 		t.Fatalf("historique %+v, %v", hs, err)
 	}
 	withdraw := base + "/decisions/" + hs[0].ID.String() + "/withdraw"
-	if c := ab.get(withdraw); c.status != http.StatusOK || !strings.Contains(unescape(c.body), "Retirer la décision") {
+	if c := ab.get(withdraw); c.status != http.StatusOK || !strings.Contains(unescape(c.body), "Retirer la décision « Non affecté » sur CVE-2021-44228 ?") {
 		t.Fatalf("confirmation : %d", c.status)
+	}
+	if c := ab.get(withdraw + "?lang=en"); !strings.Contains(unescape(c.body), "Withdraw the “Not affected” decision on CVE-2021-44228?") {
+		t.Error("confirmation (en) : statut non traduit")
 	}
 	if p := rb.post(withdraw, nil); p.status != http.StatusForbidden {
 		t.Fatalf("retrait par un lecteur : %d", p.status)

@@ -52,6 +52,8 @@ func TestCheckAccessibilityFindsProblems(t *testing.T) {
 		"aide masquée":            {`<p id="l-hint">`, `<p class="field__hint visually-hidden" id="l-hint">`, "réservée aux lecteurs d'écran"},
 		"langue sans lang":        {`<option value="en" lang="en">`, `<option value="en">`, `option de langue "en"`},
 		"langue erronée":          {`<option value="en" lang="en">`, `<option value="en" lang="fr">`, `sans lang="en"`},
+		"étiquette imbriquée":     {`<label>Nom <input name="n"></label>`, `<label>Nom <input name="n"><label for="q">Date</label></label>`, "imbriquée"},
+		"deux champs":             {`<label>Nom <input name="n"></label>`, `<label>Nom <input name="n"><select name="m"></select></label>`, "2 champs"},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {

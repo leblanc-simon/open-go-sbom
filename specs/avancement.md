@@ -20,6 +20,7 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 | T13 | #24 | Terminé (PR à fusionner) | Client HTTP sur socket Unix plutôt que le client moby (écart au § 5) ; scan de l'image exportée (`docker save`) ; catalogueurs hors ligne aussi pour l'hôte ; équipe imposée par clé étrangère en cascade ; signalement dédié qui vaut signal de vie ; archivage à la main qui tient ; conteneurs écartés des listes et de la recherche, comptés au tableau de bord ; agrégat par vulnérabilités distinctes — tous **[à relire]** |
 | T18 (2/n, sécurité) | #28 | Fait (PR à fusionner) ; open-go-base PR #6 fusionnée (`0900e0c`), étiquette `v1.4.1` à pousser | Revue du lot 2 : 0 High, 2 Medium et 5 Low corrigés, 2 Note corrigées, 1 acceptée ; reconfiguration du second facteur avec nouveau mot de passe (modifie ADR 0048) ; défense en profondeur de l'enrôlement gardée dans lotor ; inscription par le nom bornée à l'équipe, homonyme répondu « hôte déjà suivi » ; IA externe ramenée à « désactivé » au changement de dépôt ; secret de canal à ressaisir au changement de destination ; `containers.max_per_host` = 1 000, signalement refusé en entier ; détection de clé dans `list_dir` limitée à 64 Kio ; ports des canaux libres ; 20 appels d'outils par réponse, 2 Kio par recherche ; SEC2-10 accepté — tous **[à relire]** ([ADR 0051](../docs/adr/0051-corrections-revue-securite-lot2.md)) |
 | T18 (1/n, compléments) | #27 | Fait (PR à fusionner) ; open-go-base PR #5 fusionnée (`a0f777f`), étiquette `v1.4.0` à pousser | Codes de secours : 16 caractères de Crockford (80 bits), SHA-256 lié au compte, 10 par défaut, régénération après un code TOTP, reconfiguration de l'application par le titulaire (au-delà de la fiche), pas de bannière pour les comptes sans codes ; recherche : statut de triage de tous les constats, filtre `triage` refusé hors vulnérabilité, recherche par composant sans constats masqués ; purge des conteneurs archivés pour absence depuis 180 jours, jamais archivés à la main ni triés ; boutons de revue des détections IA de T12 non livrés — tous **[à relire]** |
+| T18 (3/n, accessibilité) | #29 | Fait (PR à fusionner) | Audit RGAA des écrans du lot 2 : 93,1 % puis 100 %, 4 NC mineures corrigées ; régénération des codes et changement d'application sans page de confirmation (code saisi = confirmation, 11.12) ; champs du triage révélés par `:has()` sans repli ; défaut d'un écran du lot 1 (fiche composant) corrigé ici ; statuts de triage cliquables conformes à 10.6 sans soulignement permanent — tous **[à relire]** |
 
 ### Décisions à relire, par thème
 
@@ -212,6 +213,20 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
   oracle de balayage accepté (ADR 0051 § 8).
 - 20 appels d'outils exécutés par réponse du modèle, 2 Kio par recherche (ADR 0051 § 9).
 - `lotor_user_invitations` sans garde SQL : accepté comme SEC-12 (ADR 0051 § 10).
+
+#### Audit RGAA du lot 2 (T18, partie 3)
+
+- Régénération des codes de secours et changement d'application d'authentification sans
+  page de confirmation : le code exigé tient lieu de confirmation (RGAA 11.12)
+  ([grille, § 5](../docs/accessibilite/grille-rgaa-lot2.md#5-actions-irréversibles),
+  [T18](lots/T18-recette-lot-2.md#partie-3--audit-rgaa)).
+- Champs complémentaires du triage révélés par `:has()`, sans JavaScript ni repli
+  ([T18](lots/T18-recette-lot-2.md#partie-3--audit-rgaa)).
+- Débordement à 320 px de la fiche composant (écran du lot 1) corrigé dans l'audit du
+  lot 2 ; redistribution repassée sur toutes les pages à chaque audit
+  ([T18](lots/T18-recette-lot-2.md#partie-3--audit-rgaa)).
+- Statuts de triage cliquables (pastilles) jugés conformes à 10.6 sans soulignement
+  permanent ([grille, § 3](../docs/accessibilite/grille-rgaa-lot2.md#3-grille-des-écrans-du-lot-2-106-critères)).
 
 #### Écarts
 

@@ -2,7 +2,7 @@
 
 | Lot fonctionnel | Dépend de | Statut |
 | --- | --- | --- |
-| 2 · IA et triage | T12, T13, T14, T15, T16, T17 | En cours (partie 1, compléments, et partie 2, sécurité, faites) |
+| 2 · IA et triage | T12, T13, T14, T15, T16, T17 | En cours (parties 1 (compléments), 2 (sécurité) et 3 (accessibilité) faites) |
 
 ## Objectif
 
@@ -37,7 +37,10 @@ un taux de faux positifs mesuré et tenu, et publier une préversion `v0.2.0` du
 - [x] Aucune faiblesse de gravité haute ou critique ouverte. (Aucune trouvée par la revue
       du lot 2 ; les 2 Medium et les 5 Low sont corrigés, 2 des 3 Note aussi, voir « Revue
       de sécurité ».)
-- [ ] Grille RGAA remplie pour chaque nouvel écran, sans non-conformité bloquante.
+- [x] Grille RGAA remplie pour chaque nouvel écran, sans non-conformité bloquante
+      (partie 3, [grille](../../docs/accessibilite/grille-rgaa-lot2.md) : 100 % des
+      critères applicables après corrections, aucune NC bloquante ni majeure ni avant ni
+      après).
 - [x] Un utilisateur peut se connecter avec un code de secours, à usage unique
       (partie 1, `TestRecoveryCodes`).
 - [ ] `v0.2.0` publiée.
@@ -240,3 +243,88 @@ n'avait pas de test de reproduction, ses tests sont nouveaux). Bilan de la revue
 #### ADR créés
 
 - [0051 — Corrections de la revue de sécurité du lot 2](../../docs/adr/0051-corrections-revue-securite-lot2.md).
+
+### Partie 3 — Audit RGAA
+
+Réalisée le 1er novembre 2026, branche `lot/T18-accessibilite`, en autonomie : les
+décisions marquées **[à relire]** n'ont pas été validées explicitement. Grille finale :
+[`docs/accessibilite/grille-rgaa-lot2.md`](../../docs/accessibilite/grille-rgaa-lot2.md).
+
+#### Résultat
+
+Audit initial sur `main` (f53536f) : 93,1 % (67 critères conformes sur 72 applicables ;
+non conformes : 8.2, 8.6, 8.7, 10.11, 11.2), 4 constats, tous mineurs, aucun bloquant ni
+majeur, plus trois défauts de rédaction hors grille. Après corrections : **100 %** (72 sur
+72), aucun constat ouvert. Instance réelle (routeur complet, CSS embarquées) sur une base
+PostgreSQL de démonstration peuplée de toutes les données du lot 2 ; 179 pages découvertes
+par cinq sessions, 158 pages après réduction par forme d'URL et 23 états choisis, en
+français et en anglais, thèmes clair et sombre : axe-core 4.10.2 sans aucun écart sur les
+724 rendus de l'audit initial comme du contre-audit, aucun défilement horizontal à 320 et
+390 px ni à 200 % de texte après corrections ; 16 soumissions réelles de formulaires
+(13 erreurs) en deux langues : « Erreur : » dans le titre, message en `role="alert"`,
+`aria-invalid` sur le champ fautif ; parcours au clavier des écrans nouveaux sans piège,
+focus visible dans les deux thèmes ; captures de contrôle à 1 280 et 390 px.
+
+| NC | Gravité | Critère | Statut |
+| --- | --- | --- | --- |
+| NC-01 champs du triage dans l'étiquette du radio | mineure | 8.2, 11.2 | corrigé, vérifié |
+| NC-02 répartition des versions à 320 px (version longue) | mineure | 10.11 | corrigé, vérifié |
+| NC-03 titres identiques des fiches de constat | mineure | 8.6 | corrigé, vérifié |
+| NC-04 statut VEX brut sur la confirmation de retrait | mineure | 8.6, 8.7 | corrigé, vérifié |
+| décomptes et état mal accordés | défaut | — | corrigé, vérifié |
+
+#### Livré
+
+- **Panneau de triage** (NC-01, `projects/finding.html`, `components/choice.css`) : les
+  champs complémentaires (justification VEX, échéance, plage `vers`) sortent de
+  l'étiquette du bouton radio, dans l'élément de liste `li.choice-item`, qui porte la
+  boîte, l'état coché et le focus ; révélation inchangée par `:has()`. Le nom du radio se
+  limite à son statut et sa description.
+- **Fiche composant** (NC-02, `screens/vulnerabilities.css`) : le décompte de la
+  répartition des versions passe à la ligne, barre réduite sous 30 rem.
+- **Titres** : fiche d'un constat « CVE sur composant — projet (référence) » (NC-03,
+  `triage.title`) ; confirmation du retrait d'une décision avec le libellé traduit du
+  statut (NC-04, `identity.decisionArgs`).
+- **Rédaction** : « 2 membres », « 1 projet actif » (fiche d'équipe, `Tn`) ; « État :
+  Ouvert / Résolu » sur la fiche d'un constat (`triage.state_open`,
+  `triage.state_resolved`) ; « Ouvertes : 1 · bloquantes : 1 » (alertes du tableau de
+  bord, `dashboard.alerts_meta`).
+- Recommandations traitées : tableaux de l'effet sur la sécurité titrés par leur `h3`
+  (`aria-labelledby`) ; « Retirer la décision « … » » en texte masqué dans l'historique
+  d'un constat (`triage.withdraw_object`).
+- Garde-fous : `webtest.CheckAccessibility` refuse une `<label>` qui contient une autre
+  étiquette ou plus d'un champ (vérifié : `TestTriageScreens` échoue sur l'ancien
+  gabarit) ; `TestTriageScreens` vérifie le titre de la fiche, l'état au singulier et le
+  statut traduit de la confirmation (fr, en) ; `TestTeamScreens` les décomptes ;
+  `TestPolicyScreens` le décompte des alertes.
+- `architecture.md` § 14 : conventions « une étiquette, un champ », « valeurs
+  traduites », titre d'une fiche rattachée à un projet ; référence à la grille du lot 2.
+- Après la fusion de la partie 2 (PR #28) : page du second facteur auditée de nouveau
+  (deux champs « nouveau mot de passe ») : conforme, sans correction.
+
+#### Décisions
+
+- **Régénération des codes de secours et changement d'application sans page de
+  confirmation** : le code exigé (TOTP ou code de secours) tient lieu de confirmation au
+  sens de 11.12, conformément à la décision de la partie 1 (ADR 0048) **[à relire]**.
+- **Champs complémentaires toujours révélés par `:has()`**, sans JavaScript : sans
+  `:has()` (navigateurs antérieurs à 2022-2023), la justification n'est pas saisissable à
+  l'écran ; choix gardé de T14, limite notée dans la grille **[à relire]**.
+- **NC-02 rattachée au lot 2** bien que l'écran soit du lot 1 : défaut révélé par les
+  données des conteneurs, corrigé ici ; la redistribution est repassée sur toutes les
+  pages à chaque audit **[à relire]**.
+- **Statuts de triage cliquables jugés conformes à 10.6** (pastille distincte du texte,
+  soulignée au survol et au focus) plutôt que soulignés en permanence **[à relire]**.
+- Pas d'ADR : pas de décision structurante au-delà des conventions du § 14.
+- Pas de test Playwright dans le dépôt (même raison qu'au lot 1 : pas de navigateur en CI,
+  pas de nouvelle dépendance) ; scripts et captures hors dépôt.
+
+#### Écarts
+
+- Recommandations R-L2-01 à R-L2-05 non traitées (§ 6 de la grille) ; celles du lot 1
+  restent ouvertes.
+- Pas de lecteur d'écran réel ni d'autre navigateur que Chromium (§ 7 de la grille).
+
+#### ADR créés
+
+Aucun. Aucune migration, aucune nouvelle dépendance.
