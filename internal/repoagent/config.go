@@ -14,6 +14,7 @@ import (
 	"leblanc.io/open-go-base/appconf"
 
 	"leblanc.io/lotor/internal/forge"
+	"leblanc.io/lotor/internal/llm"
 )
 
 // EnvPrefix préfixe les variables d'environnement de l'agent dépôt.
@@ -29,6 +30,7 @@ type Config struct {
 	Webhook WebhookConfig   `yaml:"webhook" env-prefix:"LOTOR_REPO_"`
 	Work    WorkConfig      `yaml:"work"    env-prefix:"LOTOR_REPO_"`
 	Catchup CatchupConfig   `yaml:"catchup" env-prefix:"LOTOR_REPO_"`
+	AI      AIConfig        `yaml:"ai"      env-prefix:"LOTOR_REPO_"`
 	// Forges ne se déclarent que dans le fichier de configuration.
 	Forges []Forge `yaml:"forges"`
 }
@@ -73,6 +75,45 @@ type WorkConfig struct {
 type CatchupConfig struct {
 	Interval   time.Duration `yaml:"interval"    env:"CATCHUP_INTERVAL"    env-default:"15m" env-description:"Interval between two catch-up passes"`
 	MaxCommits int           `yaml:"max_commits" env:"CATCHUP_MAX_COMMITS" env-default:"20"  env-description:"Maximum missed commits analysed per reference (the most recent ones)"`
+}
+
+// AIConfig règle l'enrichissement IA (T12). Sans modèle configuré, l'agent envoie le SBOM
+// Syft seul, quel que soit le réglage des projets ; un projet réglé « IA désactivée »
+// n'appelle jamais de modèle, quelle que soit cette configuration.
+type AIConfig struct {
+	Local    LocalAIConfig    `yaml:"local"`
+	External ExternalAIConfig `yaml:"external"`
+	// Budget d'une analyse : au-delà, l'analyse s'arrête et le SBOM part sans composant IA,
+	// marqué « enrichissement incomplet ».
+	MaxTurns        int           `yaml:"max_turns"         env:"AI_MAX_TURNS"         env-default:"40"     env-description:"Maximum model turns of one AI analysis"`
+	MaxInputTokens  int64         `yaml:"max_input_tokens"  env:"AI_MAX_INPUT_TOKENS"  env-default:"600000" env-description:"Maximum input tokens of one AI analysis (all turns, cache included)"`
+	MaxOutputTokens int64         `yaml:"max_output_tokens" env:"AI_MAX_OUTPUT_TOKENS" env-default:"40000"  env-description:"Maximum output tokens of one AI analysis"`
+	MaxReadKiB      int           `yaml:"max_read_kib"      env:"AI_MAX_READ_KIB"      env-default:"1024"   env-description:"Maximum repository content returned to the model by the tools, in KiB"`
+	ResponseTokens  int           `yaml:"response_tokens"   env:"AI_RESPONSE_TOKENS"   env-default:"8192"   env-description:"Maximum output tokens of one model response"`
+	Timeout         time.Duration `yaml:"timeout"           env:"AI_TIMEOUT"           env-default:"20m"    env-description:"Maximum duration of one AI analysis"`
+	FullInterval    time.Duration `yaml:"full_interval"     env:"AI_FULL_INTERVAL"     env-default:"168h"   env-description:"A reference gets a full AI analysis at least this often (otherwise changed files only)"`
+	// Exclude complète DefaultExclude (fichiers jamais montrés au modèle).
+	Exclude []string `yaml:"exclude" env:"AI_EXCLUDE" env-separator:"," env-description:"Extra file patterns never shown to the model (added to the built-in list of secrets and keys)"`
+}
+
+// LocalAIConfig décrit le modèle local (Ollama), qui reste dans l'infrastructure de
+// l'exploitant.
+type LocalAIConfig struct {
+	URL           string        `yaml:"url"            env:"AI_LOCAL_URL"            env-description:"Ollama server URL (http://127.0.0.1:11434); empty: no local model"`
+	Model         string        `yaml:"model"          env:"AI_LOCAL_MODEL"          env-description:"Ollama model (with tool calling)"`
+	ContextTokens int           `yaml:"context_tokens" env:"AI_LOCAL_CONTEXT_TOKENS" env-default:"32768" env-description:"Context window requested from Ollama"`
+	Timeout       time.Duration `yaml:"timeout"        env:"AI_LOCAL_TIMEOUT"        env-default:"5m"    env-description:"Maximum duration of one request to Ollama"`
+}
+
+// ExternalAIConfig décrit le fournisseur externe (Anthropic). Il ne reçoit le code que des
+// projets qu'un administrateur d'organisation a autorisés, si l'instance le permet.
+type ExternalAIConfig struct {
+	Provider   string        `yaml:"provider"     env:"AI_EXTERNAL_PROVIDER"     env-description:"External provider: anthropic, or empty for none"`
+	Model      string        `yaml:"model"        env:"AI_EXTERNAL_MODEL"        env-default:"claude-sonnet-5-5" env-description:"Model of the external provider"`
+	APIKeyFile string        `yaml:"api_key_file" env:"AI_EXTERNAL_API_KEY_FILE" env-default:"credential:anthropic-api-key" env-description:"API key: credential:<name> or absolute path of a 0600 file"`
+	BaseURL    string        `yaml:"base_url"     env:"AI_EXTERNAL_BASE_URL"     env-default:"https://api.anthropic.com" env-description:"API URL of the external provider"`
+	Timeout    time.Duration `yaml:"timeout"      env:"AI_EXTERNAL_TIMEOUT"      env-default:"5m" env-description:"Maximum duration of one request to the provider"`
+	Retries    int           `yaml:"retries"      env:"AI_EXTERNAL_RETRIES"      env-default:"2"  env-description:"Retries of one request (429, 5xx, network errors)"`
 }
 
 // Forge décrit une forge. GitHub : app_id, private_key_file et facultativement
@@ -177,6 +218,7 @@ func (c Config) Validate() error {
 	if c.Catchup.MaxCommits < 1 || c.Catchup.MaxCommits > maxCommits {
 		errs = append(errs, fmt.Errorf("catchup.max_commits entre 1 et %d", maxCommits))
 	}
+	errs = append(errs, c.AI.validate()...)
 	if len(c.Forges) == 0 {
 		errs = append(errs, errors.New("forges : au moins une forge"))
 	}
@@ -238,6 +280,76 @@ func (f Forge) validate() error {
 		return fmt.Errorf("kind %q inconnu (github, gitlab)", f.Kind)
 	}
 	return nil
+}
+
+func (a AIConfig) validate() []error {
+	var errs []error
+	if a.MaxTurns < 1 || a.MaxTurns > 500 {
+		errs = append(errs, errors.New("ai.max_turns entre 1 et 500"))
+	}
+	if a.MaxInputTokens < 1000 || a.MaxOutputTokens < 100 || a.ResponseTokens < 256 || int64(a.ResponseTokens) > a.MaxOutputTokens {
+		errs = append(errs, errors.New("ai : budgets de jetons trop petits, ou response_tokens au-delà de max_output_tokens"))
+	}
+	if a.MaxReadKiB < 16 {
+		errs = append(errs, errors.New("ai.max_read_kib : 16 au moins"))
+	}
+	if a.Timeout <= 0 || a.FullInterval < time.Hour {
+		errs = append(errs, errors.New("ai.timeout positif et ai.full_interval d'une heure au moins"))
+	}
+	if _, err := newExclusions(a.Exclude); err != nil {
+		errs = append(errs, fmt.Errorf("ai.exclude : %w", err))
+	}
+	if a.Local.URL != "" {
+		if u, err := url.Parse(a.Local.URL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil {
+			errs = append(errs, errors.New("ai.local.url : URL http(s) absolue sans identifiants attendue"))
+		}
+		if a.Local.Model == "" {
+			errs = append(errs, errors.New("ai.local.model obligatoire avec ai.local.url"))
+		}
+		if a.Local.Timeout <= 0 {
+			errs = append(errs, errors.New("ai.local.timeout doit être positif"))
+		}
+	}
+	switch a.External.Provider {
+	case "":
+	case "anthropic":
+		if u, err := url.Parse(a.External.BaseURL); err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil {
+			errs = append(errs, errors.New("ai.external.base_url : URL https absolue sans identifiants attendue"))
+		}
+		if a.External.Model == "" || a.External.APIKeyFile == "" {
+			errs = append(errs, errors.New("ai.external.model et ai.external.api_key_file obligatoires"))
+		}
+		if a.External.Timeout <= 0 || a.External.Retries < 0 || a.External.Retries > 10 {
+			errs = append(errs, errors.New("ai.external.timeout positif et ai.external.retries entre 0 et 10"))
+		}
+	default:
+		errs = append(errs, fmt.Errorf("ai.external.provider %q inconnu (anthropic, ou vide)", a.External.Provider))
+	}
+	return errs
+}
+
+// Models construit les modèles configurés (nil pour un modèle absent), en lisant la clé
+// d'API du fournisseur externe.
+func (a AIConfig) Models() (local, external llm.Provider, err error) {
+	if a.Local.URL != "" {
+		local, err = llm.NewOllama(llm.OllamaConfig{URL: a.Local.URL, Model: a.Local.Model,
+			ContextTokens: a.Local.ContextTokens, Timeout: a.Local.Timeout})
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	if a.External.Provider == "anthropic" {
+		key, err := ReadSecret(a.External.APIKeyFile)
+		if err != nil {
+			return nil, nil, fmt.Errorf("clé d'API du fournisseur externe : %w", err)
+		}
+		external, err = llm.NewAnthropic(llm.AnthropicConfig{APIKey: strings.TrimSpace(string(key)), Model: a.External.Model,
+			BaseURL: a.External.BaseURL, Timeout: a.External.Timeout, MaxRetries: a.External.Retries})
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	return local, external, nil
 }
 
 // Providers construit les forges, en lisant leurs secrets.

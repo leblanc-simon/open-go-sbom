@@ -1,0 +1,9 @@
+description: Bibliothèque JavaScript minifiée recopiée sans gestionnaire de paquets ; express est déclaré dans package.json (Syft).
+components:
+  - purl: pkg:npm/jquery@3.4.1
+    file: public/js/vendor/jquery.min.js
+    line: 1
+    excerpt: "jQuery v3.4.1"
+forbidden:
+  - purl: pkg:npm/express@4.18.2
+    why: déclaré dans package.json, déjà vu par Syft

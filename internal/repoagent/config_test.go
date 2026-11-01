@@ -76,6 +76,7 @@ func validConfig() Config {
 	c.Webhook = WebhookConfig{Listen: ":8080", MaxBodyKiB: 1024, RateLimit: 60}
 	c.Work = WorkConfig{Dir: "/var/lib/x", Parallelism: 2, QueueSize: 10, CloneTimeout: time.Minute, ScanTimeout: time.Minute, MaxCloneMiB: 10, Git: "git"}
 	c.Catchup = CatchupConfig{Interval: 15 * time.Minute, MaxCommits: 20}
+	c.AI = testAIConfig()
 	c.Forges = []Forge{
 		{Name: "github", Kind: forge.KindGitHub, AppID: "1", PrivateKeyFile: "credential:gh-key", WebhookSecretFile: "credential:gh-hook",
 			AllowedNamespaces: []string{"*"}},

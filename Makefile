@@ -70,7 +70,7 @@ fmt-check: ## Échoue si un fichier n'est pas formaté
 # Étiquettes de test qui compilent en CI : vet et staticcheck passent sur chacune, pour
 # que les fichiers étiquetés (tests d'intégration, base Grype réelle, mesures) soient
 # analysés comme le reste.
-TEST_TAGS := integration integration,grypedb measure
+TEST_TAGS := integration integration,grypedb measure evalai
 
 .PHONY: vet
 vet: ## go vet (sans étiquette, puis avec chaque étiquette de test)
@@ -123,6 +123,10 @@ bench: ## Mesures sur le jeu de référence (docs/benchmarks.md)
 .PHONY: bench-search
 bench-search: ## Mesures de la recherche sur le jeu de référence, RLS active (docs/benchmarks.md)
 	LOTOR_BENCH=1 $(GO) test -count=1 -timeout 30m -tags integration -run TestSearchBenchmark -v ./internal/search/
+
+.PHONY: eval-ai
+eval-ai: ## Évalue l'enrichissement IA sur le corpus annoté avec un vrai modèle, hors CI (LOTOR_EVAL_AI_*, docs/operations.md)
+	$(GO) test -count=1 -timeout 2h -tags evalai -run TestEvalAI -v ./internal/repoagent/
 
 # Autoanalyse : SBOM des binaires par Syft, analyse par Grype, mêmes versions que les
 # bibliothèques du projet (go.mod). Grype télécharge sa base, sauf GRYPE_DB_CACHE_DIR et

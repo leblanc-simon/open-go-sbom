@@ -1,0 +1,10 @@
+description: Feuille et scripts chargés depuis un CDN dans un gabarit.
+components:
+  - purl: pkg:npm/bootstrap@5.3.3
+    file: templates/base.html
+    line: 5
+    excerpt: "npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+  - purl: pkg:npm/htmx.org@1.9.12
+    file: templates/base.html
+    line: 9
+    excerpt: "https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js"

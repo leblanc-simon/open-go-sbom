@@ -192,6 +192,19 @@ func (c *Client) Ingestion(ctx context.Context, id uuid.UUID) (gen.Ingestion, er
 	return *rsp.JSON200, nil
 }
 
+// AIComponents renvoie les composants IA de l'instantané courant d'une référence suivie
+// d'un projet confié à l'agent (agent dépôt, analyse incrémentale).
+func (c *Client) AIComponents(ctx context.Context, refID uuid.UUID) ([]gen.AIComponent, error) {
+	rsp, err := c.gen.ListAIComponentsWithResponse(withOp(ctx, "listAIComponents"), refID, c.editor(""))
+	if err != nil {
+		return nil, wrapTransport("listAIComponents", err)
+	}
+	if rsp.JSON200 == nil {
+		return nil, responseError("listAIComponents", rsp.HTTPResponse, rsp.Body)
+	}
+	return rsp.JSON200.Components, nil
+}
+
 // Final indique si une ingestion a atteint son état final (done ou failed).
 func Final(in gen.Ingestion) bool {
 	return in.Status == gen.Done || in.Status == gen.Failed

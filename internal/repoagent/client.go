@@ -71,15 +71,48 @@ func (s *apiServer) Projects(ctx context.Context) ([]Project, error) {
 		if p.Kind != gen.AgentProjectKindRepo || p.ForgeUrl == nil {
 			continue
 		}
-		proj := Project{ID: p.Id.String(), Slug: p.Slug, ForgeURL: *p.ForgeUrl}
+		proj := Project{ID: p.Id.String(), Slug: p.Slug, ForgeURL: *p.ForgeUrl, AIMode: aiModeOf(p.AiMode)}
 		for _, r := range p.Refs {
-			tr := TrackedRef{Ref: forge.Ref{Kind: forge.RefKind(r.Kind), Name: r.Name}}
+			tr := TrackedRef{ID: r.Id.String(), Ref: forge.Ref{Kind: forge.RefKind(r.Kind), Name: r.Name}}
 			if r.LastSnapshot != nil && r.LastSnapshot.Commit != nil {
 				tr.LastCommit = strings.ToLower(*r.LastSnapshot.Commit)
 			}
 			proj.Refs = append(proj.Refs, tr)
 		}
 		out = append(out, proj)
+	}
+	return out, nil
+}
+
+// aiModeOf lit le réglage d'enrichissement ; une valeur inconnue vaut « désactivé ».
+func aiModeOf(m gen.AgentProjectAiMode) AIMode {
+	switch AIMode(m) {
+	case AILocal, AIExternal:
+		return AIMode(m)
+	}
+	return AIDisabled
+}
+
+// AIComponents lit les composants IA de l'instantané courant d'une référence.
+func (s *apiServer) AIComponents(ctx context.Context, refID string) ([]PreviousComponent, error) {
+	id, err := uuid.Parse(refID)
+	if err != nil {
+		return nil, fmt.Errorf("repoagent: référence %q : %w", refID, err)
+	}
+	comps, err := s.client.AIComponents(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("repoagent: composants IA : %w", err)
+	}
+	out := make([]PreviousComponent, 0, len(comps))
+	for _, c := range comps {
+		pc := PreviousComponent{PURL: c.Purl, Name: c.Name, Version: c.Version, File: c.File, Line: c.Line, Excerpt: c.Excerpt}
+		if c.Confidence != nil {
+			pc.Confidence = *c.Confidence
+		}
+		if c.Model != nil {
+			pc.Model = *c.Model
+		}
+		out = append(out, pc)
 	}
 	return out, nil
 }
