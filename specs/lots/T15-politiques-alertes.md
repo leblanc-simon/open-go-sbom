@@ -87,7 +87,7 @@ T12) : les décisions marquées **[à relire]** n'ont pas été validées explic
 
 ### Livré
 
-- Migration **020** (`020_policies.sql`, numérotée 019 avant la fusion de T12) : tables
+- Migration **021** (`021_policies.sql`, numérotée 019 puis 020 avant les fusions de T12 et T13) : tables
   d'organisation `policies`, `policy_channels`, `policy_violations` (une seule ouverte par
   couple règle × sujet, index uniques partiels), `policy_evaluations`,
   `notification_channels` (secret chiffré, réglages en `jsonb`), `notification_deliveries`
@@ -199,6 +199,11 @@ toutes **[à relire]** :
 - **Statut de commit** : attente synchrone (le commit suivant attend), « en attente »
   laissé à l'expiration, `canceled` sur GitLab pour une ingestion refusée, désactivé par
   défaut, jeton GitHub séparé ([ADR 0047](../../docs/adr/0047-statut-de-commit.md)).
+- **Conteneurs** (T13, fusionné pendant le lot) : un conteneur hérite des étiquettes de
+  son hôte (`project.host`), est évalué après l'analyse de sa référence ; ses violations
+  quittent les listes ouvertes dès son archivage pour absence et sont résolues à
+  l'évaluation suivante ; « agent muet » porte sur l'agent de l'hôte
+  (`TestContainerProjects`) (ADR 0045).
 - **Rotation des secrets des canaux** au démarrage, comme les secrets TOTP (non demandée
   par la fiche, nécessaire pour retirer une ancienne clé).
 

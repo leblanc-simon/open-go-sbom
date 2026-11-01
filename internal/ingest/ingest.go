@@ -147,10 +147,15 @@ type Context struct {
 	RefKind   project.RefKind
 	RefName   string
 	// Commit (SHA-1 ou SHA-256 en hexadécimal minuscule) est exigé pour une branche ou
-	// une étiquette, interdit pour un hôte.
+	// une étiquette, interdit pour un hôte ou un conteneur.
 	Commit       string
 	AgentVersion string
 	ScannedAt    time.Time
+}
+
+// machine dit si l'envoi vise un hôte ou un conteneur (sans commit).
+func (c Context) machine() bool {
+	return c.RefKind == project.RefHost || c.RefKind == project.RefContainer
 }
 
 var commitPattern = regexp.MustCompile(`^[0-9a-f]{40}([0-9a-f]{24})?$`)
@@ -165,11 +170,12 @@ func (s *Service) validate(c *Context) error {
 	switch {
 	case c.ProjectID == uuid.Nil || c.RefName == "" || len(c.RefName) > 255:
 		return invalid("ref", KeyRefInvalid)
-	case c.RefKind != project.RefBranch && c.RefKind != project.RefTag && c.RefKind != project.RefHost:
+	case c.RefKind != project.RefBranch && c.RefKind != project.RefTag && c.RefKind != project.RefHost &&
+		c.RefKind != project.RefContainer:
 		return invalid("ref", KeyRefInvalid)
-	case c.RefKind == project.RefHost && c.Commit != "":
+	case c.machine() && c.Commit != "":
 		return invalid("commit", KeyCommitForbid)
-	case c.RefKind != project.RefHost && c.Commit == "":
+	case !c.machine() && c.Commit == "":
 		return invalid("commit", KeyCommitRequired)
 	case c.Commit != "" && !commitPattern.MatchString(c.Commit):
 		return invalid("commit", KeyCommitInvalid)

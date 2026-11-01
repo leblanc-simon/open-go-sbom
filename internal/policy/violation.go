@@ -72,6 +72,10 @@ const violationColumns = `v.id, v.policy_id, p.name, p.blocking, v.subject, v.op
 const visibleViolation = `(CASE WHEN v.subject = 'finding' THEN lotor_team_visible(pr.team_id)
 	ELSE lotor_team_visible(a.team_id) END)`
 
+// activeProject écarte des listes de violations ouvertes celles d'un projet archivé (un
+// conteneur absent depuis 7 jours, T13) : elles sont résolues à l'évaluation suivante.
+const activeProject = `(v.subject = 'agent' OR pr.archived_at IS NULL)`
+
 func scanViolation(row interface{ Scan(...any) error }) (Violation, error) {
 	var v Violation
 	err := row.Scan(&v.ID, &v.PolicyID, &v.Policy, &v.Blocking, &v.Subject, &v.OpenedAt, &v.LastSeenAt, &v.ResolvedAt,
@@ -100,7 +104,7 @@ func (s *Service) Violations(ctx context.Context, org tenant.OrgID, vis tenant.V
 		}
 	}
 	order := "v.opened_at"
-	state := "v.resolved_at IS NULL"
+	state := "v.resolved_at IS NULL AND " + activeProject
 	if f.Resolved {
 		order, state = "v.resolved_at", "v.resolved_at IS NOT NULL"
 	}
@@ -167,11 +171,11 @@ const SummaryRecent = 5
 func Summarize(ctx context.Context, tx *db.OrgTx) (Summary, error) {
 	var s Summary
 	if err := tx.QueryRowContext(ctx, `SELECT count(*), count(*) FILTER (WHERE p.blocking)`+violationFrom+
-		` WHERE v.resolved_at IS NULL AND `+visibleViolation).Scan(&s.Open, &s.Blocking); err != nil {
+		` WHERE v.resolved_at IS NULL AND `+activeProject+` AND `+visibleViolation).Scan(&s.Open, &s.Blocking); err != nil {
 		return s, err
 	}
 	rows, err := tx.QueryContext(ctx, `SELECT `+violationColumns+violationFrom+` WHERE v.resolved_at IS NULL AND `+
-		visibleViolation+` ORDER BY v.opened_at DESC, v.id DESC LIMIT $1`, SummaryRecent)
+		activeProject+` AND `+visibleViolation+` ORDER BY v.opened_at DESC, v.id DESC LIMIT $1`, SummaryRecent)
 	if err != nil {
 		return s, err
 	}

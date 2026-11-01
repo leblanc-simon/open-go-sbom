@@ -61,11 +61,14 @@ func run() error {
 		Config: cfg, Version: version, Client: client, Store: store, Logger: logger,
 		Scanner: hostagent.SyftScanner{Root: cfg.Scan.Root, Hostname: cfg.Hostname, Exclude: cfg.Scan.Exclude,
 			Parallelism: cfg.Resources.MaxProcs, Version: version},
+		// Aucun moteur, donc aucune socket ouverte, sans containers.enabled.
+		Engines:      hostagent.Engines(cfg.Containers),
+		ImageScanner: hostagent.SyftImageScanner{Parallelism: cfg.Resources.MaxProcs, Version: version},
 	})
 	if err != nil {
 		return err
 	}
-	logger.Info("agent démarré", "version", version, "mode", cfg.Mode, "server", cfg.Server.URL)
+	logger.Info("agent démarré", "version", version, "mode", cfg.Mode, "server", cfg.Server.URL, "containers", cfg.Containers.Enabled)
 	if cfg.Mode == hostagent.ModeOneshot {
 		return agent.RunOnce(ctx)
 	}

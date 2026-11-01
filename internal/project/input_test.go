@@ -135,8 +135,17 @@ func TestCleanByKind(t *testing.T) {
 		in.HostRef != "srv" || in.ForgeURL != "" || in.Branches != nil {
 		t.Errorf("serveur : %+v %v", in, err)
 	}
-	if _, err := clean("container", Input{Name: "a"}); keyOf(err) != KeyKindInvalid {
+	if _, err := clean("vm", Input{Name: "a"}); keyOf(err) != KeyKindInvalid {
 		t.Errorf("nature inconnue : %v", err)
+	}
+	// Un conteneur ne garde que nom, description et étiquettes : sa référence est son
+	// identité, tenue par l'agent.
+	if in, err := clean(KindContainer, Input{Name: "a", HostRef: "x", ForgeURL: "https://x/y", Branches: []string{"main"}}); err != nil ||
+		in.HostRef != "" || in.ForgeURL != "" || in.Branches != nil {
+		t.Errorf("conteneur : %+v %v", in, err)
+	}
+	if _, err := ParseKind(string(KindContainer)); keyOf(err) != KeyKindInvalid {
+		t.Error("un conteneur ne se crée pas à la main")
 	}
 	if _, err := clean(KindRepo, Input{Name: "", Branches: []string{"main"}}); keyOf(err) != KeyNameInvalid {
 		t.Errorf("nom vide : %v", err)

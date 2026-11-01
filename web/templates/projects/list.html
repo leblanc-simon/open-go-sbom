@@ -40,6 +40,7 @@
       <input class="input" id="p-label" name="label" type="text" value="{{.Label}}" aria-describedby="p-label-hint">
       <p class="field__hint" id="p-label-hint">{{T "projects.filter_label_hint"}}</p>
     </div>
+    <label class="check"><input type="checkbox" name="containers" value="1"{{if .Containers}} checked{{end}}> <span>{{T "projects.filter_containers"}}</span></label>
     <label class="check"><input type="checkbox" name="archived" value="1"{{if .Archived}} checked{{end}}> <span>{{T "projects.filter_archived"}}</span></label>
     <button class="btn" type="submit">{{T "common.filter"}}</button>
   </form>
@@ -64,7 +65,8 @@
           {{- $base := .Base}}
           {{- range .Rows}}
           <tr>
-            <th scope="row"><span class="cell-stack"><a href="{{$base}}/projects/{{.Slug}}">{{.Name}}</a><span class="mono muted">{{.Slug}}</span></span></th>
+            <th scope="row"><span class="cell-stack"><a href="{{$base}}/projects/{{.Slug}}">{{.Name}}</a><span class="mono muted">{{.Slug}}</span>
+              {{- with .Parent}}<span class="muted">{{T "projects.container_of"}} <a href="{{$base}}/projects/{{.Slug}}">{{.Name}}</a></span>{{end}}</span></th>
             <td>{{template "project_kind" .Kind}}</td>
             <td><a href="{{$base}}/teams/{{.TeamID}}">{{.TeamName}}</a></td>
             <td class="wrap">{{template "labels" .Labels}}</td>

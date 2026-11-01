@@ -218,6 +218,9 @@ func (c Config) Validate() error {
 	}
 	c.Notify.validate(&v)
 	c.SMTP.validate(&v)
+	if c.Containers.ArchiveAfter < time.Hour {
+		v.fail("containers.archive_after", "au moins 1h (reçu %s)", c.Containers.ArchiveAfter)
+	}
 
 	return errors.Join(v.errs...)
 }

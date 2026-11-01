@@ -19,6 +19,9 @@ import (
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// ReportContainers Signale les conteneurs qui tournent sur l'hôte
+	// (POST /agent/containers)
+	ReportContainers(w http.ResponseWriter, r *http.Request)
 	// Enroll Inscrit un agent serveur
 	// (POST /agent/enroll)
 	Enroll(w http.ResponseWriter, r *http.Request)
@@ -45,6 +48,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// ReportContainers Signale les conteneurs qui tournent sur l'hôte
+// (POST /agent/containers)
+func (_ Unimplemented) ReportContainers(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // Enroll Inscrit un agent serveur
 // (POST /agent/enroll)
@@ -96,6 +105,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ReportContainers operation middleware
+func (siw *ServerInterfaceWrapper) ReportContainers(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReportContainers(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // Enroll operation middleware
 func (siw *ServerInterfaceWrapper) Enroll(w http.ResponseWriter, r *http.Request) {
@@ -386,6 +409,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/agent/projects", wrapper.ListAgentProjects)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/agent/containers", wrapper.ReportContainers)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/agent/ingestions", wrapper.CreateIngestion)
 	})
 	r.Group(func(r chi.Router) {
@@ -402,6 +428,86 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 }
 
 type ProblemApplicationProblemPlusJSONResponse Problem
+
+type ReportContainersRequestObject struct {
+	Body *ReportContainersJSONRequestBody
+}
+
+type ReportContainersResponseObject interface {
+	VisitReportContainersResponse(w http.ResponseWriter) error
+}
+
+type ReportContainers200JSONResponse ContainerReportResult
+
+func (response ReportContainers200JSONResponse) VisitReportContainersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportContainers400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ReportContainers400ApplicationProblemPlusJSONResponse) VisitReportContainersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportContainers401ApplicationProblemPlusJSONResponse Problem
+
+func (response ReportContainers401ApplicationProblemPlusJSONResponse) VisitReportContainersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportContainers409ApplicationProblemPlusJSONResponse Problem
+
+func (response ReportContainers409ApplicationProblemPlusJSONResponse) VisitReportContainersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReportContainers429ApplicationProblemPlusJSONResponse Problem
+
+func (response ReportContainers429ApplicationProblemPlusJSONResponse) VisitReportContainersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type EnrollRequestObject struct {
 	Body *EnrollJSONRequestBody
@@ -965,6 +1071,9 @@ func (response GetSnapshotVerdict429ApplicationProblemPlusJSONResponse) VisitGet
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// ReportContainers Signale les conteneurs qui tournent sur l'hôte
+	// (POST /agent/containers)
+	ReportContainers(ctx context.Context, request ReportContainersRequestObject) (ReportContainersResponseObject, error)
 	// Enroll Inscrit un agent serveur
 	// (POST /agent/enroll)
 	Enroll(ctx context.Context, request EnrollRequestObject) (EnrollResponseObject, error)
@@ -1025,6 +1134,37 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// ReportContainers operation middleware
+func (sh *strictHandler) ReportContainers(w http.ResponseWriter, r *http.Request) {
+	var request ReportContainersRequestObject
+
+	var body ReportContainersJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReportContainers(ctx, request.(ReportContainersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReportContainers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReportContainersResponseObject); ok {
+		if err := validResponse.VisitReportContainersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // Enroll operation middleware

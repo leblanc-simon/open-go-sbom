@@ -49,6 +49,7 @@ func valid() Config {
 	c.Ingest = Ingest{MaxUploadMiB: 32, MaxDecompressedMiB: 64, MaxDepth: 64, MaxComponents: 50000, DecodeTimeout: 5 * time.Minute,
 		MaxPerRefPerDay: 200, MaxOrgStorageMiB: 10240, MaxReencodes: 2}
 	c.VulnDB = defaultVulnDB
+	c.Containers = Containers{ArchiveAfter: 168 * time.Hour}
 	c.Retention.Days = 90
 	c.Notify = Notify{Timeout: 30 * time.Second, DigestHour: 7}
 	c.SMTP = SMTP{Port: 587, TLS: "starttls", HELO: "localhost"}
@@ -238,6 +239,7 @@ func TestValidate(t *testing.T) {
 		{"durée absolue sous la durée glissante", "login.session_max_age", func(c *Config) { c.Login.SessionMaxAge = time.Minute }},
 		{"limite de l'API des agents", "agent_api.rate_limit", func(c *Config) { c.AgentAPI.RateLimit = -1 }},
 		{"limite des jetons refusés", "agent_api.failure_rate_limit", func(c *Config) { c.AgentAPI.FailureRateLimit = -1 }},
+		{"archivage des conteneurs", "containers.archive_after", func(c *Config) { c.Containers.ArchiveAfter = time.Minute }},
 		{"limite de l'API utilisateur", "user_api.rate_limit", func(c *Config) { c.UserAPI.RateLimit = -1 }},
 		{"limite des jetons personnels refusés", "user_api.failure_rate_limit", func(c *Config) { c.UserAPI.FailureRateLimit = -1 }},
 		{"durée d'un export", "user_api.export_timeout", func(c *Config) { c.UserAPI.ExportTimeout = 0 }},

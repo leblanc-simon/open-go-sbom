@@ -51,6 +51,7 @@
           {{- range .Kinds}}
           <label class="facet__option"><input type="checkbox" name="type" value="{{.Value}}"{{if .Checked}} checked{{end}}><span class="{{.Class}}">{{T .LabelKey}}</span></label>
           {{- end}}
+          <label class="facet__option"><input type="checkbox" name="containers" value="{{.Containers.Value}}"{{if .Containers.Checked}} checked{{end}}><span class="ptype ptype--container">{{T "search.include_containers"}}</span></label>
         </fieldset>
         {{- if .Labels}}
         <fieldset class="facet">

@@ -21,6 +21,12 @@
 // project_daily_stats de ses projets (rattachés à leur équipe actuelle) ; pour un
 // administrateur, elle lit org_daily_stats.
 //
+// Family lit, pour la fiche d'un serveur, les vulnérabilités ouvertes distinctes de
+// l'hôte et de chacun de ses conteneurs, et leur total : des couples distincts (projet,
+// vulnérabilité), à la plus haute sévérité de leurs constats, conteneurs archivés hors
+// du total (T13, ADR 0040). Les conteneurs actifs comptent comme des projets dans les
+// indicateurs de l'organisation.
+//
 // Seules les séries temporelles lisent org_daily_stats et project_daily_stats ; le
 // dernier point d'une série est l'état courant, si bien que le premier jour la courbe n'a
 // qu'un point, jamais une série inventée.

@@ -65,6 +65,14 @@ et que les notifications soient dédoublonnées.
   depuis plus de 30 jours, agent muet depuis 7 jours (`agent.silent_days`, règle de
   `agent.Activity.Since`) ; le modèle « licence AGPL » est affiché mais indisponible jusqu'à
   T20 (aucune donnée de licence dans le contexte). **[à relire]**
+- **Conteneurs** (T13, fusionné pendant le lot) : un projet `container` hérite des
+  étiquettes de son hôte, les siennes l'emportant (`project.host` donne le nom de l'hôte) :
+  « KEV sur un projet de production » vaut pour les conteneurs d'un hôte de production. Il
+  est évalué après l'analyse de sa référence comme tout projet ; son verdict est celui de
+  son instantané, envoyé par l'agent de l'hôte. Les violations d'un conteneur archivé pour
+  absence quittent les listes ouvertes aussitôt et sont résolues à l'évaluation suivante
+  (l'archivage ne met pas l'évaluation en file). « Agent muet » porte sur l'agent de
+  l'hôte : un conteneur n'en a pas. **[à relire]**
 - **Droits** : `policy.manage` (administrateurs d'organisation) pour les règles ; la liste
   des violations est ouverte à tout membre, filtrée par équipe (projet du constat, équipe
   de l'agent ; un agent d'organisation n'est vu que des administrateurs). **[à relire]**

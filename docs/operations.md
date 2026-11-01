@@ -502,7 +502,9 @@ le binaire de l'archive `lotor-host-agent_<version>_linux_<arch>.tar.gz` en
   fichiers. **Exclus** : `/proc`, `/sys`, `/dev`, `/run`, `/var/run`, les stockages de
   Docker, Podman (y compris sans root, `~/.local/share/containers`), containerd, kubelet,
   LXC/LXD, Rancher, les montages réseau (NFS, CIFS, sshfs, Ceph…), de conteneurs
-  (overlay…) et autofs, plus `scan.exclude`. Les images de conteneurs relèvent de T13.
+  (overlay…) et autofs, plus `scan.exclude`. Les conteneurs sont inventoriés à part,
+  si l'option est activée (« Conteneurs » ci-dessous). Syft travaille hors ligne : il
+  n'exécute aucun outil (`go list`) et ne sort pas sur le réseau.
 - **Envoi conditionnel** : l'empreinte d'inventaire du SBOM est calculée comme par le
   serveur. Inchangée, l'agent envoie un signal de vie avec son empreinte ; le serveur
   avance la date de dernière analyse, ou réclame le SBOM s'il ne connaît pas cet
@@ -522,6 +524,58 @@ le binaire de l'archive `lotor-host-agent_<version>_linux_<arch>.tar.gz` en
   restent (à supprimer à la main pour une réinscription propre, après avoir désactivé
   l'agent dans l'interface).
 - **Journaux** : `journalctl -u lotor-host-agent` ; ni jeton ni contenu de SBOM.
+
+### Conteneurs
+
+Chaque conteneur qui tourne sur l'hôte peut devenir un **projet enfant** du projet de
+l'hôte, avec son propre SBOM (ADR 0040 et 0041). Docker et Podman sont pris en charge ;
+containerd seul (sans Docker ni Podman) ne l'est pas encore (T22).
+
+**L'accès à la socket d'un moteur de conteneurs équivaut à root sur l'hôte** : qui peut
+parler à `/run/docker.sock` peut lancer un conteneur privilégié qui monte `/`.
+L'inventaire des conteneurs est donc **désactivé par défaut** ; sans
+`containers.enabled: true`, l'agent n'ouvre aucune socket. L'activer, c'est accepter que
+l'utilisateur `lotor-agent` (et quiconque le compromet) ait ce pouvoir.
+
+- **Privilégier une socket Podman sans root** quand les conteneurs tournent sous un
+  compte sans privilège : la socket de ce compte (`systemctl --user enable --now
+  podman.socket`, puis `/run/user/<uid>/podman/podman.sock`) ne donne que les droits de
+  ce compte. Donner l'accès à l'agent par une ACL
+  (`setfacl -m u:lotor-agent:x /run/user/<uid> /run/user/<uid>/podman` et
+  `setfacl -m u:lotor-agent:rw /run/user/<uid>/podman/podman.sock`, à reposer au
+  redémarrage du service, par exemple dans un `ExecStartPost=` du `podman.socket` du
+  compte) et la déclarer dans `containers.sockets`.
+- **Docker, ou Podman avec root** (`/run/podman/podman.sock`) : ajouter l'agent au groupe
+  propriétaire de la socket par un complément de l'unité, sans modifier le paquet :
+  `sudo systemctl edit lotor-host-agent` puis
+  `[Service]` / `SupplementaryGroups=docker` (Podman avec root : un groupe à qui la socket
+  est ouverte par `podman.socket` et `SocketGroup=`).
+- **Configuration** (`containers.*`, variables `LOTOR_HOST_AGENT_CONTAINERS_*`) :
+  `enabled` (faux), `sockets` (vide : `/run/docker.sock` puis `/run/podman/podman.sock`,
+  une socket absente étant ignorée), `work_dir` (vide : `<state_dir>/images`, `0700`),
+  `max_image_mib` (4 096 : une image plus grosse n'est pas inventoriée), `timeout` (30 s
+  par appel au moteur).
+- **Fonctionnement** : après l'hôte, l'agent liste les conteneurs en cours, les regroupe
+  par identité — `projet/service` pour un service Compose (étiquettes
+  `com.docker.compose.*`, posées par docker compose et podman-compose ; ses répliques
+  forment un seul projet), sinon le nom du conteneur — et les signale au serveur, qui crée
+  les projets enfants sous l'hôte de l'agent, dans l'équipe de l'hôte. L'image de chaque
+  conteneur que le serveur ne connaît pas encore est exportée (`docker save`) dans
+  `work_dir`, scannée par Syft depuis ce fichier (hors ligne), puis supprimée ; une image
+  partagée n'est scannée qu'une fois. L'agent garde l'empreinte d'inventaire de chaque
+  image : au cycle suivant, le serveur la confirme sans nouveau scan.
+- **Disque** : l'export demande la taille de l'image dans `work_dir`, et Syft extrait ses
+  couches dans le répertoire temporaire du processus (`/tmp`, privé sous l'unité
+  fournie). Pour de grosses images sur un `/tmp` en mémoire, poser
+  `Environment=TMPDIR=/var/lib/lotor-host-agent/tmp` (répertoire `0700` créé au
+  préalable) dans le complément de l'unité.
+- **Échecs** : un moteur injoignable, une image trop grosse, un scan ou un envoi en
+  échec sont journalisés et comptés sans arrêter les autres conteneurs ni le cycle de
+  l'hôte ; le cycle suivant les reprend.
+- **Côté serveur**, un conteneur que l'agent n'a plus signalé depuis
+  `containers.archive_after` (7 jours ; `LOTOR_CONTAINERS_ARCHIVE_AFTER`) voit son projet
+  archivé par une échéance horaire ; il revient de lui-même s'il redémarre. Un projet de
+  conteneur archivé à la main n'est plus inventorié, même s'il tourne.
 
 ### Mesures
 
@@ -805,7 +859,7 @@ Exploitation :
 - Journal d'audit de l'organisation : `policy.created`, `policy.updated`,
   `policy.deleted`, `channel.created`, `channel.updated`, `channel.deleted`,
   `channel.tested`.
-- La migration 020 crée les tables des politiques et des canaux et date le correctif des
+- La migration 021 crée les tables des politiques et des canaux et date le correctif des
   constats existants (`fixed_seen_at`) à leur première détection.
 
 ## Agent dépôt

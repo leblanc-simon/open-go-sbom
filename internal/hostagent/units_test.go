@@ -71,6 +71,7 @@ func validConfig() Config {
 	c.Server.Timeout, c.Server.Retries, c.Server.Language = time.Minute, 5, "en"
 	c.Scan = Scan{Root: "/", Interval: 24 * time.Hour, PollInterval: 5 * time.Minute, MaxDuration: time.Hour}
 	c.Resources = Resources{MaxProcs: 1, MemoryLimitMiB: 512}
+	c.Containers = Containers{MaxImageMiB: 4096, Timeout: 30 * time.Second}
 	return c
 }
 
@@ -95,6 +96,10 @@ func TestConfigValidate(t *testing.T) {
 		"processeurs":     func(c *Config) { c.Resources.MaxProcs = 0 },
 		"mémoire":         func(c *Config) { c.Resources.MemoryLimitMiB = 10 },
 		"étiquette":       func(c *Config) { c.Labels = map[string]string{" ": "x"} },
+		"socket relative": func(c *Config) { c.Containers.Sockets = []string{"docker.sock"} },
+		"travail relatif": func(c *Config) { c.Containers.WorkDir = "images" },
+		"image":           func(c *Config) { c.Containers.MaxImageMiB = 1 },
+		"délai moteur":    func(c *Config) { c.Containers.Timeout = 0 },
 	} {
 		c := validConfig()
 		f(&c)
@@ -127,7 +132,8 @@ func TestLoadReadsFileAndEnvironment(t *testing.T) {
 	}
 	if cfg.Mode != ModeOneshot || cfg.Scan.Interval != 12*time.Hour || cfg.Scan.PollInterval != 5*time.Minute ||
 		cfg.Labels["env"] != "prod" || cfg.Scan.Exclude[0] != "/srv/cache" || cfg.Logging.Level != "debug" ||
-		cfg.StateDir != "/var/lib/lotor-host-agent" || cfg.Resources.MaxProcs != 1 || cfg.Resources.MemoryLimitMiB != 512 {
+		cfg.StateDir != "/var/lib/lotor-host-agent" || cfg.Resources.MaxProcs != 1 || cfg.Resources.MemoryLimitMiB != 512 ||
+		cfg.Containers.Enabled || cfg.Containers.MaxImageMiB != 4096 || cfg.ImagesDir() != "/var/lib/lotor-host-agent/images" {
 		t.Errorf("configuration %+v", cfg)
 	}
 }

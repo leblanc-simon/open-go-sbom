@@ -149,7 +149,10 @@ SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T1
 | Jeton d'inscription partagé qui choisit son nom d'hôte | sans `project_id`, l'agent est rattaché au projet hôte non affecté qui porte le nom d'hôte **déclaré** : un porteur du jeton peut prendre un projet hôte créé à la main et encore sans agent. Risque accepté sous l'hypothèse « hôtes non compromis à l'inscription » ; jetons d'inscription bornés en durée et en usages, inscription auditée (SEC-13) | T07 |
 | Jeton d'agent sans expiration | accepté (ADR 0014) : révocation immédiate, date de dernier usage, rotation documentée (SEC-14) | T04 |
 | Confirmation d'inventaire usurpée | un compte rendu n'avance que la date de dernière analyse d'une référence d'hôte confiée à l'agent, et seulement si l'empreinte est celle de l'ensemble courant | T07 |
-| Socket Docker = root | accès désactivé par défaut et documenté comme tel | T13 |
+| Socket Docker = root | inventaire des conteneurs désactivé par défaut (`containers.enabled`) : sans lui, aucune socket n'est ouverte (testé) ; documenté comme équivalent à root, socket Podman sans root recommandée ; l'unité fournie ne donne aucun accès, à ajouter par un complément explicite (ADR 0041) | T13 |
+| Image de conteneur piégée (contenu tiers) | image exportée puis lue comme fichier par Syft, sans moteur ni registre ; catalogueurs hors ligne (aucun outil exécuté, aucun accès réseau) ; export borné (`containers.max_image_mib`) dans un répertoire `0700`, archive supprimée après le scan ; réponses du moteur bornées ; mêmes bornes d'ingestion qu'un SBOM d'hôte côté serveur | T13 |
+| Agent qui crée ou alimente les conteneurs d'un autre hôte | le signalement ne désigne pas l'hôte : le serveur prend l'hôte actif confié au jeton ; un envoi vers un conteneur passe par `project.RefForAgent`, qui exige l'agent de son hôte (testé) ; 500 identités au plus par signalement, corps borné à 1 Mio (ADR 0040) | T13 |
+| Conteneur visible d'une autre équipe | l'équipe d'un conteneur est celle de son hôte, imposée par une clé étrangère en cascade (ADR 0040) | T13 |
 | Serveur usurpé | TLS vérifié (autorité privée possible) ; mTLS facultatif, exigé alors sur toute l'API des agents avant la lecture du jeton | T07 |
 
 ### Agent dépôt

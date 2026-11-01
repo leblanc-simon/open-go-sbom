@@ -48,18 +48,54 @@ func (e AgentProjectKind) Valid() bool {
 	}
 }
 
+// Defines values for ContainerSightingEngine.
+const (
+	Docker ContainerSightingEngine = "docker"
+	Podman ContainerSightingEngine = "podman"
+)
+
+// Valid indicates whether the value is a known member of the ContainerSightingEngine enum.
+func (e ContainerSightingEngine) Valid() bool {
+	switch e {
+	case Docker:
+		return true
+	case Podman:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ContainerStateInventory.
+const (
+	ContainerStateInventoryCurrent  ContainerStateInventory = "current"
+	ContainerStateInventoryOutdated ContainerStateInventory = "outdated"
+)
+
+// Valid indicates whether the value is a known member of the ContainerStateInventory enum.
+func (e ContainerStateInventory) Valid() bool {
+	switch e {
+	case ContainerStateInventoryCurrent:
+		return true
+	case ContainerStateInventoryOutdated:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for HeartbeatStatusInventory.
 const (
-	Current  HeartbeatStatusInventory = "current"
-	Outdated HeartbeatStatusInventory = "outdated"
+	HeartbeatStatusInventoryCurrent  HeartbeatStatusInventory = "current"
+	HeartbeatStatusInventoryOutdated HeartbeatStatusInventory = "outdated"
 )
 
 // Valid indicates whether the value is a known member of the HeartbeatStatusInventory enum.
 func (e HeartbeatStatusInventory) Valid() bool {
 	switch e {
-	case Current:
+	case HeartbeatStatusInventoryCurrent:
 		return true
-	case Outdated:
+	case HeartbeatStatusInventoryOutdated:
 		return true
 	default:
 		return false
@@ -134,15 +170,18 @@ func (e IngestionStatus) Valid() bool {
 
 // Defines values for IngestionContextRefKind.
 const (
-	IngestionContextRefKindBranch IngestionContextRefKind = "branch"
-	IngestionContextRefKindHost   IngestionContextRefKind = "host"
-	IngestionContextRefKindTag    IngestionContextRefKind = "tag"
+	IngestionContextRefKindBranch    IngestionContextRefKind = "branch"
+	IngestionContextRefKindContainer IngestionContextRefKind = "container"
+	IngestionContextRefKindHost      IngestionContextRefKind = "host"
+	IngestionContextRefKindTag       IngestionContextRefKind = "tag"
 )
 
 // Valid indicates whether the value is a known member of the IngestionContextRefKind enum.
 func (e IngestionContextRefKind) Valid() bool {
 	switch e {
 	case IngestionContextRefKindBranch:
+		return true
+	case IngestionContextRefKindContainer:
 		return true
 	case IngestionContextRefKindHost:
 		return true
@@ -236,13 +275,16 @@ func (e SearchHitStatus) Valid() bool {
 
 // Defines values for SearchProjectKind.
 const (
-	SearchProjectKindHost SearchProjectKind = "host"
-	SearchProjectKindRepo SearchProjectKind = "repo"
+	SearchProjectKindContainer SearchProjectKind = "container"
+	SearchProjectKindHost      SearchProjectKind = "host"
+	SearchProjectKindRepo      SearchProjectKind = "repo"
 )
 
 // Valid indicates whether the value is a known member of the SearchProjectKind enum.
 func (e SearchProjectKind) Valid() bool {
 	switch e {
+	case SearchProjectKindContainer:
+		return true
 	case SearchProjectKindHost:
 		return true
 	case SearchProjectKindRepo:
@@ -254,15 +296,18 @@ func (e SearchProjectKind) Valid() bool {
 
 // Defines values for SearchRefKind.
 const (
-	SearchRefKindBranch SearchRefKind = "branch"
-	SearchRefKindHost   SearchRefKind = "host"
-	SearchRefKindTag    SearchRefKind = "tag"
+	SearchRefKindBranch    SearchRefKind = "branch"
+	SearchRefKindContainer SearchRefKind = "container"
+	SearchRefKindHost      SearchRefKind = "host"
+	SearchRefKindTag       SearchRefKind = "tag"
 )
 
 // Valid indicates whether the value is a known member of the SearchRefKind enum.
 func (e SearchRefKind) Valid() bool {
 	switch e {
 	case SearchRefKindBranch:
+		return true
+	case SearchRefKindContainer:
 		return true
 	case SearchRefKindHost:
 		return true
@@ -363,6 +408,21 @@ func (e TrackedRefKind) Valid() bool {
 	case TrackedRefKindHost:
 		return true
 	case TrackedRefKindTag:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchContainers.
+const (
+	SearchContainersN1 SearchContainers = "1"
+)
+
+// Valid indicates whether the value is a known member of the SearchContainers enum.
+func (e SearchContainers) Valid() bool {
+	switch e {
+	case SearchContainersN1:
 		return true
 	default:
 		return false
@@ -474,6 +534,21 @@ func (e SearchOrganizationParamsType) Valid() bool {
 	case SearchOrganizationParamsTypeHost:
 		return true
 	case SearchOrganizationParamsTypeRepo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchOrganizationParamsContainers.
+const (
+	SearchOrganizationParamsContainersN1 SearchOrganizationParamsContainers = "1"
+)
+
+// Valid indicates whether the value is a known member of the SearchOrganizationParamsContainers enum.
+func (e SearchOrganizationParamsContainers) Valid() bool {
+	switch e {
+	case SearchOrganizationParamsContainersN1:
 		return true
 	default:
 		return false
@@ -612,6 +687,21 @@ func (e ExportSearchParamsType) Valid() bool {
 	case ExportSearchParamsTypeHost:
 		return true
 	case ExportSearchParamsTypeRepo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportSearchParamsContainers.
+const (
+	ExportSearchParamsContainersN1 ExportSearchParamsContainers = "1"
+)
+
+// Valid indicates whether the value is a known member of the ExportSearchParamsContainers enum.
+func (e ExportSearchParamsContainers) Valid() bool {
+	switch e {
+	case ExportSearchParamsContainersN1:
 		return true
 	default:
 		return false
@@ -775,6 +865,72 @@ type ComponentCounts struct {
 	Weak  int `json:"weak"`
 }
 
+// ContainerReport defines model for ContainerReport.
+type ContainerReport struct {
+	// Containers Conteneurs en cours d'exécution, une entrée par identité (500 au plus).
+	Containers []ContainerSighting `json:"containers"`
+
+	// Version Version de l'agent.
+	Version string `json:"version"`
+}
+
+// ContainerReportResult defines model for ContainerReportResult.
+type ContainerReportResult struct {
+	Containers []ContainerState `json:"containers"`
+}
+
+// ContainerSighting defines model for ContainerSighting.
+type ContainerSighting struct {
+	ComposeProject *string                 `json:"compose_project,omitempty"`
+	ComposeService *string                 `json:"compose_service,omitempty"`
+	Engine         ContainerSightingEngine `json:"engine"`
+
+	// Image Référence de l'image telle que le moteur la donne (`nginx:1.27`).
+	Image string `json:"image"`
+
+	// ImageId Empreinte de l'image (identifiant du moteur).
+	ImageId string `json:"image_id"`
+
+	// Inventory Inventaire déjà connu de l'image du conteneur.
+	Inventory *ImageInventory `json:"inventory,omitempty"`
+
+	// Key Identité dans l'hôte, `projet/service` (Compose) ou nom du conteneur.
+	//
+	// Examples: shop/web, redis-cache
+	Key string `json:"key"`
+
+	// Names Noms des conteneurs de cette identité (répliques), 16 au plus.
+	Names []string `json:"names"`
+
+	// Replicas Nombre de conteneurs de cette identité en cours d'exécution.
+	Replicas int `json:"replicas"`
+
+	// StartedAt Démarrage du conteneur le plus récent de cette identité.
+	StartedAt *time.Time `json:"started_at,omitempty"`
+}
+
+// ContainerSightingEngine defines model for ContainerSighting.Engine.
+type ContainerSightingEngine string
+
+// ContainerState defines model for ContainerState.
+type ContainerState struct {
+	// Ignored Projet archivé par un utilisateur ; l'agent ne l'inventorie pas.
+	Ignored bool `json:"ignored"`
+
+	// Inventory Réponse à `inventory` : `current`, l'inventaire du projet enfant est à jour et
+	// sa date de dernière analyse a avancé ; `outdated`, l'agent doit envoyer le SBOM.
+	Inventory *ContainerStateInventory `json:"inventory,omitempty"`
+	Key       string                   `json:"key"`
+	Project   ProjectRef               `json:"project"`
+
+	// RefId Référence `container` du projet enfant, nommée par `key`.
+	RefId openapi_types.UUID `json:"ref_id"`
+}
+
+// ContainerStateInventory Réponse à `inventory` : `current`, l'inventaire du projet enfant est à jour et
+// sa date de dernière analyse a avancé ; `outdated`, l'agent doit envoyer le SBOM.
+type ContainerStateInventory string
+
 // EnrollRequest defines model for EnrollRequest.
 type EnrollRequest struct {
 	// Hostname Nom de l'hôte, qui devient sa référence (mis en minuscules).
@@ -851,6 +1007,15 @@ type HostContext struct {
 	ScanDurationMs *int `json:"scan_duration_ms,omitempty"`
 }
 
+// ImageInventory Inventaire déjà connu de l'image du conteneur.
+type ImageInventory struct {
+	// Fingerprint Empreinte d'inventaire (SHA-256 en hexadécimal minuscule).
+	Fingerprint string `json:"fingerprint"`
+
+	// ScannedAt Date du scan de l'image (au plus une heure d'avance sur l'horloge du serveur).
+	ScannedAt time.Time `json:"scanned_at"`
+}
+
 // ImpactFinding defines model for ImpactFinding.
 type ImpactFinding struct {
 	Component     SearchComponent    `json:"component"`
@@ -911,13 +1076,13 @@ type IngestionStatus string
 type IngestionContext struct {
 	AgentVersion string `json:"agent_version"`
 
-	// Commit Commit analysé (SHA-1 ou SHA-256 en hexadécimal) ; exigé pour une branche ou une étiquette, interdit pour un hôte.
+	// Commit Commit analysé (SHA-1 ou SHA-256 en hexadécimal) ; exigé pour une branche ou une étiquette, interdit pour un hôte ou un conteneur.
 	Commit *string `json:"commit,omitempty"`
 
 	// Host Contexte de l'hôte au moment du scan.
 	Host *HostContext `json:"host,omitempty"`
 
-	// ProjectId Projet confié à l'agent (`listAgentProjects`).
+	// ProjectId Projet confié à l'agent (`listAgentProjects`), ou projet enfant d'un conteneur de son hôte (`reportContainers`).
 	ProjectId openapi_types.UUID `json:"project_id"`
 	Ref       struct {
 		Kind IngestionContextRefKind `json:"kind"`
@@ -1065,6 +1230,7 @@ type SearchProject struct {
 	Kind   SearchProjectKind  `json:"kind"`
 	Labels map[string]string  `json:"labels"`
 	Name   string             `json:"name"`
+	Parent *ProjectRef        `json:"parent,omitempty"`
 	Slug   string             `json:"slug"`
 }
 
@@ -1260,6 +1426,9 @@ type Org = string
 // Project defines model for Project.
 type Project = string
 
+// SearchContainers defines model for SearchContainers.
+type SearchContainers string
+
 // SearchKEV defines model for SearchKEV.
 type SearchKEV string
 
@@ -1350,6 +1519,10 @@ type SearchOrganizationParams struct {
 	// Type Types de projet retenus (l'un ou l'autre).
 	Type *SearchType `form:"type,omitempty" json:"type,omitempty"`
 
+	// Containers `1` : inclut les conteneurs (projets enfants des hôtes), écartés sinon ; ils
+	// s'ajoutent aux types retenus.
+	Containers *SearchOrganizationParamsContainers `form:"containers,omitempty" json:"containers,omitempty"`
+
 	// Label Étiquettes de projet retenues, `clé=valeur` ou `clé` (l'une ou l'autre).
 	Label *SearchLabel `form:"label,omitempty" json:"label,omitempty"`
 
@@ -1379,6 +1552,9 @@ type SearchOrganizationParams struct {
 // SearchOrganizationParamsType defines parameters for SearchOrganization.
 type SearchOrganizationParamsType string
 
+// SearchOrganizationParamsContainers defines parameters for SearchOrganization.
+type SearchOrganizationParamsContainers string
+
 // SearchOrganizationParamsOrigin defines parameters for SearchOrganization.
 type SearchOrganizationParamsOrigin string
 
@@ -1404,6 +1580,10 @@ type ExportSearchParams struct {
 	// Type Types de projet retenus (l'un ou l'autre).
 	Type *SearchType `form:"type,omitempty" json:"type,omitempty"`
 
+	// Containers `1` : inclut les conteneurs (projets enfants des hôtes), écartés sinon ; ils
+	// s'ajoutent aux types retenus.
+	Containers *ExportSearchParamsContainers `form:"containers,omitempty" json:"containers,omitempty"`
+
 	// Label Étiquettes de projet retenues, `clé=valeur` ou `clé` (l'une ou l'autre).
 	Label *SearchLabel `form:"label,omitempty" json:"label,omitempty"`
 
@@ -1427,6 +1607,9 @@ type ExportSearchParamsFormat string
 // ExportSearchParamsType defines parameters for ExportSearch.
 type ExportSearchParamsType string
 
+// ExportSearchParamsContainers defines parameters for ExportSearch.
+type ExportSearchParamsContainers string
+
 // ExportSearchParamsOrigin defines parameters for ExportSearch.
 type ExportSearchParamsOrigin string
 
@@ -1438,6 +1621,9 @@ type ExportSearchParamsSeverity string
 
 // ExportSearchParamsResolved defines parameters for ExportSearch.
 type ExportSearchParamsResolved string
+
+// ReportContainersJSONRequestBody defines body for ReportContainers for application/json ContentType.
+type ReportContainersJSONRequestBody = ContainerReport
 
 // EnrollJSONRequestBody defines body for Enroll for application/json ContentType.
 type EnrollJSONRequestBody = EnrollRequest

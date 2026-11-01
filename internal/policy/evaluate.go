@@ -273,9 +273,13 @@ func readProject(ctx context.Context, tx *db.OrgTx, id uuid.UUID) (projectRow, e
 	var p projectRow
 	var labels []byte
 	var archived sql.NullTime
-	err := tx.QueryRowContext(ctx, `SELECT p.name, p.slug, p.kind, p.labels, p.archived_at,
-		coalesce((SELECT t.name FROM teams t WHERE t.org_id = p.org_id AND t.id = p.team_id), '')
-		FROM projects p WHERE p.id = $1`, id).Scan(&p.Name, &p.Slug, &p.Kind, &labels, &archived, &p.Team)
+	// Un conteneur (T13) hérite des étiquettes de son hôte, les siennes l'emportant : la
+	// règle « KEV sur un projet de production » vaut pour les conteneurs d'un hôte de
+	// production.
+	err := tx.QueryRowContext(ctx, `SELECT p.name, p.slug, p.kind, coalesce(h.labels, '{}') || p.labels, p.archived_at,
+		coalesce((SELECT t.name FROM teams t WHERE t.org_id = p.org_id AND t.id = p.team_id), ''), coalesce(h.name, '')
+		FROM projects p LEFT JOIN projects h ON h.org_id = p.org_id AND h.id = p.parent_id
+		WHERE p.id = $1`, id).Scan(&p.Name, &p.Slug, &p.Kind, &labels, &archived, &p.Team, &p.Host)
 	if errors.Is(err, sql.ErrNoRows) {
 		return p, ErrNotFound
 	}

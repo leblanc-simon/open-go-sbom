@@ -71,7 +71,7 @@ const (
 func ValidationKeys() []string {
 	return []string{KeyNameInvalid, KeyNameTaken, KeyExpiryInvalid, KeyMaxUsesInvalid, KeyAgentDisabled,
 		KeyVersionInvalid, KeyProjectNotHost, KeyTokenRevoked, KeyHostContextInvalid, KeyInventoryInvalid, KeyScanNotHost,
-		KeyTeamInvalid, KeyTeamMismatch}
+		KeyTeamInvalid, KeyTeamMismatch, KeyContainersNotHost}
 }
 
 func invalid(field, key string) error { return &account.ValidationError{Field: field, Key: key} }

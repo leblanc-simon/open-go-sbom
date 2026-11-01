@@ -4,6 +4,9 @@
     <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
       <ol>
         <li><a href="{{.Base}}/projects">{{T "nav.projects"}}</a></li>
+        {{- with .Project.Parent}}
+        <li><a href="{{$.Base}}/projects/{{.Slug}}">{{.Name}}</a></li>
+        {{- end}}
         <li><a href="{{.Base}}/projects/{{.Project.Slug}}">{{.Project.Name}}</a></li>
         <li><span aria-current="page">{{T "project.tab_settings"}}</span></li>
       </ol>
@@ -51,7 +54,14 @@
     </div>
   </section>
   {{- end}}
-  {{- if .MoveTeams}}
+  {{- if .Project.Parent}}
+  <section class="panel" aria-labelledby="project-team">
+    <div class="panel__head"><h2 class="panel__title" id="project-team">{{T "project_settings.team_title"}}</h2></div>
+    <div class="panel__body">
+      <p>{{T "project_settings.container_team_text" "Team" .Project.TeamName}} <a href="{{.Base}}/projects/{{.Project.Parent.Slug}}/settings">{{.Project.Parent.Name}}</a></p>
+    </div>
+  </section>
+  {{- else if .MoveTeams}}
   <section class="panel" aria-labelledby="project-team">
     <div class="panel__head"><h2 class="panel__title" id="project-team">{{T "project_settings.team_title"}}</h2></div>
     <div class="panel__body stack stack--sm">
@@ -74,14 +84,16 @@
   <section class="panel" aria-labelledby="project-archive">
     <div class="panel__head"><h2 class="panel__title" id="project-archive">{{T "project_settings.archive_title"}}</h2></div>
     <div class="panel__body stack stack--sm">
-      {{- if .Project.ArchivedAt}}
+      {{- if and .Project.ArchivedAt .Project.Container .Project.Container.ArchivedAbsent}}
+      <p>{{T "project_settings.container_absent_text"}}</p>
+      {{- else if .Project.ArchivedAt}}
       <p>{{T "project_settings.unarchive_text"}}</p>
       <form method="post" action="{{.Base}}/projects/{{.Project.Slug}}/unarchive">
         {{csrfField .Page.CSRFToken}}
         <button type="submit" class="btn">{{T "project_settings.unarchive"}}</button>
       </form>
       {{- else}}
-      <p>{{T "project_settings.archive_text"}}</p>
+      <p>{{if .Project.Container}}{{T "project_settings.container_archive_text"}}{{else}}{{T "project_settings.archive_text"}}{{end}}</p>
       <form method="post" action="{{.Base}}/projects/{{.Project.Slug}}/archive">
         {{csrfField .Page.CSRFToken}}
         <button type="submit" class="btn btn--danger">{{T "project_settings.archive"}}</button>

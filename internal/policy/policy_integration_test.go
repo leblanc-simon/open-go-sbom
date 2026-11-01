@@ -15,8 +15,10 @@ import (
 	"leblanc.io/lotor/internal/account"
 	"leblanc.io/lotor/internal/db"
 	"leblanc.io/lotor/internal/delivery"
+	"leblanc.io/lotor/internal/ingest"
 	"leblanc.io/lotor/internal/jobs"
 	"leblanc.io/lotor/internal/notify"
+	"leblanc.io/lotor/internal/project"
 	"leblanc.io/lotor/internal/secret"
 	"leblanc.io/lotor/internal/tenant"
 	"leblanc.io/lotor/internal/triage"
@@ -563,5 +565,79 @@ func TestHandlersErrorsAndPages(t *testing.T) {
 	}
 	if s := Schedule(); s.Name != AllKind || s.Offset != AllOffset {
 		t.Fatalf("échéance %+v", s)
+	}
+}
+
+// TestContainerProjects : un conteneur (T13) hérite des étiquettes de son hôte, est évalué
+// après l'analyse de sa référence, porte le verdict de son instantané, et ses violations
+// quittent les listes ouvertes dès son archivage pour absence, puis sont résolues.
+func TestContainerProjects(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	hostAgent := newID()
+	var states []project.ChildState
+	if err := e.pool.InOrg(ctx, e.org, func(tx *db.OrgTx) error {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO agents (org_id, id, kind, name, team_id) VALUES ($1, $2, 'host', 'srv-prod', $1)`,
+			e.org, hostAgent); err != nil {
+			return err
+		}
+		var err error
+		if _, err = project.CreateHost(ctx, tx, "srv-prod", project.Labels{"env": "production"}, hostAgent, e.org.UUID()); err != nil {
+			return err
+		}
+		states, err = project.SightContainers(ctx, tx, actor, hostAgent, []project.ContainerSighting{{Key: "shop/api",
+			Context: project.ContainerContext{Engine: project.EngineDocker, Names: []string{"shop-api-1"}, Replicas: 1,
+				Image: "shop/api:1.0", ImageID: "sha256:" + strings.Repeat("b", 64)}}}, time.Now().UTC())
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	container, ref := states[0].ProjectID, states[0].RefID
+	e.publish(vuln.FixFixed)
+	e.scans++
+	in, err := e.ingest.Receive(ctx, e.org, hostAgent, ingest.Context{ProjectID: container, RefKind: project.RefContainer,
+		RefName: "shop/api", AgentVersion: "1.0.0", ScannedAt: time.Now().Add(-time.Minute)},
+		strings.NewReader(string(testdata(t, "log4shell.cdx16.json"))))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.ingest.Decode(ctx, e.org, in.ID); err != nil {
+		t.Fatal(err)
+	}
+	got, err := e.ingest.Get(ctx, e.org, hostAgent, in.ID)
+	if err != nil || got.SnapshotID == nil {
+		t.Fatalf("ingestion du conteneur %+v : %v", got, err)
+	}
+	e.analyze(e.org, ref)
+	if e.jobs(ProjectKind) == 0 {
+		t.Fatal("conteneur non mis en évaluation après son analyse")
+	}
+	p := e.fromTemplate(e.org, TemplateKEVProduction)
+	if _, err := e.policies.Create(ctx, e.org, actor, Input{Name: "hôte", Subject: SubjectFinding,
+		Expression: `project.kind == "container" && project.host == "srv-prod" && ref.kind == "container"`,
+		Enabled:    true, Delivery: DeliveryNone}); err != nil {
+		t.Fatal(err)
+	}
+	e.evaluate(e.org, container)
+	if n := e.count(e.org, `SELECT count(*) FROM policy_violations WHERE project_id = $1 AND resolved_at IS NULL`, container); n != 2 {
+		t.Fatalf("violations du conteneur : %d (étiquettes de l'hôte non héritées ?)", n)
+	}
+	if v, err := e.policies.Verdict(ctx, e.org, hostAgent, *got.SnapshotID); err != nil || v.State != VerdictFail || v.Policies[0] != p.Name {
+		t.Fatalf("verdict du conteneur : %+v, %v", v, err)
+	}
+	// Archivé pour absence : hors des listes ouvertes tout de suite, résolu à l'évaluation.
+	e.exec(e.org, `UPDATE projects SET archived_at = now(), archived_absent = true WHERE id = $1`, container)
+	if sum, _ := e.policies.Summary(ctx, e.org, tenant.AllTeams()); sum.Open != 0 {
+		t.Fatalf("violations d'un conteneur archivé encore ouvertes au résumé : %d", sum.Open)
+	}
+	if page, _ := e.policies.Violations(ctx, e.org, tenant.AllTeams(), Filter{}, "", 10); len(page.Items) != 0 {
+		t.Fatal("violations d'un conteneur archivé dans la liste ouverte")
+	}
+	if err := e.policies.EvaluateOrg(ctx, e.org); err != nil {
+		t.Fatal(err)
+	}
+	e.evaluate(e.org, container)
+	if n := e.count(e.org, `SELECT count(*) FROM policy_violations WHERE project_id = $1 AND resolved_at IS NULL`, container); n != 0 {
+		t.Fatalf("violations du conteneur archivé non résolues : %d", n)
 	}
 }

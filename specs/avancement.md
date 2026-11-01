@@ -17,6 +17,7 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 | T14 | #23 | Terminé (PR à fusionner) | Statut effectif rangé sur chaque constat, verrou consultatif ; journal en ajout seul avec retrait, échéance qui ramène « à analyser » à sa portée ; décision de projet sur le purl exact ; permission `triage.org` ; échéance par job ; audit d'un import groupé ; tableau de bord sans non affectés ni faux positifs ; VEX (structures OpenVEX propres, marques `[lotor:…]`, justification d'origine toujours notée, export des seuls constats ouverts décidés, import de projet par famille et version) ; fiche du constat en page au lieu du tiroir — tous **[à relire]** |
 | T15 | #26 | Terminé (PR à fusionner) | `cel.dev/cel-go` v0.32.0 (nouveau chemin de `github.com/google/cel-go`) ; contexte typé à deux sujets, `finding.actionable`, coût borné ; « correctif depuis » = première vue par lotor ; violations par couple règle × sujet ; verdict sur l'état courant de la référence ; modèle AGPL indisponible jusqu'à T20 ; objectifs de délai exprimés par des règles ; règles et canaux aux administrateurs ; envois uniques par canal × violation, 30 tentatives puis relance quotidienne ; clé HMAC fournie, garde SSRF sans mandataire ; statut de commit synchrone, désactivé par défaut, jeton GitHub séparé ; rotation des secrets des canaux — tous **[à relire]** |
 | T12 | #25 | Terminé (PR à fusionner), mesure avec un vrai modèle à faire par l'utilisateur | SDK officiel d'Anthropic construit sans environnement (ADR 0042) ; réglage par dépôt, permission `ai.external`, `ai.forbid_external` ramène à « local » (ADR 0043) ; règles du vérificateur au-delà de la fiche (documentation, manifestes, marqueurs d'injection, purl dans l'extrait) ; statut `carried` et commits intermédiaires sans modèle ; confinement sans processus fils (ADR 0044) ; exclusions intégrées ; budgets par défaut ; prompt système en anglais — tous **[à relire]** |
+| T13 | #24 | Terminé (PR à fusionner) | Client HTTP sur socket Unix plutôt que le client moby (écart au § 5) ; scan de l'image exportée (`docker save`) ; catalogueurs hors ligne aussi pour l'hôte ; équipe imposée par clé étrangère en cascade ; signalement dédié qui vaut signal de vie ; archivage à la main qui tient ; conteneurs écartés des listes et de la recherche, comptés au tableau de bord ; agrégat par vulnérabilités distinctes — tous **[à relire]** |
 
 ### Décisions à relire, par thème
 
@@ -108,6 +109,35 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
   commentaire exigés, deux vocabulaires proposés, onglet VEX, rubrique Triage
   ([ADR 0037](../docs/adr/0037-ecrans-du-triage.md)).
 
+#### Conteneurs (T13)
+
+- API Docker de Docker et Podman par un client HTTP sur socket Unix, sans bibliothèque
+  cliente, plutôt que le client moby du graphe de stereoscope (écart au § 5 de
+  l'architecture, mis à jour) ; moteur détecté par `/version`
+  ([ADR 0041](../docs/adr/0041-inventaire-des-conteneurs-par-l-agent.md)).
+- Image exportée (`docker save`) dans `<state_dir>/images` et scannée par la source
+  `docker-archive` de Syft, une fois par image, 4 096 Mio au plus ; empreintes d'images
+  gardées par l'agent et confirmées par le serveur, jamais de SBOM sur le disque
+  ([ADR 0041](../docs/adr/0041-inventaire-des-conteneurs-par-l-agent.md)).
+- Catalogueurs de Syft hors ligne pour le scan de l'hôte aussi (plus de `go list` sous
+  `/`) : un hôte qui porte des modules Go renvoie une fois son SBOM
+  ([ADR 0041](../docs/adr/0041-inventaire-des-conteneurs-par-l-agent.md)).
+- Équipe du conteneur imposée par une clé étrangère `ON UPDATE CASCADE` vers l'hôte ;
+  conteneur sans agent propre ; nom `hôte/identité`
+  ([ADR 0040](../docs/adr/0040-conteneurs-en-projets-enfants.md)).
+- Signalement `POST /api/v1/agent/containers` (500 identités, 1 Mio), qui vaut signal de
+  vie et porte les comptes rendus d'inventaire ; l'hôte vient du jeton
+  ([ADR 0040](../docs/adr/0040-conteneurs-en-projets-enfants.md)).
+- Conteneur archivé à la main : reste archivé, l'agent l'ignore ; archivé pour absence :
+  revient seul, pas de réactivation à la main
+  ([ADR 0040](../docs/adr/0040-conteneurs-en-projets-enfants.md)).
+- Conteneurs écartés par défaut des listes et de la recherche (`containers=1` s'ajoute à
+  `type`), comptés dans le tableau de bord de l'organisation
+  ([ADR 0040](../docs/adr/0040-conteneurs-en-projets-enfants.md)).
+- Fiche hôte : vulnérabilités distinctes par projet à la plus haute sévérité, conteneurs
+  archivés hors du total ; état « absent » d'un conteneur non signalé depuis le dernier
+  inventaire de l'hôte, à une heure près
+  ([ADR 0040](../docs/adr/0040-conteneurs-en-projets-enfants.md)).
 #### Politiques, alertes et statuts de commit (T15)
 
 - Dépendance `cel.dev/cel-go` v0.32.0 : `github.com/google/cel-go` sous son nouveau chemin
@@ -128,6 +158,9 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
   fournie par l'administrateur ; garde SSRF sans mandataire
   (`notify.allow_private_networks`) ; résumé à 7 h UTC ; rotation des secrets des canaux
   au démarrage ([ADR 0046](../docs/adr/0046-notifications.md)).
+- Conteneurs : étiquettes de l'hôte héritées, violations d'un conteneur archivé hors des
+  listes ouvertes puis résolues à l'évaluation suivante
+  ([ADR 0045](../docs/adr/0045-politiques-cel-et-verdicts.md)).
 - Statut de commit : attente synchrone bornée, « en attente » laissé à l'expiration,
   `canceled` sur GitLab pour une ingestion refusée, désactivé par défaut, jeton GitHub
   séparé limité à `statuses: write` ([ADR 0047](../docs/adr/0047-statut-de-commit.md)).
@@ -153,22 +186,30 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
   orphelins ; tri des constats de T14 à prendre en compte dans l'effet sur la sécurité
   une fois T14 fusionné (T18) ([T17](lots/T17-differences-instantanes.md#écarts)).
 
+- T13 : captures clair et sombre non faites (composants existants, un seul modificateur
+  CSS) ; Podman non essayé (Docker 29 essayé pour de vrai) ; purge des conteneurs archivés
+  depuis longtemps renvoyée à T18 ([T13](lots/T13-conteneurs.md#écarts)).
+
 ### Actions pour l'utilisateur
 
-1. Relire les décisions **[à relire]** ci-dessus (ADR 0034, matrice
+1. Relire les décisions **[à relire]** ci-dessus (ADR 0034, 0040, 0041, matrice
    [`docs/security/permissions.md`](../docs/security/permissions.md)).
-2. Après la publication d'une version contenant T16 : vérifier sur une instance réelle
+2. Après la publication d'une version contenant T13 : essayer l'inventaire des conteneurs
+   sur un hôte réel (Docker avec docker compose, puis Podman sans root avec son ACL,
+   `docs/operations.md`, « Conteneurs »), en connaissance de l'équivalence root de la
+   socket.
+3. Après la publication d'une version contenant T16 : vérifier sur une instance réelle
    que la migration 016 a placé chaque membre dans l'équipe « Général » avec son ancien
    rôle (page **Équipes** de chaque organisation).
-3. Après la publication d'une version contenant T17 : le premier passage nocturne de la
+4. Après la publication d'une version contenant T17 : le premier passage nocturne de la
    rétention réduit l'historique antérieur à 90 jours (un instantané par mois) ; régler
    `retention.*` avant la mise à jour si une autre politique est voulue
    ([`operations.md`](../docs/operations.md#rétention-des-instantanés)).
-4. Relire les décisions de T14 (ADR 0035 à 0037), en particulier la correspondance des
+5. Relire les décisions de T14 (ADR 0035 à 0037), en particulier la correspondance des
    justifications VEX (ADR 0036) et le choix d'une page plutôt que du tiroir (ADR 0037) ;
    vérifier qu'un mandataire inverse en production laisse passer 1 Mio sur les routes
    d'import VEX (`docs/operations.md`, « Triage et VEX »).
-5. **Mesurer l'enrichissement IA avec un vrai modèle** (T12, non fait faute de clé
+6. **Mesurer l'enrichissement IA avec un vrai modèle** (T12, non fait faute de clé
    d'API) : `LOTOR_EVAL_AI_PROVIDER=anthropic LOTOR_EVAL_AI_API_KEY_FILE=<fichier 0600>
    LOTOR_EVAL_AI_RUNS=3 LOTOR_EVAL_AI_REPORT=/tmp/eval-ai.json make eval-ai`
    (procédure : [`docs/operations.md`](../docs/operations.md#évaluer-lenrichissement-ia)) ;

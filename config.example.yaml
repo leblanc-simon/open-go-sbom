@@ -207,6 +207,11 @@ retention:
   days: 90        # fenêtre où tout est gardé, en jours (1 à 36500)
   count: 0        # derniers instantanés de chaque référence gardés quel que soit leur âge
   monthly: true   # au-delà de la fenêtre, garder le dernier instantané de chaque mois
+# Conteneurs des hôtes, projets enfants du projet de leur hôte (docs/operations.md,
+# « Conteneurs ») : un conteneur que l'agent n'a plus signalé depuis archive_after voit
+# son projet archivé ; il revient s'il redémarre.
+containers:
+  archive_after: 168h         # 7 jours
 
 # Notifications des politiques (T15, docs/notifications.md, ADR 0046). Les canaux sont
 # créés par organisation dans l'interface ; leurs secrets sont chiffrés par secrets.keys.

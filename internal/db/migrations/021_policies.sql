@@ -1,4 +1,4 @@
--- 020_policies : politiques, violations, canaux de notification et envois (T15,
+-- 021_policies : politiques, violations, canaux de notification et envois (T15,
 -- ADR 0045 et 0046). Tables d'organisation sous la RLS standard (§ 9).
 --
 -- Une politique est une règle CEL évaluée sur un sujet : un constat ouvert (avec son

@@ -95,6 +95,7 @@ type searchView struct {
 	Origins      []facetOption
 	Severities   []facetOption
 	KEV          facetOption
+	Containers   facetOption
 	Resolved     facetOption
 	Sorts        []option
 	Syntax       []syntaxExample
@@ -221,6 +222,10 @@ func (id *identity) searchFacets(view *searchView, req search.Request, labels []
 		if on {
 			chip(search.ParamSeverity, string(s), opt.LabelKey, "")
 		}
+	}
+	view.Containers = facetOption{ID: "f-containers", Value: "1", Checked: f.Containers}
+	if f.Containers {
+		chip(search.ParamContainers, "1", "search.filter_containers", "")
 	}
 	view.KEV = facetOption{ID: "f-kev", Value: "1", Checked: f.KEV}
 	if f.KEV {

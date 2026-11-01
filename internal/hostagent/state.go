@@ -37,6 +37,11 @@ type State struct {
 	// LastScan est le début du dernier scan réussi ; LastSent, le dernier envoi d'un SBOM.
 	LastScan time.Time `json:"last_scan,omitzero"`
 	LastSent time.Time `json:"last_sent,omitzero"`
+	// Images : inventaire des images des conteneurs qui tournent, rangé ou confirmé par
+	// le serveur, par empreinte d'image (sha256:…) ; valable pour la version
+	// ImagesVersion de l'agent seulement.
+	Images        map[string]ImageRecord `json:"images,omitempty"`
+	ImagesVersion string                 `json:"images_version,omitempty"`
 }
 
 // fingerprint renvoie l'empreinte retenue, si elle est lisible.

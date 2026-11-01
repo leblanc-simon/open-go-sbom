@@ -36,7 +36,7 @@ const (
 // ErrorKeys liste les clés d'erreur du paquet (tests de traduction).
 func ErrorKeys() []string {
 	return []string{KeyTokenInvalid, KeyTokenRevokedErr, KeyTokenExpired, KeyAgentDisabledErr,
-		KeyEnrollmentExhausted, KeyHostTaken, KeyProjectUnavailable}
+		KeyEnrollmentExhausted, KeyHostTaken, KeyProjectUnavailable, KeyNoHostProject}
 }
 
 // AuthError est le refus d'un jeton présenté à l'API des agents.
@@ -44,11 +44,11 @@ type AuthError struct{ Key string }
 
 func (e *AuthError) Error() string { return "agent: jeton refusé : " + e.Key }
 
-// ConflictError est une inscription refusée par l'état de l'organisation (hôte déjà suivi
-// par un agent actif, projet archivé).
+// ConflictError est une requête d'agent refusée par l'état de l'organisation (hôte déjà
+// suivi par un agent actif, projet archivé).
 type ConflictError struct{ Key string }
 
-func (e *ConflictError) Error() string { return "agent: inscription refusée : " + e.Key }
+func (e *ConflictError) Error() string { return "agent: requête refusée : " + e.Key }
 
 func isAuthError(err error) bool {
 	var a *AuthError

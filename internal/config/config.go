@@ -36,6 +36,7 @@ type Config struct {
 	Retention  Retention       `yaml:"retention"  env-prefix:"LOTOR_"`
 	Notify     Notify          `yaml:"notify"     env-prefix:"LOTOR_"`
 	SMTP       SMTP            `yaml:"smtp"       env-prefix:"LOTOR_"`
+	Containers Containers      `yaml:"containers" env-prefix:"LOTOR_"`
 }
 
 // Notify règle les notifications des politiques et les liens des verdicts (T15,
@@ -57,6 +58,11 @@ type SMTP struct {
 	Password string `yaml:"password" env:"SMTP_PASSWORD" env-description:"SMTP password"`
 	From     string `yaml:"from"     env:"SMTP_FROM"     env-description:"Sender address of notifications (lotor@example.org)"`
 	HELO     string `yaml:"helo"     env:"SMTP_HELO"     env-default:"localhost" env-description:"Name announced in EHLO"`
+}
+
+// Containers règle les conteneurs en projets enfants des hôtes (T13, ADR 0040).
+type Containers struct {
+	ArchiveAfter time.Duration `yaml:"archive_after" env:"CONTAINERS_ARCHIVE_AFTER" env-default:"168h" env-description:"Absence after which the project of a container is archived (it comes back when the container restarts)"`
 }
 
 // Retention règle la rétention des instantanés (T17, ADR 0039), appliquée chaque nuit

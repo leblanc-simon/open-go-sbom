@@ -242,6 +242,11 @@ validation:
   project_ai_external_forbidden: "Cette instance interdit tout fournisseur de modèle externe."
   agent_team_invalid: "Choisissez une équipe dans laquelle vous pouvez gérer les agents."
   enrollment_team_mismatch: "Le projet de serveur à rattacher appartient à une autre équipe que celle du jeton."
+  container_team: "Un conteneur suit l'équipe de son hôte : rattachez l'hôte pour changer d'équipe."
+  container_absent: "Ce conteneur a été archivé parce qu'il ne tourne plus ; il revient de lui-même s'il redémarre."
+  container_invalid: "Un conteneur signalé est invalide (identité, image, empreinte, noms ou date de démarrage)."
+  containers_too_many: "Trop de conteneurs dans un signalement : 500 identités au plus."
+  containers_not_host: Seul un agent serveur signale des conteneurs.
 
 home:
   title: Accueil
@@ -356,6 +361,9 @@ dashboard:
   kind_host:
     one: "{{.Count}} serveur"
     other: "{{.Count}} serveurs"
+  kind_container:
+    one: "{{.Count}} conteneur"
+    other: "{{.Count}} conteneurs"
   last_analysis: "Dernière analyse de vulnérabilités :"
   no_analysis: Aucune analyse de vulnérabilités pour l'instant
   open_findings: Constats ouverts
@@ -722,6 +730,9 @@ error:
       title: Jeton expiré
       text: Ce jeton a dépassé sa date d'expiration. Demandez-en un nouveau à un administrateur de l'organisation.
   agent:
+    no_host_project:
+      title: Agent sans hôte actif
+      text: "Le projet de l'hôte de cet agent est archivé : ses conteneurs ne peuvent être rattachés à rien. Réactivez le projet de l'hôte."
     disabled:
       title: Agent désactivé
       text: Cet agent a été désactivé par un administrateur de l'organisation.
@@ -788,6 +799,7 @@ chart:
 project_type:
   repo: Dépôt
   host: Serveur
+  container: Conteneur
 
 agent_type:
   repo: Agent dépôt
@@ -835,6 +847,8 @@ projects:
   empty_archived: Aucun projet archivé ne correspond.
   filter_team: "Équipe"
   col_team: "Équipe"
+  filter_containers: Inclure les conteneurs
+  container_of: sur
 
 project:
   tab_vex: "VEX"
@@ -865,6 +879,29 @@ project:
   assign_agent: Agent dépôt chargé de ce dépôt
   enroll_this_host: Inscrire ce serveur
   team: "Équipe"
+  host: Hôte
+  container_of: Conteneur de
+  containers_count:
+    one: "{{.Count}} conteneur"
+    other: "{{.Count}} conteneurs"
+  container_archived_title: Conteneur archivé pour absence
+  container_archived_text: "L'agent de l'hôte ne signale plus ce conteneur ; son projet reviendra de lui-même si le conteneur redémarre. Son historique est conservé."
+  containers_title: Conteneurs et constats par périmètre
+  containers_meta: Vulnérabilités ouvertes distinctes de chaque projet.
+  containers_caption: "Vulnérabilités ouvertes de l'hôte et de chacun de ses conteneurs, et leur total"
+  col_perimeter: Périmètre
+  col_image: Image
+  col_container_state: État
+  col_open_vulns: Vulnérabilités ouvertes
+  perimeter_host: Hôte
+  perimeter_host_image: —
+  perimeter_host_state: —
+  perimeter_archived: Archivé, hors du total
+  perimeter_total: "Total : hôte et conteneurs actifs"
+  containers_hint:
+    one: "Une vulnérabilité compte une fois par projet où elle est ouverte. Un conteneur absent depuis plus de {{.Count}} jour est archivé ; il revient s'il redémarre."
+    other: "Une vulnérabilité compte une fois par projet où elle est ouverte. Un conteneur absent depuis plus de {{.Count}} jours est archivé ; il revient s'il redémarre."
+  containers_none: "Aucun conteneur signalé. L'inventaire des conteneurs est désactivé par défaut dans l'agent serveur (containers.enabled) : voir la documentation d'exploitation."
   inventory_title: Inventaire courant
   inventory_meta: "Composants du dernier instantané de chaque référence, par origine."
   inventory_none: Aucun instantané pour l'instant.
@@ -887,6 +924,9 @@ project_settings:
   team_title: "Équipe du projet"
   team_text: "Le projet appartient à l'équipe {{.Team}}. Le rattacher à une autre équipe change qui le voit ; un dépôt confié à un agent d'une autre équipe le perd."
   team_submit: "Rattacher"
+  container_team_text: "Un conteneur suit l'équipe de son hôte ({{.Team}}). Pour changer d'équipe, rattachez l'hôte :"
+  container_absent_text: "Ce conteneur a été archivé parce qu'il ne tourne plus : il reviendra de lui-même s'il redémarre."
+  container_archive_text: "Archivé par vous, ce conteneur n'est plus inventorié par l'agent, même s'il tourne ; son historique est conservé."
 
 project_form:
   kind: Type de projet
@@ -1025,6 +1065,7 @@ ref_kind:
   branch: Branche
   tag: Étiquette
   host: Hôte
+  container: Conteneur
 
 origin:
   syft: Syft
@@ -1516,6 +1557,8 @@ search:
   remove_range: Retirer la plage
   unreadable_title: Versions non comparables
   unreadable_text: "Ces versions ne se lisent pas selon les règles de l'écosystème : impossible de dire si elles sont dans la plage. Leurs occurrences ne sont pas affichées."
+  include_containers: Inclure les conteneurs
+  filter_containers: Conteneurs inclus
 
 tokens:
   title: Jetons d'accès
@@ -1651,6 +1694,34 @@ team:
   delete_text: "Une équipe ne peut être supprimée qu'une fois tous ses projets rattachés à une autre équipe."
   delete: "Supprimer l'équipe"
 
+container:
+  title: Conteneur
+  identity: Identité
+  state: État
+  engine: Moteur
+  image: Image
+  image_id: Empreinte de l'image
+  compose_project: Projet Compose
+  compose_service: Service Compose
+  names:
+    one: Nom
+    other: Noms
+  replicas_label: Répliques en cours
+  replicas:
+    one: "{{.Count}} réplique"
+    other: "{{.Count}} répliques"
+  started: Démarrage
+  seen_at: Signalé le
+
+container_state:
+  running: En cours d'exécution
+  absent: Absent
+  archived: Archivé (absent)
+  ignored: Archivé
+
+container_engine:
+  docker: Docker
+  podman: Podman
 triage:
   title: "{{.ID}} sur {{.Component}}"
   summary: "Résumé du constat"
@@ -1954,11 +2025,11 @@ policy_form:
 policy_help:
   title: "Aide"
   intro: "Une règle est une expression CEL vraie pour chaque sujet en violation. Les champs disponibles sont listés sous chaque variable ; un champ inconnu est refusé."
-  project: "Le projet du constat : nom, slug, nature, équipe, étiquettes (table : has(project.labels.env) teste une étiquette)."
+  project: "Le projet du constat : nom, slug, nature (repo, host, container), équipe, étiquettes (table : has(project.labels.env) teste une étiquette ; un conteneur hérite de celles de son hôte), hôte d'un conteneur."
   component: "Le composant : purl, famille (purl_base), type, nom, version."
   finding: "Le constat : identifiant, sévérité, scores, KEV, correctif (fix_available, fix_age_days en jours), âge en jours, actionable (à analyser ou affecté)."
   triage: "Le statut de triage effectif : in_triage, affected, not_affected, false_positive, risk_accepted, fixed."
-  ref: "La référence suivie : nature (branch, tag, host) et nom."
+  ref: "La référence suivie : nature (branch, tag, host, container) et nom."
   agent: "L'agent : nom, nature, version, équipe, état, jours de silence, dernier contact."
   now: "L'instant de l'évaluation (horodatage)."
   examples: "Exemples, ceux des modèles fournis :"

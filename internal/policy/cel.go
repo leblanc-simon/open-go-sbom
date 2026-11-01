@@ -46,6 +46,8 @@ type Project struct {
 	Kind   string            `cel:"kind"`
 	Team   string            `cel:"team"`
 	Labels map[string]string `cel:"labels"`
+	// Host est le nom du projet de l'hôte d'un conteneur (vide pour un dépôt ou un hôte).
+	Host string `cel:"host"`
 }
 
 // Component est le composant d'un constat.

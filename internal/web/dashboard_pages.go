@@ -219,7 +219,7 @@ func (id *identity) orgOverview(w http.ResponseWriter, r *http.Request) {
 		id.serverError(w, r, err)
 		return
 	}
-	for _, k := range project.Kinds() {
+	for _, k := range append(project.Kinds(), project.KindContainer) {
 		if n := d.Projects[k]; n > 0 {
 			view.Kinds = append(view.Kinds, kindCount{Kind: k, Count: n})
 		}

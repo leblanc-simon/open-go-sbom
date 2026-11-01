@@ -92,6 +92,9 @@ type IdentityOptions struct {
 	// SessionMaxAge est la durée absolue d'une session authentifiée, comptée depuis la
 	// connexion, quelle que soit son activité (0 : sans).
 	SessionMaxAge time.Duration
+	// ContainerArchiveAfter est l'absence au-delà de laquelle un conteneur est archivé
+	// (affichée sur la fiche d'un hôte ; 0 : project.DefaultArchiveAfter).
+	ContainerArchiveAfter time.Duration
 	// ForbidExternalAI : l'instance interdit tout fournisseur de modèle externe
 	// (ai.forbid_external) ; le réglage « external » d'un projet n'est pas proposé.
 	ForbidExternalAI bool

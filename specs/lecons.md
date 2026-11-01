@@ -793,6 +793,32 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   Règle : une place qui borne un calcul se libère dès la fin du calcul, avant l'écriture
   de la réponse, pas par `defer`.
 
+## Conteneurs en projets enfants (T13)
+
+- **Énumérations partagées d'oapi-codegen** (piège de T07 retrouvé) : ajouter l'énumération
+  `current`/`outdated` à un second schéma a renommé les constantes existantes
+  (`gen.Current` → `gen.HeartbeatStatusInventoryCurrent`) et cassé l'agent. Règle : avant
+  de réutiliser des valeurs d'énumération, chercher leurs constantes (`grep '= "'`) et
+  corriger tous les appelants dans le même commit.
+- **Corps de l'API des agents borné à 64 Kio** pour tout ce qui n'est pas multipart : une
+  liste de 500 conteneurs le dépasse. Règle : une borne propre par chemin dans
+  `limitBody`, et un test qui envoie réellement plus de 64 Kio.
+- **Un `{{with}}` ne prend pas de `{{else if}}`** dans `html/template` (« unexpected <if> in
+  input », vu par `render` au démarrage) : écrire `{{if .X}}…{{else if …}}` et lire
+  `.X.Champ` dans la branche.
+- **Paramètre SQL à `nil` sans type** : `$7 IS NOT NULL` avec `$7` nul donne « could not
+  determine data type of parameter » ; caster (`$7::timestamptz`).
+- **Horloges de test différentes dans un même scénario** : le serveur de test date les
+  signalements avec son horloge figée, l'agent réel avec l'heure du système ; pour un
+  archivage « après 7 jours », avancer l'horloge du serveur entre deux cycles plutôt que
+  de dater l'archiveur dans le futur (sinon tout est archivé).
+- **Vrai moteur Docker dans l'environnement** : `dockerd` est installé (arrêté) ; Docker
+  Hub peut répondre 429 : `mirror.gcr.io/library/<image>` sert les images officielles.
+  Arrêter le démon et supprimer conteneurs et images après l'essai (`kill $(pidof
+  dockerd)`, jamais `pkill -f`).
+- **Syft exécute la chaîne Go aussi sur l'hôte** : le scan de `/` de T07 gardait
+  `golang.UsePackagesLib` à vrai (piège de T08). Règle : tout scan Syft d'un agent passe
+  par des catalogueurs hors ligne (`offlineCatalogers`).
 ## Politiques, alertes et statuts de commit (T15)
 
 - **Module renommé en amont** : `github.com/google/cel-go` v0.32.0 déclare

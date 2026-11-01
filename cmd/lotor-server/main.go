@@ -205,29 +205,30 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		CORS:           cfg.CORS,
 		CSRFSecure:     cfg.Auth.CookieSecure,
 		Identity: &web.IdentityOptions{
-			Pool:             pool,
-			Accounts:         accounts,
-			Orgs:             orgs,
-			Projects:         projects,
-			Agents:           agents,
-			Inventory:        inv,
-			History:          history,
-			Ingest:           ingester,
-			Findings:         findings,
-			Triage:           triager,
-			Search:           searcher,
-			Exports:          exports,
-			Reencodes:        reencodes,
-			Dashboard:        dash,
-			Policies:         policies,
-			Notify:           notifier,
-			VulnDB:           vulndbScreen,
-			Secrets:          box,
-			Auth:             cfg.Auth,
-			MFA:              cfg.MFA,
-			LoginRateLimit:   cfg.Login.RateLimit,
-			SessionMaxAge:    cfg.Login.SessionMaxAge,
-			ForbidExternalAI: cfg.AI.ForbidExternal,
+			Pool:                  pool,
+			Accounts:              accounts,
+			Orgs:                  orgs,
+			Projects:              projects,
+			Agents:                agents,
+			Inventory:             inv,
+			History:               history,
+			Ingest:                ingester,
+			Findings:              findings,
+			Triage:                triager,
+			Search:                searcher,
+			Exports:               exports,
+			Reencodes:             reencodes,
+			Dashboard:             dash,
+			Policies:              policies,
+			Notify:                notifier,
+			VulnDB:                vulndbScreen,
+			Secrets:               box,
+			Auth:                  cfg.Auth,
+			MFA:                   cfg.MFA,
+			LoginRateLimit:        cfg.Login.RateLimit,
+			SessionMaxAge:         cfg.Login.SessionMaxAge,
+			ForbidExternalAI:      cfg.AI.ForbidExternal,
+			ContainerArchiveAfter: cfg.Containers.ArchiveAfter,
 		},
 		AgentAPI: &api.AgentOptions{
 			Agents:           agents,
@@ -338,6 +339,9 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		if err := registerAlerts(runner, scheduler, policies, notifier); err != nil {
 			return err
 		}
+		if err := registerContainers(runner, scheduler, project.NewArchiver(pool, cfg.Containers.ArchiveAfter, nil)); err != nil {
+			return err
+		}
 		services = append(services, runner.Run, scheduler.Run, vulndb.Run)
 	}
 	return runAll(ctx, services...)
@@ -435,6 +439,17 @@ func registerAlerts(runner *jobs.Runner, scheduler *jobs.Scheduler, policies *po
 		return err
 	}
 	return scheduler.Register(notifier.DigestSchedule())
+}
+
+// registerContainers enregistre l'archivage des conteneurs absents (T13).
+func registerContainers(runner *jobs.Runner, scheduler *jobs.Scheduler, archiver *project.Archiver) error {
+	if err := runner.Register(project.ArchiveAllKind, archiver.AllHandler()); err != nil {
+		return err
+	}
+	if err := runner.Register(project.ArchiveOrgKind, archiver.OrgHandler()); err != nil {
+		return err
+	}
+	return scheduler.Register(archiver.Schedule())
 }
 
 // runAll lance les services ensemble et attend qu'ils aient tous rendu la main ; le

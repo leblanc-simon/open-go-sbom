@@ -10,7 +10,7 @@
 {{- end}}
 
 {{define "project_kind" -}}
-<span class="ptype{{if eq (print .) "host"}} ptype--server{{end}}">{{T (print "project_type." .)}}</span>
+<span class="ptype{{if eq (print .) "host"}} ptype--server{{else if eq (print .) "container"}} ptype--container{{end}}">{{T (print "project_type." .)}}</span>
 {{- end}}
 
 {{define "labels" -}}
