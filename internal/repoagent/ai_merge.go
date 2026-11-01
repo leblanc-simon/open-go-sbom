@@ -83,13 +83,13 @@ func mergeAI(bom *cyclonedx.BOM, res enrichResult, contents func(string) []byte)
 func aiComponent(a AcceptedComponent, contents func(string) []byte) cyclonedx.Component {
 	line := a.Line
 	conf := float32(a.Confidence)
-	typ := cyclonedx.ComponentTypeLibrary
-	if a.PURL.Type == "docker" || a.PURL.Type == "oci" {
-		typ = cyclonedx.ComponentTypeContainer
-	}
+	// Toujours « library », image de conteneur comprise (son purl pkg:docker/… dit sa
+	// nature) : le décodeur CycloneDX de Syft, celui du serveur, ignore les composants de
+	// type « container », et l'image de base d'un Dockerfile serait perdue à l'ingestion
+	// (défaut trouvé par la recette du lot 2).
 	c := cyclonedx.Component{
 		BOMRef:     "lotor-ia:" + a.PURL.String,
-		Type:       typ,
+		Type:       cyclonedx.ComponentTypeLibrary,
 		Name:       a.PURL.Name,
 		Version:    a.PURL.Version,
 		PackageURL: a.PURL.String,

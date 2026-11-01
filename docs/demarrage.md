@@ -3,9 +3,9 @@
 *[English version](getting-started.md)*
 
 Ce guide mène d'une instance installée à un premier parc inventorié et interrogé :
-connexion, organisation, serveurs, dépôts, lecture des résultats. L'installation du
-serveur et des agents est décrite dans [`operations.md`](operations.md) ; l'usage détaillé
-de la recherche dans [`utilisation.md`](utilisation.md).
+connexion, organisation et équipes, serveurs, dépôts, lecture des résultats, puis triage
+et alertes. L'installation du serveur et des agents est décrite dans
+[`operations.md`](operations.md) ; l'usage détaillé dans [`utilisation.md`](utilisation.md).
 
 ## 1. Se connecter
 
@@ -40,15 +40,22 @@ organisation à l'autre.
    administrateur d'instance : l'interface le rappelle tant qu'il n'y en a qu'un.
 2. **Administration › Organisations** : créez l'organisation (identifiant court, par
    exemple `infra`, nom, langue) et désignez son premier administrateur.
-3. Dans l'organisation, **Membres** : ajoutez les comptes avec leur rôle — **lecteur**
-   (consulte), **analyste** (consulte et demande des scans), **administrateur** (gère
-   projets, agents, membres et paramètres).
+3. Dans l'organisation, **Membres** : **invitez** chaque compte par son adresse, comme
+   **membre** ou **administrateur** de l'organisation ; il accepte depuis **Mon compte ›
+   Invitations** (30 jours).
+4. **Équipes** : chaque projet appartient à une équipe (« Général » existe d'office) ; un
+   membre ne voit que les projets de ses équipes. Créez les équipes utiles, puis, sur la
+   page de chacune, ajoutez-y les membres avec leur **rôle d'équipe** — **lecteur**
+   (consulte), **analyste** (consulte, demande des scans, trie les constats),
+   **administrateur d'équipe** (gère les projets, agents et membres de l'équipe). Un
+   administrateur de l'organisation voit et gère tout
+   ([détail](utilisation.md#équipes-rôles-et-invitations)).
 
 ## 3. Inventorier des serveurs
 
-1. **Agents › Inscrire des serveurs** (administrateur de l'organisation) : choisissez la
-   durée de validité, le nombre de serveurs à inscrire et, au besoin, des étiquettes
-   (`env=prod`). Le **jeton d'inscription** et les commandes d'installation s'affichent
+1. **Agents › Inscrire des serveurs** (administrateur de l'organisation ou de l'équipe) :
+   choisissez l'équipe des futurs serveurs, la durée de validité, le nombre de serveurs à
+   inscrire et, au besoin, des étiquettes (`env=production`). Le **jeton d'inscription** et les commandes d'installation s'affichent
    une seule fois.
 2. Sur chaque serveur, l'exploitant installe le paquet `lotor-host-agent`, renseigne
    l'adresse du serveur, dépose le jeton et démarre l'agent
@@ -60,6 +67,10 @@ organisation à l'autre.
 4. Pour un inventaire immédiat (après une mise à jour du serveur, par exemple) : fiche du
    projet › **Scanner maintenant** (analyste ou administrateur). L'agent le lance à son
    prochain signal de vie (5 minutes au plus en mode démon).
+5. Conteneurs : si l'exploitant active `containers.enabled` sur l'agent (désactivé par
+   défaut, [`operations.md`](operations.md#conteneurs)), chaque conteneur Docker ou Podman
+   du serveur devient un projet enfant, avec son SBOM et ses constats, visible sur la fiche
+   du serveur ([détail](utilisation.md#conteneurs-des-serveurs)).
 
 ## 4. Inventorier des dépôts
 
@@ -71,6 +82,10 @@ organisation à l'autre.
    étiquettes suivies éventuelles.
 3. Sur la fiche du projet, confiez-le à l'agent dépôt. L'agent l'analyse à son prochain
    passage (15 minutes au plus), puis à chaque push reçu par webhook.
+4. Facultatif : **Paramètres** du dépôt › **Enrichissement IA** fait chercher par un
+   modèle les composants qu'aucun manifeste ne déclare (désactivé par défaut ; fournisseur
+   externe sur autorisation d'un administrateur de l'organisation ;
+   [détail](utilisation.md#composants-trouvés-par-lia)).
 
 ## 5. Lire les résultats
 
@@ -112,3 +127,19 @@ curl -H "Authorization: Bearer $LOTOR_TOKEN" \
 ```
 
 Le contrat de l'API est dans [`api/openapi.yaml`](../api/openapi.yaml).
+
+## 8. Trier, comparer, être alerté
+
+- **Trier** : le statut d'un constat (onglet **Constats**) mène à sa fiche ; un analyste
+  y décide « affecté », « non affecté » (avec une justification VEX), « faux positif »,
+  « risque accepté » jusqu'à une date ou « corrigé ». Les décisions s'exportent en
+  OpenVEX ou CycloneDX (onglet **VEX**), et le VEX d'un éditeur s'importe
+  ([détail](utilisation.md#triage-des-constats-et-vex)).
+- **Comparer** : l'onglet **Instantanés** indique, pour chaque instantané, les
+  composants ajoutés, retirés, montés ou descendus de version, et compare deux instantanés
+  avec leur effet sur la sécurité ([détail](utilisation.md#historique-et-comparaison-des-instantanés)).
+- **Être alerté** : un administrateur de l'organisation active des **Politiques** (par
+  exemple « KEV sur un projet de production ») et des **Canaux** (e-mail, webhook,
+  Matrix, Mattermost, Slack) ; les violations apparaissent dans **Violations** et dans la
+  section « Alertes » du tableau de bord ([détail](utilisation.md#politiques-et-alertes),
+  [`notifications.md`](notifications.md)).

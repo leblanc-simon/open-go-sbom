@@ -27,7 +27,11 @@ func TestSearchBenchmark(t *testing.T) {
 	}
 	ctx := context.Background()
 	start := time.Now()
-	d, org := planDataset(t, benchdata.Reference())
+	tp := benchdata.ReferenceTeams()
+	d, org, ts := planDatasetWith(t, benchdata.Reference(), &tp)
+	// Membre d'une seule équipe (1 sur 10) : la recherche passe le filtre des équipes.
+	member := tenant.OnlyTeams(ts.Teams[1])
+	team := "&team=" + ts.Teams[1].String()
 	t.Logf("jeu de référence et compléments générés et analysés en %s", time.Since(start).Round(time.Second))
 	svc := NewService(d.App, cmp)
 	req := func(params string) Request {
@@ -71,6 +75,19 @@ func TestSearchBenchmark(t *testing.T) {
 			return svc.Search(ctx, org, tenant.AllTeams(), req("q=lib-1&severity=medium&type=repo&sort=snapshot"))
 		}},
 		{"page suivante (curseur)", func(int) (Result, error) { return svc.Search(ctx, org, tenant.AllTeams(), second) }},
+		// Lot 2 (T18) : équipes, conteneurs, statut de triage.
+		{"nom large, membre d'une équipe", func(int) (Result, error) { return svc.Search(ctx, org, member, req("q=lib-1")) }},
+		{"nom large, filtre équipe", func(int) (Result, error) { return svc.Search(ctx, org, tenant.AllTeams(), req("q=lib-1"+team)) }},
+		{"nom large, conteneurs compris", func(int) (Result, error) {
+			return svc.Search(ctx, org, tenant.AllTeams(), req("q=lib-1&containers=1"))
+		}},
+		{"vulnérabilité, membre d'une équipe", func(i int) (Result, error) {
+			return svc.Search(ctx, org, member, req("q=CVE-2099-"+[]string{"00001", "00002", "00941", "00050", "00100"}[i%5]))
+		}},
+		{"vulnérabilité, filtre triage (affecté, à analyser)", func(i int) (Result, error) {
+			return svc.Search(ctx, org, tenant.AllTeams(),
+				req("q=CVE-2099-"+[]string{"00001", "00002", "00941", "00050", "00100"}[i%5]+"&triage=affected&triage=in_triage&containers=1"))
+		}},
 	}
 	for _, c := range cases {
 		var ds []time.Duration
@@ -107,6 +124,17 @@ func TestSearchBenchmark(t *testing.T) {
 	}
 	slices.Sort(ds)
 	t.Logf("export CSV (lib-1) : p50 %s, p95 %s, max %s", ds[len(ds)/2].Round(time.Millisecond),
+		ds[len(ds)*95/100].Round(time.Millisecond), ds[len(ds)-1].Round(time.Millisecond))
+	ds = ds[:0]
+	for range 20 {
+		s := time.Now()
+		if err := svc.Export(ctx, org, tenant.AllTeams(), req("q=lib-1&containers=1"), FormatCSV, io.Discard); err != nil {
+			t.Fatal(err)
+		}
+		ds = append(ds, time.Since(s))
+	}
+	slices.Sort(ds)
+	t.Logf("export CSV (lib-1, conteneurs compris) : p50 %s, p95 %s, max %s", ds[len(ds)/2].Round(time.Millisecond),
 		ds[len(ds)*95/100].Round(time.Millisecond), ds[len(ds)-1].Round(time.Millisecond))
 
 	// Plans réels (EXPLAIN ANALYZE, RLS active) consignés dans docs/benchmarks.md.

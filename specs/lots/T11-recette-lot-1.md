@@ -2,7 +2,7 @@
 
 | Lot fonctionnel | Dépend de | Statut |
 | --- | --- | --- |
-| 1 · MVP inventaire | T07, T08, T09, T10 | Terminé (v0.1.0 à publier par l'utilisateur) |
+| 1 · MVP inventaire | T07, T08, T09, T10 | Terminé (v0.1.0 publiée le 1er novembre 2026) |
 
 ## Objectif
 
@@ -50,9 +50,11 @@ documenter et publier une préversion.
 - [x] Pour trois CVE choisies avant la recette, la recherche renvoie exactement la liste de
       projets attendue, établie à la main au préalable. (CVE-2023-4911, CVE-2023-48795,
       CVE-2023-2650 : listes exactes à l'écran et par l'API.)
-- [ ] `v0.1.0` publiée. (Prête : `CHANGELOG.md`, workflow `release.yml`, `make release`
-      vérifié ; la pose de l'étiquette est refusée dans la session, action de
-      l'utilisateur décrite dans `specs/avancement.md`.)
+- [x] `v0.1.0` publiée. (Étiquette posée par l'utilisateur sur `109fa20` ; préversion
+      [v0.1.0](https://github.com/leblanc-simon/lotor/releases/tag/v0.1.0) publiée par le
+      workflow le 1er novembre 2026 à 01:10 UTC ; constaté par la recette du lot 2, qui
+      a téléchargé et vérifié par `SHA256SUMS` les archives du serveur et de l'agent
+      serveur.)
 
 ## Décisions
 

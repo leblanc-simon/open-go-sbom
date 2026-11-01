@@ -159,7 +159,14 @@ const (
 	sendAttempts = 30
 	// batchMax borne les violations d'un message.
 	batchMax = 100
+	// claimTTL est la durée d'une réservation d'envois (ADR 0052) : au-delà, l'envoi qui
+	// l'a posée est tenu pour interrompu. Elle dépasse notify.timeout (5 min au plus).
+	claimTTL = 10 * time.Minute
 )
+
+// ErrSendInProgress : les envois en attente du canal sont réservés par un autre envoi en
+// cours ; le job est réessayé plus tard (une réservation expirée se reprend).
+var ErrSendInProgress = errors.New("notify: envoi en cours sur ce canal")
 
 // SendPayload est la charge de SendKind.
 type SendPayload struct {
@@ -286,11 +293,18 @@ func readOrg(ctx context.Context, tx *db.OrgTx) (orgInfo, error) {
 // marqués envoyés qu'après le succès ; l'identifiant du message, dérivé des envois,
 // permet au destinataire d'écarter le doublon d'une tentative dont la réponse s'est
 // perdue (Matrix l'écarte de lui-même).
+//
+// Deux envois du même canal peuvent tourner en même temps (deux jobs, la clé d'unicité ne
+// valant que pour les jobs en attente) : chacun réserve son lot sous le verrou de la ligne
+// du canal (claimed_at) avant l'appel réseau et ne prend que des envois libres ; la
+// réservation est levée par l'issue de l'envoi, ou expire après claimTTL (ADR 0052).
 func (s *Service) Send(ctx context.Context, org tenant.OrgID, channelID uuid.UUID, mode Mode) error {
 	var b batch
 	skip := false
+	claimed := false
 	err := s.o.Pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
-		c, err := getChannel(ctx, tx, channelID, false)
+		// Verrou de la ligne du canal : les préparations d'envois du canal se suivent.
+		c, err := getChannel(ctx, tx, channelID, true)
 		if errors.Is(err, ErrNotFound) || (err == nil && !c.Enabled) {
 			skip = true
 			return nil
@@ -299,7 +313,7 @@ func (s *Service) Send(ctx context.Context, org tenant.OrgID, channelID uuid.UUI
 			return err
 		}
 		now := s.now()
-		if _, err := tx.ExecContext(ctx, `UPDATE notification_deliveries d SET state = 'skipped', done_at = $3
+		if _, err := tx.ExecContext(ctx, `UPDATE notification_deliveries d SET state = 'skipped', done_at = $3, claimed_at = NULL
 			  FROM policy_violations v
 			 WHERE d.channel_id = $1 AND d.mode = $2 AND d.state = 'pending'
 			   AND v.org_id = d.org_id AND v.id = d.violation_id AND v.resolved_at IS NOT NULL`,
@@ -307,8 +321,9 @@ func (s *Service) Send(ctx context.Context, org tenant.OrgID, channelID uuid.UUI
 			return err
 		}
 		rows, err := tx.QueryContext(ctx, `SELECT violation_id FROM notification_deliveries
-			WHERE channel_id = $1 AND mode = $2 AND state = 'pending' ORDER BY created_at, violation_id LIMIT $3`,
-			channelID, mode, batchMax+1)
+			WHERE channel_id = $1 AND mode = $2 AND state = 'pending' AND (claimed_at IS NULL OR claimed_at < $4)
+			ORDER BY created_at, violation_id LIMIT $3`,
+			channelID, mode, batchMax+1, now.Add(-claimTTL))
 		if err != nil {
 			return err
 		}
@@ -329,7 +344,12 @@ func (s *Service) Send(ctx context.Context, org tenant.OrgID, channelID uuid.UUI
 			b.ids, b.pending = b.ids[:batchMax], 1
 		}
 		if len(b.ids) == 0 {
-			return nil
+			return tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM notification_deliveries
+				WHERE channel_id = $1 AND mode = $2 AND state = 'pending')`, channelID, mode).Scan(&claimed)
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE notification_deliveries SET claimed_at = $3
+			WHERE channel_id = $1 AND state = 'pending' AND violation_id = ANY($2::uuid[])`, channelID, b.ids, now); err != nil {
+			return err
 		}
 		if b.target, err = s.loadTarget(ctx, tx, channelID); err != nil {
 			return &SendError{Key: KeySendSecret, Err: err}
@@ -347,6 +367,9 @@ func (s *Service) Send(ctx context.Context, org tenant.OrgID, channelID uuid.UUI
 		}
 		return fmt.Errorf("notify: préparation de l'envoi : %w", err)
 	}
+	if claimed {
+		return ErrSendInProgress
+	}
 	if skip || len(b.ids) == 0 {
 		return nil
 	}
@@ -359,11 +382,15 @@ func (s *Service) Send(ctx context.Context, org tenant.OrgID, channelID uuid.UUI
 	now := s.now()
 	err = s.o.Pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
 		if sendErr != nil {
+			if _, err := tx.ExecContext(ctx, `UPDATE notification_deliveries SET claimed_at = NULL
+				WHERE channel_id = $1 AND state = 'pending' AND violation_id = ANY($2::uuid[])`, channelID, b.ids); err != nil {
+				return err
+			}
 			_, err := tx.ExecContext(ctx, `UPDATE notification_channels SET last_failure_at = $2, last_error_key = $3 WHERE id = $1`,
 				channelID, now, ErrorKey(sendErr))
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE notification_deliveries SET state = 'sent', done_at = $3
+		if _, err := tx.ExecContext(ctx, `UPDATE notification_deliveries SET state = 'sent', done_at = $3, claimed_at = NULL
 			WHERE channel_id = $1 AND state = 'pending' AND violation_id = ANY($2::uuid[])`, channelID, b.ids, now); err != nil {
 			return err
 		}

@@ -1,0 +1,26 @@
+description: >-
+  Outil téléchargé par curl dont la version est dans une variable du Makefile, image de
+  service de l'intégration continue par variable, image d'outil épinglée ; pièges : image
+  à « latest », image distroless sans étiquette, installation à « latest », version du
+  dépôt (fichier VERSION), image interne d'étiquette mouvante. Calqué sur gitlab-shell
+  (échantillon pilote).
+components:
+  - purl: pkg:github/gotestyourself/gotestsum@v1.12.0
+    file: Makefile
+    line: 4
+    excerpt: "GOTESTSUM_VERSION := 1.12.0"
+  - purl: pkg:docker/library/postgres@16.4
+    file: .gitlab-ci.yml
+    line: 2
+    excerpt: 'POSTGRES_VERSION: "16.4"'
+  - purl: pkg:docker/sourcegraph/scip-go@v0.1.22
+    file: .gitlab-ci.yml
+    line: 16
+    excerpt: "image: sourcegraph/scip-go:v0.1.22"
+forbidden:
+  - purl: pkg:docker/library/ruby@latest
+    why: image à « latest », sans version
+  - purl: pkg:golang/honnef.co/go/tools/cmd/staticcheck@latest
+    why: installé à « latest », sans version
+  - purl: pkg:generic/ci-makefile-vars@2.7.0
+    why: version du dépôt lui-même (fichier VERSION)

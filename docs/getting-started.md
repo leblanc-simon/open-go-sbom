@@ -3,8 +3,9 @@
 *[Version française](demarrage.md)*
 
 This guide takes you from an installed instance to a first inventoried, queryable fleet:
-sign-in, organization, servers, repositories, reading the results. Installing the server
-and the agents is covered in [`operations.md`](operations.md) (French); search in depth in
+sign-in, organization and teams, servers, repositories, reading the results, then triage
+and alerts. Installing the server and the agents is covered in
+[`operations.md`](operations.md) (French); detailed usage in
 [`utilisation.md`](utilisation.md) (French).
 
 ## 1. Sign in
@@ -37,14 +38,21 @@ organization to another.
    administrator: the interface reminds you as long as there is only one.
 2. **Administration › Organizations**: create the organization (short identifier such as
    `infra`, name, language) and appoint its first administrator.
-3. In the organization, **Members**: add the accounts with their role — **viewer**
-   (reads), **analyst** (reads and requests scans), **administrator** (manages projects,
-   agents, members and settings).
+3. In the organization, **Members**: **invite** each account by its address, as a
+   **member** or an **administrator** of the organization; the account accepts from **My
+   account › Invitations** (30 days).
+4. **Teams**: every project belongs to a team (“General” exists from the start); a member
+   only sees the projects of their teams. Create the teams you need, then, on each team
+   page, add members with their **team role** — **reader** (reads), **analyst** (reads,
+   requests scans, triages findings), **team administrator** (manages the team's projects,
+   agents and members). An organization administrator sees and manages everything
+   ([details](utilisation.md#équipes-rôles-et-invitations), French).
 
 ## 3. Inventory servers
 
-1. **Agents › Enroll servers** (organization administrator): choose the validity, the
-   number of servers to enroll and, if needed, labels (`env=prod`). The **enrollment
+1. **Agents › Enroll servers** (organization or team administrator): choose the team of
+   the future servers, the validity, the number of servers to enroll and, if needed,
+   labels (`env=production`). The **enrollment
    token** and the installation commands are shown only once.
 2. On each server, the operator installs the `lotor-host-agent` package, sets the server
    address, drops the token and starts the agent
@@ -55,6 +63,10 @@ organization to another.
 4. For an immediate inventory (after patching the server, for example): project page ›
    **Scan now** (analyst or administrator). The agent starts it at its next heartbeat
    (5 minutes at most in daemon mode).
+5. Containers: if the operator enables `containers.enabled` on the agent (off by default,
+   [`operations.md`](operations.md#conteneurs)), every Docker or Podman container of the
+   server becomes a child project, with its own SBOM and findings, shown on the server's
+   page ([details](utilisation.md#conteneurs-des-serveurs), French).
 
 ## 4. Inventory repositories
 
@@ -66,6 +78,9 @@ organization to another.
    tracked tags if any.
 3. On the project page, entrust it to the repository agent. The agent analyses it on its
    next pass (15 minutes at most), then on every push received by webhook.
+4. Optional: the repository's **Settings › AI enrichment** has a model look for components
+   that no manifest declares (off by default; an external provider needs an organization
+   administrator's approval; [details](utilisation.md#composants-trouvés-par-lia), French).
 
 ## 5. Read the results
 
@@ -106,3 +121,19 @@ curl -H "Authorization: Bearer $LOTOR_TOKEN" \
 ```
 
 The API contract is [`api/openapi.yaml`](../api/openapi.yaml).
+
+## 8. Triage, compare, get alerted
+
+- **Triage**: a finding's status (**Findings** tab) leads to its page, where an analyst
+  decides “affected”, “not affected” (with a VEX justification), “false positive”, “risk
+  accepted” until a date, or “fixed”. Decisions export as OpenVEX or CycloneDX (**VEX**
+  tab), and a vendor's VEX can be imported
+  ([details](utilisation.md#triage-des-constats-et-vex), French).
+- **Compare**: the **Snapshots** tab shows, for each snapshot, the components added,
+  removed, upgraded or downgraded, and compares two snapshots with their security impact
+  ([details](utilisation.md#historique-et-comparaison-des-instantanés), French).
+- **Get alerted**: an organization administrator enables **Policies** (for example “KEV
+  on a production project”) and **Channels** (e-mail, webhook, Matrix, Mattermost,
+  Slack); violations show under **Violations** and in the dashboard's “Alerts” section
+  ([details](utilisation.md#politiques-et-alertes), [`notifications.md`](notifications.md),
+  French).

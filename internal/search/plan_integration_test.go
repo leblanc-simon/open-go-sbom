@@ -20,6 +20,14 @@ import (
 // compléments de la recherche.
 func planDataset(t *testing.T, p benchdata.Params) (*dbtest.DB, tenant.OrgID) {
 	t.Helper()
+	d, org, _ := planDatasetWith(t, p, nil)
+	return d, org
+}
+
+// planDatasetWith : planDataset, complété des équipes, hôtes, conteneurs et décisions de
+// triage du lot 2 quand tp n'est pas nil.
+func planDatasetWith(t *testing.T, p benchdata.Params, tp *benchdata.TeamParams) (*dbtest.DB, tenant.OrgID, benchdata.TeamStats) {
+	t.Helper()
 	ctx := context.Background()
 	d := dbtest.New(t)
 	org, err := tenant.NewOrgID()
@@ -29,13 +37,20 @@ func planDataset(t *testing.T, p benchdata.Params) (*dbtest.DB, tenant.OrgID) {
 	if _, err := benchdata.Generate(ctx, d.App, org, "bench", p); err != nil {
 		t.Fatal(err)
 	}
+	var ts benchdata.TeamStats
+	if tp != nil {
+		if ts, err = benchdata.AddTeamsAndContainers(ctx, d.App, org, p, *tp); err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("complément du lot 2 : %s", ts)
+	}
 	if err := benchdata.AddSearchFixtures(ctx, d.App, org); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := d.Owner(t).ExecContext(ctx, "ANALYZE"); err != nil {
 		t.Fatal(err)
 	}
-	return d, org
+	return d, org, ts
 }
 
 // explain renvoie le plan d'une requête, exécutée dans InOrg par le rôle d'exécution (RLS
@@ -67,7 +82,8 @@ func explain(t *testing.T, pool *db.Pool, org tenant.OrgID, analyze bool, query 
 			plan = append(plan, line)
 		}
 		return rows.Err()
-	}, db.ReadOnly())
+		// Visibilité de toutes les équipes : EXPLAIN ANALYZE exécute lotor_team_visible.
+	}, db.ReadOnly(), db.Visible(tenant.AllTeams()))
 	if err != nil {
 		t.Fatalf("%s : %v", query, err)
 	}

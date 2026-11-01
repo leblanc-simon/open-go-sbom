@@ -1,0 +1,20 @@
+description: >-
+  Bibliothèque Go (GitHub spf13/cobra) : tout est déclaré dans go.mod et les flux de
+  travail GitHub Actions, que Syft lit ; aucun composant à trouver par l'IA.
+source:
+  url: https://github.com/spf13/cobra.git
+  commit: adbc8813901bba65827259daa8e22ff94ec1f30e
+components: []
+ignored:
+  - purl: pkg:github/actions/checkout@v4
+    why: action GitHub cataloguée par Syft (.github/workflows/test.yml), écartée par la fusion
+  - purl: pkg:github/actions/setup-go@v6
+    why: action GitHub cataloguée par Syft
+  - purl: pkg:github/actions/cache@v4
+    why: action GitHub cataloguée par Syft
+  - purl: pkg:github/actions/labeler@v5
+    why: action GitHub cataloguée par Syft
+  - purl: pkg:github/golangci/golangci-lint-action@v8.0.0
+    why: action GitHub cataloguée par Syft
+  - purl: pkg:github/msys2/setup-msys2@v2
+    why: action GitHub cataloguée par Syft

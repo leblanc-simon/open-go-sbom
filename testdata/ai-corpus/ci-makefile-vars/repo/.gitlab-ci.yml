@@ -1,0 +1,18 @@
+variables:
+  POSTGRES_VERSION: "16.4"
+  GO_IMAGE: "golang-1.23"
+
+default:
+  image: ruby:latest
+
+test:
+  image: registry.example.com/build-images/${GO_IMAGE}:current
+  services:
+    - postgres:${POSTGRES_VERSION}
+  script:
+    - make test
+
+code_navigation:
+  image: sourcegraph/scip-go:v0.1.22
+  script:
+    - scip-go

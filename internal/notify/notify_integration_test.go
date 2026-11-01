@@ -4,8 +4,10 @@ package notify
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -306,5 +308,114 @@ func TestChannelSecretNeverFollowsNewDestination(t *testing.T) {
 	if _, err := f.svc.UpdateChannel(ctx, f.org, a2, hook.ID, Input{Name: "Hook", Kind: KindWebhook, Enabled: true,
 		Settings: Settings{URL: "https://attacker.example.net/hook"}}); err == nil {
 		t.Fatal("URL du webhook changée sans ressaisir la clé")
+	}
+}
+
+// blockingSender retient le premier envoi jusqu'à release, et compte les violations de
+// chaque message reçu (corps JSON du webhook générique).
+type blockingSender struct {
+	mu       sync.Mutex
+	started  chan struct{}
+	release  chan struct{}
+	first    bool
+	received map[string]int
+	fail     bool
+}
+
+func (b *blockingSender) Do(_ context.Context, r Request) error {
+	b.mu.Lock()
+	first := !b.first
+	b.first = true
+	b.mu.Unlock()
+	if first {
+		close(b.started)
+		<-b.release
+	}
+	var body struct {
+		Violations []struct {
+			ID string `json:"id"`
+		} `json:"violations"`
+	}
+	if err := json.Unmarshal(r.Body, &body); err != nil {
+		return err
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.fail {
+		return &SendError{Key: KeySendStatus}
+	}
+	for _, v := range body.Violations {
+		b.received[v.ID]++
+	}
+	return nil
+}
+
+func (b *blockingSender) Mail(context.Context, Mail) error { return nil }
+
+// TestConcurrentSendsNeverDuplicate : deux envois du même canal en même temps (deux jobs,
+// défaut trouvé par la recette du lot 2) n'envoient jamais deux fois une violation ; le
+// second, qui trouve le lot réservé par le premier, demande à être réessayé ; un envoi en
+// échec libère sa réservation, et une réservation expirée se reprend (ADR 0052).
+func TestConcurrentSendsNeverDuplicate(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	snd := &blockingSender{started: make(chan struct{}), release: make(chan struct{}), received: map[string]int{}}
+	f.svc.o.Sender = snd
+	c, err := f.svc.CreateChannel(ctx, f.org, audit.Actor{}, Input{Name: "Hook", Kind: KindWebhook, Enabled: true,
+		Settings: Settings{URL: "https://hooks.example.org/x"}, Secret: "0123456789abcdef"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for range 3 {
+		f.violation(c.ID, ModeImmediate)
+	}
+	done := make(chan error, 1)
+	go func() { done <- f.svc.Send(ctx, f.org, c.ID, ModeImmediate) }()
+	<-snd.started
+	// Le premier envoi est en vol : le second ne trouve que des envois réservés.
+	if err := f.svc.Send(ctx, f.org, c.ID, ModeImmediate); !errors.Is(err, ErrSendInProgress) {
+		t.Fatalf("second envoi pendant le premier : %v", err)
+	}
+	close(snd.release)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if err := f.svc.Send(ctx, f.org, c.ID, ModeImmediate); err != nil {
+		t.Fatalf("envoi sans rien en attente : %v", err)
+	}
+	if len(snd.received) != 3 {
+		t.Fatalf("violations reçues : %v", snd.received)
+	}
+	for id, n := range snd.received {
+		if n != 1 {
+			t.Fatalf("violation %s envoyée %d fois", id, n)
+		}
+	}
+	if f.count(`SELECT count(*) FROM notification_deliveries WHERE state = 'sent' AND claimed_at IS NULL`) != 3 {
+		t.Fatal("envois non marqués ou réservation non levée")
+	}
+
+	// Échec : la réservation est levée, l'envoi suivant reprend le lot.
+	v, _ := f.violation(c.ID, ModeImmediate)
+	snd.fail = true
+	if err := f.svc.Send(ctx, f.org, c.ID, ModeImmediate); err == nil {
+		t.Fatal("échec non remonté")
+	}
+	if f.count(`SELECT count(*) FROM notification_deliveries WHERE violation_id = $1 AND state = 'pending' AND claimed_at IS NULL`, v) != 1 {
+		t.Fatal("réservation gardée après un échec")
+	}
+	// Réservation d'un envoi interrompu (processus arrêté pendant l'appel réseau) : reprise
+	// seulement après claimTTL.
+	snd.fail = false
+	f.exec(f.org, `UPDATE notification_deliveries SET claimed_at = now() WHERE violation_id = $1`, v)
+	if err := f.svc.Send(ctx, f.org, c.ID, ModeImmediate); !errors.Is(err, ErrSendInProgress) {
+		t.Fatalf("réservation récente reprise : %v", err)
+	}
+	f.exec(f.org, `UPDATE notification_deliveries SET claimed_at = now() - interval '11 minutes' WHERE violation_id = $1`, v)
+	if err := f.svc.Send(ctx, f.org, c.ID, ModeImmediate); err != nil {
+		t.Fatal(err)
+	}
+	if snd.received[v.String()] != 1 {
+		t.Fatalf("violation interrompue : %v", snd.received)
 	}
 }

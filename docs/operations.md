@@ -1192,22 +1192,46 @@ montre sa preuve (fichier, ligne, extrait, confiance, modèle).
 ### Évaluer l'enrichissement IA
 
 La qualité (taux de faux positifs, rappel) et le coût se mesurent avec un vrai modèle sur
-le corpus annoté `testdata/ai-corpus` ; seuils : faux positifs ≤ 5 %, rappel ≥ 80 %.
-Hors CI, car l'évaluation consomme des appels payants :
+le corpus annoté `testdata/ai-corpus` **et** sur l'échantillon pilote annoté
+`testdata/ai-pilot` (les quatre dépôts publics du parc pilote du lot 1) ; seuils, sur
+chacun des deux jeux : faux positifs ≤ 5 %, rappel ≥ 80 %. Hors CI, car l'évaluation
+consomme des appels payants. Pas à pas :
 
-```bash
-install -m 0600 /dev/null /tmp/anthropic-key && echo "sk-ant-…" > /tmp/anthropic-key
-LOTOR_EVAL_AI_PROVIDER=anthropic LOTOR_EVAL_AI_API_KEY_FILE=/tmp/anthropic-key \
-LOTOR_EVAL_AI_RUNS=3 LOTOR_EVAL_AI_REPORT=/tmp/eval-ai.json make eval-ai
-# modèle local : LOTOR_EVAL_AI_PROVIDER=ollama LOTOR_EVAL_AI_MODEL=qwen3:14b make eval-ai
-```
+1. Clé d'API dans un fichier lisible du seul utilisateur :
+   `install -m 0600 /dev/null /tmp/anthropic-key`, puis y écrire la clé (`sk-ant-…`).
+2. Cloner l'échantillon pilote à ses commits annotés (réseau, quelques Mio) :
+   `scripts/ai-pilot-fetch.sh /tmp/lotor-ai-pilot` (le script vérifie chaque tête).
+3. Contrôle à blanc, sans clé ni coût : `LOTOR_EVAL_AI_PROVIDER=credulous
+   LOTOR_EVAL_AI_PILOT_DIR=/tmp/lotor-ai-pilot make eval-ai`. Un modèle fictif soumet tout
+   ce qu'il trouve ; la cible vérifie que chaque composant annoté est prouvable et que
+   chaque composant accepté a une preuve qui se revérifie contre le dépôt. Ses taux ne sont
+   pas une mesure (ce modèle n'écarte aucun piège).
+4. Mesure :
 
-Le rapport donne, pour chaque cas et passage, composants acceptés à raison, faux positifs,
-oubliés, motifs de rejet, tours, jetons, coût et durée, puis le taux de faux positifs, le
-rappel et le coût moyen par analyse (tarif de `claude-sonnet-5-5` par défaut, réglable par
-`LOTOR_EVAL_AI_PRICE_*`). La cible échoue si un seuil n'est pas tenu ou si un témoin des
-dépôts hostiles atteint le fournisseur. Reporter le résultat dans le Journal de T12 (ou de
-T18) et confirmer ou changer le modèle par défaut.
+   ```bash
+   LOTOR_EVAL_AI_PROVIDER=anthropic LOTOR_EVAL_AI_API_KEY_FILE=/tmp/anthropic-key \
+   LOTOR_EVAL_AI_PILOT_DIR=/tmp/lotor-ai-pilot LOTOR_EVAL_AI_RUNS=3 \
+   LOTOR_EVAL_AI_REPORT=/tmp/eval-ai.json make eval-ai
+   # autre modèle : LOTOR_EVAL_AI_MODEL=… ; modèle local :
+   # LOTOR_EVAL_AI_PROVIDER=ollama LOTOR_EVAL_AI_MODEL=qwen3:14b make eval-ai
+   ```
+
+   Trois passages des 11 cas du corpus et des 4 dépôts pilotes : 45 analyses. Durée et
+   coût ne sont pas encore connus (aucune mesure réelle à ce jour) : ils s'affichent à la
+   fin, par jeu.
+5. Lire le rapport (sortie et `/tmp/eval-ai.json`) : pour chaque jeu (`corpus`, `pilote`),
+   composants acceptés à raison, faux positifs (nommés), oubliés, ignorés, preuves
+   revérifiées, motifs de rejet, tours, jetons, coût et durée, puis le taux de faux
+   positifs, le rappel et le coût moyen par analyse (tarif de `claude-sonnet-5-5` par
+   défaut, réglable par `LOTOR_EVAL_AI_PRICE_*`). La cible échoue si un seuil n'est pas
+   tenu sur l'un des deux jeux, si un composant accepté n'a pas de preuve vérifiée ou si un
+   témoin des dépôts hostiles atteint le fournisseur.
+6. Reporter les deux jeux de chiffres (modèle, date, passages, faux positifs, rappel, coût
+   moyen) dans le Journal de T18, cocher le critère des seuils s'ils sont tenus, et
+   confirmer ou changer le modèle par défaut (`llm.DefaultAnthropicModel`). Un seuil non
+   tenu : ajuster le prompt (nouvelle version de `prompts/system-v*.md`) et recommencer
+   avant d'activer l'IA sur des projets ; un faux positif du pilote peut aussi révéler une
+   annotation à revoir (`testdata/ai-pilot/README.md`, « Règles d'annotation »).
 
 ## Clés de chiffrement des secrets
 
@@ -1288,6 +1312,28 @@ conditionnel, rattrapage de l'agent dépôt).
 
 Retour arrière : restaurer la sauvegarde prise avant la mise à jour et réinstaller
 l'ancien binaire (un ancien binaire refuse une base migrée par une version plus récente).
+
+**De 0.1.0 à 0.2.0** (lot 2), à décider **avant** la mise à jour :
+
+- les migrations 016 à 023 s'appliquent au démarrage ; la 016 crée l'équipe « Général »
+  de chaque organisation et y place tous les projets, les jetons d'inscription, les agents
+  serveur et tous les membres à leur ancien rôle (`viewer` → lecteur, `analyst` →
+  analyste, `admin` → administrateur d'équipe ; le rôle d'organisation devient « membre »,
+  sauf les administrateurs) : vérifier ensuite la page **Équipes** de chaque organisation
+  (essai de la recette : instance 0.1.0 réelle mise à jour, voir le Journal de T18) ;
+- la première rétention nocturne garde tout depuis 90 jours puis le dernier instantané de
+  chaque mois, et supprime réceptions et SBOM devenus orphelins
+  ([Rétention des instantanés](#rétention-des-instantanés)) : régler `retention.*` avant
+  si une autre politique est voulue (`retention.enabled: false` suspend la réduction) ;
+- les conteneurs archivés pour absence depuis `containers.purge_after` (180 jours) sont
+  supprimés avec leur historique : rien en 0.1.0, qui n'inventoriait pas de conteneurs,
+  mais à régler avant d'activer `containers.enabled` sur les agents ;
+- les comptes existants n'ont pas de codes de secours : les inviter à en générer depuis
+  **Mon compte › Second facteur** ;
+- agents : l'agent serveur 0.1.0 continue de fonctionner (vérifié par la recette ; les
+  conteneurs demandent l'agent 0.2.0 et `containers.enabled`, et l'agent 0.2.0 reprend
+  l'inscription et l'état du 0.1.0) ; l'agent dépôt 0.2.0 est nécessaire pour
+  l'enrichissement IA et le statut de commit, tous deux désactivés par défaut.
 
 ## Supervision
 
