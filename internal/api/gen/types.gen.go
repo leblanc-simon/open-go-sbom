@@ -9,6 +9,27 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AgentProjectAiMode.
+const (
+	Disabled AgentProjectAiMode = "disabled"
+	External AgentProjectAiMode = "external"
+	Local    AgentProjectAiMode = "local"
+)
+
+// Valid indicates whether the value is a known member of the AgentProjectAiMode enum.
+func (e AgentProjectAiMode) Valid() bool {
+	switch e {
+	case Disabled:
+		return true
+	case External:
+		return true
+	case Local:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AgentProjectKind.
 const (
 	AgentProjectKindHost AgentProjectKind = "host"
@@ -348,6 +369,30 @@ func (e SearchTokenKind) Valid() bool {
 	}
 }
 
+// Defines values for SnapshotChangeKind.
+const (
+	SnapshotChangeKindAdded      SnapshotChangeKind = "added"
+	SnapshotChangeKindDowngraded SnapshotChangeKind = "downgraded"
+	SnapshotChangeKindRemoved    SnapshotChangeKind = "removed"
+	SnapshotChangeKindUpgraded   SnapshotChangeKind = "upgraded"
+)
+
+// Valid indicates whether the value is a known member of the SnapshotChangeKind enum.
+func (e SnapshotChangeKind) Valid() bool {
+	switch e {
+	case SnapshotChangeKindAdded:
+		return true
+	case SnapshotChangeKindDowngraded:
+		return true
+	case SnapshotChangeKindRemoved:
+		return true
+	case SnapshotChangeKindUpgraded:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TrackedRefKind.
 const (
 	TrackedRefKindBranch TrackedRefKind = "branch"
@@ -429,6 +474,48 @@ func (e SearchSort) Valid() bool {
 	case SearchSortRisk:
 		return true
 	case SearchSortSnapshot:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CompareSnapshotsParamsKind.
+const (
+	CompareSnapshotsParamsKindAdded      CompareSnapshotsParamsKind = "added"
+	CompareSnapshotsParamsKindDowngraded CompareSnapshotsParamsKind = "downgraded"
+	CompareSnapshotsParamsKindRemoved    CompareSnapshotsParamsKind = "removed"
+	CompareSnapshotsParamsKindUpgraded   CompareSnapshotsParamsKind = "upgraded"
+)
+
+// Valid indicates whether the value is a known member of the CompareSnapshotsParamsKind enum.
+func (e CompareSnapshotsParamsKind) Valid() bool {
+	switch e {
+	case CompareSnapshotsParamsKindAdded:
+		return true
+	case CompareSnapshotsParamsKindDowngraded:
+		return true
+	case CompareSnapshotsParamsKindRemoved:
+		return true
+	case CompareSnapshotsParamsKindUpgraded:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportProjectVEXParamsFormat.
+const (
+	ExportProjectVEXParamsFormatCyclonedx ExportProjectVEXParamsFormat = "cyclonedx"
+	ExportProjectVEXParamsFormatOpenvex   ExportProjectVEXParamsFormat = "openvex"
+)
+
+// Valid indicates whether the value is a known member of the ExportProjectVEXParamsFormat enum.
+func (e ExportProjectVEXParamsFormat) Valid() bool {
+	switch e {
+	case ExportProjectVEXParamsFormatCyclonedx:
+		return true
+	case ExportProjectVEXParamsFormatOpenvex:
 		return true
 	default:
 		return false
@@ -702,8 +789,34 @@ func (e ExportSearchParamsResolved) Valid() bool {
 	}
 }
 
+// AIComponent defines model for AIComponent.
+type AIComponent struct {
+	Confidence *float64 `json:"confidence,omitempty"`
+
+	// Excerpt Extrait de la preuve.
+	Excerpt string `json:"excerpt"`
+
+	// File Fichier de la preuve, relatif à la racine du dépôt.
+	File    string  `json:"file"`
+	Line    int     `json:"line"`
+	Model   *string `json:"model,omitempty"`
+	Name    string  `json:"name"`
+	Purl    string  `json:"purl"`
+	Version string  `json:"version"`
+}
+
+// AIComponentList defines model for AIComponentList.
+type AIComponentList struct {
+	Components []AIComponent `json:"components"`
+}
+
 // AgentProject defines model for AgentProject.
 type AgentProject struct {
+	// AiMode Enrichissement IA permis pour ce projet (dépôts) : `disabled`, aucun modèle ;
+	// `local`, modèle local seulement ; `external`, fournisseur externe permis. Réglage
+	// du projet borné par la politique de l'instance (`ai.forbid_external`).
+	AiMode AgentProjectAiMode `json:"ai_mode"`
+
 	// ForgeUrl URL de la forge (dépôts seulement).
 	ForgeUrl *string            `json:"forge_url,omitempty"`
 	Id       openapi_types.UUID `json:"id"`
@@ -714,6 +827,11 @@ type AgentProject struct {
 	Slug     string             `json:"slug"`
 }
 
+// AgentProjectAiMode Enrichissement IA permis pour ce projet (dépôts) : `disabled`, aucun modèle ;
+// `local`, modèle local seulement ; `external`, fournisseur externe permis. Réglage
+// du projet borné par la politique de l'instance (`ai.forbid_external`).
+type AgentProjectAiMode string
+
 // AgentProjectKind defines model for AgentProject.Kind.
 type AgentProjectKind string
 
@@ -722,6 +840,29 @@ type AgentProjectList struct {
 	// Page Pagination d'une liste.
 	Page     PageInfo       `json:"page"`
 	Projects []AgentProject `json:"projects"`
+}
+
+// ChangeCounts defines model for ChangeCounts.
+type ChangeCounts struct {
+	Added      int `json:"added"`
+	Downgraded int `json:"downgraded"`
+	Removed    int `json:"removed"`
+	Upgraded   int `json:"upgraded"`
+}
+
+// ChangedComponent defines model for ChangedComponent.
+type ChangedComponent struct {
+	ComponentId openapi_types.UUID `json:"component_id"`
+	Purl        string             `json:"purl"`
+	Version     string             `json:"version"`
+}
+
+// ComponentCounts defines model for ComponentCounts.
+type ComponentCounts struct {
+	Ia    int `json:"ia"`
+	Syft  int `json:"syft"`
+	Total int `json:"total"`
+	Weak  int `json:"weak"`
 }
 
 // ContainerReport defines model for ContainerReport.
@@ -873,6 +1014,23 @@ type ImageInventory struct {
 
 	// ScannedAt Date du scan de l'image (au plus une heure d'avance sur l'horloge du serveur).
 	ScannedAt time.Time `json:"scanned_at"`
+}
+
+// ImpactFinding defines model for ImpactFinding.
+type ImpactFinding struct {
+	Component     SearchComponent    `json:"component"`
+	FindingId     openapi_types.UUID `json:"finding_id"`
+	FixedVersions []string           `json:"fixed_versions"`
+	Kev           bool               `json:"kev"`
+	Ref           SearchRef          `json:"ref"`
+	Risk          float64            `json:"risk"`
+
+	// Severity `critical`, `high`, `medium`, `low`, `negligible` ou `unknown`.
+	Severity string `json:"severity"`
+
+	// Status État actuel du constat (`open` ou `resolved`).
+	Status        string `json:"status"`
+	Vulnerability string `json:"vulnerability"`
 }
 
 // Ingestion defines model for Ingestion.
@@ -1139,6 +1297,50 @@ type SearchVersionCount struct {
 	Version     string `json:"version"`
 }
 
+// SecurityImpact defines model for SecurityImpact.
+type SecurityImpact struct {
+	// AnalysisPending L'instantané d'arrivée, courant, n'est pas encore analysé ; des constats introduits peuvent manquer.
+	AnalysisPending bool            `json:"analysis_pending"`
+	Introduced      []ImpactFinding `json:"introduced"`
+	IntroducedTotal int             `json:"introduced_total"`
+	Resolved        []ImpactFinding `json:"resolved"`
+	ResolvedTotal   int             `json:"resolved_total"`
+}
+
+// SnapshotChange defines model for SnapshotChange.
+type SnapshotChange struct {
+	// Approximate Versions incomparables dans leur écosystème ; sens déduit de l'ordre des chaînes.
+	Approximate bool               `json:"approximate"`
+	Kind        SnapshotChangeKind `json:"kind"`
+	Name        string             `json:"name"`
+	New         *ChangedComponent  `json:"new,omitempty"`
+	Old         *ChangedComponent  `json:"old,omitempty"`
+	PurlBase    string             `json:"purl_base"`
+	Type        string             `json:"type"`
+}
+
+// SnapshotChangeKind defines model for SnapshotChange.Kind.
+type SnapshotChangeKind string
+
+// SnapshotComparison defines model for SnapshotComparison.
+type SnapshotComparison struct {
+	Changes []SnapshotChange `json:"changes"`
+	Counts  ChangeCounts     `json:"counts"`
+	From    SnapshotSummary  `json:"from"`
+
+	// Page Pagination d'une liste.
+	Page     PageInfo        `json:"page"`
+	Security SecurityImpact  `json:"security"`
+	To       SnapshotSummary `json:"to"`
+}
+
+// SnapshotPage defines model for SnapshotPage.
+type SnapshotPage struct {
+	// Page Pagination d'une liste.
+	Page      PageInfo          `json:"page"`
+	Snapshots []SnapshotSummary `json:"snapshots"`
+}
+
 // SnapshotRef Instantané courant d'une référence (le plus récent par date de scan) ; absent tant
 // qu'aucun SBOM n'a été rangé. L'agent dépôt s'en sert pour son rattrapage.
 type SnapshotRef struct {
@@ -1146,6 +1348,35 @@ type SnapshotRef struct {
 	Commit    *string            `json:"commit,omitempty"`
 	Id        openapi_types.UUID `json:"id"`
 	ScannedAt time.Time          `json:"scanned_at"`
+}
+
+// SnapshotSummary defines model for SnapshotSummary.
+type SnapshotSummary struct {
+	AgentVersion string        `json:"agent_version"`
+	Changes      *ChangeCounts `json:"changes,omitempty"`
+
+	// ChangesPending La différence avec le précédent n'est pas encore calculée.
+	ChangesPending bool `json:"changes_pending"`
+
+	// Commit Commit d'un dépôt (absent pour un hôte).
+	Commit     *string         `json:"commit,omitempty"`
+	Components ComponentCounts `json:"components"`
+
+	// Current Instantané courant de sa référence.
+	Current bool `json:"current"`
+
+	// Format Format du SBOM reçu (`cyclonedx`, `spdx` ou `syft`).
+	Format string             `json:"format"`
+	Id     openapi_types.UUID `json:"id"`
+
+	// LastScannedAt Dernière analyse au même inventaire (hôte).
+	LastScannedAt time.Time `json:"last_scanned_at"`
+
+	// PreviousId Instantané précédent de la même référence (absent pour le premier).
+	PreviousId  *openapi_types.UUID `json:"previous_id,omitempty"`
+	Ref         SearchRef           `json:"ref"`
+	ScannedAt   time.Time           `json:"scanned_at"`
+	SpecVersion string              `json:"spec_version"`
 }
 
 // TrackedRef defines model for TrackedRef.
@@ -1170,6 +1401,9 @@ type Limit = int
 
 // Org defines model for Org.
 type Org = string
+
+// Project defines model for Project.
+type Project = string
 
 // SearchContainers defines model for SearchContainers.
 type SearchContainers string
@@ -1214,6 +1448,47 @@ type ListAgentProjectsParams struct {
 	// Limit Taille de page (100 par défaut, 200 au plus).
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
+
+// CompareSnapshotsParams defines parameters for CompareSnapshots.
+type CompareSnapshotsParams struct {
+	// To Instantané d'arrivée.
+	To openapi_types.UUID `form:"to" json:"to"`
+
+	// From Instantané de départ (par défaut, le précédent de `to`).
+	From *openapi_types.UUID `form:"from,omitempty" json:"from,omitempty"`
+
+	// Kind Ne lister que les changements de cette nature (les décomptes restent complets).
+	Kind *CompareSnapshotsParamsKind `form:"kind,omitempty" json:"kind,omitempty"`
+
+	// Cursor Curseur renvoyé par la page précédente (`next_cursor`).
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Changements par page (100 par défaut, 500 au plus).
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// CompareSnapshotsParamsKind defines parameters for CompareSnapshots.
+type CompareSnapshotsParamsKind string
+
+// ListProjectSnapshotsParams defines parameters for ListProjectSnapshots.
+type ListProjectSnapshotsParams struct {
+	// Ref Identifiant d'une référence suivie du projet.
+	Ref *openapi_types.UUID `form:"ref,omitempty" json:"ref,omitempty"`
+
+	// Cursor Curseur renvoyé par la page précédente (`next_cursor`).
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Instantanés par page (20 par défaut, 100 au plus).
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ExportProjectVEXParams defines parameters for ExportProjectVEX.
+type ExportProjectVEXParams struct {
+	Format ExportProjectVEXParamsFormat `form:"format" json:"format"`
+}
+
+// ExportProjectVEXParamsFormat defines parameters for ExportProjectVEX.
+type ExportProjectVEXParamsFormat string
 
 // SearchOrganizationParams defines parameters for SearchOrganization.
 type SearchOrganizationParams struct {

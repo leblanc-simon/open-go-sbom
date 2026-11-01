@@ -39,5 +39,13 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0032](0032-publication-des-versions.md) | Publication des versions : étiquette, workflow de préversion, fichiers livrés, unité du serveur | Accepté |
 | [0033](0033-renommage-en-lotor.md) | Renommage du projet en lotor : correspondance unique, migrations réécrites avant toute publication, identité visuelle | Accepté |
 | [0034](0034-equipes-et-droits.md) | Équipes et droits : rôle d'organisation membre ou administrateur, droits par équipe, filtre d'équipe déclaré à la transaction, invitations | Accepté |
+| [0035](0035-decisions-de-triage.md) | Décisions de triage appliquées aux constats, statut effectif rangé sur chaque constat, journal en ajout seul | Accepté |
+| [0036](0036-echanges-vex.md) | Échanges VEX : OpenVEX 0.2.0 et CycloneDX 1.6, correspondance des statuts et des justifications, marques de lotor | Accepté |
+| [0037](0037-ecrans-du-triage.md) | Écrans du triage : fiche du constat au lieu du tiroir, constats masqués par défaut, page VEX, décisions de l'organisation | Accepté |
+| [0038](0038-differences-d-instantanes.md) | Différences d'instantanés : par couple d'ensembles, appariement par purl_base, effet sur la sécurité calculé à la lecture | Accepté |
+| [0039](0039-retention-des-instantanes.md) | Rétention des instantanés : fenêtre de 90 jours, dernier instantané de chaque mois au-delà, orphelins supprimés | Accepté |
 | [0040](0040-conteneurs-en-projets-enfants.md) | Conteneurs en projets enfants : modèle, signalement par l'agent, archivage, agrégats par périmètre | Accepté |
 | [0041](0041-inventaire-des-conteneurs-par-l-agent.md) | Inventaire des conteneurs par l'agent serveur : désactivé par défaut, API Docker sur socket Unix, scan de l'image exportée | Accepté |
+| [0042](0042-fournisseurs-de-modeles.md) | Fournisseurs de modèles : SDK Go officiel d'Anthropic sans environnement, Ollama par HTTP | Accepté |
+| [0043](0043-enrichissement-ia-prouve.md) | Enrichissement IA prouvé : réglage par projet, politique d'envoi de code, vérificateur, statut | Accepté |
+| [0044](0044-confinement-de-l-analyse-ia.md) | Confinement de l'analyse IA : os.Root et surface d'outils, sans processus fils | Accepté |

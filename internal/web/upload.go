@@ -5,7 +5,10 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"strings"
 	"time"
+
+	"leblanc.io/lotor/internal/triage/vex"
 )
 
 // Téléversement d'une archive de la base de vulnérabilités (import manuel, T11).
@@ -36,10 +39,32 @@ const (
 	uploadOverhead = 64 << 10
 )
 
-// isUpload désigne la requête de téléversement.
+// isUpload désigne les requêtes dont uploadGate borne le corps : téléversement d'une
+// archive de la base, import d'un VEX.
 func isUpload(r *http.Request) bool {
-	return r.Method == http.MethodPost && r.URL.Path == pathVulnDBImport
+	return r.Method == http.MethodPost && (r.URL.Path == pathVulnDBImport || isVEXImport(r))
 }
+
+// isVEXImport désigne l'import d'un VEX (T14) : /o/{slug}/projects/{project}/vex/import
+// ou /o/{slug}/triage/import.
+func isVEXImport(r *http.Request) bool {
+	if r.Method != http.MethodPost {
+		return false
+	}
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/"), "/")
+	switch {
+	case len(parts) == 6 && parts[0] == "o" && parts[2] == "projects" && parts[4] == "vex" && parts[5] == "import":
+		return parts[1] != "" && parts[3] != ""
+	case len(parts) == 4 && parts[0] == "o" && parts[2] == "triage" && parts[3] == "import":
+		return parts[1] != ""
+	}
+	return false
+}
+
+// vexUploadBytes borne le corps d'un import de VEX : le document et le formulaire.
+// En deçà de la mémoire de ParseMultipartForm (32 Mio), csrfx lit tout le formulaire en
+// mémoire, sans fichier temporaire : l'import passe par le chemin habituel de csrfx.
+const vexUploadBytes = vex.MaxDocument + uploadOverhead
 
 type uploadKey struct{}
 
@@ -55,6 +80,16 @@ func uploadReader(r *http.Request) *multipart.Reader {
 func (id *identity) uploadGate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !isUpload(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if isVEXImport(r) {
+			// Un compte authentifié seulement ; la garde de la route vérifie ensuite le droit.
+			limit := int64(maxFormBytes)
+			if v := viewerFrom(r); v.authenticated() {
+				limit = vexUploadBytes
+			}
+			r.Body = http.MaxBytesReader(w, r.Body, limit)
 			next.ServeHTTP(w, r)
 			return
 		}

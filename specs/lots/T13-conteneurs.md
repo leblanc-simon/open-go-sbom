@@ -84,7 +84,7 @@ sans attendre l'utilisateur), en parallèle de T12, T14 et T17 : les décisions 
 
 ### Livré
 
-- **Migration 017** (`017_containers.sql`) : `projects.kind` admet `container` ;
+- **Migration 020** (`020_containers.sql`, 017 avant la fusion de T17, T14 et T12) : `projects.kind` admet `container` ;
   `parent_id`/`parent_kind`, `container_key`, `container` (contexte `jsonb`), `seen_at`,
   `archived_absent` avec une contrainte de forme ; **clé étrangère composite
   `(org_id, parent_id, parent_kind, team_id)` vers l'hôte, `ON UPDATE CASCADE`** (l'enfant

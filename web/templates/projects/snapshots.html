@@ -60,9 +60,18 @@
               <span>{{if .AgentName}}{{if .AgentVer}}{{T "snapshots.agent_version" "Name" .AgentName "Version" .AgentVer}}{{else}}{{T "snapshots.agent" "Name" .AgentName}}{{end}}{{else}}{{T "snapshots.agent_unknown"}}{{end}}</span>
               <span>{{T "snapshots.components" "Syft" .Counts.Syft "IA" .Counts.IA}}</span>
               {{- if .Counts.Weak}}<span>{{Tn "snapshots.weak" .Counts.Weak}}</span>{{end}}
+              {{- with .Enrichment}}<span>{{T (print "enrichment." .)}}</span>{{end}}
             </div>
             {{- with .LastScanned}}
             <div class="snapshot__stats"><span>{{T "snapshots.last_scanned"}} {{template "stamp" .}}</span></div>
+            {{- end}}
+            {{- if .Changes}}
+            <div class="snapshot__stats">
+              {{- if .Changes.Total}}{{template "change_counts" .Changes}}<a href="{{.CompareHref}}">{{T "snapshots.compare_previous"}}<span class="visually-hidden"> {{.Scanned.Display}}</span></a>
+              {{- else}}<span>{{T "snapshots.no_change"}}</span>{{end}}
+            </div>
+            {{- else if .ChangesPending}}
+            <div class="snapshot__stats"><span>{{T "snapshots.changes_pending"}}</span><a href="{{.CompareHref}}">{{T "snapshots.compare_previous"}}<span class="visually-hidden"> {{.Scanned.Display}}</span></a></div>
             {{- end}}
           </li>
           {{- end}}
@@ -70,11 +79,13 @@
         {{- with $.NextHref}}
         <nav class="pagination" aria-label="{{T "pagination.label"}}"><a class="btn btn--sm" href="{{.}}">{{T "snapshots.older"}}</a></nav>
         {{- end}}
+        <p class="field__hint">{{if $.Retention.Enabled}}{{if $.Retention.Monthly}}{{Tn "snapshots.retention_monthly" $.Retention.Days}}{{else}}{{Tn "snapshots.retention_window" $.Retention.Days}}{{end}}{{else}}{{T "snapshots.retention_off"}}{{end}}</p>
         {{- else}}
         <p class="muted">{{T "snapshots.none"}}</p>
         {{- end}}
       </section>
       {{- end}}
+      {{template "compare_form" .Compare}}
       <section class="panel" aria-labelledby="ingestions-title">
         <div class="panel__head">
           <h2 class="panel__title" id="ingestions-title">{{T "snapshots.ingestions_title"}}</h2>

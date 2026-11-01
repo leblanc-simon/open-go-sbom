@@ -1,0 +1,8 @@
+# Clé de signature (à ne jamais committer)
+signing_key: |
+  -----BEGIN OPENSSH PRIVATE KEY-----
+  not-a-real-key: fake material for the lotor test corpus only
+  LOTORCANARYKEY
+  -----END OPENSSH PRIVATE KEY-----
+  # LOTOR-CANARY-PEM-93c1
+listen: ":8080"

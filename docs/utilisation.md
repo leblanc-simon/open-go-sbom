@@ -88,6 +88,45 @@ tout moment, et il ne donne que la lecture de ce que votre compte voit, dans les
 organisations dont vous êtes membre au moment de chaque requête. Le contrat de l'API est
 dans `api/openapi.yaml` (opérations `searchOrganization` et `exportSearch`).
 
+## Historique et comparaison des instantanés
+
+L'onglet **Instantanés** d'un projet présente la **frise** des instantanés de chaque
+référence (branche, tag ou hôte), du plus récent au plus ancien. Chaque instantané
+indique ce qui a changé depuis le précédent de la même référence : composants
+**ajoutés**, **retirés**, **montés** ou **descendus de version** (deux versions d'un même
+paquet forment une montée ou une descente, comparées selon les règles de leur
+écosystème : npm, Maven, PEP 440, Debian…), ou « inventaire identique ».
+
+« Comparer avec le précédent », ou le formulaire **Comparer deux instantanés** (deux
+instantanés quelconques du projet, de références différentes au besoin), ouvre la
+comparaison :
+
+- les décomptes de chaque nature de changement, puis la liste des composants changés,
+  filtrable par nature ; « Inverser » échange départ et arrivée ;
+- l'**effet sur la sécurité** : les **constats résolus** (vulnérabilités des composants
+  retirés ou remplacés, absentes de leur nouvelle version — une montée de version qui
+  corrige une CVE apparaît ici) et les **constats introduits** (vulnérabilités des
+  composants ajoutés ou de leur nouvelle version). Une vulnérabilité présente avant et
+  après n'apparaît dans aucune des deux listes. Tant que le dernier instantané n'est pas
+  analysé, l'écran prévient que des constats introduits peuvent manquer.
+
+Les instantanés anciens sont réduits par la **rétention** : par défaut, tous ceux des
+90 derniers jours sont gardés, puis le dernier de chaque mois, sans limite de durée ; le
+dernier instantané d'une référence n'est jamais supprimé. La frise rappelle la politique
+de l'instance.
+
+La même frise et la même comparaison existent dans l'API (opérations
+`listProjectSnapshots` et `compareSnapshots`) :
+
+```bash
+curl -H "Authorization: Bearer $LOTOR_TOKEN" \
+  "https://lotor.example/api/v1/orgs/<organisation>/projects/<projet>/snapshots"
+curl -H "Authorization: Bearer $LOTOR_TOKEN" \
+  "https://lotor.example/api/v1/orgs/<organisation>/projects/<projet>/compare?to=<instantané>&kind=upgraded"
+```
+
+Sans `from`, la comparaison part de l'instantané précédent de `to`.
+
 ## Équipes, rôles et invitations
 
 Chaque projet appartient à une **équipe**. Vous voyez les projets de vos équipes — dans
@@ -97,7 +136,7 @@ composants, les exports et l'API —, et vous y agissez selon votre **rôle d'é
 | Rôle d'équipe | Ce qu'il permet sur les projets de l'équipe |
 | --- | --- |
 | Lecteur | Consulter les projets, leurs constats, instantanés et SBOM, et les agents de l'équipe |
-| Analyste | En plus : demander un scan à un agent serveur, trier les constats (lot de triage) |
+| Analyste | En plus : demander un scan à un agent serveur, trier les constats, importer un VEX pour un projet |
 | Administrateur d'équipe | En plus : créer, modifier, archiver un projet de l'équipe, le confier à un agent, le rattacher à une autre équipe qu'il administre aussi ; gérer les agents et jetons d'inscription de l'équipe ; ajouter et retirer les membres de l'équipe |
 
 Un **administrateur de l'organisation** voit et gère tout : il crée, renomme et supprime
@@ -120,6 +159,107 @@ ses administrateurs, puis **accepter** l'invitation depuis « Mon compte » → 
 (elle vaut 30 jours ; la décliner la supprime). L'administrateur ne sait pas, en invitant,
 si l'adresse a déjà un compte : un compte créé plus tard par l'administration de
 l'instance peut encore accepter l'invitation tant qu'elle court.
+
+## Triage des constats et VEX
+
+Chaque constat porte un **statut de triage** :
+
+| Statut | Sens |
+| --- | --- |
+| À analyser | Aucune conclusion pour l'instant (statut par défaut, sans décision) |
+| Affecté | Le code vulnérable est atteignable : la correction doit être planifiée |
+| Non affecté | Présent mais sans impact, avec une justification VEX |
+| Faux positif | Le composant ou sa version ont été mal identifiés |
+| Risque accepté | Accepté jusqu'à une date ; le lendemain, le constat revient « à analyser » |
+| Corrigé | Correctif déployé ; le prochain instantané le confirmera |
+
+**Trier un constat.** Depuis l'onglet « Constats » d'un projet (ou la fiche d'une
+vulnérabilité), le statut d'une ligne mène à la **fiche du constat** : son résumé, le
+panneau de triage (rôle analyste ou administrateur dans l'équipe du projet) et son
+historique. Une décision demande un commentaire, repris dans l'historique et dans les
+exports VEX ; « non affecté » demande une justification VEX, « risque accepté » une date.
+
+**Portée.** Une décision vaut pour **ce projet** — ce composant, dans toutes les références
+du projet — ou, pour un administrateur de l'organisation, pour **toute l'organisation** —
+tous les composants de la même famille (même purl sans version), éventuellement
+restreints à une plage `vers` (`vers:maven/<2.17.0`). Le statut d'un constat est celui de
+la décision du projet, sinon de la plus récente décision de l'organisation qui le couvre,
+sinon « à analyser ». Une décision vaut aussi pour les constats à venir : un nouveau
+projet qui embarque le même composant en hérite dès son analyse. Une décision se retire
+depuis l'historique (le constat reprend alors la décision de l'organisation, ou « à
+analyser ») ; les décisions de l'organisation se gèrent dans la rubrique **Triage**.
+
+**Constats masqués.** L'onglet « Constats » masque par défaut les constats « non
+affecté » et « faux positif » (le nombre masqué s'affiche, « Tout afficher » les montre) ;
+le filtre « Statut de triage » choisit un statut. Le tableau de bord ne les compte pas
+parmi les constats ouverts.
+
+**Exporter.** L'onglet « VEX » d'un projet télécharge ses décisions en **OpenVEX 0.2.0**
+ou en **CycloneDX 1.6** : une déclaration par composant et vulnérabilité des constats
+ouverts qui ont une décision. Par l'API :
+
+```bash
+curl -H "Authorization: Bearer $LOTOR_TOKEN" -o portail.openvex.json \
+  "https://lotor.example/api/v1/orgs/<organisation>/projects/<projet>/vex?format=openvex"
+```
+
+**Importer le VEX d'un éditeur** (OpenVEX ou CycloneDX, JSON, 1 Mio au plus) : depuis
+l'onglet « VEX » d'un projet, chaque déclaration devient une décision du projet sur les
+composants de ses constats de même paquet et de même version ; depuis la rubrique
+« Triage » de l'organisation, une décision de l'organisation sur la famille du composant,
+restreinte à la version déclarée. Les décisions importées ont pour auteur
+`vex:<source>`. Un export réimporté dans le même format redonne les mêmes décisions.
+
+**Correspondance entre les formats.** Les deux formats n'ont pas les mêmes statuts ni les
+mêmes justifications. lotor garde la justification telle qu'elle a été donnée et, à
+l'export vers l'autre format, écrit la plus proche en notant l'originale :
+
+| CycloneDX | OpenVEX |
+| --- | --- |
+| `code_not_present` | `vulnerable_code_not_present` |
+| `code_not_reachable` | `vulnerable_code_not_in_execute_path` |
+| `requires_configuration`, `requires_environment` | `vulnerable_code_cannot_be_controlled_by_adversary` |
+| `requires_dependency` | `component_not_present` |
+| `protected_by_compiler`, `protected_at_runtime`, `protected_at_perimeter`, `protected_by_mitigating_control` | `inline_mitigations_already_exist` |
+
+En sens inverse, `component_not_present` et `vulnerable_code_not_present` deviennent
+`code_not_present`, `vulnerable_code_not_in_execute_path` `code_not_reachable`,
+`vulnerable_code_cannot_be_controlled_by_adversary` `requires_environment`,
+`inline_mitigations_already_exist` `protected_by_mitigating_control`. « Faux positif » et
+« risque accepté », absents d'OpenVEX, y sont écrits `not_affected` et `affected` avec une
+note `[lotor:…]` dans `status_notes` ; CycloneDX a `false_positive`, et « risque accepté »
+y devient `exploitable` avec la réponse `will_not_fix` et des propriétés `lotor:`. Le
+détail est dans l'ADR 0036.
+
+## Composants trouvés par l'IA
+
+Pour un dépôt, l'agent dépôt peut compléter l'inventaire de Syft par les composants
+qu'aucun manifeste ne déclare : bibliothèque JavaScript ou C recopiée, image de base d'un
+Dockerfile, script chargé depuis un CDN, outil installé par un script. Ces composants ont
+l'origine **IA** (badge à bordure tiretée, avec la confiance du modèle) ; ceux de Syft,
+l'origine **Syft**.
+
+**Réglage.** Dans **Paramètres** du dépôt, section **Enrichissement IA** : *IA désactivée*
+(par défaut : aucun modèle n'est appelé), *Modèle local uniquement* (le code ne va qu'au
+modèle que l'exploitant de l'agent fait tourner chez lui), ou *Fournisseur externe
+autorisé* (le code lu par l'analyse peut partir chez le fournisseur configuré sur l'agent,
+hors fichiers sensibles). Seul un administrateur de l'organisation peut autoriser un
+fournisseur externe, et l'instance peut l'interdire à tous ; chaque changement est inscrit
+au journal d'audit. Ce qui part exactement vers le modèle est décrit dans
+[`operations.md`](operations.md#enrichissement-ia).
+
+**Preuve.** Un composant IA n'entre dans l'inventaire que si l'agent a relu sa preuve dans
+le fichier, au commit analysé. La fiche du composant montre, pour chaque projet qui
+l'utilise, le fichier, la ligne, l'extrait, la confiance et le modèle ; la colonne
+**Emplacement** y mène. La preuve garantit que le nom et la version figurent dans le
+fichier, pas que la détection est juste : la confiance est l'estimation du modèle.
+
+**Où les voir.** La fiche projet compte les composants de chaque référence par origine ;
+la liste des composants d'un instantané et la recherche se filtrent par origine. Un
+instantané marqué **Enrichissement IA incomplet** ne contient que les composants de Syft
+(analyse interrompue : budget dépassé ou erreur du fournisseur) ; **Composants IA
+reportés** signale un commit intermédiaire dont les composants IA du commit précédent ont
+été revérifiés sans nouvelle analyse.
 
 ## Conteneurs des serveurs
 

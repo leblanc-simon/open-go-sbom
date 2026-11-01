@@ -19,6 +19,35 @@ appliquées automatiquement, sans retour arrière.
   [`docs/security/permissions.md`](docs/security/permissions.md), générée depuis le code.
 - Invitations : un administrateur d'organisation invite une adresse, le compte accepte ou
   décline depuis « Mon compte » → « Invitations ».
+- Enrichissement IA de l'agent dépôt (T12, ADR 0042 à 0044) : un modèle (Ollama en local,
+  ou Anthropic, `claude-sonnet-5-5` par défaut) trouve les composants qu'aucun manifeste ne
+  déclare (bibliothèques recopiées, images de base, scripts de CDN, outils installés par
+  script) ; aucun composant n'est retenu sans preuve relue dans le fichier par un
+  vérificateur déterministe ; fichiers sensibles jamais envoyés ; budget par analyse,
+  repli sur le SBOM Syft seul marqué « enrichissement incomplet » ; analyse incrémentale.
+  Réglage par dépôt (IA désactivée par défaut ; fournisseur externe autorisé par un
+  administrateur d'organisation, audité ; `ai.forbid_external` sur l'instance). Bloc
+  « preuve » sur la fiche composant, inventaire par origine sur la fiche projet, statut
+  d'enrichissement des instantanés. Corpus d'évaluation annoté (`testdata/ai-corpus`) et
+  cible `make eval-ai`. Nouvelle dépendance : SDK Go officiel d'Anthropic (v2.4.0).
+- Différences d'instantanés (T17, ADR 0038) : la frise des instantanés d'une référence
+  indique les composants ajoutés, retirés, montés ou descendus de version depuis le
+  précédent ; écran de comparaison de deux instantanés quelconques d'un projet, avec
+  l'effet sur la sécurité (constats introduits et résolus) ; routes d'API
+  `GET /api/v1/orgs/{org}/projects/{project}/snapshots` et `…/compare`.
+- Rétention des instantanés (T17, ADR 0039) : tout est gardé 90 jours, puis le dernier
+  instantané de chaque mois, sans limite de durée ; le dernier instantané d'une référence
+  n'est jamais supprimé ; les réceptions hors fenêtre, puis les ensembles d'inventaire et
+  SBOM devenus orphelins sont supprimés chaque nuit. Réglages `retention.*`.
+- Triage et VEX (T14, ADR 0035 à 0037) : chaque constat a un statut de triage (à
+  analyser, affecté, non affecté avec justification VEX, faux positif, risque accepté
+  jusqu'à une date, corrigé), décidé pour un projet ou pour toute l'organisation (une
+  décision de projet surcharge celle de l'organisation) et hérité par les constats à
+  venir ; fiche d'un constat avec son panneau de triage et son historique, filtre par
+  statut, constats non affectés et faux positifs masqués par défaut ; échéance
+  automatique des risques acceptés ; export OpenVEX et CycloneDX VEX d'un projet
+  (interface et `GET /api/v1/orgs/{org}/projects/{project}/vex`), import des VEX
+  d'éditeurs pour un projet ou pour l'organisation ; chaque décision est journalisée.
 - Conteneurs en projets enfants (T13, ADR 0040 et 0041) : l'agent serveur inventorie les
   conteneurs Docker et Podman en cours d'exécution (option `containers.enabled`,
   **désactivée par défaut** : l'accès à la socket d'un moteur équivaut à root) ; chaque
@@ -31,10 +60,14 @@ appliquées automatiquement, sans retour arrière.
 
 ### Modifié
 
+- Le tableau de bord ne compte plus les constats « non affecté » ni « faux positif »
+  parmi les constats ouverts (T14).
 - Le rôle d'organisation vaut désormais « membre » ou « administrateur » (les rôles
   `viewer` et `analyst` disparaissent). La migration 016 crée une équipe « Général » par
   organisation, y rattache projets, jetons d'inscription et agents serveur, et y fait
   entrer chaque membre avec son ancien rôle : aucun accès n'est perdu.
+- La migration 017 rend facultatif l'instantané d'un constat et de son historique : un
+  constat dont la rétention supprime le dernier instantané reste, sans lien vers lui.
 - Le scan de l'hôte par l'agent serveur se fait hors ligne, comme celui des images : Syft
   n'exécute plus `go list` sur les modules Go trouvés sous `/` et ne cherche plus de
   licences sur le réseau. L'inventaire d'un hôte qui porte des modules Go peut changer une

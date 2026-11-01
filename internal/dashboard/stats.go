@@ -187,7 +187,7 @@ func writeProjectDays(ctx context.Context, tx *db.OrgTx, d, now time.Time) error
 		       count(f.id) FILTER (WHERE f.kev), $2
 		  FROM projects p
 		  LEFT JOIN (findings f JOIN tracked_refs r ON r.org_id = f.org_id AND r.id = f.ref_id AND r.removed_at IS NULL)
-		    ON f.org_id = p.org_id AND f.project_id = p.id AND f.status = 'open'
+		    ON f.org_id = p.org_id AND f.project_id = p.id AND f.status = 'open'`+mutedTriage+`
 		 WHERE p.archived_at IS NULL
 		 GROUP BY p.org_id, p.id
 		ON CONFLICT (org_id, project_id, day) DO UPDATE SET

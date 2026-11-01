@@ -38,6 +38,7 @@ import (
 	"leblanc.io/lotor/internal/sbom/schema"
 	"leblanc.io/lotor/internal/search"
 	"leblanc.io/lotor/internal/secret"
+	"leblanc.io/lotor/internal/triage"
 	"leblanc.io/lotor/internal/version/grypeversion"
 	"leblanc.io/lotor/internal/vuln"
 	"leblanc.io/lotor/internal/vuln/grype"
@@ -159,6 +160,16 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		return err
 	}
 	searcher := search.NewService(pool, grypeversion.New())
+	inv := inventory.NewService(pool)
+	projects := project.NewService(pool)
+	findings := finding.NewService(pool)
+	history, err := inventory.NewHistory(inventory.HistoryOptions{Pool: pool, Comparer: grypeversion.New(), Logger: logger,
+		Retention: inventory.RetentionPolicy{Enabled: cfg.Retention.Enabled, Days: cfg.Retention.Days, Count: cfg.Retention.Count,
+			Monthly: cfg.Retention.Monthly}})
+	if err != nil {
+		return err
+	}
+	triager := triage.NewService(triage.Options{Pool: pool, Comparer: grypeversion.New(), Logger: logger})
 	exports := search.NewExportLimiter(cfg.UserAPI.MaxExports, cfg.UserAPI.ExportTimeout)
 	reencodes := search.NewExportLimiter(cfg.Ingest.MaxReencodes, cfg.UserAPI.ExportTimeout)
 	vulndbScreen := web.VulnDBOptions{MaxAge: cfg.VulnDB.MaxAge, Offline: cfg.VulnDB.Offline, ListingURL: cfg.VulnDB.ListingURL,
@@ -178,11 +189,13 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Pool:                  pool,
 			Accounts:              accounts,
 			Orgs:                  orgs,
-			Projects:              project.NewService(pool),
+			Projects:              projects,
 			Agents:                agents,
-			Inventory:             inventory.NewService(pool),
+			Inventory:             inv,
+			History:               history,
 			Ingest:                ingester,
-			Findings:              finding.NewService(pool),
+			Findings:              findings,
+			Triage:                triager,
 			Search:                searcher,
 			Exports:               exports,
 			Reencodes:             reencodes,
@@ -193,6 +206,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			MFA:                   cfg.MFA,
 			LoginRateLimit:        cfg.Login.RateLimit,
 			SessionMaxAge:         cfg.Login.SessionMaxAge,
+			ForbidExternalAI:      cfg.AI.ForbidExternal,
 			ContainerArchiveAfter: cfg.Containers.ArchiveAfter,
 		},
 		AgentAPI: &api.AgentOptions{
@@ -202,6 +216,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			FailureRateLimit: cfg.AgentAPI.FailureRateLimit,
 			// La validation de la configuration garantit le TLS natif avec client_ca_file.
 			RequireClientCert: cfg.TLS.ClientCAFile != "",
+			ForbidExternalAI:  cfg.AI.ForbidExternal,
 		},
 		UserAPI: &api.UserOptions{
 			Pool:             pool,
@@ -209,6 +224,12 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Orgs:             orgs,
 			Search:           searcher,
 			Exports:          exports,
+			Projects:         projects,
+			Inventory:        inv,
+			History:          history,
+			Findings:         findings,
+			Triage:           triager,
+			Version:          version,
 			RateLimit:        cfg.UserAPI.RateLimit,
 			FailureRateLimit: cfg.UserAPI.FailureRateLimit,
 		},
@@ -281,13 +302,16 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			jobs.WithOrgLimit(cfg.Workers.OrgLimit), jobs.WithTimeout(cfg.Ingest.DecodeTimeout)); err != nil {
 			return err
 		}
-		if err := registerAnalysis(cfg, runner, scheduler, pool, vulndb, ingester, logger); err != nil {
+		if err := registerAnalysis(cfg, runner, scheduler, pool, vulndb, ingester, triager, logger); err != nil {
 			return err
 		}
 		if err := scheduler.Register(account.PurgeSchedule()); err != nil {
 			return err
 		}
 		if err := registerDashboard(runner, scheduler, dash); err != nil {
+			return err
+		}
+		if err := registerHistory(runner, scheduler, history); err != nil {
 			return err
 		}
 		if err := registerContainers(runner, scheduler, project.NewArchiver(pool, cfg.Containers.ArchiveAfter, nil)); err != nil {
@@ -301,8 +325,8 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 // registerAnalysis enregistre l'analyse de vulnérabilités : analyses des références,
 // réanalyse du parc, vérification de la liste de distribution (sauf hors ligne).
 func registerAnalysis(cfg config.Config, runner *jobs.Runner, scheduler *jobs.Scheduler, pool *db.Pool, vulndb *vuln.Manager,
-	ingester *ingest.Service, logger *slog.Logger) error {
-	analyzer := finding.NewAnalyzer(finding.Options{Pool: pool, Engine: vulndb, Blobs: ingester, Logger: logger})
+	ingester *ingest.Service, triager *triage.Service, logger *slog.Logger) error {
+	analyzer := finding.NewAnalyzer(finding.Options{Pool: pool, Engine: vulndb, Blobs: ingester, Triage: triager, Logger: logger})
 	source, err := grype.NewSource(download.New(name+"/"+version, cfg.VulnDB.DownloadTimeout), cfg.VulnDB.ListingURL)
 	if err != nil {
 		return err
@@ -323,6 +347,8 @@ func registerAnalysis(cfg config.Config, runner *jobs.Runner, scheduler *jobs.Sc
 			jobs.WithTimeout(cfg.VulnDB.AnalysisTimeout)}},
 		{vuln.RescanAllKind, analyzer.RescanAllHandler(), nil},
 		{finding.RescanOrgKind, analyzer.RescanOrgHandler(), nil},
+		// Échéance d'un risque accepté (triage).
+		{triage.ExpireKind, triager.ExpireHandler(), nil},
 		// Téléchargement, puis installation complète pour valider l'archive.
 		{vuln.CheckKind, check, []jobs.KindOption{jobs.WithTimeout(2 * cfg.VulnDB.DownloadTimeout)}},
 		// Archive téléversée depuis l'administration : même validation, même en mode hors ligne.
@@ -347,6 +373,23 @@ func registerDashboard(runner *jobs.Runner, scheduler *jobs.Scheduler, dash *das
 		return err
 	}
 	return scheduler.Register(dashboard.StatsSchedule())
+}
+
+// registerHistory enregistre les différences d'instantanés et la rétention (T17).
+func registerHistory(runner *jobs.Runner, scheduler *jobs.Scheduler, h *inventory.History) error {
+	for _, r := range []struct {
+		kind string
+		h    jobs.Handler
+	}{
+		{inventory.DiffKind, h.DiffHandler()},
+		{inventory.RetentionAllKind, h.RetentionAllHandler()},
+		{inventory.RetentionOrgKind, h.RetentionOrgHandler()},
+	} {
+		if err := runner.Register(r.kind, r.h); err != nil {
+			return err
+		}
+	}
+	return scheduler.Register(inventory.RetentionSchedule())
 }
 
 // registerContainers enregistre l'archivage des conteneurs absents (T13).

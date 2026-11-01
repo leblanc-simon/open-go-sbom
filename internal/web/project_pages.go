@@ -16,6 +16,7 @@ import (
 	"leblanc.io/lotor/internal/finding"
 	"leblanc.io/lotor/internal/project"
 	"leblanc.io/lotor/internal/render"
+	"leblanc.io/lotor/internal/sbom"
 	"leblanc.io/lotor/internal/tenant"
 )
 
@@ -328,6 +329,7 @@ func projectTabs(acc tenant.Access, p project.Project, current string) []project
 		{LabelKey: "project.tab_overview", Href: base, Current: current == "overview"},
 		{LabelKey: "project.tab_findings", Href: base + "/findings", Current: current == "findings"},
 		{LabelKey: "project.tab_snapshots", Href: base + "/snapshots", Current: current == "snapshots"},
+		{LabelKey: "project.tab_vex", Href: base + "/vex", Current: current == "vex"},
 	}
 	if acc.Can(tenant.PermProjectManage, p.TeamID) {
 		tabs = append(tabs, projectTab{LabelKey: "project.tab_settings", Href: base + "/settings", Current: current == "settings"})
@@ -353,6 +355,10 @@ type projectView struct {
 	Summary summaryView
 	// Host : agent serveur du projet (contexte de l'hôte, demande de scan).
 	Host *hostAgentView
+	// Inventories : composants de l'instantané courant de chaque référence, par origine.
+	Inventories []refInventory
+	// AIMode : réglage de l'enrichissement IA d'un dépôt (clé de traduction).
+	AIModeKey string
 	// Family : conteneurs d'un hôte et constats par périmètre (T13).
 	Family *familyView
 	// Container : identité et contexte d'un conteneur.
@@ -418,6 +424,15 @@ func containerState(p project.Project) string {
 	return "running"
 }
 
+// refInventory résume l'inventaire courant d'une référence sur la fiche projet.
+type refInventory struct {
+	Name       string
+	Kind       string
+	Href       string
+	Counts     sbom.Counts
+	Enrichment string
+}
+
 // hostAgentView est ce que la fiche d'un hôte montre de son agent serveur.
 type hostAgentView struct {
 	Context       *agent.HostContext
@@ -461,6 +476,21 @@ func (id *identity) renderProject(w http.ResponseWriter, r *http.Request, status
 		return
 	}
 	view.Period, view.Summary = periodFormOf(orgBase(acc)+"/projects/"+p.Slug, period), summaryOf("project", summary)
+	if p.Kind == project.KindRepo {
+		view.AIModeKey = "project_ai.mode_" + string(p.AIMode.Effective(!id.ForbidExternalAI))
+	}
+	states, err := id.Inventory.RefStates(r.Context(), acc.Org, p.ID)
+	if err != nil {
+		id.serverError(w, r, err)
+		return
+	}
+	for _, st := range states {
+		if st.Current == nil || st.Removed {
+			continue
+		}
+		view.Inventories = append(view.Inventories, refInventory{Name: st.Name, Kind: st.Kind, Counts: st.Current.Counts,
+			Href: orgBase(acc) + "/projects/" + p.Slug + "/snapshots/" + st.Current.ID.String(), Enrichment: string(st.Current.Enrichment)})
+	}
 	if p.Kind == project.KindHost && p.Agent != nil {
 		// L'agent serveur d'un projet visible fait partie de sa fiche, même s'il était
 		// rattaché à une autre équipe : il est lu sans filtre d'équipe.
@@ -505,7 +535,11 @@ func (id *identity) projectSettingsPage(w http.ResponseWriter, r *http.Request, 
 			return
 		}
 	}
-	id.rd.Render(w, r, status, "projects/settings", &projectSettingsView{
+	var ai *aiSettingsView
+	if p.Kind == project.KindRepo && p.ArchivedAt == nil {
+		ai = id.aiSettings(acc, p)
+	}
+	id.rd.Render(w, r, status, "projects/settings", &projectSettingsView{AI: ai,
 		projectFormView: projectFormView{
 			Page: render.Page{TitleKey: "project_settings.title", TitleArgs: map[string]any{"Name": p.Name}, Nav: orgNav(acc, "projects")},
 			Base: orgBase(acc), Form: f, Error: fe, Action: orgBase(acc) + "/projects/" + p.Slug + "/settings", Slug: p.Slug,
@@ -521,6 +555,68 @@ type projectSettingsView struct {
 	FlashKey string
 	// MoveTeams : équipes où rattacher le projet (droit de rattachement dans les deux).
 	MoveTeams []option
+	// AI : réglage de l'enrichissement IA d'un dépôt actif.
+	AI *aiSettingsView
+}
+
+// aiOption est un choix du réglage d'enrichissement IA.
+type aiOption struct {
+	Value    string
+	LabelKey string
+	HintKey  string
+	Selected bool
+	// Disabled : choix indisponible (fournisseur externe interdit par l'instance, ou
+	// réservé aux administrateurs d'organisation).
+	Disabled bool
+}
+
+type aiSettingsView struct {
+	Options []aiOption
+	// NoteKey explique pourquoi le fournisseur externe n'est pas proposé.
+	NoteKey string
+}
+
+// aiSettings prépare le réglage IA : le fournisseur externe n'est proposé qu'à un
+// administrateur d'organisation et si l'instance le permet ; un projet déjà réglé ainsi
+// le garde affiché.
+func (id *identity) aiSettings(acc tenant.Access, p project.Project) *aiSettingsView {
+	v := &aiSettingsView{}
+	canExternal := acc.Can(tenant.PermAIExternal, p.TeamID)
+	switch {
+	case id.ForbidExternalAI:
+		v.NoteKey = "project_ai.external_forbidden"
+	case !canExternal:
+		v.NoteKey = "project_ai.external_admin_only"
+	}
+	for _, m := range project.AIModes() {
+		o := aiOption{Value: string(m), LabelKey: "project_ai.mode_" + string(m), HintKey: "project_ai.hint_" + string(m),
+			Selected: p.AIMode == m}
+		if m == project.AIExternal && (id.ForbidExternalAI || !canExternal) && p.AIMode != project.AIExternal {
+			o.Disabled = true
+		}
+		v.Options = append(v.Options, o)
+	}
+	return v
+}
+
+// setProjectAI change le réglage d'enrichissement IA d'un dépôt. Autoriser un
+// fournisseur externe exige en plus le droit ai.external (administrateur
+// d'organisation) : 403 sinon ; l'instance peut l'interdire à tous (422).
+func (id *identity) setProjectAI(w http.ResponseWriter, r *http.Request) {
+	p, ok := id.loadProject(w, r)
+	if !ok || !id.parseForm(w, r) {
+		return
+	}
+	acc := access(r)
+	mode := project.AIMode(r.PostForm.Get("ai_mode"))
+	if mode == project.AIExternal && p.AIMode != project.AIExternal && !acc.Can(tenant.PermAIExternal, p.TeamID) {
+		id.rd.Error(w, r, http.StatusForbidden)
+		return
+	}
+	err := id.Projects.SetAIMode(r.Context(), id.actor(r), acc.Org, p.Slug, mode, !id.ForbidExternalAI)
+	id.projectResult(w, r, err, p, "project_ai_saved", func(fe formError) {
+		id.projectSettingsPage(w, r, http.StatusUnprocessableEntity, p, formOf(p), fe)
+	})
 }
 
 func (id *identity) projectSettings(w http.ResponseWriter, r *http.Request) {

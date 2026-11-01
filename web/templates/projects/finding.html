@@ -1,0 +1,151 @@
+{{define "content" -}}
+{{- $p := .Project}}
+{{- $f := .Finding}}
+<div class="stack">
+  <div class="page-head">
+    <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
+      <ol>
+        <li><a href="{{.Base}}/projects">{{T "nav.projects"}}</a></li>
+        <li><a href="{{.Base}}/projects/{{$p.Slug}}">{{$p.Name}}</a></li>
+        <li><a href="{{.Back}}">{{T "project.tab_findings"}}</a></li>
+        <li><span aria-current="page">{{$f.VulnID}}</span></li>
+      </ol>
+    </nav>
+    <div class="page-head__row">
+      <h1 class="page-head__title"><span class="mono">{{$f.VulnID}}</span> · {{$f.Component}} <span class="version">{{$f.Version}}</span></h1>
+    </div>
+    <p class="page-head__meta"><span>{{$p.Name}}</span><span class="mono">{{$f.RefName}}</span></p>
+  </div>
+  {{template "project_tabs" .Tabs}}
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  <div class="triage">
+    <section class="triage__summary" aria-labelledby="triage-summary">
+      <h2 class="triage__legend" id="triage-summary">{{T "triage.summary"}}</h2>
+      <div class="cluster">
+        {{template "sev" $f.Sev}}
+        {{- if $f.KEV}}{{template "kev"}}{{end}}
+        {{- with $f.EPSS}}{{template "epss" .}}{{end}}
+        <span class="cluster"><span class="muted">{{T "triage.risk"}}</span>{{template "risk" $f.Risk}}</span>
+      </div>
+      <dl class="kv">
+        <dt>{{T "triage.effective"}}</dt>
+        <dd><span class="cluster">{{template "triage_status" .Effective}}<span class="muted">{{T .SourceKey}}</span></span></dd>
+        <dt>{{T "triage.project"}}</dt>
+        <dd><a href="{{.Base}}/projects/{{$p.Slug}}">{{$p.Name}}</a> {{template "project_kind" $p.Kind}}</dd>
+        <dt>{{T "triage.ref"}}</dt>
+        <dd><span class="mono">{{$f.RefName}}</span> <span class="muted">{{T (print "ref_kind." $f.RefKind)}}</span></dd>
+        <dt>{{T "triage.component"}}</dt>
+        <dd><a href="{{$f.ComponentHref}}">{{$f.Component}}</a> <span class="mono purl">{{.PURL}}</span></dd>
+        <dt>{{T "triage.fixed_in"}}</dt>
+        <dd>{{template "fixed" $f}}</dd>
+        <dt>{{T "triage.first_seen"}}</dt>
+        <dd>{{template "stamp" $f.FirstSeen}}</dd>
+        <dt>{{T "triage.state"}}</dt>
+        <dd>{{if eq $f.Status "resolved"}}{{T "findings.state_resolved"}} · {{T (print "finding_resolution." $f.Resolution)}}{{else}}{{T "findings.state_open"}}{{end}}</dd>
+        <dt>{{T "triage.vulnerability"}}</dt>
+        <dd><a href="{{.VulnHref}}">{{T "triage.vulnerability_link" "ID" $f.VulnID}}</a></dd>
+      </dl>
+    </section>
+    {{- if .CanTriage}}
+    <form class="triage__form" method="post" action="{{.Action}}" aria-labelledby="triage-form-title">
+      {{csrfField .Page.CSRFToken}}
+      <div class="triage__body">
+        <h2 class="triage__legend" id="triage-form-title">{{T "triage.form_title"}}</h2>
+        <fieldset>
+          <legend class="triage__legend">{{T "triage.status"}}</legend>
+          <ul class="choice-list">
+            {{- range .Statuses}}
+            <li><label class="choice"><input type="radio" name="status" value="{{.Value}}"{{if .Checked}} checked{{end}}{{if eq $.Error.Field "status"}} aria-invalid="true"{{end}}><span class="choice__label">{{template "triage_status" .Badge}}{{if .Current}}<span class="muted choice__note">{{T "triage.current_status"}}</span>{{end}}</span><span class="choice__desc">{{T .DescKey}}</span>
+              {{- if eq .Value "not_affected"}}
+              <span class="choice__extra">
+                <span class="field">
+                  <label class="field__label" for="triage-justification">{{T "triage.justification"}}</label>
+                  <select class="select" id="triage-justification" name="justification"{{if eq $.Error.Field "justification"}} aria-invalid="true"{{end}}>
+                    <option value="">{{T "triage.justification_choose"}}</option>
+                    <optgroup label="{{T "vex_vocabulary.cyclonedx"}}">
+                      {{- range $.JustCDX}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>{{end}}
+                    </optgroup>
+                    <optgroup label="{{T "vex_vocabulary.openvex"}}">
+                      {{- range $.JustOVX}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{T .LabelKey}}</option>{{end}}
+                    </optgroup>
+                  </select>
+                </span>
+              </span>
+              {{- else if eq .Value "risk_accepted"}}
+              <span class="choice__extra">
+                <span class="field">
+                  <label class="field__label" for="triage-expires">{{T "triage.until"}}</label>
+                  <input class="input" id="triage-expires" type="date" name="expires_on" value="{{$.Form.ExpiresOn}}" min="{{$.MinExpiry}}" max="{{$.MaxExpiry}}" aria-describedby="triage-expires-hint"{{if eq $.Error.Field "expires_on"}} aria-invalid="true"{{end}}>
+                  <span class="field__hint" id="triage-expires-hint">{{T "triage.until_hint"}}</span>
+                </span>
+              </span>
+              {{- end}}
+            </label></li>
+            {{- end}}
+          </ul>
+        </fieldset>
+        <fieldset>
+          <legend class="triage__legend">{{T "triage.scope"}}</legend>
+          <ul class="choice-list">
+            {{- range .Scopes}}
+            <li><label class="choice"><input type="radio" name="scope" value="{{.Value}}"{{if .Checked}} checked{{end}}><span class="choice__label">{{T .LabelKey .Args}}</span><span class="choice__desc">{{T .DescKey .Args}}</span>
+              {{- if and (eq .Value "org") $.ShowVers}}
+              <span class="choice__extra">
+                <span class="field">
+                  <label class="field__label" for="triage-vers">{{T "triage.vers"}}</label>
+                  <input class="input input--mono" id="triage-vers" name="vers" value="{{$.Form.Vers}}" maxlength="1024" aria-describedby="triage-vers-hint"{{if eq $.Error.Field "vers"}} aria-invalid="true"{{end}}>
+                  <span class="field__hint" id="triage-vers-hint">{{T "triage.vers_hint"}}</span>
+                </span>
+              </span>
+              {{- end}}
+            </label></li>
+            {{- end}}
+          </ul>
+        </fieldset>
+        <div class="field">
+          <label class="field__label" for="triage-comment">{{T "triage.comment"}}</label>
+          <textarea class="input input--multiline" id="triage-comment" name="comment" rows="4" maxlength="{{.CommentMax}}" required aria-describedby="triage-comment-hint"{{if eq .Error.Field "comment"}} aria-invalid="true"{{end}}>{{.Form.Comment}}</textarea>
+          <span class="field__hint" id="triage-comment-hint">{{T "triage.comment_hint"}}</span>
+        </div>
+      </div>
+      <div class="triage__foot">
+        <a class="btn" href="{{.Back}}">{{T "confirm.cancel"}}</a>
+        <button class="btn btn--primary" type="submit">{{T "triage.save"}}</button>
+      </div>
+    </form>
+    {{- else}}
+    <div class="triage__body"><p class="muted">{{T "triage.read_only"}}</p></div>
+    {{- end}}
+    <section class="triage__history" aria-labelledby="triage-history">
+      <h2 class="triage__legend" id="triage-history">{{T "triage.history"}}</h2>
+      {{- if .History}}
+      <ol class="timeline">
+        {{- range .History}}
+        <li>
+          <span class="timeline__dot{{if .Applied}} timeline__dot--current{{end}}" aria-hidden="true"></span>
+          <div>
+            <div class="timeline__head">
+              <span class="timeline__who">{{if .Who}}{{.Who}}{{else}}{{T .SystemKey}}{{end}}</span>
+              <span>{{T .ActionKey}}</span>
+              {{- with .Badge}}{{template "triage_status" .}}{{end}}
+              {{- if .ScopeKey}}<span class="chip">{{T .ScopeKey}}</span>{{end}}
+              {{- with .Vers}}<span class="mono">{{.}}</span>{{end}}
+              {{- if .Applied}}<span class="chip chip--tag">{{T "triage.applied"}}</span>{{end}}
+              <span class="timeline__when">{{template "stamp" .When}}</span>
+            </div>
+            {{- if .Justification}}<p class="timeline__meta">{{T "triage.history_justification" "Justification" (T (print "vex_justification." .Justification)) "Vocabulary" (T .JustVocabKey)}}</p>{{end}}
+            {{- with .ExpiresOn}}<p class="timeline__meta">{{T "triage.history_until" "Date" .Display}}</p>{{end}}
+            {{- with .Comment}}<p class="timeline__comment">{{.}}</p>{{end}}
+            {{- with .WithdrawHref}}<p><a class="btn btn--sm" href="{{.}}">{{T "triage.withdraw"}}</a></p>{{end}}
+          </div>
+        </li>
+        {{- end}}
+      </ol>
+      {{- else}}
+      <p class="muted">{{T "triage.no_history"}}</p>
+      {{- end}}
+    </section>
+  </div>
+</div>
+{{- end}}

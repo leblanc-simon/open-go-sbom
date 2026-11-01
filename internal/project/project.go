@@ -51,6 +51,38 @@ func ParseKind(s string) (Kind, error) {
 	return "", invalid("kind", KeyKindInvalid)
 }
 
+// AIMode est le réglage d'enrichissement IA d'un dépôt.
+type AIMode string
+
+// Réglages d'enrichissement IA.
+const (
+	// AIDisabled : aucun modèle n'est appelé (défaut).
+	AIDisabled AIMode = "disabled"
+	// AILocal : modèle local seulement (le code ne quitte pas l'infrastructure de
+	// l'exploitant de l'agent).
+	AILocal AIMode = "local"
+	// AIExternal : fournisseur externe autorisé par un administrateur d'organisation.
+	AIExternal AIMode = "external"
+)
+
+// AIModes liste les réglages dans l'ordre d'affichage.
+func AIModes() []AIMode { return []AIMode{AIDisabled, AILocal, AIExternal} }
+
+// Valid indique un réglage connu.
+func (m AIMode) Valid() bool { return slices.Contains(AIModes(), m) }
+
+// Effective borne le réglage par la politique de l'instance : un fournisseur externe
+// interdit ramène « external » à « local ».
+func (m AIMode) Effective(externalAllowed bool) AIMode {
+	if m == AIExternal && !externalAllowed {
+		return AILocal
+	}
+	if !m.Valid() {
+		return AIDisabled
+	}
+	return m
+}
+
 // RefKind est la nature d'une référence suivie.
 type RefKind string
 
@@ -94,6 +126,7 @@ type Project struct {
 	ForgeURL    string
 	Agent       *AgentRef
 	TeamID      uuid.UUID // équipe du projet (toujours présente, ADR 0034)
+	AIMode      AIMode    // réglage de l'enrichissement IA (dépôts, ADR 0043)
 	TeamName    string
 	ArchivedAt  *time.Time
 	CreatedAt   time.Time
@@ -296,7 +329,7 @@ func insert(ctx context.Context, tx *db.OrgTx, in Input, agentID *uuid.UUID) (Pr
 		return Project{}, err
 	}
 	p := Project{ID: id, Kind: in.Kind, Slug: slug, Name: in.Name, Description: in.Description, Labels: in.Labels,
-		ForgeURL: in.ForgeURL, TeamID: in.TeamID}
+		ForgeURL: in.ForgeURL, TeamID: in.TeamID, AIMode: AIDisabled}
 	err = tx.QueryRowContext(ctx, `
 		INSERT INTO projects (org_id, id, kind, slug, name, description, labels, forge_url, agent_id, team_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING created_at, updated_at`,
@@ -426,7 +459,7 @@ func newIDs(n int) []string {
 // columns lit un projet ; l'agent d'un conteneur est celui de son hôte (pp).
 const columns = `lower(p.name), p.id, p.kind, p.slug, p.name, p.description, p.labels, p.forge_url, p.archived_at,
 	p.created_at, p.updated_at, a.id, coalesce(a.name, ''), coalesce(a.version, ''), a.last_seen_at, a.disabled_at IS NOT NULL,
-	coalesce(a.kind, ''), a.created_at, p.team_id, t.name,
+	coalesce(a.kind, ''), a.created_at, p.team_id, t.name, p.ai_mode,
 	(SELECT max(s.last_scanned_at) FROM projects ap
 	   JOIN ref_current rc ON rc.org_id = ap.org_id AND rc.project_id = ap.id
 	   JOIN snapshots s ON s.org_id = rc.org_id AND s.id = rc.snapshot_id
@@ -444,14 +477,14 @@ func scan(row interface{ Scan(...any) error }) (Project, error) {
 	var labels []byte
 	var archived, lastSeen, agentCreated, inventoried sql.NullTime
 	var agentID, parentID uuid.NullUUID
-	var agentName, agentVersion, agentKind, parentSlug, parentName, containerKey string
+	var agentName, agentVersion, agentKind, aiMode, parentSlug, parentName, containerKey string
 	var disabled sql.NullBool
 	var container []byte
 	var seen sql.NullTime
 	var absent bool
 	if err := row.Scan(&p.sortName, &p.ID, &kind, &p.Slug, &p.Name, &p.Description, &labels, &p.ForgeURL, &archived,
 		&p.CreatedAt, &p.UpdatedAt, &agentID, &agentName, &agentVersion, &lastSeen, &disabled, &agentKind, &agentCreated,
-		&p.TeamID, &p.TeamName, &inventoried, &parentID, &parentSlug, &parentName, &containerKey, &container, &seen,
+		&p.TeamID, &p.TeamName, &aiMode, &inventoried, &parentID, &parentSlug, &parentName, &containerKey, &container, &seen,
 		&absent); err != nil {
 		return Project{}, err
 	}
@@ -465,7 +498,7 @@ func scan(row interface{ Scan(...any) error }) (Project, error) {
 		}
 		p.Container = &c
 	}
-	p.Kind = Kind(kind)
+	p.Kind, p.AIMode = Kind(kind), AIMode(aiMode)
 	if err := json.Unmarshal(labels, &p.Labels); err != nil {
 		return Project{}, fmt.Errorf("étiquettes : %w", err)
 	}
@@ -726,6 +759,40 @@ func (s *Service) SetTeam(ctx context.Context, actor audit.Actor, org tenant.Org
 		return audit.RecordOrg(ctx, tx, actor, event(audit.ProjectTeamChanged, p, details))
 	})
 	return wrap("rattachement d'un projet", err)
+}
+
+// SetAIMode change le réglage d'enrichissement IA d'un dépôt. L'appelant vérifie les
+// droits : project.manage pour tout réglage, et en plus project.ai_external (administrateur
+// d'organisation) pour autoriser un fournisseur externe ; externalAllowed reflète la
+// politique de l'instance, qui peut interdire tout fournisseur externe. Chaque changement
+// est journalisé (ADR 0043).
+func (s *Service) SetAIMode(ctx context.Context, actor audit.Actor, org tenant.OrgID, slug string, mode AIMode, externalAllowed bool) error {
+	if !mode.Valid() {
+		return invalid("ai_mode", KeyAIModeInvalid)
+	}
+	if mode == AIExternal && !externalAllowed {
+		return invalid("ai_mode", KeyAIExternalOff)
+	}
+	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
+		p, err := load(ctx, tx, slug, true, false)
+		if err != nil {
+			return err
+		}
+		if p.Kind != KindRepo {
+			return invalid("ai_mode", KeyAIModeInvalid)
+		}
+		if p.ArchivedAt != nil {
+			return invalid("project", KeyProjectArchived)
+		}
+		if p.AIMode == mode {
+			return nil
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE projects SET ai_mode = $2, updated_at = now() WHERE id = $1`, p.ID, string(mode)); err != nil {
+			return err
+		}
+		return audit.RecordOrg(ctx, tx, actor, event(audit.ProjectAIModeChanged, p, map[string]string{"from": string(p.AIMode), "to": string(mode)}))
+	})
+	return wrap("réglage de l'enrichissement IA", err)
 }
 
 // Filter restreint une liste de projets.

@@ -98,6 +98,28 @@ Tests de référence : `TestRoutePermissionsFollowMatrix`, `TestTeamFilterOnEver
 Prochains lots, en parallèle : [T12](specs/lots/T12-enrichissement-ia.md),
 [T13](specs/lots/T13-conteneurs.md), [T14](specs/lots/T14-triage-vex.md) et
 [T17](specs/lots/T17-differences-instantanes.md).
+T12 terminé : enrichissement IA de l'agent dépôt (`internal/llm` : `Provider`, boucle
+`Run`, Anthropic par le SDK officiel sans environnement, Ollama, faux fournisseur
+`llmtest` ; `internal/repoagent/ai_*.go` : outils sous `os.Root`, exclusions,
+vérificateur seul juge, fusion, statut `lotor:enrichment`, analyse incrémentale ; ADR 0042
+à 0044). Réglage par dépôt `ai_mode` (désactivé par défaut ; externe : permission
+`ai.external`, audité ; `ai.forbid_external`), route agent `refs/{id}/ai-components`, bloc
+« preuve » de la fiche composant. Corpus annoté `testdata/ai-corpus`, `make eval-ai`
+(vrai modèle, hors CI : mesure à faire par l'utilisateur).
+T17 terminé : différences d'instantanés (`internal/inventory` : `History`, job
+`inventory.diff`, tables `set_diffs`/`set_diff_items` par couple d'ensembles consécutifs,
+montée ou descente par `purl_base` ; ADR 0038), effet sur la sécurité calculé à la lecture
+(`finding.SnapshotEffect`), frise et écran `/projects/{project}/compare`, API
+`…/projects/{project}/snapshots` et `…/compare` ; rétention quotidienne (`retention.*` :
+90 jours puis le dernier instantané de chaque mois, jamais le dernier d'une référence ;
+orphelins supprimés ; horizon `snapshot_retention` pour T21 ; ADR 0039).
+T14 terminé : triage et VEX (`internal/triage`, `internal/triage/vex`, ADR 0035 à 0037).
+Décisions de projet (composant exact) ou d'organisation (`purl_base`, plage `vers`,
+permission `triage.org`), journal `triage_decisions` en ajout seul, statut effectif rangé
+sur chaque constat (`findings.triage_status`), recalculé à chaque décision et classé par
+l'analyse (`finding.Classifier`) ; échéance des risques acceptés (job `triage.expire`) ;
+export OpenVEX et CycloneDX (écran et API), import de VEX d'éditeurs. T15 réutilise
+`triage_status` et `triage.Options.OnChange` (voir le `doc.go` de `triage`).
 T13 terminé : conteneurs en projets enfants (ADR 0040, 0041). Projet de nature
 `container`, enfant de l'hôte (`Project.Parent`), dans son équipe par clé étrangère en
 cascade ; l'agent serveur (`containers.enabled`, désactivé par défaut : aucune socket
@@ -168,6 +190,7 @@ make test-grypedb       # vraie base Grype (LOTOR_TEST_GRYPEDB_DIR : base v6 ins
 make bench              # mesures sur le jeu de référence (docs/benchmarks.md)
 make bench-search       # mesures de la recherche sur le jeu de référence, RLS active
 make bench-ingest       # ingestion et analyse de 5 000 composants, vraie base Grype
+make eval-ai            # enrichissement IA sur le corpus annoté, vrai modèle (LOTOR_EVAL_AI_*), hors CI
 make selfscan           # SBOM des binaires (Syft) et analyse (Grype) ; échec sur une KEV
 make build              # bin/lotor-server, bin/lotor-host-agent, bin/lotor-repo-agent (CGO_ENABLED=0)
 make release VERSION=v0.1.0 RELEASE_DIR=/chemin/vide  # archives, paquets, SHA256SUMS (ADR 0032)

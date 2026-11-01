@@ -18,10 +18,15 @@ import (
 	"leblanc.io/lotor/internal/api/gen/userapi"
 	"leblanc.io/lotor/internal/api/problem"
 	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/finding"
+	"leblanc.io/lotor/internal/inventory"
 	"leblanc.io/lotor/internal/locale"
 	"leblanc.io/lotor/internal/org"
+	"leblanc.io/lotor/internal/project"
 	"leblanc.io/lotor/internal/search"
 	"leblanc.io/lotor/internal/tenant"
+	"leblanc.io/lotor/internal/triage"
+	"leblanc.io/lotor/internal/triage/vex"
 	"leblanc.io/lotor/internal/web/middleware"
 )
 
@@ -32,8 +37,16 @@ type UserOptions struct {
 	Orgs     *org.Service
 	Search   *search.Service
 	Exports  *search.ExportLimiter
-	Catalog  *locale.Catalog
-	Logger   *slog.Logger
+	// Projects, Inventory, History et Findings servent la frise et les comparaisons
+	// d'instantanés (T17) ; Triage l'export VEX d'un projet (T14), Version nomme l'outil.
+	Projects  *project.Service
+	Inventory *inventory.Service
+	History   *inventory.History
+	Findings  *finding.Service
+	Triage    *triage.Service
+	Version   string
+	Catalog   *locale.Catalog
+	Logger    *slog.Logger
 	// RateLimit borne les requêtes par minute et par jeton personnel (0 : sans limite).
 	RateLimit int
 	// FailureRateLimit borne les jetons refusés par minute et par IP (0 : sans limite).
@@ -45,7 +58,9 @@ type UserOptions struct {
 // seule, ADR 0025), limitation par jeton, garde d'organisation (404 hors des organisations
 // du compte), puis le serveur généré.
 func MountUser(r chi.Router, o UserOptions) error {
-	if o.Pool == nil || o.Accounts == nil || o.Orgs == nil || o.Search == nil || o.Exports == nil || o.Catalog == nil || o.Logger == nil {
+	if o.Pool == nil || o.Accounts == nil || o.Orgs == nil || o.Search == nil || o.Exports == nil ||
+		o.Projects == nil || o.Inventory == nil || o.History == nil || o.Findings == nil || o.Triage == nil ||
+		o.Catalog == nil || o.Logger == nil {
 		return errors.New("api: dépendances de l'API utilisateur incomplètes")
 	}
 	h := &userAPI{UserOptions: o}
@@ -76,6 +91,9 @@ func MountUser(r chi.Router, o UserOptions) error {
 		r.Use(h.authenticate, perToken.Middleware, h.orgGuard)
 		r.Get("/search", gen.SearchOrganization)
 		r.Get("/search/export", gen.ExportSearch)
+		r.Get("/projects/{project}/vex", gen.ExportProjectVEX)
+		r.Get("/projects/{project}/snapshots", gen.ListProjectSnapshots)
+		r.Get("/projects/{project}/compare", gen.CompareSnapshots)
 	})
 	return nil
 }
@@ -325,4 +343,42 @@ func searchHit(x search.Hit) userapi.SearchHit {
 		h.Vulnerability, h.Status = &v, &s
 	}
 	return h
+}
+
+// KeyVEXEmpty : le projet n'a aucune décision de triage à exporter.
+const KeyVEXEmpty = "error.vex_empty"
+
+// ExportProjectVEX sert le VEX d'un projet visible du propriétaire du jeton.
+func (h *userAPI) ExportProjectVEX(w http.ResponseWriter, r *http.Request, _ userapi.Org, slug string, params userapi.ExportProjectVEXParams) {
+	acc, _ := tenant.AccessFrom(r.Context())
+	f, err := vex.ParseFormat(string(params.Format))
+	if err != nil {
+		h.badRequest(w, r, err)
+		return
+	}
+	p, err := h.Projects.Get(r.Context(), acc.Org, acc.Visibility(), slug)
+	if errors.Is(err, project.ErrNotFound) {
+		problem.Write(w, r, h.Catalog, http.StatusNotFound, problem.KeyNotFound, nil)
+		return
+	}
+	if err != nil {
+		h.internal(w, r, err)
+		return
+	}
+	data, err := vex.Export(r.Context(), h.Triage, acc.Org, p.ID, f, vex.Meta{Author: acc.Name, Tooling: "lotor " + h.Version})
+	if errors.Is(err, vex.ErrNoStatement) {
+		problem.Write(w, r, h.Catalog, http.StatusNotFound, KeyVEXEmpty, nil)
+		return
+	}
+	if err != nil {
+		h.internal(w, r, err)
+		return
+	}
+	ctype := "application/json"
+	if f == vex.FormatCycloneDX {
+		ctype = "application/vnd.cyclonedx+json"
+	}
+	w.Header().Set("Content-Type", ctype)
+	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	_, _ = w.Write(data)
 }

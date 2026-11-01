@@ -382,20 +382,28 @@ func (s *Service) checkQuota(ctx context.Context, tx *db.OrgTx, refID uuid.UUID)
 	return nil
 }
 
-// storeBlob stocke le SBOM compressé, ou retrouve celui de même empreinte.
+// storeBlob stocke le SBOM compressé, ou retrouve celui de même empreinte. Le SBOM
+// retrouvé est verrouillé (FOR KEY SHARE) jusqu'à la fin de la transaction, qui le
+// référence : la rétention saute les SBOM verrouillés. Supprimé par elle juste avant la
+// lecture, il est stocké de nouveau.
 func storeBlob(ctx context.Context, tx *db.OrgTx, up upload) (uuid.UUID, error) {
-	id, err := uuid.NewV7()
-	if err != nil {
-		return uuid.Nil, err
+	for range 3 {
+		id, err := uuid.NewV7()
+		if err != nil {
+			return uuid.Nil, err
+		}
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO sbom_blobs (org_id, id, sha256, size, compressed_size, content) VALUES ($1, $2, $3, $4, $5, $6)
+			ON CONFLICT (org_id, sha256) DO NOTHING`, tx.OrgID(), id, up.sum[:], up.size, len(up.gz), up.gz)
+		if err != nil {
+			return uuid.Nil, err
+		}
+		err = tx.QueryRowContext(ctx, `SELECT id FROM sbom_blobs WHERE sha256 = $1 FOR KEY SHARE`, up.sum[:]).Scan(&id)
+		if !errors.Is(err, sql.ErrNoRows) {
+			return id, err
+		}
 	}
-	_, err = tx.ExecContext(ctx, `
-		INSERT INTO sbom_blobs (org_id, id, sha256, size, compressed_size, content) VALUES ($1, $2, $3, $4, $5, $6)
-		ON CONFLICT (org_id, sha256) DO NOTHING`, tx.OrgID(), id, up.sum[:], up.size, len(up.gz), up.gz)
-	if err != nil {
-		return uuid.Nil, err
-	}
-	err = tx.QueryRowContext(ctx, `SELECT id FROM sbom_blobs WHERE sha256 = $1`, up.sum[:]).Scan(&id)
-	return id, err
+	return uuid.Nil, errors.New("SBOM introuvable après trois essais")
 }
 
 func findDuplicate(ctx context.Context, tx *db.OrgTx, refID uuid.UUID, commit string, blobID uuid.UUID) (Ingestion, bool, error) {

@@ -72,6 +72,18 @@
     font-size: var(--text-sm);
   }
 
+  &.input--multiline {
+    min-height: 5.5rem;
+    padding-block: var(--space-2);
+    line-height: var(--leading-normal);
+    resize: vertical;
+  }
+
+  &.input--mono {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
   &.input--file {
     padding-block: var(--space-2);
   }

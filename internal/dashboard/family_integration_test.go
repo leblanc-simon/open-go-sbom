@@ -57,6 +57,14 @@ func TestFamilyCountsProjectVulnerabilityPairs(t *testing.T) {
 	f.finding("srv-api/shop/api", "zlib", "CVE-2026-0002", "medium", false, 20, now.Add(-2*day24), ago(day24))
 	f.finding("srv-old/old", "zlib", "CVE-2026-0002", "medium", false, 99, now, nil)
 	f.finding("autre/main", "zlib", "CVE-2026-0002", "medium", false, 99, now, nil)
+	// Un constat trié « non affecté » (T14) : hors du compte, comme au tableau de bord.
+	vulnerability(t, tdb.App, "CVE-2026-0003", "critical", true)
+	f.finding("srv-api/shop/api", "zlib", "CVE-2026-0003", "critical", true, 95, now, nil)
+	decision := newID()
+	f.exec(`INSERT INTO triage_decisions (org_id, id, scope, vuln_id, purl_base, action, status, justification, author_label, created_at)
+		VALUES ($1, $2, 'org', 'CVE-2026-0003', 'pkg:apk/alpine/zlib', 'set', 'not_affected', 'code_not_reachable', 'system', now())`,
+		f.org, decision)
+	f.exec(`UPDATE findings SET triage_status = 'not_affected', triage_decision_id = $1 WHERE vuln_id = 'CVE-2026-0003'`, decision)
 
 	fam, err := NewService(tdb.App).Family(context.Background(), f.org, f.id("srv"))
 	if err != nil {

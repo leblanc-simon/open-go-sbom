@@ -9,6 +9,7 @@ layout:
   home_link: Home
 
 nav:
+  triage: "Triage"
   search: Search
   tokens: Access tokens
   vulnerabilities: Vulnerabilities
@@ -49,6 +50,12 @@ role:
   admin: Administrator
 
 status:
+  in_triage: "In triage"
+  affected: "Affected"
+  not_affected: "Not affected"
+  false_positive: "False positive"
+  risk_accepted: "Risk accepted"
+  fixed: "Fixed"
   active: Active
   inactive: Deactivated
   archived: Archived
@@ -68,6 +75,9 @@ form:
   save: Save
 
 flash:
+  triage_saved: "Triage decision saved."
+  triage_withdrawn: "Triage decision withdrawn."
+  vex_empty: "No decision to export: triage some open findings of this project first."
   personal_token_revoked: The access token is revoked; it is refused from now on.
   scan_requested: Scan requested; the agent will start it at its next heartbeat.
   title: Done
@@ -86,6 +96,7 @@ flash:
   project_archived: The project is archived; it is no longer offered to its agent.
   project_unarchived: The project is active again.
   project_agent_saved: The project's agent is saved.
+  project_ai_saved: "The AI enrichment setting is saved."
   token_revoked: The token is revoked; the next request that presents it will be refused.
   agent_disabled: The agent is disabled; its tokens are revoked and its projects taken away.
   enrollment_revoked: The enrollment token is revoked.
@@ -113,6 +124,23 @@ pagination:
   next: Next page
 
 validation:
+  triage_status_invalid: "Choose a triage status."
+  triage_justification_required: "A VEX justification is required for “not affected”."
+  triage_justification_invalid: "Unknown VEX justification."
+  triage_justification_unused: "A VEX justification only goes with “not affected”."
+  triage_comment_required: "A comment is required: it explains the decision in the history and in the VEX."
+  triage_comment_too_long: "The comment exceeds 4,000 characters or contains control characters."
+  triage_expiry_required: "An accepted risk needs an expiry date."
+  triage_expiry_invalid: "The expiry date must be between today and three years from now."
+  triage_expiry_unused: "An expiry date only goes with “risk accepted”."
+  triage_scope_invalid: "Unknown decision scope."
+  triage_vers_invalid: "Unreadable version range, or from another ecosystem than the component (example: vers:maven/<2.17.0)."
+  triage_vers_unused: "A version range only applies to the whole organization."
+  vex_source_invalid: "Name the VEX source (100 characters at most), or import a document that declares its author."
+  vex_too_many_statements: "The document has more than 5,000 statements."
+  vex_no_statement: "The document has no usable statement."
+  vex_too_large: "The document exceeds 1 MiB."
+  vex_invalid: "The document is neither a readable OpenVEX nor a CycloneDX JSON."
   token_limit: "You already have the maximum number of active tokens: revoke one first."
   host_context_invalid: The host context is invalid (field too long or forbidden character).
   inventory_report_invalid: The inventory report is invalid (host reference, fingerprint or scan date).
@@ -176,6 +204,8 @@ validation:
   invitation_limit: "The organization has reached the maximum number of pending invitations: revoke some before inviting."
   invitation_unknown: "This invitation no longer exists or has expired."
   project_team_invalid: "Choose a team in which you can act."
+  project_ai_mode_invalid: "Choose one of the offered AI enrichment settings, for an active repository."
+  project_ai_external_forbidden: "This instance forbids any external model provider."
   agent_team_invalid: "Choose a team in which you can manage agents."
   enrollment_team_mismatch: "The server project to attach belongs to a team other than the token's."
   container_team: "A container follows the team of its host: move the host to change team."
@@ -386,6 +416,10 @@ audit:
   system: System (startup)
   empty: No event yet.
   action:
+    triage_decided: "Triage decision {{.D_status}} ({{.D_scope}}) on {{.Target}}"
+    triage_withdrawn: "Triage decision withdrawn ({{.D_scope}}) on {{.Target}}"
+    triage_expired: "Accepted risk expired on {{.D_expires_on}}: {{.Target}} back in triage"
+    triage_vex_imported: "VEX imported from {{.Target}} ({{.D_format}}, {{.D_scope}}): {{.D_decisions}} decisions, {{.D_ignored}} statements skipped"
     agent_scan_requested: "Scan requested from agent {{.Target}} (project {{.D_project}})"
     auth_login: "Sign-in of {{.Target}}"
     auth_login_failed: "Failed sign-in for “{{.Target}}”"
@@ -416,6 +450,7 @@ audit:
     project_archived: "Project {{.Target}} archived"
     project_unarchived: "Project {{.Target}} unarchived"
     project_agent_changed: "Agent of project {{.Target}}: {{.D_agent}}"
+    project_ai_mode_changed: "AI enrichment of project {{.Target}}: {{.D_from}} → {{.D_to}}"
     agent_created: "Agent {{.Target}} created"
     agent_enrolled: "Server agent {{.Target}} enrolled (project {{.D_project}}, token {{.D_token}})"
     agent_disabled: "Agent {{.Target}} disabled"
@@ -529,6 +564,16 @@ admin_org:
   unarchive: Reactivate
 
 error:
+  vex_empty:
+    title: "No decision to export"
+    text: "This project has no open finding with a triage decision."
+  diff:
+    no_previous:
+      title: No previous snapshot
+      text: This snapshot is the first of its reference; choose the snapshot to start from.
+    kind_invalid:
+      title: Unknown change kind
+      text: "The kind filter accepts added, removed, upgraded or downgraded."
   search:
     empty:
       title: Empty query
@@ -752,6 +797,7 @@ projects:
   container_of: on
 
 project:
+  tab_vex: "VEX"
   tab_findings: Findings
   title: "{{.Name}}"
   tabs: Project sections
@@ -802,6 +848,9 @@ project:
     one: "A vulnerability counts once for each project where it is open. A container absent for more than {{.Count}} day is archived; it comes back when it restarts."
     other: "A vulnerability counts once for each project where it is open. A container absent for more than {{.Count}} days is archived; it comes back when it restarts."
   containers_none: "No container reported. Container inventory is disabled by default in the host agent (containers.enabled): see the operations guide."
+  inventory_title: Current inventory
+  inventory_meta: "Components of the latest snapshot of each reference, by origin."
+  inventory_none: No snapshot yet.
 
 project_new:
   title: New project
@@ -1019,6 +1068,16 @@ snapshots:
   col_result: Result
   pending: Decoding pending
   no_ingestions: No SBOM received for this project.
+  compare_previous: Compare with the previous one
+  no_change: Same inventory as the previous one
+  changes_pending: Difference with the previous one being computed
+  retention_monthly:
+    one: "Retention: every snapshot of the last day, then the last one of each month, with no time limit. The latest snapshot of a reference is always kept."
+    other: "Retention: every snapshot of the last {{.Count}} days, then the last one of each month, with no time limit. The latest snapshot of a reference is always kept."
+  retention_window:
+    one: "Retention: every snapshot of the last day; beyond it, only the one in force at the start of this window. The latest snapshot of a reference is always kept."
+    other: "Retention: every snapshot of the last {{.Count}} days; beyond them, only the one in force at the start of this window. The latest snapshot of a reference is always kept."
+  retention_off: "Retention disabled: every snapshot is kept."
 
 snapshot:
   title: "Snapshot of {{.Date}} — {{.Name}}"
@@ -1051,6 +1110,7 @@ snapshot:
   no_license: None
   no_match: No component matches these filters.
   empty: This snapshot has no component.
+  changes: Since the previous one
 host_agent:
   context_title: Host
   last_inventory: Last inventory
@@ -1127,6 +1187,14 @@ finding_resolution:
   not_matched: No longer reported by the database
 
 findings:
+  triage: "Triage status"
+  triage_active: "To handle (without not affected and false positives)"
+  col_triage: "Triage"
+  muted:
+    one: "{{.Count}} not affected or false positive finding hidden."
+    other: "{{.Count}} not affected or false positive findings hidden."
+  show_muted: "Show all"
+  open_finding: "Triage {{.ID}} on {{.Component}}"
   title: "Findings — {{.Name}}"
   refs_title: Tracked references
   refs_caption: References of the project and their open findings
@@ -1232,6 +1300,8 @@ component:
   col_project: Project
   col_ref: Reference
   col_origin: Origin
+  col_location: Location
+  location_manifest: Manifest
   col_findings: Open findings
   col_snapshot: Snapshot
   open_findings:
@@ -1475,6 +1545,10 @@ sitemap:
   admin: "Instance administration"
 
 confirm:
+  triage_withdraw_heading: "Withdraw the “{{.Status}}” decision on {{.ID}}?"
+  triage_withdraw_project_text: "Findings of {{.Component}} in this project will go back to the organization's decision, or “in triage”. The decision stays in the history."
+  triage_withdraw_org_text: "Findings of {{.Component}} that inherited it, in every project, will go back to “in triage” (unless a project has its own decision). The decision stays in the history."
+  triage_withdraw_submit: "Withdraw the decision"
   irreversible: "This cannot be undone"
   cancel: "Cancel"
   agent_token_heading: "Revoke the token “{{.Name}}” of agent {{.Agent}}?"
@@ -1588,3 +1662,225 @@ container_state:
 container_engine:
   docker: Docker
   podman: Podman
+triage:
+  title: "{{.ID}} on {{.Component}}"
+  summary: "Finding summary"
+  risk: "Risk"
+  effective: "Triage status"
+  source_default: "default, no decision"
+  source_project: "project decision"
+  source_org: "organization decision"
+  source_expired: "accepted risk expired"
+  project: "Project"
+  ref: "Reference"
+  component: "Component"
+  fixed_in: "Fixed version"
+  first_seen: "First seen"
+  state: "State"
+  vulnerability: "Vulnerability"
+  vulnerability_link: "{{.ID}} details"
+  form_title: "Triage the finding"
+  status: "Status"
+  current_status: "current status"
+  desc_in_triage: "To review: no conclusion yet."
+  desc_affected: "The vulnerable code is reachable: a fix must be planned."
+  desc_not_affected: "Present but without impact. A VEX justification is required."
+  desc_false_positive: "The component or its version were misidentified."
+  desc_risk_accepted: "Until a chosen date, then back to “in triage”."
+  desc_fixed: "Fix deployed; the next snapshot will confirm it."
+  justification: "VEX justification"
+  justification_choose: "Choose a justification"
+  until: "Until"
+  until_hint: "Last day of acceptance (UTC); the finding goes back to “in triage” the next day."
+  scope: "Decision scope"
+  scope_project: "This project only ({{.Project}})"
+  scope_project_desc: "For this component and this vulnerability, in every reference of the project, including the next snapshots."
+  scope_org: "The whole organization"
+  scope_org_desc: "For the {{.Count}} open {{.Component}} × {{.ID}} findings of the organization and those to come; a project decision overrides it."
+  vers: "Version range (optional)"
+  vers_hint: "In vers format, for example vers:maven/<2.17.0; empty: every version."
+  comment: "Comment"
+  comment_hint: "Kept as is in the history and in the VEX export (impact or action statement)."
+  save: "Save the decision"
+  read_only: "Your role in this project's team does not allow triaging its findings (analyst or administrator role required)."
+  history: "History"
+  no_history: "No event."
+  history_set: "decided"
+  history_withdrawn: "withdrew the decision"
+  history_expired: "expired the accepted risk"
+  history_system: "System"
+  history_analysis: "Analysis"
+  history_opened: "opened the finding"
+  history_reopened: "reopened the finding"
+  history_resolved: "resolved the finding"
+  history_resolved_component_removed: "resolved the finding: component removed"
+  history_resolved_not_matched: "resolved the finding: no longer reported by the database"
+  scope_short_project: "project"
+  scope_short_org: "organization"
+  applied: "applied"
+  history_justification: "Justification: {{.Justification}} ({{.Vocabulary}})"
+  history_until: "Until {{.Date}}"
+  withdraw: "Withdraw"
+
+vex_justification:
+  component_not_present: "Component not present"
+  vulnerable_code_not_present: "Vulnerable code not present"
+  vulnerable_code_not_in_execute_path: "Vulnerable code not in execute path"
+  vulnerable_code_cannot_be_controlled_by_adversary: "Vulnerable code cannot be controlled by adversary"
+  inline_mitigations_already_exist: "Inline mitigations already exist"
+  code_not_present: "Code not present"
+  code_not_reachable: "Code not reachable"
+  requires_configuration: "Requires configuration"
+  requires_dependency: "Requires dependency"
+  requires_environment: "Requires environment"
+  protected_by_compiler: "Protected by compiler"
+  protected_at_runtime: "Protected at runtime"
+  protected_at_perimeter: "Protected at perimeter"
+  protected_by_mitigating_control: "Protected by mitigating control"
+
+vex_vocabulary:
+  openvex: "OpenVEX"
+  cyclonedx: "CycloneDX"
+
+vex:
+  title: "VEX — {{.Name}}"
+  export_title: "Export the decisions"
+  export_text:
+    one: "{{.Count}} statement: the component × vulnerability pair of an open finding with a decision."
+    other: "{{.Count}} statements: the component × vulnerability pairs of open findings with a decision."
+  export_formats: "Export formats"
+  export_hint: "Findings in triage without a decision are left out. Organization decisions that apply to the project are included."
+  format_openvex: "Download as OpenVEX"
+  format_cyclonedx: "Download as CycloneDX VEX"
+  import_title: "Import a vendor's VEX"
+  import_project_text: "Each statement becomes a project decision on the components of its findings with the same package and version (every version if the statement gives none). Statements without a matching component are skipped."
+  import_org_text: "Each statement becomes an organization decision on the component family, restricted to the stated version if any; it also applies to findings to come."
+  import_file: "VEX document (OpenVEX or CycloneDX, JSON)"
+  import_file_hint: "{{.Max}} KiB at most."
+  import_source: "Source"
+  import_source_hint: "Vendor name; decisions will be authored “vex:<source>”. Empty: the author declared by the document."
+  import_submit: "Import"
+  result_title: "VEX imported from “{{.Source}}”"
+  result_decisions:
+    one: "{{.Count}} decision saved."
+    other: "{{.Count}} decisions saved."
+  result_changed:
+    one: "{{.Count}} finding changed status."
+    other: "{{.Count}} findings changed status."
+  result_ignored:
+    one: "{{.Count}} statement skipped."
+    other: "{{.Count}} statements skipped."
+
+org_triage:
+  title: "Organization triage"
+  intro: "Decisions that apply to every project of the organization, unless a project has its own decision."
+  decisions_title: "Organization decisions in force"
+  caption: "Organization triage decisions, most recent first"
+  col_vulnerability: "Vulnerability"
+  col_component: "Component"
+  col_status: "Status"
+  col_comment: "Comment"
+  col_author: "Author"
+  col_findings: "Open findings"
+  all_versions: "every version"
+  truncated: "Only the 500 most recent decisions are shown."
+  none: "No organization decision yet."
+project_ai:
+  title: AI enrichment
+  text: "The repository agent can complete the Syft inventory with components that no manifest declares (copied libraries, base images, scripts loaded from a CDN). A component is kept only if its evidence is read back in the file."
+  mode: Setting
+  mode_disabled: AI disabled
+  mode_local: Local model only
+  mode_external: External provider allowed
+  hint_disabled: "No model is called: the inventory comes from Syft alone."
+  hint_local: "Code is only sent to a model running in the repository agent's infrastructure (Ollama), if it has one."
+  hint_external: "Code read by the analysis may be sent to the external provider configured on the repository agent (Anthropic), sensitive files excepted; otherwise to the local model."
+  external_forbidden: "This instance forbids any external provider."
+  external_admin_only: "Only an organization administrator can allow an external provider; the choice is logged."
+  submit: Save the setting
+
+proof:
+  title: Evidence of the AI detection
+  line: "line {{.Line}}"
+  excerpt: "File excerpt, line {{.Line}}"
+  confidence_high: High confidence
+  confidence_medium: Medium confidence
+  confidence_low: Low confidence
+  verified: "Excerpt read back in the file at the analysed commit by the agent's verifier: the name and version appear in it. The confidence is the model's estimate."
+  metadata: Detection context
+  model: Model
+  model_unknown: Not given
+  agent: Agent version
+  snapshot: Snapshot
+  purl: Inferred purl
+
+enrichment:
+  label: AI enrichment
+  complete: AI enrichment complete
+  incomplete: AI enrichment incomplete
+  carried: AI components carried over
+  incomplete_title: AI enrichment incomplete
+  incomplete_text: "The AI analysis of this commit did not complete (budget exceeded or provider error): the inventory only holds the components found by Syft."
+changes:
+  mark_added: "+"
+  mark_removed: "−"
+  mark_upgraded: "↑"
+  mark_downgraded: "↓"
+  added:
+    one: "{{.Count}} added"
+    other: "{{.Count}} added"
+  removed:
+    one: "{{.Count}} removed"
+    other: "{{.Count}} removed"
+  upgraded:
+    one: "{{.Count}} upgraded"
+    other: "{{.Count}} upgraded"
+  downgraded:
+    one: "{{.Count}} downgraded"
+    other: "{{.Count}} downgraded"
+
+compare:
+  title: "Snapshot comparison — {{.Name}}"
+  heading: "Snapshot comparison of {{.Name}}"
+  crumb: Comparison
+  previous: Previous snapshot
+  form_title: Compare two snapshots
+  from: From
+  to: To
+  submit: Compare
+  no_previous_title: No previous snapshot
+  no_previous_text: This snapshot is the first of its reference. Choose the snapshot to start from.
+  sides_title: Compared snapshots
+  swap: Swap
+  component_count:
+    one: "{{.Count}} component"
+    other: "{{.Count}} components"
+  summary_title: Changes
+  kind_added: Added
+  kind_removed: Removed
+  kind_upgraded: Upgraded
+  kind_downgraded: Downgraded
+  effect_title: Security impact
+  effect_meta: Findings of the changed components, from the analyses of each reference
+  pending_title: Analysis pending
+  pending_text: "The second snapshot is not analysed yet: introduced findings may be missing."
+  resolved_title: Resolved findings
+  introduced_title: Introduced findings
+  none_resolved: No finding resolved by this change.
+  none_introduced: No finding introduced by this change.
+  truncated: "Only the {{.Max}} findings with the highest risk are listed."
+  changes_title: Changed components
+  changes_count:
+    one: "{{.Count}} change"
+    other: "{{.Count}} changes"
+  filter_label: Filter by kind of change
+  all: All
+  changes_caption: Components added, removed, upgraded or downgraded between the two snapshots
+  col_component: Component
+  col_change: Change
+  col_old: Before
+  col_new: After
+  col_purl: purl
+  approximate: "Versions not comparable: direction taken from alphabetical order"
+  none_of_kind: No change of this kind.
+  identical: Both snapshots have the same inventory.

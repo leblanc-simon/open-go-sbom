@@ -696,6 +696,103 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
 - **Outil d'isolement des agents (suite)** : `sleep N` suivi d'une autre commande est
   refusé. Règle : `run_in_background` pour une commande longue, puis lecture de sa sortie.
 
+## Différences d'instantanés et rétention (T17)
+
+- **SBOM de test modifié par le seul purl** : `bytes.ReplaceAll(…, "log4j-core@2.14.1",
+  "…@2.17.1")` laisse le champ `version` du composant CycloneDX à 2.14.1 ; le composant
+  normalisé garde cette version, et une « montée » devient un retrait plus un ajout de la
+  même version. Règle : pour simuler un changement de version, remplacer le purl **et**
+  le champ `version` du composant (`sbomWith` des tests de `finding` ne change que le
+  purl : suffisant pour l'identité, pas pour une différence).
+- **Test de concurrence qui bloque au lieu d'échouer** : en retirant `SKIP LOCKED` pour
+  vérifier qu'un test échoue, la suppression a attendu le verrou de l'autre transaction ;
+  le `timeout` de la commande a tué `go test` et laissé une base jetable orpheline.
+  Règle : tout test qui attend qu'une opération **ne** bloque **pas** lui passe un
+  contexte borné (`context.WithTimeout`), pour échouer proprement si elle bloque.
+- **Énumérations de l'API et collisions d'oapi-codegen** : une valeur d'énumération déjà
+  présente ailleurs (`open`, `critical`…) fait préfixer les constantes des deux types, ce
+  qui change des noms utilisés par le code existant. Règle : une donnée seulement lue
+  (sévérité, état d'un constat dans une réponse) est décrite en `string` avec ses valeurs
+  dans la description ; l'énumération est réservée aux paramètres validés.
+- **Suppression en masse et clés étrangères sans index** : chaque ligne supprimée
+  déclenche un contrôle sur les tables qui la référencent (`findings.snapshot_id`,
+  `snapshots.blob_id`…) ; sans index, un parcours complet par ligne. Règle : la migration
+  qui introduit une purge indexe toutes les colonnes qui référencent les tables purgées.
+- **Orphelins et ingestion concurrente** : `NOT EXISTS` lu au début d'un `DELETE` ne voit
+  pas une référence validée pendant l'instruction. Règle : l'écrivain verrouille la ligne
+  qu'il réutilise (`FOR KEY SHARE`), la purge sélectionne `FOR UPDATE SKIP LOCKED` puis
+  supprime dans une instruction suivante qui revérifie la condition.
+## Triage et VEX (T14)
+
+- **Aller-retour entre deux vocabulaires** : noter la valeur d'origine seulement quand la
+  correspondance « perd de l'information » (non réciproque) ne suffit pas : même une
+  correspondance réciproque change de liste, et l'aller-retour ramenait
+  `vulnerable_code_not_present` au lieu de `code_not_present` (trouvé par le test
+  d'aller-retour d'un format à l'autre). Règle : pour tout échange entre formats, tester
+  l'aller-retour dans le même format **et** d'un format à l'autre, sur toutes les valeurs.
+- **Course entre une décision et une analyse** : sans verrou, un constat inséré par une
+  analyse en cours échappe au recalcul d'une décision validée entre-temps (`READ
+  COMMITTED`, chacune ignore l'écriture non validée de l'autre). Règle : verrou
+  consultatif d'organisation, exclusif pour la décision, partagé pour l'analyse, pris
+  **avant** toute lecture qui conditionne le travail — y compris un « existe-t-il des
+  décisions ? » d'optimisation, qu'une première décision en cours de validation
+  rendrait faux.
+- **Schéma OpenVEX fermé** : `additionalProperties: false` à tous les niveaux ; une
+  information propre au projet ne peut aller que dans un champ texte (`status_notes`),
+  sous une forme relisible (`[lotor:clé=valeur;…]`).
+- **Champ révélé en CSS et `required`** : un champ masqué par `display: none` (choix non
+  coché, `:has(input:checked)`) mais `required` empêche l'envoi du formulaire sans
+  message visible. Règle : pas de `required` sur un champ conditionnel, validation
+  serveur.
+- **Compteur global dans un test d'écran** : `a.countRows` passe par `InTx`, hors
+  organisation ; sur une table d'organisation, la RLS échoue (`''::uuid`). Règle :
+  compter dans `InOrg` pour une table d'organisation.
+- **Statut matérialisé et CHECK** : une contrainte « décision nulle ⇒ à analyser » oblige
+  les jeux de test qui posent un statut à insérer d'abord une décision ; prévoir l'aide
+  dans le jeu de test du paquet qui lit le statut (tableau de bord).
+
+## Enrichissement IA (T12)
+
+- **SDK d'Anthropic et environnement** : `anthropic.NewClient()` lit `ANTHROPIC_API_KEY`,
+  `ANTHROPIC_BASE_URL`, `ANTHROPIC_CUSTOM_HEADERS`, les profils sur disque et la
+  fédération d'identité ; une variable posée sur la machine redirigerait le code. Règle :
+  `option.WithoutEnvironmentDefaults()` en premier, puis clé, adresse et client explicites,
+  et un test qui pose de fausses variables `ANTHROPIC_*`. La clé part en
+  `Authorization: Bearer` dans la v2 du SDK, pas en `X-Api-Key` : un test ne fixe pas
+  l'en-tête.
+- **Choix d'outil forcé refusé** : `tool_choice` `any` ou `tool` répond 400 sur
+  `claude-sonnet-5-5`. Règle : `auto`, l'outil final demandé par le prompt, une relance
+  unique, et la validation de la soumission par schéma côté agent.
+- **Soumission vide sérialisée `null`** : un faux modèle qui soumet `[]Candidate(nil)`
+  envoie `"candidates": null`, refusé par le schéma ; les cas sans composant attendu
+  échouaient en « scénario épuisé ». Règle : construire les listes JSON non nulles
+  (`[]T{}`) dans les assistants de test comme dans le code.
+- **Une instruction injectée est aussi une « preuve »** : le README hostile contient
+  littéralement le purl qu'il demande de soumettre ; nom et version y figurent, le
+  vérificateur de la fiche l'aurait accepté. Règle : refuser toute preuve tirée de la
+  documentation, d'un fichier qui s'adresse à un modèle, ou d'un extrait qui cite un purl,
+  et éprouver chaque règle par un faux modèle qui obéit au dépôt.
+- **Enregistreur et fuite** : chercher un témoin dans tout l'échange trouve aussi les
+  arguments que le modèle a lui-même écrits (sa recherche de « PRIVATE KEY »). Règle :
+  `Recorder.Sent` ne rend que ce que l'agent envoie (système, outils, messages de
+  l'utilisateur, résultats d'outils) ; chercher un marqueur de contenu
+  (`-----BEGIN`) plutôt qu'un mot que le modèle peut taper.
+- **`.gitignore` de la racine et corpus** : `.env` est ignoré à la racine ; les fichiers
+  sensibles factices du corpus ne partaient pas dans le commit. Règle : un `.gitignore`
+  local (`!.env`) dans `testdata/ai-corpus`, et `git check-ignore -v` sur chaque fichier
+  piège ; secrets factices sans matériau de clé valide (analyse des secrets de GitHub).
+- **`os.Root` et « / »** : `clean` ramène « / » à la racine du dépôt, pas du système ; un
+  test qui attend un refus de `list_dir("/")` se trompe d'attente. Règle : tester que le
+  contenu renvoyé est celui du dépôt.
+- **Fonction utilisée par les seuls tests étiquetés** : `scanner.scan` n'était plus appelé
+  que par un test `integration` (U1000 de staticcheck). Règle : déplacer l'assistant dans
+  le fichier étiqueté ; et ajouter toute nouvelle étiquette (`evalai`) à `TEST_TAGS`.
+- **Place libérée par `defer` après la réponse** : le téléchargement réencodé libérait sa
+  place (`Reencodes`) au retour du gestionnaire, donc après l'envoi du corps ; sous charge,
+  `TestSnapshotScreens` reprenait la place avant sa libération (« place de réencodage »).
+  Règle : une place qui borne un calcul se libère dès la fin du calcul, avant l'écriture
+  de la réponse, pas par `defer`.
+
 ## Conteneurs en projets enfants (T13)
 
 - **Énumérations partagées d'oapi-codegen** (piège de T07 retrouvé) : ajouter l'énumération

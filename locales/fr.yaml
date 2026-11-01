@@ -9,6 +9,7 @@ layout:
   home_link: Accueil
 
 nav:
+  triage: "Triage"
   search: Recherche
   tokens: Jetons d'accès
   vulnerabilities: Vulnérabilités
@@ -49,6 +50,12 @@ role:
   admin: Administrateur
 
 status:
+  in_triage: "À analyser"
+  affected: "Affecté"
+  not_affected: "Non affecté"
+  false_positive: "Faux positif"
+  risk_accepted: "Risque accepté"
+  fixed: "Corrigé"
   active: Actif
   inactive: Désactivé
   archived: Archivée
@@ -68,6 +75,9 @@ form:
   save: Enregistrer
 
 flash:
+  triage_saved: "Décision de triage enregistrée."
+  triage_withdrawn: "Décision de triage retirée."
+  vex_empty: "Aucune décision à exporter : triez d'abord des constats ouverts de ce projet."
   personal_token_revoked: Le jeton d'accès est révoqué ; il est refusé dès maintenant.
   scan_requested: "Scan demandé : l'agent le lancera à son prochain signal de vie."
   title: C'est fait
@@ -86,6 +96,7 @@ flash:
   project_archived: Le projet est archivé ; il n'est plus proposé à son agent.
   project_unarchived: Le projet est de nouveau actif.
   project_agent_saved: L'agent du projet est enregistré.
+  project_ai_saved: "Le réglage de l'enrichissement IA est enregistré."
   token_revoked: Le jeton est révoqué ; la prochaine requête qui le présente sera refusée.
   agent_disabled: L'agent est désactivé ; ses jetons sont révoqués et ses projets lui sont retirés.
   enrollment_revoked: Le jeton d'inscription est révoqué.
@@ -113,6 +124,23 @@ pagination:
   next: Page suivante
 
 validation:
+  triage_status_invalid: "Choisissez un statut de triage."
+  triage_justification_required: "La justification VEX est obligatoire pour « non affecté »."
+  triage_justification_invalid: "Justification VEX inconnue."
+  triage_justification_unused: "Une justification VEX ne s'emploie qu'avec « non affecté »."
+  triage_comment_required: "Le commentaire est obligatoire : il explique la décision dans l'historique et dans le VEX."
+  triage_comment_too_long: "Le commentaire dépasse 4 000 caractères ou contient des caractères de contrôle."
+  triage_expiry_required: "Un risque accepté demande une date d'échéance."
+  triage_expiry_invalid: "La date d'échéance doit être comprise entre aujourd'hui et dans trois ans."
+  triage_expiry_unused: "Une date d'échéance ne s'emploie qu'avec « risque accepté »."
+  triage_scope_invalid: "Portée de la décision inconnue."
+  triage_vers_invalid: "Plage de versions illisible, ou d'un autre écosystème que le composant (exemple : vers:maven/<2.17.0)."
+  triage_vers_unused: "Une plage de versions ne s'emploie que pour toute l'organisation."
+  vex_source_invalid: "Nommez la source du VEX (100 caractères au plus), ou importez un document qui déclare son auteur."
+  vex_too_many_statements: "Le document dépasse 5 000 déclarations."
+  vex_no_statement: "Le document ne contient aucune déclaration utilisable."
+  vex_too_large: "Le document dépasse 1 Mio."
+  vex_invalid: "Le document n'est ni un OpenVEX ni un CycloneDX JSON lisible."
   token_limit: "Vous avez déjà le nombre maximal de jetons actifs : révoquez-en un d'abord."
   host_context_invalid: Le contexte de l'hôte est invalide (champ trop long ou caractère interdit).
   inventory_report_invalid: Le compte rendu d'inventaire est invalide (référence d'hôte, empreinte ou date de scan).
@@ -176,6 +204,8 @@ validation:
   invitation_limit: "L'organisation a atteint le nombre maximal d'invitations en attente : révoquez-en avant d'inviter."
   invitation_unknown: "Cette invitation n'existe plus ou a expiré."
   project_team_invalid: "Choisissez une équipe dans laquelle vous pouvez agir."
+  project_ai_mode_invalid: "Choisissez un réglage d'enrichissement IA proposé, pour un dépôt actif."
+  project_ai_external_forbidden: "Cette instance interdit tout fournisseur de modèle externe."
   agent_team_invalid: "Choisissez une équipe dans laquelle vous pouvez gérer les agents."
   enrollment_team_mismatch: "Le projet de serveur à rattacher appartient à une autre équipe que celle du jeton."
   container_team: "Un conteneur suit l'équipe de son hôte : rattachez l'hôte pour changer d'équipe."
@@ -386,6 +416,10 @@ audit:
   system: Système (démarrage)
   empty: Aucun événement pour l'instant.
   action:
+    triage_decided: "Décision de triage {{.D_status}} ({{.D_scope}}) sur {{.Target}}"
+    triage_withdrawn: "Décision de triage retirée ({{.D_scope}}) sur {{.Target}}"
+    triage_expired: "Risque accepté échu le {{.D_expires_on}} : {{.Target}} revient à analyser"
+    triage_vex_imported: "VEX importé de {{.Target}} ({{.D_format}}, {{.D_scope}}) : {{.D_decisions}} décisions, {{.D_ignored}} déclarations écartées"
     agent_scan_requested: "Scan demandé à l'agent {{.Target}} (projet {{.D_project}})"
     auth_login: "Connexion de {{.Target}}"
     auth_login_failed: "Échec de connexion pour « {{.Target}} »"
@@ -416,6 +450,7 @@ audit:
     project_archived: "Projet {{.Target}} archivé"
     project_unarchived: "Projet {{.Target}} réactivé"
     project_agent_changed: "Agent du projet {{.Target}} : {{.D_agent}}"
+    project_ai_mode_changed: "Enrichissement IA du projet {{.Target}} : {{.D_from}} → {{.D_to}}"
     agent_created: "Agent {{.Target}} créé"
     agent_enrolled: "Agent serveur {{.Target}} inscrit (projet {{.D_project}}, jeton {{.D_token}})"
     agent_disabled: "Agent {{.Target}} désactivé"
@@ -529,6 +564,16 @@ admin_org:
   unarchive: Réactiver
 
 error:
+  vex_empty:
+    title: "Aucune décision à exporter"
+    text: "Ce projet n'a aucun constat ouvert portant une décision de triage."
+  diff:
+    no_previous:
+      title: Aucun instantané précédent
+      text: Cet instantané est le premier de sa référence ; choisissez l'instantané de départ.
+    kind_invalid:
+      title: Nature de changement inconnue
+      text: "Le filtre kind accepte added, removed, upgraded ou downgraded."
   search:
     empty:
       title: Requête vide
@@ -752,6 +797,7 @@ projects:
   container_of: sur
 
 project:
+  tab_vex: "VEX"
   tab_findings: Constats
   title: "{{.Name}}"
   tabs: Sections du projet
@@ -802,6 +848,9 @@ project:
     one: "Une vulnérabilité compte une fois par projet où elle est ouverte. Un conteneur absent depuis plus de {{.Count}} jour est archivé ; il revient s'il redémarre."
     other: "Une vulnérabilité compte une fois par projet où elle est ouverte. Un conteneur absent depuis plus de {{.Count}} jours est archivé ; il revient s'il redémarre."
   containers_none: "Aucun conteneur signalé. L'inventaire des conteneurs est désactivé par défaut dans l'agent serveur (containers.enabled) : voir la documentation d'exploitation."
+  inventory_title: Inventaire courant
+  inventory_meta: "Composants du dernier instantané de chaque référence, par origine."
+  inventory_none: Aucun instantané pour l'instant.
 
 project_new:
   title: Nouveau projet
@@ -1019,6 +1068,16 @@ snapshots:
   col_result: Résultat
   pending: Décodage à venir
   no_ingestions: Aucun SBOM reçu pour ce projet.
+  compare_previous: Comparer avec le précédent
+  no_change: Inventaire identique au précédent
+  changes_pending: Différence avec le précédent en cours de calcul
+  retention_monthly:
+    one: "Rétention : tous les instantanés du dernier jour, puis le dernier de chaque mois, sans limite de durée. Le dernier instantané d'une référence est toujours gardé."
+    other: "Rétention : tous les instantanés des {{.Count}} derniers jours, puis le dernier de chaque mois, sans limite de durée. Le dernier instantané d'une référence est toujours gardé."
+  retention_window:
+    one: "Rétention : tous les instantanés du dernier jour ; au-delà, seul celui en vigueur au début de cette fenêtre. Le dernier instantané d'une référence est toujours gardé."
+    other: "Rétention : tous les instantanés des {{.Count}} derniers jours ; au-delà, seul celui en vigueur au début de cette fenêtre. Le dernier instantané d'une référence est toujours gardé."
+  retention_off: "Rétention désactivée : tous les instantanés sont gardés."
 
 snapshot:
   title: "Instantané du {{.Date}} — {{.Name}}"
@@ -1051,6 +1110,7 @@ snapshot:
   no_license: Aucune
   no_match: Aucun composant ne correspond à ces filtres.
   empty: Cet instantané ne contient aucun composant.
+  changes: Depuis le précédent
 host_agent:
   context_title: Hôte
   last_inventory: Dernier inventaire
@@ -1127,6 +1187,14 @@ finding_resolution:
   not_matched: Plus signalée par la base
 
 findings:
+  triage: "Statut de triage"
+  triage_active: "À traiter (sans non affectés ni faux positifs)"
+  col_triage: "Triage"
+  muted:
+    one: "{{.Count}} constat non affecté ou faux positif masqué."
+    other: "{{.Count}} constats non affectés ou faux positifs masqués."
+  show_muted: "Tout afficher"
+  open_finding: "Trier {{.ID}} sur {{.Component}}"
   title: "Constats — {{.Name}}"
   refs_title: Références suivies
   refs_caption: Références du projet et leurs constats ouverts
@@ -1232,6 +1300,8 @@ component:
   col_project: Projet
   col_ref: Référence
   col_origin: Origine
+  col_location: Emplacement
+  location_manifest: Manifeste
   col_findings: Constats ouverts
   col_snapshot: Instantané
   open_findings:
@@ -1475,6 +1545,10 @@ sitemap:
   admin: "Administration de l'instance"
 
 confirm:
+  triage_withdraw_heading: "Retirer la décision « {{.Status}} » sur {{.ID}} ?"
+  triage_withdraw_project_text: "Les constats de {{.Component}} dans ce projet reprendront la décision de l'organisation, ou « à analyser ». La décision reste dans l'historique."
+  triage_withdraw_org_text: "Les constats de {{.Component}} qui en héritaient, dans tous les projets, reprendront « à analyser » (sauf décision propre à un projet). La décision reste dans l'historique."
+  triage_withdraw_submit: "Retirer la décision"
   irreversible: "Cette action est définitive"
   cancel: "Annuler"
   agent_token_heading: "Révoquer le jeton « {{.Name}} » de l'agent {{.Agent}} ?"
@@ -1588,3 +1662,225 @@ container_state:
 container_engine:
   docker: Docker
   podman: Podman
+triage:
+  title: "{{.ID}} sur {{.Component}}"
+  summary: "Résumé du constat"
+  risk: "Risque"
+  effective: "Statut de triage"
+  source_default: "par défaut, sans décision"
+  source_project: "décision du projet"
+  source_org: "décision de l'organisation"
+  source_expired: "risque accepté échu"
+  project: "Projet"
+  ref: "Référence"
+  component: "Composant"
+  fixed_in: "Version corrigée"
+  first_seen: "Premier constat"
+  state: "État"
+  vulnerability: "Vulnérabilité"
+  vulnerability_link: "Fiche de {{.ID}}"
+  form_title: "Trier le constat"
+  status: "Statut"
+  current_status: "statut actuel"
+  desc_in_triage: "À examiner : aucune conclusion pour l'instant."
+  desc_affected: "Le code vulnérable est atteignable : la correction doit être planifiée."
+  desc_not_affected: "Présent mais sans impact. La justification VEX est obligatoire."
+  desc_false_positive: "Le composant ou sa version ont été mal identifiés."
+  desc_risk_accepted: "Jusqu'à une date choisie, puis retour à « à analyser »."
+  desc_fixed: "Correctif déployé ; le prochain instantané le confirmera."
+  justification: "Justification VEX"
+  justification_choose: "Choisir une justification"
+  until: "Jusqu'au"
+  until_hint: "Dernier jour d'acceptation (UTC) ; le constat revient « à analyser » le lendemain."
+  scope: "Portée de la décision"
+  scope_project: "Ce projet uniquement ({{.Project}})"
+  scope_project_desc: "Pour ce composant et cette vulnérabilité, dans toutes les références du projet, y compris les prochains instantanés."
+  scope_org: "Toute l'organisation"
+  scope_org_desc: "Pour les {{.Count}} constats ouverts {{.Component}} × {{.ID}} de l'organisation et ceux qui apparaîtront ; une décision de projet la surcharge."
+  vers: "Plage de versions (facultatif)"
+  vers_hint: "Au format vers, par exemple vers:maven/<2.17.0 ; vide : toutes les versions."
+  comment: "Commentaire"
+  comment_hint: "Repris tel quel dans l'historique et dans l'export VEX (déclaration d'impact ou d'action)."
+  save: "Enregistrer la décision"
+  read_only: "Votre rôle dans l'équipe de ce projet ne permet pas de trier ses constats (rôle analyste ou administrateur requis)."
+  history: "Historique"
+  no_history: "Aucun événement."
+  history_set: "a décidé"
+  history_withdrawn: "a retiré la décision"
+  history_expired: "a fait échoir le risque accepté"
+  history_system: "Système"
+  history_analysis: "Analyse"
+  history_opened: "a ouvert le constat"
+  history_reopened: "a rouvert le constat"
+  history_resolved: "a résolu le constat"
+  history_resolved_component_removed: "a résolu le constat : composant retiré"
+  history_resolved_not_matched: "a résolu le constat : plus signalé par la base"
+  scope_short_project: "projet"
+  scope_short_org: "organisation"
+  applied: "appliquée"
+  history_justification: "Justification : {{.Justification}} ({{.Vocabulary}})"
+  history_until: "Jusqu'au {{.Date}}"
+  withdraw: "Retirer"
+
+vex_justification:
+  component_not_present: "Composant absent"
+  vulnerable_code_not_present: "Code vulnérable absent"
+  vulnerable_code_not_in_execute_path: "Code vulnérable hors du chemin d'exécution"
+  vulnerable_code_cannot_be_controlled_by_adversary: "Code vulnérable hors de portée d'un attaquant"
+  inline_mitigations_already_exist: "Atténuations déjà en place"
+  code_not_present: "Code absent"
+  code_not_reachable: "Code non atteignable"
+  requires_configuration: "Nécessite une configuration"
+  requires_dependency: "Nécessite une dépendance"
+  requires_environment: "Nécessite un environnement"
+  protected_by_compiler: "Protégé par le compilateur"
+  protected_at_runtime: "Protégé à l'exécution"
+  protected_at_perimeter: "Protégé en périphérie"
+  protected_by_mitigating_control: "Protégé par une mesure d'atténuation"
+
+vex_vocabulary:
+  openvex: "OpenVEX"
+  cyclonedx: "CycloneDX"
+
+vex:
+  title: "VEX — {{.Name}}"
+  export_title: "Exporter les décisions"
+  export_text:
+    one: "{{.Count}} déclaration : le couple composant × vulnérabilité d'un constat ouvert qui porte une décision."
+    other: "{{.Count}} déclarations : les couples composant × vulnérabilité des constats ouverts qui portent une décision."
+  export_formats: "Formats d'export"
+  export_hint: "Les constats « à analyser » sans décision n'y figurent pas. Les décisions de l'organisation qui s'appliquent au projet y sont reprises."
+  format_openvex: "Télécharger en OpenVEX"
+  format_cyclonedx: "Télécharger en CycloneDX VEX"
+  import_title: "Importer le VEX d'un éditeur"
+  import_project_text: "Chaque déclaration devient une décision du projet sur les composants de ses constats de même paquet et de même version (toutes versions si la déclaration n'en donne pas). Les déclarations sans composant correspondant sont écartées."
+  import_org_text: "Chaque déclaration devient une décision de l'organisation sur la famille du composant, restreinte à la version déclarée s'il y en a une ; elle s'applique aussi aux constats à venir."
+  import_file: "Document VEX (OpenVEX ou CycloneDX, JSON)"
+  import_file_hint: "{{.Max}} Kio au plus."
+  import_source: "Source"
+  import_source_hint: "Nom de l'éditeur ; les décisions auront pour auteur « vex:<source> ». Vide : l'auteur déclaré par le document."
+  import_submit: "Importer"
+  result_title: "VEX importé de « {{.Source}} »"
+  result_decisions:
+    one: "{{.Count}} décision enregistrée."
+    other: "{{.Count}} décisions enregistrées."
+  result_changed:
+    one: "{{.Count}} constat a changé de statut."
+    other: "{{.Count}} constats ont changé de statut."
+  result_ignored:
+    one: "{{.Count}} déclaration écartée."
+    other: "{{.Count}} déclarations écartées."
+
+org_triage:
+  title: "Triage de l'organisation"
+  intro: "Décisions qui s'appliquent à tous les projets de l'organisation, sauf décision propre à un projet."
+  decisions_title: "Décisions de l'organisation en vigueur"
+  caption: "Décisions de triage de l'organisation, de la plus récente à la plus ancienne"
+  col_vulnerability: "Vulnérabilité"
+  col_component: "Composant"
+  col_status: "Statut"
+  col_comment: "Commentaire"
+  col_author: "Auteur"
+  col_findings: "Constats ouverts"
+  all_versions: "toutes les versions"
+  truncated: "Seules les 500 décisions les plus récentes sont affichées."
+  none: "Aucune décision d'organisation pour l'instant."
+project_ai:
+  title: Enrichissement IA
+  text: "L'agent dépôt peut compléter l'inventaire de Syft par les composants qu'aucun manifeste ne déclare (bibliothèques recopiées, images de base, scripts chargés depuis un CDN). Un composant n'est retenu que si sa preuve est relue dans le fichier."
+  mode: Réglage
+  mode_disabled: IA désactivée
+  mode_local: Modèle local uniquement
+  mode_external: Fournisseur externe autorisé
+  hint_disabled: "Aucun modèle n'est appelé : l'inventaire vient de Syft seul."
+  hint_local: "Le code n'est envoyé qu'à un modèle exécuté dans l'infrastructure de l'agent dépôt (Ollama), s'il en a un."
+  hint_external: "Le code lu par l'analyse peut être envoyé au fournisseur externe configuré sur l'agent dépôt (Anthropic), hors fichiers sensibles ; à défaut, au modèle local."
+  external_forbidden: "Cette instance interdit tout fournisseur externe."
+  external_admin_only: "Seul un administrateur de l'organisation peut autoriser un fournisseur externe ; ce choix est journalisé."
+  submit: Enregistrer le réglage
+
+proof:
+  title: Preuve de la détection IA
+  line: "ligne {{.Line}}"
+  excerpt: "Extrait du fichier, ligne {{.Line}}"
+  confidence_high: Confiance élevée
+  confidence_medium: Confiance moyenne
+  confidence_low: Confiance faible
+  verified: "Extrait relu dans le fichier au commit analysé par le vérificateur de l'agent : le nom et la version y figurent. La confiance est l'estimation du modèle."
+  metadata: Contexte de la détection
+  model: Modèle
+  model_unknown: Non indiqué
+  agent: Version de l'agent
+  snapshot: Instantané
+  purl: purl déduit
+
+enrichment:
+  label: Enrichissement IA
+  complete: Enrichissement IA complet
+  incomplete: Enrichissement IA incomplet
+  carried: Composants IA reportés
+  incomplete_title: Enrichissement IA incomplet
+  incomplete_text: "L'analyse IA de ce commit n'a pas abouti (budget dépassé ou erreur du fournisseur) : l'inventaire ne contient que les composants trouvés par Syft."
+changes:
+  mark_added: "+"
+  mark_removed: "−"
+  mark_upgraded: "↑"
+  mark_downgraded: "↓"
+  added:
+    one: "{{.Count}} ajouté"
+    other: "{{.Count}} ajoutés"
+  removed:
+    one: "{{.Count}} retiré"
+    other: "{{.Count}} retirés"
+  upgraded:
+    one: "{{.Count}} monté de version"
+    other: "{{.Count}} montés de version"
+  downgraded:
+    one: "{{.Count}} descendu de version"
+    other: "{{.Count}} descendus de version"
+
+compare:
+  title: "Comparaison d'instantanés — {{.Name}}"
+  heading: "Comparaison d'instantanés de {{.Name}}"
+  crumb: Comparaison
+  previous: Instantané précédent
+  form_title: Comparer deux instantanés
+  from: Depuis
+  to: Jusqu'à
+  submit: Comparer
+  no_previous_title: Aucun instantané précédent
+  no_previous_text: Cet instantané est le premier de sa référence. Choisissez l'instantané de départ.
+  sides_title: Instantanés comparés
+  swap: Inverser
+  component_count:
+    one: "{{.Count}} composant"
+    other: "{{.Count}} composants"
+  summary_title: Changements
+  kind_added: Ajouté
+  kind_removed: Retiré
+  kind_upgraded: Monté de version
+  kind_downgraded: Descendu de version
+  effect_title: Effet sur la sécurité
+  effect_meta: Constats des composants changés, d'après les analyses de chaque référence
+  pending_title: Analyse en attente
+  pending_text: "Le second instantané n'est pas encore analysé : des constats introduits peuvent manquer."
+  resolved_title: Constats résolus
+  introduced_title: Constats introduits
+  none_resolved: Aucun constat résolu par ce passage.
+  none_introduced: Aucun constat introduit par ce passage.
+  truncated: "Seuls les {{.Max}} constats au plus grand risque sont listés."
+  changes_title: Composants changés
+  changes_count:
+    one: "{{.Count}} changement"
+    other: "{{.Count}} changements"
+  filter_label: Filtrer par nature de changement
+  all: Tous
+  changes_caption: Composants ajoutés, retirés, montés ou descendus de version entre les deux instantanés
+  col_component: Composant
+  col_change: Changement
+  col_old: Avant
+  col_new: Après
+  col_purl: purl
+  approximate: "Versions incomparables : sens déduit de l'ordre alphabétique"
+  none_of_kind: Aucun changement de cette nature.
+  identical: Les deux instantanés ont le même inventaire.

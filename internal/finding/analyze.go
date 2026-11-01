@@ -30,6 +30,13 @@ type BlobSource interface {
 	Blob(ctx context.Context, org tenant.OrgID, blobID uuid.UUID) ([]byte, error)
 }
 
+// Classifier donne leur statut de triage effectif aux constats qu'une analyse crée ou
+// rouvre, dans la transaction qui les écrit (triage.Service.Classify) : les décisions
+// s'appliquent après la correspondance, l'adaptateur Grype reste pur (ADR 0035).
+type Classifier interface {
+	Classify(ctx context.Context, tx *db.OrgTx, findingIDs []uuid.UUID) error
+}
+
 // Outcome est l'issue d'une analyse.
 type Outcome string
 
@@ -52,6 +59,9 @@ type Options struct {
 	Pool   *db.Pool
 	Engine Engine
 	Blobs  BlobSource
+	// Triage classe les constats créés ou rouverts ; nil seulement dans les tests qui
+	// n'ont pas de décision de triage.
+	Triage Classifier
 	Logger *slog.Logger
 	Now    func() time.Time
 }
@@ -252,7 +262,8 @@ func (a *Analyzer) write(ctx context.Context, tx *db.OrgTx, refID uuid.UUID, st 
 	}
 	p := planFor(existing, seen, inSet)
 	w := writer{tx: tx, refID: refID, st: st, v: res.Version, now: now}
-	if err := w.create(ctx, p.Create); err != nil {
+	created, err := w.create(ctx, p.Create)
+	if err != nil {
 		return fmt.Errorf("nouveaux constats : %w", err)
 	}
 	if err := w.update(ctx, p.Update); err != nil {
@@ -260,6 +271,16 @@ func (a *Analyzer) write(ctx context.Context, tx *db.OrgTx, refID uuid.UUID, st 
 	}
 	if err := w.resolve(ctx, p.Resolve); err != nil {
 		return fmt.Errorf("constats résolus : %w", err)
+	}
+	if a.o.Triage != nil {
+		for _, ch := range p.Update {
+			if ch.Reopen {
+				created = append(created, ch.ID)
+			}
+		}
+		if err := a.o.Triage.Classify(ctx, tx, created); err != nil {
+			return fmt.Errorf("triage des constats : %w", err)
+		}
 	}
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO ref_analyses (org_id, ref_id, project_id, set_id, snapshot_id, vulndb_archive, vulndb_built, analyzed_at,
@@ -391,15 +412,17 @@ func (w writer) event(ctx context.Context, ids []string, kind string, reasons []
 	return err
 }
 
-func (w writer) create(ctx context.Context, os []observed) error {
+func (w writer) create(ctx context.Context, os []observed) ([]uuid.UUID, error) {
+	ids := make([]uuid.UUID, 0, len(os))
 	for start := 0; start < len(os); start += writeChunk {
 		var c columns
 		for _, o := range os[start:min(start+writeChunk, len(os))] {
 			id, err := uuid.NewV7()
 			if err != nil {
-				return err
+				return nil, err
 			}
 			c.add(id, o)
+			ids = append(ids, id)
 		}
 		args := append(c.args(), w.tx.OrgID(), w.st.ProjectID, w.refID, w.now, w.st.SnapshotID, w.v.ArchiveID, w.v.Built)
 		if _, err := w.tx.ExecContext(ctx, `
@@ -410,13 +433,13 @@ func (w writer) create(ctx context.Context, os []observed) error {
 			       NULLIF(u.epss, '')::numeric, NULLIF(u.pct, '')::numeric, u.kev::boolean, u.risk::numeric,
 			       string_to_array(u.fixed, E'\x1f'), u.fix_state, u.match_type, $16, $16, $17, $18, $19, $16
 			  FROM `+unnestColumns, args...); err != nil {
-			return err
+			return nil, err
 		}
 		if err := w.event(ctx, c.ids, "opened", make([]string, len(c.ids))); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return ids, nil
 }
 
 func (w writer) update(ctx context.Context, cs []change) error {

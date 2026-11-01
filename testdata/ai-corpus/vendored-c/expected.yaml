@@ -1,0 +1,6 @@
+description: Bibliothèque C recopiée dans le dépôt (en-tête de SQLite).
+components:
+  - purl: pkg:generic/sqlite@3.45.1
+    file: third_party/sqlite/sqlite3.h
+    line: 9
+    excerpt: '#define SQLITE_VERSION        "3.45.1"'

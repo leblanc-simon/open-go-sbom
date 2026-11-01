@@ -55,6 +55,59 @@
     }
   }
 
+  /* Statuts de triage (T14) : forme du repère et libellé, jamais la seule couleur. À
+     analyser garde le repère neutre (cercle vide). */
+  &.status--affected {
+    --_fg: var(--color-danger);
+    --_bg: var(--color-danger-soft);
+
+    &::before {
+      background: currentColor;
+    }
+  }
+
+  &.status--not-affected {
+    &::before {
+      width: 0.65rem;
+      height: 0.5rem;
+      border: 0;
+      border-radius: 0;
+      background: currentColor;
+      clip-path: polygon(0 55%, 16% 40%, 38% 62%, 84% 8%, 100% 24%, 38% 94%);
+    }
+  }
+
+  &.status--false-positive {
+    &::before {
+      border-radius: 0;
+      border: 0;
+      background: linear-gradient(135deg, transparent 40%, currentColor 40% 60%, transparent 60%);
+    }
+  }
+
+  &.status--risk-accepted {
+    --_fg: var(--color-warning);
+    --_bg: var(--color-warning-soft);
+
+    &::before {
+      background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+    }
+  }
+
+  &.status--fixed {
+    --_fg: var(--color-success);
+    --_bg: var(--color-success-soft);
+
+    &::before {
+      width: 0.65rem;
+      height: 0.5rem;
+      border: 0;
+      border-radius: 0;
+      background: currentColor;
+      clip-path: polygon(0 55%, 16% 40%, 38% 62%, 84% 8%, 100% 24%, 38% 94%);
+    }
+  }
+
   &.status--warning {
     --_fg: var(--color-warning);
     --_bg: var(--color-warning-soft);

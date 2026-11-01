@@ -103,6 +103,7 @@
               <th scope="col">{{T "component.col_project"}}</th>
               <th scope="col">{{T "component.col_ref"}}</th>
               <th scope="col">{{T "component.col_version"}}</th>
+              <th scope="col">{{T "component.col_location"}}</th>
               <th scope="col">{{T "component.col_origin"}}</th>
               <th scope="col">{{T "component.col_findings"}}</th>
               <th scope="col" aria-sort="descending">{{T "component.col_snapshot"}}</th>
@@ -114,6 +115,7 @@
               <th scope="row"><span class="cell-stack"><a href="{{.ProjectHref}}">{{.ProjectName}}</a>{{template "project_kind" .ProjectKind}}</span></th>
               <td><span class="cell-stack"><span class="mono">{{.RefName}}</span><span class="muted">{{T (print "ref_kind." .RefKind)}}</span></span></td>
               <td>{{if .Current}}<span class="cell-stack"><span class="version">{{.Version}}</span><span class="chip">{{T "component.this_version"}}</span></span>{{else}}<span class="version">{{.Version}}</span>{{end}}</td>
+              <td>{{if .ProofID}}<a class="mono" href="#{{.ProofID}}">{{.File}}</a>{{else if .File}}<span class="mono">{{.File}}</span>{{else}}<span class="muted">{{T "component.location_manifest"}}</span>{{end}}</td>
               <td><span class="origin{{if eq .Origin "ia"}} origin--ai{{end}}"><span>{{T (print "origin." .Origin)}}</span>{{with .Confidence}}<span class="origin__conf">{{T "snapshot.confidence" "Percent" .}}</span>{{end}}</span></td>
               <td>{{if .Open}}<span class="cluster"><span>{{Tn "component.open_findings" .Open}}</span>{{if .KEV}}{{template "kev"}}{{end}}</span>{{else}}<span class="muted">{{T "component.no_findings"}}</span>{{end}}</td>
               <td><span class="cell-stack"><a href="{{.SnapshotURL}}">{{template "stamp" .Scanned}}</a>{{with .CommitShort}}<span class="mono muted">{{.}}</span>{{end}}</span></td>
@@ -127,5 +129,44 @@
     <div class="panel__body"><p class="muted">{{T "component.unused"}}</p></div>
     {{- end}}
   </section>
+
+  {{- range .Proofs}}
+  <section class="stack stack--sm" id="{{.ID}}" aria-labelledby="{{.ID}}-title">
+    <h2 class="section-title" id="{{.ID}}-title">{{T "proof.title"}} <span class="muted">{{.ProjectName}} · {{.RefName}}{{with .CommitShort}} · {{.}}{{end}}</span></h2>
+    <div class="layout">
+      <article class="proof">
+        <div class="proof__head">
+          <span class="origin origin--ai"><span>{{T "origin.ia"}}</span>{{if .Level}}<span class="origin__conf">{{T "snapshot.confidence" "Percent" .Confidence}}</span>{{end}}</span>
+          <span class="proof__file">{{.File}}</span>
+          {{- if .Line}}<span class="proof__line">{{T "proof.line" "Line" .Line}}</span>{{end}}
+        </div>
+        <div class="proof__code" role="group" aria-label="{{T "proof.excerpt" "Line" .Line}}" tabindex="0">
+          <div class="code-line code-line--match"><span class="code-line__no">{{.Line}}</span><span class="code-line__text">{{.Excerpt}}</span></div>
+        </div>
+        <div class="proof__foot">
+          {{- if .Level}}
+          <div class="confidence">
+            <span class="confidence__label">{{T (print "proof.confidence_" .Level)}}</span>
+            <ul class="confidence__scale" aria-hidden="true">{{range .LevelOn}}<li{{if .}} class="is-on"{{end}}></li>{{end}}</ul>
+            <span class="confidence__value">{{decimal .ConfValue 2}}</span>
+          </div>
+          {{- end}}
+          <p class="muted">{{T "proof.verified"}}</p>
+        </div>
+      </article>
+      <section class="panel" aria-labelledby="{{.ID}}-meta">
+        <div class="panel__head"><h3 class="panel__title" id="{{.ID}}-meta">{{T "proof.metadata"}}</h3></div>
+        <div class="panel__body">
+          <dl class="kv">
+            <dt>{{T "proof.model"}}</dt><dd>{{with .Model}}<span class="mono">{{.}}</span>{{else}}<span class="muted">{{T "proof.model_unknown"}}</span>{{end}}</dd>
+            <dt>{{T "proof.agent"}}</dt><dd>{{with .Agent}}<span class="version">{{.}}</span>{{else}}<span class="muted">{{T "agents.version_unknown"}}</span>{{end}}</dd>
+            <dt>{{T "proof.snapshot"}}</dt><dd><a href="{{.Snapshot}}">{{template "stamp" .Scanned}}</a>{{with .CommitShort}} · <span class="mono">{{.}}</span>{{end}}</dd>
+            <dt>{{T "proof.purl"}}</dt><dd class="mono">{{.PURL}}</dd>
+          </dl>
+        </div>
+      </section>
+    </div>
+  </section>
+  {{- end}}
 </div>
 {{- end}}

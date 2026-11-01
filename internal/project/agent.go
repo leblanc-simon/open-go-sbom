@@ -93,6 +93,24 @@ func attachRefs(ctx context.Context, tx *db.OrgTx, projects []Project) error {
 	return rows.Err()
 }
 
+// RefOfAgent renvoie le projet de la référence active refID si ce projet, actif, est
+// confié à agentID ; ErrNotFound sinon, que la référence existe ou non.
+func RefOfAgent(ctx context.Context, tx *db.OrgTx, agentID, refID uuid.UUID) (uuid.UUID, error) {
+	var projectID uuid.UUID
+	err := tx.QueryRowContext(ctx, `
+		SELECT p.id FROM tracked_refs r
+		  JOIN projects p ON p.org_id = r.org_id AND p.id = r.project_id
+		 WHERE r.id = $1 AND p.agent_id = $2 AND p.archived_at IS NULL AND r.removed_at IS NULL`,
+		refID, agentID).Scan(&projectID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return uuid.Nil, ErrNotFound
+	}
+	if err != nil {
+		return uuid.Nil, wrap("référence d'un agent", err)
+	}
+	return projectID, nil
+}
+
 // RefForAgent renvoie la référence active (kind, name) du projet projectID si ce projet,
 // actif, est confié à agentID ; ErrNotFound sinon, que le projet existe ou non. Un
 // conteneur est confié à l'agent de son hôte, actif lui aussi. C'est le contrôle

@@ -19,7 +19,7 @@ L'inventaire côté agent fait l'objet de l'ADR 0041.
 
 ## Décision
 
-### Modèle (migration 017)
+### Modèle (migration 020)
 
 - `projects.kind` admet `container`. Un conteneur porte `parent_id` (l'hôte, de nature
   `host`), `container_key` (son identité dans l'hôte), `container` (contexte en `jsonb` :

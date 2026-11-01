@@ -67,7 +67,7 @@ internal/
   token/                 # format des jetons (agt, enr, pat), tirage, lecture, empreinte
   sbom/                  # modèle interne, normalisation purl, empreinte d'inventaire
     syft/                # décodage et encodage via Syft
-  inventory/             # composants, ensembles d'inventaire, instantanés
+  inventory/             # composants, ensembles d'inventaire, instantanés, différences, rétention
   ingest/                # réception, stockage brut, pipeline de décodage
   version/               # comparaison de versions par écosystème, analyse de `vers`
     grypeversion/        # adaptateur vers les comparateurs de Grype
@@ -79,7 +79,9 @@ internal/
   benchdata/             # jeu synthétique et SBOM des mesures (docs/benchmarks.md)
   search/                # analyse de requête, plan, exécution, export
   dashboard/             # agrégats et statistiques quotidiennes
-  triage/ policy/ notify/ # lot 2
+  triage/                # décisions de triage, statut effectif des constats, échéances (T14)
+    vex/                 # OpenVEX et CycloneDX VEX : écriture, lecture, schéma OpenVEX embarqué
+  policy/ notify/        # lot 2
   license/
     grant/               # lot 3
   web/                   # routeur chi, handlers HTML par écran, gestion, serveurs
@@ -93,7 +95,8 @@ internal/
   hostagent/             # pipeline de l'agent serveur
   repoagent/             # pipeline de l'agent dépôt
   forge/                 # GitHub App, GitLab (Forgejo plus tard)
-  llm/                   # fournisseurs de modèles (lot 2)
+  llm/                   # fournisseurs de modèles, boucle d'outils (T12, ADR 0042)
+    llmtest/             # faux fournisseur scénarisé et enregistreur des échanges
   archtest/              # tests d'architecture (§ 4)
 api/openapi.yaml         # contrat de l'API, source unique
 web/                     # paquet Go qui embarque gabarits et fichiers statiques
@@ -159,7 +162,7 @@ relevées en T00 (une montée de version ultérieure ne demande pas de nouvelle 
 | Validation des SBOM par schéma JSON | schémas officiels embarqués, `github.com/santhosh-tekuri/jsonschema/v6` | v6.0.3 | Validé |
 | Métriques | `github.com/prometheus/client_golang` | v1.25.0 | Validé |
 | Paquets deb et rpm | `nfpm` en directive `tool` (`make packages`, T07) | v2.48.0 | Validé |
-| Fournisseur de modèle | SDK Go officiel d'Anthropic ; Ollama par son API HTTP sans SDK | — | À valider en T12 (modèle par défaut `claude-sonnet-5-5`, IA désactivée par défaut) |
+| Fournisseur de modèle | `github.com/anthropics/anthropic-sdk-go/v2`, construit sans aucune valeur lue dans l'environnement ; Ollama par son API HTTP sans SDK | v2.4.0 | Validé en T12 (ADR 0042 ; modèle par défaut `claude-sonnet-5-5`, IA désactivée par défaut) |
 | Règles de politique | `github.com/google/cel-go` | — | Validé le 1er novembre 2026 (T15) |
 | OIDC | `oidcx` dans open-go-base, ou paquet local | — | Point ouvert, T25 |
 
@@ -186,6 +189,10 @@ de chiffrement versionnées, obligatoires depuis T03 : les secrets TOTP sont chi
 tentatives de connexion, T03), `AgentAPI` (débit de l'API des agents par jeton et des
 jetons refusés par IP, T04), `UserAPI` (débit de l'API utilisateur par jeton personnel,
 jetons refusés par IP, durée et nombre simultané des exports de la recherche, T09),
+`AI` (`forbid_external` : interdire tout fournisseur de modèle externe aux agents dépôt,
+T12, ADR 0043),
+`Retention` (rétention des instantanés : fenêtre en jours, nombre gardé, dernier
+instantané de chaque mois au-delà, T17, ADR 0039),
 `Containers` (absence au-delà de laquelle le projet d'un conteneur est archivé, T13),
 `Migration`
 (`migration_dsn` : connexion du rôle propriétaire, utilisée uniquement pour migrer).
@@ -267,24 +274,41 @@ Données **par organisation** (toutes portent `org_id`) :
 | --- | --- |
 | `organizations`, `org_memberships` | organisation (slug, nom, langue par défaut) ; compte × organisation × rôle (`member`, `admin`) |
 | `teams`, `team_members`, `org_invitations` | équipes ; membre de l'organisation × équipe × rôle d'équipe (`reader`, `analyst`, `admin`) ; invitations à rejoindre l'organisation (T16, ADR 0034) |
-| `projects` | type (`repo`, `host`, `container`), nom, slug, étiquettes, équipe (obligatoire, T16), archivage ; pour un conteneur, `parent_id` (l'hôte, dont il garde l'équipe par clé étrangère en cascade), identité dans l'hôte, contexte, dernier signalement, archivage pour absence (T13, ADR 0040) |
+| `projects` | type (`repo`, `host`, `container`), nom, slug, étiquettes, équipe (obligatoire, T16), archivage, réglage de l'enrichissement IA `ai_mode` (`disabled` par défaut, `local`, `external` ; T12, ADR 0043) ; pour un conteneur, `parent_id` (l'hôte, dont il garde l'équipe par clé étrangère en cascade), identité dans l'hôte, contexte, dernier signalement, archivage pour absence (T13, ADR 0040) |
 | `tracked_refs` | référence suivie (branche, tag, l'hôte, ou le conteneur nommé par son identité) |
 | `agents`, `agent_tokens`, `enrollment_tokens` | agents (équipe facultative : sans équipe, agent d'organisation) et jetons hachés ; jeton d'inscription rattaché à une équipe, dont héritent projet et agent inscrits ; pour un agent serveur, demande de scan en attente et dernier contexte d'hôte (T07) |
 | `components` | composant de l'organisation : purl canonique (unique par organisation), `purl_base`, type, nom, version, CPE, empreintes |
 | `component_sets`, `component_set_items` | ensemble d'inventaire adressé par son empreinte ; ses composants avec origine (`syft`, `ia`), confiance, modèle, preuve, portée, licences, identification faible |
 | `sbom_blobs` | SBOM brut compressé, dédoublonné par empreinte SHA-256 |
 | `ingestions` | réception d'un SBOM : statut, erreurs, instantané produit |
-| `snapshots` | instantané d'une référence : commit, date, agent, version d'agent, blob, ensemble d'inventaire |
+| `snapshots` | instantané d'une référence : commit, date, agent, version d'agent, blob, ensemble d'inventaire, statut et modèle de l'enrichissement IA déclarés par le SBOM (T12) |
 | `ref_current` | instantané et ensemble courants de chaque référence (lecture rapide) |
-| `findings`, `finding_events` | constat (référence × composant × vulnérabilité) : première et dernière détection, résolution et motif, risque, base ; historique (ouvert, résolu, rouvert) |
+| `set_diffs`, `set_diff_items` | différence entre deux ensembles d'inventaire d'instantanés consécutifs : décomptes, puis changements (ajout, retrait, montée, descente de version) (T17, ADR 0038) |
+| `snapshot_retention` | dernier passage de la rétention : horizon (plus récente coupure appliquée), bilan (T17, ADR 0039) |
+| `findings`, `finding_events` | constat (référence × composant × vulnérabilité) : première et dernière détection, résolution et motif, risque, base, statut de triage effectif et décision qui le donne (T14) ; historique (ouvert, résolu, rouvert) ; instantané qui l'a vu, mis à nul si la rétention le supprime |
 | `ref_analyses` | dernière analyse de chaque référence : ensemble et base analysés |
 | `audit_events`, `org_daily_stats`, `project_daily_stats` | journal d'audit ; statistiques quotidiennes de l'organisation et de chaque projet actif (une ligne par jour UTC, réécrite à chaque passage horaire, ADR 0027) |
-| `triage_decisions`, `policies`, `notification_channels`… | lots 2 et 3 |
+| `triage_decisions` | journal des décisions de triage, en ajout seul : portée (projet et purl, ou organisation et `purl_base` avec plage `vers`), statut, justification VEX d'origine, commentaire, échéance d'un risque accepté, auteur (T14, ADR 0035) |
+| `policies`, `notification_channels`… | lots 2 et 3 |
 
 Les **ensembles d'inventaire** sont adressés par contenu : deux instantanés au même
 inventaire partagent le même ensemble. Un nouveau commit sans changement de dépendances
 coûte une ligne, la différence entre instantanés est une différence entre ensembles, et la
 rétention supprime les ensembles orphelins.
+
+**Différences et rétention (T17).** La différence des instantanés consécutifs d'une
+référence est calculée par le job `inventory.diff` (mis en file par l'ingestion d'un
+instantané créé ou remplacé) et enregistrée par couple d'ensembles ; deux versions d'un
+même `purl_base` forment une montée ou une descente, comparées par `internal/version` ;
+une comparaison quelconque est calculée à la demande ; l'effet sur la sécurité (constats
+introduits et résolus) est calculé à la lecture (ADR 0038). La rétention quotidienne
+(`retention.snapshots_all`, puis une par organisation) garde tout `retention.days`
+jours (90), puis le dernier instantané de chaque mois, jamais le dernier d'une référence
+ni celui en vigueur au début de la fenêtre ; elle supprime les réceptions terminées hors
+fenêtre, puis les ensembles et SBOM que plus rien ne référence (l'ingestion verrouille
+ce qu'elle réutilise, la rétention le saute). Son horizon (`snapshot_retention`) dit à la
+recherche à une date passée (T21) en deçà de quelle date l'historique est réduit
+(ADR 0039).
 
 ## 9. Multi-organisation
 
@@ -400,12 +424,16 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
 - Rôles (T16, décision du 1er novembre 2026, ADR 0034) : le rôle d'organisation vaut
   `member` ou `admin` (qui voit et gère tout) ; les droits sur un projet, un agent ou une
   équipe viennent du rôle dans l'équipe de la ressource : `reader` (consulte), `analyst`
-  (trie les constats, demande un scan), `admin` (gère les projets, les agents, les jetons
-  d'inscription et les membres de l'équipe). Créer, renommer ou supprimer une équipe,
+  (trie les constats, importe un VEX pour un projet, demande un scan), `admin` (gère les
+  projets, les agents, les jetons d'inscription et les membres de l'équipe). Décider du
+  triage pour toute l'organisation (`triage.org`) revient à ses administrateurs (ADR 0035). Créer, renommer ou supprimer une équipe,
   inviter ou retirer un membre, les paramètres et le journal de l'organisation restent à
   ses administrateurs. La matrice est la source unique des contrôles, du document
   `docs/security/permissions.md` et des tests par route (`tenant.Matrix`, table
   `orgRoutes` de `internal/web`). L'existant est passé dans une équipe « Général ».
+- Envoi du code d'un dépôt à un fournisseur de modèle externe : permission d'organisation
+  `ai.external` (administrateur d'organisation), chaque changement de réglage audité ;
+  `ai.forbid_external` l'interdit sur toute l'instance (T12, ADR 0043).
 - Un compte devient membre d'une organisation en **acceptant une invitation** (30 jours ;
   réponse identique que le compte existe ou non, SEC-09) ; seul l'administrateur de
   l'instance ajoute directement un membre.
@@ -471,7 +499,10 @@ d'identité (`distro`, `arch`, `epoch`, `upstream`…) sont conservés**, car Gr
 besoin. Un composant sans purl utilisable reçoit `pkg:generic/<nom>@<version>` et
 l'« identification faible ». Les CPE sont conservés. Propriétés CycloneDX propres
 au projet, espace de noms `lotor:` : `lotor:origin` (`syft` ou `ia`), `lotor:confidence` (0 à 1),
-`lotor:model` ; la preuve IA utilise le champ standard `evidence`.
+`lotor:model` ; la preuve IA utilise le champ standard `evidence` (occurrence : fichier,
+ligne, extrait). Dans les métadonnées du document, `lotor:enrichment` (`complete`,
+`incomplete`, `carried`), `lotor:enrichment-model` et `lotor:enrichment-prompt` décrivent
+l'enrichissement IA ; le serveur range statut et modèle avec l'instantané (ADR 0043).
 
 Le décodage s'exécute dans le processus worker ; les bornes préalables, le délai du job
 et le plafond de jobs simultanés par organisation (`workers.org_limit`) empêchent un seul
@@ -514,6 +545,16 @@ qu'aucune mesure ne la justifie (ADR 0015).
   basse.
 - Une base plus vieille que `vulndb.max_age` (5 jours) déclenche une alerte sur chaque page
   d'administration et la métrique `lotor_vulndb_stale`.
+- **Triage** (T14, ADR 0035) : les décisions s'appliquent aux constats après la
+  correspondance, jamais dans Grype. Le statut effectif (décision du projet pour le
+  composant, sinon la plus récente décision de l'organisation dont la plage contient la
+  version, sinon « à analyser ») est rangé sur chaque constat ; `internal/triage` le
+  recalcule à chaque décision pour tout le couple (`purl_base`, vulnérabilité), et
+  `analysis.ref` classe les constats qu'il crée ou rouvre dans sa transaction
+  (`finding.Classifier`), sous un verrou consultatif partagé par organisation que les
+  décisions prennent en exclusif. Un risque accepté échoit par le job `triage.expire`,
+  mis en file pour le lendemain de sa date à minuit UTC. Échanges VEX : OpenVEX 0.2.0 et
+  CycloneDX 1.6 (ADR 0036).
 
 ## 13. Recherche
 
@@ -565,7 +606,9 @@ qu'aucune mesure ne la justifie (ADR 0015).
     d'organisation à chaque requête (404 hors des organisations du compte), limitation par
     jeton ; la session avec en-tête CSRF viendra avec le premier écran qui appelle l'API
     en JavaScript (ADR 0025).
-- Corps des requêtes de l'interface bornés à 64 Kio avant CSRF ; seule exception, le
+- Corps des requêtes de l'interface bornés à 64 Kio avant CSRF ; l'import d'un VEX
+  (T14) est borné à 1 Mio pour un compte authentifié, lu en mémoire par csrfx (ADR 0036) ;
+  seule autre exception, le
   téléversement d'une archive de la base (`POST /admin/vulndb/import`), borné à
   `vulndb.max_archive_mib` pour un administrateur d'instance seulement, lu en flux, jeton
   CSRF exigé en première partie du formulaire (ADR 0028).
@@ -618,7 +661,8 @@ qu'aucune mesure ne la justifie (ADR 0015).
   jour.
 - Préfixe `/api/v1`. Routes des agents sous `/api/v1/agent/`, routes utilisateur sous
   `/api/v1/orgs/{org}/`. Le point compatible Dependency-Track (T19) vit sous `/dt/` pour ne
-  pas mêler son espace d'URL au nôtre.
+  pas mêler son espace d'URL au nôtre. L'API utilisateur exporte le VEX d'un projet
+  (`GET /api/v1/orgs/{org}/projects/{project}/vex`, T14).
 - Erreurs au format RFC 9457 (`application/problem+json`) : `type` porte une clé stable
   (`error.ingest.too_large`), `title` et `detail` les messages traduits de
   `<clé>.title` et `<clé>.text` selon la langue de la requête, `instance` le chemin et
@@ -705,6 +749,18 @@ qu'aucune mesure ne la justifie (ADR 0015).
   CycloneDX 1.6 déterministe (ni numéro de série ni horodatage) ; secrets désignés par
   `credential:<nom>` ou par un fichier `0600`. Configuration (`LOTOR_REPO_*`) et unité
   systemd : `deploy/lotor-repo-agent/`.
+  Enrichissement IA (T12, ADR 0042 à 0044) : si le réglage effectif du projet transmis
+  par le serveur le permet et qu'un modèle est configuré (`ai.local` Ollama,
+  `ai.external` Anthropic), un modèle explore l'arborescence par `list_dir`, `read_file`
+  et `search` (lecture seule, `os.Root`, bornés, fichiers sensibles exclus) et soumet ses
+  candidats par `submit_candidates` (schéma JSON) ; un vérificateur déterministe, seul
+  juge, relit chaque preuve dans le fichier ; les composants acceptés rejoignent le SBOM
+  Syft (Syft l'emporte). Budget dépassé ou erreur du fournisseur : SBOM Syft seul, marqué
+  incomplet. Analyse incrémentale (fichiers modifiés selon la forge, composants IA
+  précédents lus par `GET /api/v1/agent/refs/{id}/ai-components` et revérifiés), complète
+  à `ai.full_interval` ; prompt système versionné et embarqué ; analyse dans le processus
+  de l'agent, confinée par la surface d'outils et `os.Root` (ADR 0044). Qualité mesurée
+  sur le corpus annoté `testdata/ai-corpus` (`make eval-ai`).
 
 ## 18. Internationalisation
 
@@ -737,7 +793,7 @@ qu'aucune mesure ne la justifie (ADR 0015).
 - L'accès à la socket d'un moteur de conteneurs équivaut à root : désactivé par défaut,
   documenté comme tel.
 - Journal d'audit : connexions et échecs, comptes et rôles, invitations, jetons, organisations, équipes et leurs membres, rattachement des projets,
-  décisions de triage, politiques, canaux, paramètres d'organisation. **En ajout seul**
+  décisions de triage (et leur journal `triage_decisions`), politiques, canaux, paramètres d'organisation. **En ajout seul**
   pour le rôle d'exécution (ni `UPDATE`, ni `DELETE`, ni `TRUNCATE`, vérifié au
   démarrage), qui n'a pas non plus de droit `CREATE` (ADR 0030).
 - Ressources bornées par compte autant que par instance : un export de recherche et un

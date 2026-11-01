@@ -1,0 +1,3 @@
+# Le corpus contient volontairement des fichiers sensibles factices (.env…) : ils doivent
+# être versionnés pour éprouver leur exclusion.
+!.env

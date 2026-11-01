@@ -1,0 +1,146 @@
+{{define "content" -}}
+{{- $p := .Project}}
+<div class="stack">
+  <div class="page-head">
+    <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
+      <ol>
+        <li><a href="{{.Base}}/projects">{{T "nav.projects"}}</a></li>
+        <li><a href="{{.Base}}/projects/{{$p.Slug}}">{{$p.Name}}</a></li>
+        <li><a href="{{.Base}}/projects/{{$p.Slug}}/snapshots">{{T "project.tab_snapshots"}}</a></li>
+        <li><span aria-current="page">{{T "compare.crumb"}}</span></li>
+      </ol>
+    </nav>
+    <div class="page-head__row">
+      <h1 class="page-head__title">{{T "compare.heading" "Name" $p.Name}}</h1>
+    </div>
+  </div>
+  {{template "project_tabs" .Tabs}}
+  {{- if .NoPrevious}}
+  <div class="callout callout--warning" role="status">
+    <div class="callout__body">
+      <p class="callout__title">{{T "compare.no_previous_title"}}</p>
+      <p class="callout__text">{{T "compare.no_previous_text"}}</p>
+    </div>
+  </div>
+  {{template "compare_form" .Form}}
+  {{- else}}
+  <section class="panel" aria-labelledby="compare-sides">
+    <div class="panel__head">
+      <h2 class="panel__title" id="compare-sides">{{T "compare.sides_title"}}</h2>
+      <a class="btn btn--sm" href="{{.SwapHref}}">{{T "compare.swap"}}</a>
+    </div>
+    <div class="panel__body">
+      <dl class="kv">
+        <dt>{{T "compare.from"}}</dt>
+        <dd><a href="{{.From.Row.Href}}">{{template "stamp" .From.Row.Scanned}}</a> <span class="mono">{{.From.RefName}}</span>{{with .From.Row.CommitShort}} <span class="mono" title="{{$.From.Row.Commit}}">{{.}}</span>{{end}} <span class="muted">{{Tn "compare.component_count" .From.Row.Counts.Total}}</span></dd>
+        <dt>{{T "compare.to"}}</dt>
+        <dd><a href="{{.To.Row.Href}}">{{template "stamp" .To.Row.Scanned}}</a> <span class="mono">{{.To.RefName}}</span>{{with .To.Row.CommitShort}} <span class="mono" title="{{$.To.Row.Commit}}">{{.}}</span>{{end}} <span class="muted">{{Tn "compare.component_count" .To.Row.Counts.Total}}</span>{{if .To.Row.Current}} <span class="status status--active">{{T "snapshots.current"}}</span>{{end}}</dd>
+      </dl>
+    </div>
+  </section>
+  <section class="stack stack--sm" aria-labelledby="compare-summary">
+    <h2 class="section-title" id="compare-summary">{{T "compare.summary_title"}}</h2>
+    <ul class="stat-grid">
+      {{- range .Tiles}}
+      <li class="stat"><span class="stat__label">{{template "change_kind" .Kind}}</span><span class="stat__value">{{.Count}}</span></li>
+      {{- end}}
+    </ul>
+  </section>
+  <section class="panel" aria-labelledby="compare-effect">
+    <div class="panel__head">
+      <h2 class="panel__title" id="compare-effect">{{T "compare.effect_title"}}</h2>
+      <span class="panel__meta">{{T "compare.effect_meta"}}</span>
+    </div>
+    {{- if .Effect.Pending}}
+    <div class="panel__body">
+      <div class="callout callout--warning" role="status">
+        <div class="callout__body">
+          <p class="callout__title">{{T "compare.pending_title"}}</p>
+          <p class="callout__text">{{T "compare.pending_text"}}</p>
+        </div>
+      </div>
+    </div>
+    {{- end}}
+    {{- range .Effect.Tables}}{{template "effect_table" .}}{{end}}
+  </section>
+  <section class="panel" aria-labelledby="compare-changes">
+    <div class="panel__head">
+      <h2 class="panel__title" id="compare-changes">{{T "compare.changes_title"}}</h2>
+      <span class="panel__meta">{{Tn "compare.changes_count" .Total}}</span>
+      <nav class="segmented panel__action" aria-label="{{T "compare.filter_label"}}">
+        <a href="{{.AllHref}}"{{if not .Kind}} aria-current="true"{{end}}><span>{{T "compare.all"}}</span> {{.Total}}</a>
+        {{- range .Tiles}}<a href="{{.Href}}"{{if .Selected}} aria-current="true"{{end}}><span>{{T .LabelKey}}</span> {{.Count}}</a>{{end}}
+      </nav>
+    </div>
+    {{- if .Changes}}
+    <div class="table-wrap" role="group" aria-labelledby="compare-changes" tabindex="0">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "compare.changes_caption"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "compare.col_component"}}</th>
+            <th scope="col">{{T "compare.col_change"}}</th>
+            <th scope="col">{{T "compare.col_old"}}</th>
+            <th scope="col">{{T "compare.col_new"}}</th>
+            <th scope="col">{{T "compare.col_purl"}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{- range .Changes}}
+          <tr>
+            <th scope="row"><span class="cell-stack"><span>{{.Name}}</span><span class="mono muted">{{.Type}}</span></span></th>
+            <td><span class="cell-stack">{{template "change_kind" .Kind}}{{if .Approximate}}<span class="muted">{{T "compare.approximate"}}</span>{{end}}</span></td>
+            <td>{{if .OldVersion}}<a class="version" href="{{.OldHref}}">{{.OldVersion}}</a>{{else}}<span class="muted">{{T "common.none"}}</span>{{end}}</td>
+            <td>{{if .NewVersion}}<a class="version" href="{{.NewHref}}">{{.NewVersion}}</a>{{else}}<span class="muted">{{T "common.none"}}</span>{{end}}</td>
+            <td class="mono wrap purl">{{.PURLBase}}</td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+    {{- with .NextHref}}
+    <nav class="pagination" aria-label="{{T "pagination.label"}}"><a class="btn btn--sm" href="{{.}}">{{T "pagination.next"}}</a></nav>
+    {{- end}}
+    {{- else}}
+    <div class="panel__body"><p class="muted">{{if .Total}}{{T "compare.none_of_kind"}}{{else}}{{T "compare.identical"}}{{end}}</p></div>
+    {{- end}}
+  </section>
+  {{template "compare_form" .Form}}
+  {{- end}}
+</div>
+{{- end}}
+
+{{define "effect_table" -}}
+<div class="panel__body stack stack--sm">
+  <h3 class="subsection-title" id="{{.ID}}">{{T .TitleKey}} <span class="muted">{{.Total}}</span></h3>
+  {{- if .Rows}}
+  <div class="table-wrap" role="group" aria-labelledby="{{.ID}}" tabindex="0">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">{{T "findings.col_vulnerability"}}</th>
+          <th scope="col">{{T "findings.col_severity"}}</th>
+          <th scope="col">{{T "findings.col_component"}}</th>
+          <th scope="col">{{T "findings.col_fixed_in"}}</th>
+          <th scope="col" class="num">{{T "findings.col_risk"}}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{- range .Rows}}
+        <tr>
+          <th scope="row"><span class="cell-stack"><a class="mono" href="{{.VulnHref}}">{{.VulnID}}</a>{{if .KEV}}{{template "kev"}}{{end}}</span></th>
+          <td>{{template "sev" .Sev}}</td>
+          <td><span class="cell-stack"><a href="{{.ComponentHref}}">{{.Component}}</a><span class="version">{{.Version}}</span></span></td>
+          <td>{{template "fixed" .}}</td>
+          <td class="num">{{template "risk" .Risk}}</td>
+        </tr>
+        {{- end}}
+      </tbody>
+    </table>
+  </div>
+  {{- if gt .Total (len .Rows)}}<p class="muted">{{T "compare.truncated" "Max" .Max}}</p>{{end}}
+  {{- else}}
+  <p class="muted">{{T .EmptyKey}}</p>
+  {{- end}}
+</div>
+{{- end}}

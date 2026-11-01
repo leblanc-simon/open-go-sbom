@@ -126,6 +126,14 @@ user_api:
   export_timeout: 5m
   max_exports: 4
 
+# Enrichissement IA des agents dépôt (T12). Chaque dépôt est réglé dans ses paramètres :
+# IA désactivée (défaut), modèle local uniquement, ou fournisseur externe (autorisé par un
+# administrateur d'organisation, audité). forbid_external: true interdit tout fournisseur
+# externe sur l'instance : un projet réglé « fournisseur externe » est alors traité comme
+# « modèle local uniquement ».
+ai:
+  forbid_external: false
+
 # Premier démarrage et secours, lus au démarrage puis à retirer (docs/operations.md).
 bootstrap:
   # Premier administrateur d'instance, créé seulement si aucun compte n'existe. Mot de
@@ -188,6 +196,17 @@ vulndb:
   max_archive_mib: 2048       # taille maximale d'une archive
   analysis_timeout: 10m       # durée maximale d'un job d'analyse, synchronisation comprise
 
+# Rétention des instantanés (docs/operations.md, « Rétention des instantanés » ; ADR 0039),
+# appliquée chaque nuit à 02:30 UTC par une instance worker. Tout instantané de moins de
+# `days` jours est gardé ; au-delà, le dernier de chaque mois (UTC), sans limite de durée.
+# Ne sont jamais supprimés le dernier instantané d'une référence ni celui en vigueur au
+# début de la fenêtre. Les ensembles d'inventaire et SBOM que plus rien ne référence sont
+# ensuite supprimés, ainsi que les réceptions terminées plus anciennes que la fenêtre.
+retention:
+  enabled: true   # false : aucun instantané ni aucune réception supprimé (orphelins supprimés quand même)
+  days: 90        # fenêtre où tout est gardé, en jours (1 à 36500)
+  count: 0        # derniers instantanés de chaque référence gardés quel que soit leur âge
+  monthly: true   # au-delà de la fenêtre, garder le dernier instantané de chaque mois
 # Conteneurs des hôtes, projets enfants du projet de leur hôte (docs/operations.md,
 # « Conteneurs ») : un conteneur que l'agent n'a plus signalé depuis archive_after voit
 # son projet archivé ; il revient s'il redémarre.

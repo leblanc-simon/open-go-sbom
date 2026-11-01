@@ -45,33 +45,68 @@ type Snapshot struct {
 	Counts        sbom.Counts
 	// Current : instantané courant de sa référence.
 	Current bool
+	// Enrichment est le statut de l'enrichissement IA déclaré par le SBOM (vide sans
+	// enrichissement) ; EnrichmentModel, le modèle déclaré.
+	Enrichment      sbom.Enrichment
+	EnrichmentModel string
+	// PreviousID est l'instantané précédent de la même référence (date de scan, puis
+	// identifiant) ; nil pour le premier.
+	PreviousID *uuid.UUID
+	// Changes compte les changements depuis l'instantané précédent : zéro pour un même
+	// ensemble, nil sans précédent ou tant que la différence n'est pas calculée
+	// (ChangesPending).
+	Changes        *DiffCounts
+	ChangesPending bool
 }
 
 const snapshotColumns = `
 	s.id, s.project_id, s.ref_id, r.kind, r.name, coalesce(s.commit_sha, ''), s.agent_id, coalesce(a.name, ''),
 	s.agent_version, s.scanned_at, s.last_scanned_at, s.blob_id, s.set_id, s.format, s.spec_version,
-	cs.component_count, cs.syft_count, cs.ia_count, cs.weak_count, rc.snapshot_id IS NOT NULL`
+	cs.component_count, cs.syft_count, cs.ia_count, cs.weak_count, rc.snapshot_id IS NOT NULL,
+	coalesce(s.enrichment, ''), s.enrichment_model,
+	prev.id, prev.set_id = s.set_id, d.added_count, d.removed_count, d.upgraded_count, d.downgraded_count`
 
 const snapshotFrom = `
 	  FROM snapshots s
 	  JOIN tracked_refs r ON r.org_id = s.org_id AND r.id = s.ref_id
 	  JOIN component_sets cs ON cs.org_id = s.org_id AND cs.id = s.set_id
 	  LEFT JOIN agents a ON a.org_id = s.org_id AND a.id = s.agent_id
-	  LEFT JOIN ref_current rc ON rc.org_id = s.org_id AND rc.ref_id = s.ref_id AND rc.snapshot_id = s.id`
+	  LEFT JOIN ref_current rc ON rc.org_id = s.org_id AND rc.ref_id = s.ref_id AND rc.snapshot_id = s.id
+	  LEFT JOIN LATERAL (
+	        SELECT p.id, p.set_id FROM snapshots p
+	         WHERE p.org_id = s.org_id AND p.ref_id = s.ref_id AND (p.scanned_at, p.id) < (s.scanned_at, s.id)
+	         ORDER BY p.scanned_at DESC, p.id DESC LIMIT 1) prev ON true
+	  LEFT JOIN set_diffs d ON d.org_id = s.org_id AND d.from_set_id = prev.set_id AND d.to_set_id = s.set_id`
 
 type scanner interface{ Scan(dest ...any) error }
 
 func scanSnapshot(row scanner) (Snapshot, error) {
 	var s Snapshot
-	var agentID uuid.NullUUID
-	var format string
+	var agentID, prevID uuid.NullUUID
+	var sameSet sql.NullBool
+	var added, removed, upgraded, downgraded sql.NullInt64
+	var format, enrichment string
 	err := row.Scan(&s.ID, &s.ProjectID, &s.RefID, &s.RefKind, &s.RefName, &s.Commit, &agentID, &s.AgentName,
 		&s.AgentVersion, &s.ScannedAt, &s.LastScannedAt, &s.BlobID, &s.SetID, &format, &s.SpecVersion,
-		&s.Counts.Total, &s.Counts.Syft, &s.Counts.IA, &s.Counts.Weak, &s.Current)
+		&s.Counts.Total, &s.Counts.Syft, &s.Counts.IA, &s.Counts.Weak, &s.Current, &enrichment, &s.EnrichmentModel,
+		&prevID, &sameSet, &added, &removed, &upgraded, &downgraded)
 	if agentID.Valid {
 		s.AgentID = &agentID.UUID
 	}
+	if prevID.Valid {
+		s.PreviousID = &prevID.UUID
+		switch {
+		case sameSet.Bool:
+			s.Changes = &DiffCounts{}
+		case added.Valid:
+			s.Changes = &DiffCounts{Added: int(added.Int64), Removed: int(removed.Int64), Upgraded: int(upgraded.Int64),
+				Downgraded: int(downgraded.Int64)}
+		default:
+			s.ChangesPending = true
+		}
+	}
 	s.Format = sbom.Format(format)
+	s.Enrichment = sbom.Enrichment(enrichment)
 	return s, err
 }
 

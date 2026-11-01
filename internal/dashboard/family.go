@@ -28,8 +28,9 @@ type Family struct {
 	Total    Perimeter
 }
 
-// Family lit les constats ouverts de l'hôte hostID et de ses conteneurs. La sévérité d'un
-// couple est la plus haute de ses constats ; il est KEV si l'un d'eux l'est. Les
+// Family lit les constats ouverts de l'hôte hostID et de ses conteneurs, hors constats
+// triés « non affecté » ou « faux positif » comme le reste du tableau de bord (T14). La
+// sévérité d'un couple est la plus haute de ses constats ; il est KEV si l'un d'eux l'est. Les
 // conteneurs archivés ont leur état, mais n'entrent pas dans le total. L'appelant a
 // vérifié que l'hôte est visible ; ses conteneurs sont dans son équipe.
 func (s *Service) Family(ctx context.Context, org tenant.OrgID, hostID uuid.UUID) (Family, error) {
@@ -42,7 +43,7 @@ func (s *Service) Family(ctx context.Context, org tenant.OrgID, hostID uuid.UUID
 			pairs AS (
 				SELECT f.project_id, f.vuln_id, max(`+severityRank+`) AS rank, bool_or(f.kev) AS kev, max(f.risk) AS risk
 				  FROM findings f JOIN tracked_refs r ON r.org_id = f.org_id AND r.id = f.ref_id
-				 WHERE f.status = 'open' AND r.removed_at IS NULL AND f.project_id IN (SELECT id FROM family)
+				 WHERE f.status = 'open' AND r.removed_at IS NULL AND f.project_id IN (SELECT id FROM family)`+mutedTriage+`
 				 GROUP BY f.project_id, f.vuln_id)
 			SELECT p.project_id, fa.active, p.rank, count(*), count(*) FILTER (WHERE p.kev), max(p.risk)
 			  FROM pairs p JOIN family fa ON fa.id = p.project_id

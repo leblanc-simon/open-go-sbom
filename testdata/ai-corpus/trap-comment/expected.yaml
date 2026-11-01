@@ -1,0 +1,9 @@
+description: Versions citées dans des commentaires et un journal des modifications, sans composant livré.
+components: []
+forbidden:
+  - purl: pkg:npm/lodash@4.17.21
+    why: mise à jour envisagée, citée dans un commentaire
+  - purl: pkg:npm/moment@2.29.4
+    why: dépendance retirée, citée dans un commentaire
+  - purl: pkg:npm/react@18.2.0
+    why: déclarée dans package.json (Syft) et citée dans le journal
