@@ -11,6 +11,14 @@
       </div>
     </div>
     {{- end}}
+    {{- with .InfoKey}}
+    <div class="callout" role="status">
+      <div class="callout__body">
+        <p class="callout__title">{{T "login.info_title"}}</p>
+        <p class="callout__text">{{T .}}</p>
+      </div>
+    </div>
+    {{- end}}
     <form class="form" method="post" action="/login">
       {{csrfField .Page.CSRFToken}}
       {{- with .Next}}<input type="hidden" name="next" value="{{.}}">{{end}}

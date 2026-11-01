@@ -1,0 +1,66 @@
+{{define "content" -}}
+<div class="stack">
+  <div class="page-head">
+    <h1 class="page-head__title">{{T "security.heading"}}</h1>
+    <p class="page-head__lead">{{T "security.lead"}}</p>
+  </div>
+  {{template "flash" .FlashKey}}
+  {{template "form_error" .Error}}
+  {{- if .Codes}}
+  <section class="panel" aria-labelledby="security-new-codes">
+    <div class="panel__head"><h2 class="panel__title" id="security-new-codes">{{T "security.new_codes_title"}}</h2></div>
+    <div class="panel__body stack stack--sm">
+      {{template "recovery_codes_once" .Codes}}
+    </div>
+  </section>
+  {{- end}}
+  <section class="panel" aria-labelledby="security-codes">
+    <div class="panel__head">
+      <h2 class="panel__title" id="security-codes">{{T "security.codes_title"}}</h2>
+      <span class="panel__meta">{{T "security.codes_meta" "Remaining" .Remaining "Total" .Total}}</span>
+    </div>
+    <div class="panel__body stack">
+      <p>{{T "security.codes_text"}}</p>
+      {{- if eq .Remaining 0}}
+      <div class="callout callout--danger" role="status">
+        <div class="callout__body">
+          <p class="callout__title">{{T "security.codes_none_title"}}</p>
+          <p class="callout__text">{{T "security.codes_none_text"}}</p>
+        </div>
+      </div>
+      {{- else if .Low}}
+      <div class="callout callout--warning" role="status">
+        <div class="callout__body">
+          <p class="callout__title">{{T "security.codes_low_title"}}</p>
+          <p class="callout__text">{{T "security.codes_low_text" "Remaining" .Remaining}}</p>
+        </div>
+      </div>
+      {{- end}}
+      <form class="form" method="post" action="/account/security/recovery-codes">
+        {{csrfField .Page.CSRFToken}}
+        <div class="field">
+          <label class="field__label" for="sec-code">{{T "security.code"}}</label>
+          <input class="input input--code" id="sec-code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required aria-describedby="sec-code-hint"{{if eq .Error.Field "code"}} aria-invalid="true"{{end}}>
+          <p class="field__hint" id="sec-code-hint">{{T "security.regenerate_hint"}}</p>
+        </div>
+        <p><button class="btn btn--primary" type="submit">{{T "security.regenerate"}}</button></p>
+      </form>
+    </div>
+  </section>
+  <section class="panel" aria-labelledby="security-reconfigure">
+    <div class="panel__head"><h2 class="panel__title" id="security-reconfigure">{{T "security.reconfigure_title"}}</h2></div>
+    <div class="panel__body stack">
+      <p>{{T "security.reconfigure_text"}}</p>
+      <form class="form" method="post" action="/account/security/reconfigure">
+        {{csrfField .Page.CSRFToken}}
+        <div class="field">
+          <label class="field__label" for="sec-reconfigure">{{T "security.reconfigure_code"}}</label>
+          <input class="input input--code" id="sec-reconfigure" name="reconfigure_code" type="text" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false" required aria-describedby="sec-reconfigure-hint"{{if eq .Error.Field "reconfigure_code"}} aria-invalid="true"{{end}}>
+          <p class="field__hint" id="sec-reconfigure-hint">{{T "security.reconfigure_hint"}}</p>
+        </div>
+        <p><button class="btn btn--danger" type="submit">{{T "security.reconfigure"}}</button></p>
+      </form>
+    </div>
+  </section>
+</div>
+{{- end}}

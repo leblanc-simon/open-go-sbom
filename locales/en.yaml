@@ -22,6 +22,7 @@ nav:
   label: Main navigation
   profile: My account
   password: Password
+  security: "Two-factor authentication"
   logout: Sign out
   admin: Administration
   org_overview: Dashboard
@@ -82,6 +83,7 @@ flash:
   policy_saved: "Policy saved; its evaluation is queued."
   policy_deleted: "Policy deleted with its violations."
   channel_saved: "Channel saved."
+  recovery_signin: "You signed in with a recovery code, which cannot be used again. If you lost your authenticator app, reconfigure it below."
   channel_deleted: "Channel deleted."
   triage_saved: "Triage decision saved."
   triage_withdrawn: "Triage decision withdrawn."
@@ -270,7 +272,9 @@ login:
   email: E-mail address
   password: Password
   submit: Continue
-  help: Forgot your password or lost your device? Contact an instance administrator.
+  help: "Forgot your password? Contact an instance administrator. Lost your device: use a recovery code at the next step."
+  info_title: "Information"
+  totp_reconfigured: "Your second factor was removed and your sessions closed. Sign in to set up your new authenticator app."
   error:
     title: Sign-in refused
     invalid_credentials: Incorrect e-mail address or password.
@@ -284,10 +288,15 @@ verify:
   code: TOTP code
   code_hint: Six digits, renewed every thirty seconds. A code works only once.
   submit: Verify
-  lost: Lost your device? An instance administrator can reset your TOTP.
+  lost: "Lost your device? Use a recovery code, or contact an instance administrator."
+  recovery_summary: "Use a recovery code"
+  recovery_code: "Recovery code"
+  recovery_hint: "Sixteen characters, with or without dashes. A code works only once."
+  recovery_submit: "Sign in with this code"
   error:
     title: Code refused
     invalid_code: This code is incorrect, expired or already used.
+    invalid_recovery_code: "This recovery code is incorrect or already used."
 
 totp_setup:
   title: TOTP setup
@@ -455,6 +464,10 @@ audit:
   system: System (startup)
   empty: No event yet.
   action:
+    auth_recovery_code_used: "Recovery code used by {{.Target}} ({{.D_remaining}} left)"
+    auth_recovery_code_failed: "Recovery code refused for {{.Target}}"
+    account_recovery_codes_generated: "{{.D_count}} recovery codes generated for {{.Target}}"
+    account_totp_reconfigured: "Second factor of {{.Target}} removed by its owner, to be reconfigured"
     policy_created: "Policy created: {{.Target}}"
     policy_updated: "Policy updated: {{.Target}}"
     policy_deleted: "Policy deleted: {{.Target}}"
@@ -1559,6 +1572,40 @@ search:
   unreadable_text: "These versions do not read according to the ecosystem rules: whether they are in the range cannot be told. Their occurrences are not shown."
   include_containers: Include containers
   filter_containers: Containers included
+
+recovery_codes:
+  title: "Recovery codes"
+  heading: "Your recovery codes"
+  lead: "Your second factor is set up. If you lose your authenticator app, each of these codes lets you sign in once in its place."
+  once_title: "Shown only once"
+  once_text: "Write down or print these codes now and keep them somewhere safe, away from the device that holds your app: they will never be shown again."
+  list_label: "Recovery codes"
+  usage: "When signing in, choose “Use a recovery code”. A new set can be generated from My account, Two-factor authentication."
+  continue: "I have saved my codes, continue"
+
+security:
+  title: "Two-factor authentication"
+  heading: "Two-factor authentication"
+  lead: "Your account is protected by a mandatory TOTP code. Recovery codes let you sign in if you lose your authenticator app."
+  new_codes_title: "New recovery codes"
+  codes_title: "Recovery codes"
+  codes_meta: "Remaining: {{.Remaining}} of {{.Total}}"
+  codes_text: "Generating a new set invalidates all previous codes, used or not."
+  codes_none_title: "No recovery codes"
+  codes_none_text: "Without recovery codes, losing your authenticator app means going through an instance administrator. Generate a set now."
+  codes_low_title: "Few codes left"
+  codes_low_text: "Recovery codes left: {{.Remaining}}. Generate a new set before you run out."
+  code: "TOTP code"
+  regenerate_hint: "Confirm with the code of your authenticator app."
+  regenerate: "Generate new codes"
+  reconfigure_title: "Change authenticator app"
+  reconfigure_text: "New phone, lost app: remove your current second factor. All your sessions will be closed; at your next sign-in, your password will lead you to set up a new app and new recovery codes. Your personal access tokens are kept."
+  reconfigure_code: "TOTP code or recovery code"
+  reconfigure_hint: "The six-digit code of your app or, if you lost it, a recovery code (it will be used up)."
+  reconfigure: "Remove and reconfigure"
+  error:
+    invalid_code: "This code is incorrect, expired or already used."
+    locked: "Too many incorrect codes: the account is locked for a while, try again later."
 
 tokens:
   title: Access tokens

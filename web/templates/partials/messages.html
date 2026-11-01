@@ -60,3 +60,18 @@
 {{- else if .MustChangePwd}}<span class="status status--warning">{{T "status.password_pending"}}</span>
 {{- else}}<span class="status status--active">{{T "status.active"}}</span>{{end}}
 {{- end}}
+
+{{define "recovery_codes_once" -}}
+<div class="callout callout--warning" role="status">
+  <div class="callout__body">
+    <p class="callout__title">{{T "recovery_codes.once_title"}}</p>
+    <p class="callout__text">{{T "recovery_codes.once_text"}}</p>
+  </div>
+</div>
+<ol class="recovery-codes" aria-label="{{T "recovery_codes.list_label"}}">
+  {{- range .}}
+  <li><code>{{.}}</code></li>
+  {{- end}}
+</ol>
+<p class="muted">{{T "recovery_codes.usage"}}</p>
+{{- end}}

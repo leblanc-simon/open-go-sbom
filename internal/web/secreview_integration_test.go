@@ -75,7 +75,7 @@ func TestSecReviewTOTPResetRequiresNewPassword(t *testing.T) {
 	}
 	key := setupSecret(t, owner.get(pathTOTPSetup).body)
 	code, _ := totp.GenerateCode(key, time.Now())
-	if p := owner.post(pathTOTPOn, url.Values{"code": {code}}); p.status != http.StatusSeeOther || p.location != "/" {
+	if p := owner.post(pathTOTPOn, url.Values{"code": {code}}); p.status != http.StatusOK || len(recoveryCodesIn(p.body)) == 0 {
 		t.Fatalf("enrôlement : %d %q", p.status, p.location)
 	}
 	if p := owner.get("/account"); p.status != http.StatusSeeOther || p.location != pathPassword {

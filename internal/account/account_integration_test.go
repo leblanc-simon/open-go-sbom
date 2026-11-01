@@ -280,12 +280,49 @@ func TestTOTPSecretsAreSealedAndRotated(t *testing.T) {
 	if got, err := account.NewSealedTOTPStore(inner, only, tdb.App).Get(u.ID); err != nil || got.Secret != "JBSWY3DPEHPK3PXP" {
 		t.Fatalf("après retrait de l'ancienne clé : %+v, %v", got, err)
 	}
+	recovery := mfasql.NewRecoveryStore(tdb.App.DB(), appconf.DialectPostgres)
+	if err := recovery.Replace(u.ID, []string{"h1", "h2"}); err != nil {
+		t.Fatal(err)
+	}
 	pw, err := s.ResetTOTP(ctx, audit.System, u.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := s.Get(ctx, u.ID); got.TOTPEnabled || !got.MustChangePwd || pw == "" {
 		t.Fatalf("après réinitialisation du TOTP : %+v (mot de passe temporaire %v)", got, pw != "")
+	}
+	if n, err := recovery.Remaining(u.ID); n != 0 || err != nil {
+		t.Fatalf("codes de secours après réinitialisation du TOTP : %d, %v", n, err)
+	}
+
+	// Reconfiguration par le titulaire : TOTP et codes retirés, sessions fermées, mot de
+	// passe gardé.
+	if err := inner.Set(u.ID, "JBSWY3DPEHPK3PXP", true); err != nil {
+		t.Fatal(err)
+	}
+	if err := recovery.Replace(u.ID, []string{"h3"}); err != nil {
+		t.Fatal(err)
+	}
+	if ok, err := recovery.Use(u.ID, "h3", time.Now()); !ok || err != nil {
+		t.Fatalf("consommation d'un code sous PostgreSQL : %v, %v", ok, err)
+	}
+	if ok, _ := recovery.Use(u.ID, "h3", time.Now()); ok {
+		t.Fatal("code consommé deux fois sous PostgreSQL")
+	}
+	if err := recovery.Replace(u.ID, []string{"h4"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ReconfigureTOTP(ctx, audit.Actor{UserID: u.ID, Email: u.Email}, u.ID); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.Get(ctx, u.ID); got.TOTPEnabled {
+		t.Fatal("TOTP actif après la reconfiguration")
+	}
+	if n, _ := recovery.Remaining(u.ID); n != 0 {
+		t.Fatalf("codes de secours après la reconfiguration : %d", n)
+	}
+	if err := s.ReconfigureTOTP(ctx, audit.System, 99999); !errors.Is(err, account.ErrNotFound) {
+		t.Fatalf("compte inconnu : %v", err)
 	}
 }
 

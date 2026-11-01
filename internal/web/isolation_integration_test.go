@@ -52,7 +52,8 @@ func fill(pattern string, params map[string]string) string {
 var globalRoutes = []string{
 	"", "/login", "/login/2fa", "/logout", "/account", "/account/password", "/account/tokens",
 	"/account/tokens/{tokenID}/revoke", "/account/invitations", "/account/invitations/{invitationID}/accept",
-	"/account/invitations/{invitationID}/decline",
+	"/account/invitations/{invitationID}/decline", "/account/security", "/account/security/recovery-codes",
+	"/account/security/reconfigure",
 	"/account/totp/setup", "/account/totp/enable", "/static/*", "/api/*", "/sitemap",
 }
 

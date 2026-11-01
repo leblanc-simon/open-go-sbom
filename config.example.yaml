@@ -102,6 +102,9 @@ mfa:
   lockout_window: 15m
   lockout_duration: 15m
   lockout_max_duration: 24h
+  # Codes de secours : nombre de codes d'un jeu (5 à 50), montrés une seule fois à
+  # l'enrôlement et à chaque régénération, chacun valable pour une connexion.
+  recovery_codes: 10
 
 # Connexion : tentatives (POST /login et /login/2fa) par minute et par IP (une IPv6 compte
 # pour son /64), et durée absolue d'une session depuis la connexion (0 : sans), dans

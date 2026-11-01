@@ -225,7 +225,7 @@ func TestPageTitlesAreDistinct(t *testing.T) {
 			seen[title] = "/o/" + slug + path
 		}
 	}
-	for _, path := range []string{"/account", "/account/password", "/account/tokens", "/sitemap", "/admin/users", "/admin/orgs",
+	for _, path := range []string{"/account", "/account/password", "/account/tokens", pathSecurity, "/sitemap", "/admin/users", "/admin/orgs",
 		"/admin/vulndb", "/admin/jobs", "/admin/audit"} {
 		title := pageTitle(t, b.get(path).body)
 		if other, dup := seen[title]; dup {

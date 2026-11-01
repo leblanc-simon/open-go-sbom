@@ -40,6 +40,7 @@ func valid() Config {
 	c.Auth.SessionTTL, c.Auth.CookieSecure, c.Auth.BcryptCost = time.Hour, "auto", 12
 	c.MFA.ChallengeTTL, c.MFA.MaxAttempts = time.Minute, 5
 	c.MFA.LockoutThreshold, c.MFA.LockoutWindow, c.MFA.LockoutDuration, c.MFA.LockoutMaxDuration = 10, 15*time.Minute, 15*time.Minute, 24*time.Hour
+	c.MFA.RecoveryCodes = 10
 	c.Login.RateLimit, c.Login.SessionMaxAge = 10, 168*time.Hour
 	c.AgentAPI = AgentAPI{RateLimit: 120, FailureRateLimit: 30}
 	c.UserAPI = UserAPI{RateLimit: 60, FailureRateLimit: 30, ExportTimeout: 5 * time.Minute, MaxExports: 4}
@@ -234,6 +235,7 @@ func TestValidate(t *testing.T) {
 		{"fenêtre de verrouillage", "mfa.lockout_window", func(c *Config) { c.MFA.LockoutWindow = 0 }},
 		{"durée de verrouillage", "mfa.lockout_duration", func(c *Config) { c.MFA.LockoutDuration = 0 }},
 		{"plafond de verrouillage", "mfa.lockout_max_duration", func(c *Config) { c.MFA.LockoutMaxDuration = time.Minute }},
+		{"codes de secours", "mfa.recovery_codes", func(c *Config) { c.MFA.RecoveryCodes = 2 }},
 		{"limite de connexion", "login.rate_limit", func(c *Config) { c.Login.RateLimit = -1 }},
 		{"durée absolue négative", "login.session_max_age", func(c *Config) { c.Login.SessionMaxAge = -1 }},
 		{"durée absolue sous la durée glissante", "login.session_max_age", func(c *Config) { c.Login.SessionMaxAge = time.Minute }},

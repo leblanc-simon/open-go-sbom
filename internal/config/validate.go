@@ -181,6 +181,9 @@ func (c Config) Validate() error {
 	if c.MFA.LockoutMaxDuration < c.MFA.LockoutDuration {
 		v.fail("mfa.lockout_max_duration", "doit être au moins égal à mfa.lockout_duration")
 	}
+	if c.MFA.RecoveryCodes < 5 || c.MFA.RecoveryCodes > 50 {
+		v.fail("mfa.recovery_codes", "doit être compris entre 5 et 50 (reçu %d)", c.MFA.RecoveryCodes)
+	}
 	v.nonNegative("login.rate_limit", int64(c.Login.RateLimit))
 	v.nonNegative("login.session_max_age", int64(c.Login.SessionMaxAge))
 	if c.Login.SessionMaxAge > 0 && c.Login.SessionMaxAge < c.Auth.SessionTTL {
