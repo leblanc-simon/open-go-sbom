@@ -1,0 +1,98 @@
+{{define "container_state" -}}
+{{- if eq . "running"}}<span class="status status--active">{{T "container_state.running"}}</span>
+{{- else if eq . "absent"}}<span class="status status--warning">{{T "container_state.absent"}}</span>
+{{- else if eq . "archived"}}<span class="status status--revoked">{{T "container_state.archived"}}</span>
+{{- else}}<span class="status status--revoked">{{T "container_state.ignored"}}</span>{{end}}
+{{- end}}
+
+{{define "container_image" -}}
+<span class="cell-stack"><span class="mono">{{.Image}}</span><abbr class="mono muted" title="{{.ImageID}}">{{.ShortImageID}}</abbr></span>
+{{- end}}
+
+{{define "project_family" -}}
+{{- $base := .Base}}
+<section class="panel" aria-labelledby="project-containers">
+  <div class="panel__head">
+    <h2 class="panel__title" id="project-containers">{{T "project.containers_title"}}</h2>
+    <span class="panel__meta">{{T "project.containers_meta"}}</span>
+  </div>
+  {{- with .Family}}
+  <div class="panel__body panel__body--flush">
+    <div class="table-wrap" role="group" aria-labelledby="project-containers" tabindex="0">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "project.containers_caption"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "project.col_perimeter"}}</th>
+            <th scope="col">{{T "project.col_image"}}</th>
+            <th scope="col">{{T "project.col_container_state"}}</th>
+            <th scope="col">{{T "project.col_open_vulns"}}</th>
+            <th scope="col" class="num">{{T "badge.kev"}}</th>
+            <th scope="col" class="num">{{T "dashboard.col_risk"}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">{{T "project.perimeter_host"}}</th>
+            <td><span class="muted">{{T "project.perimeter_host_image"}}</span></td>
+            <td><span class="muted">{{T "project.perimeter_host_state"}}</span></td>
+            <td>{{template "sevcounts" .Host.Sev}}</td>
+            <td class="num">{{.Host.KEV}}</td>
+            <td class="num">{{template "risk" .Host.Risk}}</td>
+          </tr>
+          {{- range .Children}}
+          <tr>
+            <th scope="row"><span class="cell-stack"><a href="{{.Href}}">{{.Key}}</a>
+              {{- if gt .Context.Replicas 1}}<span class="muted">{{Tn "container.replicas" .Context.Replicas}}</span>{{end}}</span></th>
+            <td>{{template "container_image" .Context}}</td>
+            <td><span class="cell-stack">{{template "container_state" .State}}
+              {{- if ne .State "running"}}<span class="muted">{{T "container.seen_at"}} {{template "stamp" .SeenAt}}</span>{{end}}</span></td>
+            <td>{{if .Archived}}<span class="muted">{{T "project.perimeter_archived"}}</span>{{else}}{{template "sevcounts" .Perimeter.Sev}}{{end}}</td>
+            <td class="num">{{if not .Archived}}{{.Perimeter.KEV}}{{end}}</td>
+            <td class="num">{{if not .Archived}}{{template "risk" .Perimeter.Risk}}{{end}}</td>
+          </tr>
+          {{- end}}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row" colspan="3">{{T "project.perimeter_total"}}</th>
+            <td>{{template "sevcounts" .Total.Sev}}</td>
+            <td class="num">{{.Total.KEV}}</td>
+            <td class="num">{{template "risk" .Total.Risk}}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+  <div class="panel__body">
+    {{- if .Children}}
+    <p class="field__hint">{{Tn "project.containers_hint" .ArchiveDays}}</p>
+    {{- else}}
+    <p class="muted">{{T "project.containers_none"}}</p>
+    {{- end}}
+  </div>
+  {{- end}}
+</section>
+{{- end}}
+
+{{define "container_context" -}}
+<section class="panel" aria-labelledby="project-container">
+  <div class="panel__head"><h2 class="panel__title" id="project-container">{{T "container.title"}}</h2></div>
+  <div class="panel__body stack stack--sm">
+    <dl class="kv">
+      <dt>{{T "container.state"}}</dt><dd>{{template "container_state" .State}}</dd>
+      <dt>{{T "container.engine"}}</dt><dd>{{T (print "container_engine." .Context.Engine)}}</dd>
+      <dt>{{T "container.image"}}</dt><dd class="mono">{{.Context.Image}}</dd>
+      <dt>{{T "container.image_id"}}</dt><dd class="mono wrap">{{.Context.ImageID}}</dd>
+      {{- with .Context.ComposeProject}}
+      <dt>{{T "container.compose_project"}}</dt><dd class="mono">{{.}}</dd>
+      <dt>{{T "container.compose_service"}}</dt><dd class="mono">{{$.Context.ComposeService}}</dd>
+      {{- end}}
+      <dt>{{Tn "container.names" (len .Context.Names)}}</dt><dd><span class="cluster">{{range .Context.Names}}<span class="chip mono">{{.}}</span>{{end}}</span></dd>
+      <dt>{{T "container.replicas_label"}}</dt><dd>{{.Context.Replicas}}</dd>
+      <dt>{{T "container.started"}}</dt><dd>{{template "stamp" .Started}}</dd>
+      <dt>{{T "container.seen_at"}}</dt><dd>{{template "stamp" .SeenAt}}</dd>
+    </dl>
+  </div>
+</section>
+{{- end}}

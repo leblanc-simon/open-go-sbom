@@ -1,6 +1,8 @@
 package hostagent
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -39,6 +41,15 @@ type fakeServer struct {
 	// pendingFingerprint.
 	fingerprintOf func([]byte) string
 	pending       string
+
+	// Conteneurs : projets enfants par identité, inventaire rangé (empreinte), envois,
+	// projets archivés par un utilisateur, signalements reçus.
+	children     map[string]uuid.UUID
+	childCurrent map[string]string
+	childUploads map[string]int
+	childWaiting map[string]string // ingestion → identité
+	ignored      map[string]bool
+	reports      []gen.ContainerReport
 }
 
 func (f *fakeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -66,6 +77,34 @@ func (f *fakeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Refs: []gen.TrackedRef{{Id: uuid.New(), Kind: gen.TrackedRefKindHost, Name: "srv-test"}}})
 		}
 		write(http.StatusOK, list)
+	case r.URL.Path == "/api/v1/agent/containers":
+		var rep gen.ContainerReport
+		if err := json.NewDecoder(r.Body).Decode(&rep); err != nil {
+			write(http.StatusBadRequest, gen.Problem{Type: "error.invalid_request"})
+			return
+		}
+		f.reports = append(f.reports, rep)
+		if f.children == nil {
+			f.children, f.childCurrent, f.childUploads, f.childWaiting = map[string]uuid.UUID{}, map[string]string{}, map[string]int{}, map[string]string{}
+		}
+		out := gen.ContainerReportResult{Containers: []gen.ContainerState{}}
+		for _, c := range rep.Containers {
+			id, ok := f.children[c.Key]
+			if !ok {
+				id = uuid.New()
+				f.children[c.Key] = id
+			}
+			st := gen.ContainerState{Key: c.Key, Project: gen.ProjectRef{Id: id, Slug: c.Key}, RefId: uuid.New(), Ignored: f.ignored[c.Key]}
+			if c.Inventory != nil && !st.Ignored {
+				v := gen.ContainerStateInventoryOutdated
+				if c.Inventory.Fingerprint == f.childCurrent[c.Key] {
+					v = gen.ContainerStateInventoryCurrent
+				}
+				st.Inventory = &v
+			}
+			out.Containers = append(out.Containers, st)
+		}
+		write(http.StatusOK, out)
 	case r.URL.Path == "/api/v1/agent/heartbeat":
 		var hb gen.HeartbeatRequest
 		_ = json.NewDecoder(r.Body).Decode(&hb)
@@ -73,9 +112,9 @@ func (f *fakeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		st := gen.HeartbeatStatus{ServerTime: time.Now(), ScanRequested: f.scanPending}
 		f.scanPending = false
 		if hb.Inventory != nil {
-			v := gen.Outdated
+			v := gen.HeartbeatStatusInventoryOutdated
 			if hb.Inventory.Fingerprint == f.current {
-				v = gen.Current
+				v = gen.HeartbeatStatusInventoryCurrent
 				f.lastScan = hb.Inventory.ScannedAt
 			}
 			st.Inventory = &v
@@ -91,6 +130,22 @@ func (f *fakeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(p).Decode(&f.lastContext)
 		p, _ = mr.NextPart()
 		f.sbom, _ = io.ReadAll(p)
+		if f.lastContext.Ref.Kind == gen.IngestionContextRefKindContainer {
+			key := f.lastContext.Ref.Name
+			if f.children[key] != f.lastContext.ProjectId {
+				write(http.StatusNotFound, gen.Problem{Type: "error.ingest.ref_unknown", Status: 404})
+				return
+			}
+			f.childUploads[key]++
+			id := uuid.New()
+			f.childWaiting[id.String()] = key
+			zr, _ := gzip.NewReader(bytes.NewReader(f.sbom))
+			raw, _ := io.ReadAll(zr)
+			// Le faux scanner d'images met l'empreinte de l'image dans le SBOM.
+			f.childCurrent["attente:"+key] = string(raw)
+			write(http.StatusAccepted, gen.Ingestion{Id: id, Status: gen.Queued, ProjectId: f.lastContext.ProjectId})
+			return
+		}
 		f.uploads++
 		f.pending = pendingFingerprint
 		if f.fingerprintOf != nil {
@@ -107,6 +162,11 @@ func (f *fakeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(r.URL.Path, "/api/v1/agent/ingestions/"):
 		id := strings.TrimPrefix(r.URL.Path, "/api/v1/agent/ingestions/")
 		in := gen.Ingestion{Id: uuid.MustParse(id), Status: gen.Done}
+		if key, ok := f.childWaiting[id]; ok {
+			f.childCurrent[key] = f.childCurrent["attente:"+key]
+			write(http.StatusOK, in)
+			return
+		}
 		if f.current == "échec:"+id {
 			in.Status, in.Error = gen.Failed, &gen.IngestionError{Key: "error.ingest.schema_invalid"}
 			f.current = ""

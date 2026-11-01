@@ -13,6 +13,7 @@ import (
 
 	"leblanc.io/lotor/internal/agent"
 	"leblanc.io/lotor/internal/dashboard"
+	"leblanc.io/lotor/internal/finding"
 	"leblanc.io/lotor/internal/project"
 	"leblanc.io/lotor/internal/render"
 	"leblanc.io/lotor/internal/tenant"
@@ -102,6 +103,7 @@ type projectsView struct {
 	Query      string
 	Label      string
 	Archived   bool
+	Containers bool
 	Kinds      []option
 	Teams      []option
 	FlashKey   string
@@ -111,7 +113,8 @@ type projectsView struct {
 func (id *identity) projects(w http.ResponseWriter, r *http.Request) {
 	acc := access(r)
 	q := r.URL.Query()
-	f := project.Filter{Query: q.Get("q"), Label: q.Get("label"), Archived: q.Get("archived") == "1"}
+	f := project.Filter{Query: q.Get("q"), Label: q.Get("label"), Archived: q.Get("archived") == "1",
+		Containers: q.Get("containers") == "1"}
 	if k := q.Get("kind"); k != "" {
 		if kind, err := project.ParseKind(k); err == nil {
 			f.Kind = kind
@@ -131,7 +134,8 @@ func (id *identity) projects(w http.ResponseWriter, r *http.Request) {
 	view := &projectsView{
 		Page: render.Page{TitleKey: "projects.title", Nav: orgNav(acc, "projects")},
 		Base: orgBase(acc), CanAdmin: acc.CanAny(tenant.PermProjectCreate),
-		Query: f.Query, Label: f.Label, Archived: f.Archived, Kinds: projectKindOptions(f.Kind, true), Teams: teams,
+		Query: f.Query, Label: f.Label, Archived: f.Archived, Containers: f.Containers, Kinds: projectKindOptions(f.Kind, true),
+		Teams:    teams,
 		FlashKey: flashKey(r),
 	}
 	status := http.StatusOK
@@ -159,7 +163,7 @@ func (id *identity) projects(w http.ResponseWriter, r *http.Request) {
 	}
 	if page.NextCursor != "" {
 		next := url.Values{}
-		for _, k := range []string{"q", "kind", "label", "archived", "team"} {
+		for _, k := range []string{"q", "kind", "label", "archived", "containers", "team"} {
 			if v := q.Get(k); v != "" {
 				next.Set(k, v)
 			}
@@ -349,6 +353,69 @@ type projectView struct {
 	Summary summaryView
 	// Host : agent serveur du projet (contexte de l'hôte, demande de scan).
 	Host *hostAgentView
+	// Family : conteneurs d'un hôte et constats par périmètre (T13).
+	Family *familyView
+	// Container : identité et contexte d'un conteneur.
+	Container *containerView
+}
+
+// perimeterRow est l'état d'un périmètre d'une famille : vulnérabilités distinctes
+// ouvertes par sévérité, dont KEV, et risque maximal.
+type perimeterRow struct {
+	Sev  []sevCount
+	KEV  int
+	Risk int
+}
+
+func perimeterOf(p dashboard.Perimeter) perimeterRow {
+	return perimeterRow{Sev: sevCounts(finding.Counts{BySeverity: p.Open.BySeverity}), KEV: p.Open.KEV, Risk: riskOf(p.MaxRisk)}
+}
+
+// childRow est un conteneur sur la fiche de son hôte.
+type childRow struct {
+	Name, Href, Key string
+	Context         project.ContainerContext
+	SeenAt          *stamp
+	// State : running (signalé au dernier cycle de l'agent), absent, archived (pour
+	// absence) ou ignored (archivé par un utilisateur).
+	State     string
+	Archived  bool
+	Perimeter perimeterRow
+}
+
+// familyView réunit les conteneurs d'un hôte et ses constats par périmètre.
+type familyView struct {
+	Host     perimeterRow
+	Children []childRow
+	Total    perimeterRow
+	Active   int
+	// ArchiveDays : absence en jours au-delà de laquelle un conteneur est archivé.
+	ArchiveDays int
+}
+
+// containerView est l'identité d'un conteneur sur sa fiche.
+type containerView struct {
+	Key     string
+	Context project.ContainerContext
+	Started *stamp
+	SeenAt  *stamp
+	State   string
+}
+
+// containerState dit si un conteneur tournait au dernier cycle de l'agent de son hôte :
+// signalé depuis le dernier inventaire de l'hôte (à une heure près), il tourne ; sinon il
+// est absent, ou archivé.
+func containerState(p project.Project) string {
+	c := p.Container
+	switch {
+	case p.ArchivedAt != nil && c.ArchivedAbsent:
+		return "archived"
+	case p.ArchivedAt != nil:
+		return "ignored"
+	case p.Agent != nil && p.Agent.LastInventoryAt != nil && c.SeenAt.Before(p.Agent.LastInventoryAt.Add(-time.Hour)):
+		return "absent"
+	}
+	return "running"
 }
 
 // hostAgentView est ce que la fiche d'un hôte montre de son agent serveur.
@@ -404,6 +471,17 @@ func (id *identity) renderProject(w http.ResponseWriter, r *http.Request, status
 		}
 		view.Host = newHostAgentView(a, acc.Can(tenant.PermProjectScan, p.TeamID) && p.ArchivedAt == nil)
 	}
+	switch p.Kind {
+	case project.KindHost:
+		if view.Family, err = id.family(r, acc, p); err != nil {
+			id.serverError(w, r, err)
+			return
+		}
+	case project.KindContainer:
+		c := p.Container
+		view.Container = &containerView{Key: c.Key, Context: c.Context, Started: stampOf(c.Context.StartedAt),
+			SeenAt: stampAt(c.SeenAt), State: containerState(p)}
+	}
 	if view.CanAdmin && p.Kind == project.KindRepo && p.ArchivedAt == nil {
 		agents, err := id.Agents.RepoAgents(r.Context(), acc.Org, p.TeamID)
 		if err != nil {
@@ -421,7 +499,7 @@ func (id *identity) renderProject(w http.ResponseWriter, r *http.Request, status
 func (id *identity) projectSettingsPage(w http.ResponseWriter, r *http.Request, status int, p project.Project, f projectForm, fe formError) {
 	acc := access(r)
 	var teams []option
-	if acc.Can(tenant.PermProjectMove, p.TeamID) {
+	if acc.Can(tenant.PermProjectMove, p.TeamID) && p.Kind != project.KindContainer {
 		var ok bool
 		if teams, ok = id.teamOptions(w, r, tenant.PermProjectMove, p.TeamID.String(), ""); !ok {
 			return
@@ -542,4 +620,37 @@ func atoiDefault(s string, def int) int {
 		return def
 	}
 	return n
+}
+
+// family lit les conteneurs d'un hôte et leurs constats par périmètre.
+func (id *identity) family(r *http.Request, acc tenant.Access, host project.Project) (*familyView, error) {
+	children, err := id.Projects.Children(r.Context(), acc.Org, acc.Visibility(), host.ID)
+	if err != nil {
+		return nil, err
+	}
+	fam, err := id.Dashboard.Family(r.Context(), acc.Org, host.ID)
+	if err != nil {
+		return nil, err
+	}
+	v := &familyView{Host: perimeterOf(fam.Host), Total: perimeterOf(fam.Total), ArchiveDays: id.containerArchiveDays()}
+	for _, c := range children {
+		row := childRow{Name: c.Name, Href: orgBase(acc) + "/projects/" + c.Slug, Key: c.Container.Key,
+			Context: c.Container.Context, SeenAt: stampAt(c.Container.SeenAt), State: containerState(c),
+			Archived: c.ArchivedAt != nil, Perimeter: perimeterOf(fam.Children[c.ID])}
+		if c.ArchivedAt == nil {
+			v.Active++
+		}
+		v.Children = append(v.Children, row)
+	}
+	return v, nil
+}
+
+// containerArchiveDays renvoie, en jours, l'absence au-delà de laquelle un conteneur est
+// archivé.
+func (id *identity) containerArchiveDays() int {
+	after := id.ContainerArchiveAfter
+	if after <= 0 {
+		after = project.DefaultArchiveAfter
+	}
+	return int(max(after/(24*time.Hour), 1))
 }

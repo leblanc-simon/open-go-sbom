@@ -32,13 +32,16 @@ const (
 	KeyAgentInvalid    = "validation.agent_invalid"
 	KeyProjectArchived = "validation.project_archived"
 	KeyTeamInvalid     = "validation.project_team_invalid"
+	KeyContainerTeam   = "validation.container_team"
+	KeyContainerAbsent = "validation.container_absent"
 )
 
 // ValidationKeys liste les clés de validation du paquet (tests de traduction).
 func ValidationKeys() []string {
 	return []string{KeyKindInvalid, KeySlugInvalid, KeySlugTaken, KeyNameInvalid, KeyDescription,
 		KeyLabelInvalid, KeyLabelsTooMany, KeyForgeURL, KeyRefInvalid, KeyRefsTooMany, KeyRefsMissing,
-		KeyHostRefInvalid, KeyHostRefTaken, KeyAgentInvalid, KeyProjectArchived, KeyTeamInvalid}
+		KeyHostRefInvalid, KeyHostRefTaken, KeyAgentInvalid, KeyProjectArchived, KeyTeamInvalid, KeyContainerTeam,
+		KeyContainerAbsent, KeyContainerInvalid, KeyContainersTooMany}
 }
 
 func invalid(field, key string) error { return &account.ValidationError{Field: field, Key: key} }

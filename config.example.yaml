@@ -187,3 +187,9 @@ vulndb:
   download_timeout: 30m       # durée maximale d'une interrogation, d'un téléchargement ou d'un import téléversé
   max_archive_mib: 2048       # taille maximale d'une archive
   analysis_timeout: 10m       # durée maximale d'un job d'analyse, synchronisation comprise
+
+# Conteneurs des hôtes, projets enfants du projet de leur hôte (docs/operations.md,
+# « Conteneurs ») : un conteneur que l'agent n'a plus signalé depuis archive_after voit
+# son projet archivé ; il revient s'il redémarre.
+containers:
+  archive_after: 168h         # 7 jours

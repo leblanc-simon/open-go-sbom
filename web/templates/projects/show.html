@@ -5,6 +5,9 @@
     <nav class="breadcrumb" aria-label="{{T "common.breadcrumb"}}">
       <ol>
         <li><a href="{{.Base}}/projects">{{T "nav.projects"}}</a></li>
+        {{- with $p.Parent}}
+        <li><a href="{{$.Base}}/projects/{{.Slug}}">{{.Name}}</a></li>
+        {{- end}}
         <li><span aria-current="page">{{$p.Name}}</span></li>
       </ol>
     </nav>
@@ -17,11 +20,20 @@
     <p class="page-head__meta">
       <span class="mono">{{$p.Slug}}</span>
       {{- with $p.Agent}}<span>{{T "project.agent_value" "Name" .Name}}</span>{{end}}
+      {{- with .Family}}<span>{{Tn "project.containers_count" .Active}}</span>{{end}}
+      {{- with $p.Parent}}<span>{{T "project.container_of"}} <a href="{{$.Base}}/projects/{{.Slug}}">{{.Name}}</a></span>{{end}}
     </p>
   </div>
   {{template "flash" .FlashKey}}
   {{template "form_error" .Error}}
-  {{- if $p.ArchivedAt}}
+  {{- if and $p.ArchivedAt .Container (eq .Container.State "archived")}}
+  <div class="callout callout--warning" role="status">
+    <div class="callout__body">
+      <p class="callout__title">{{T "project.container_archived_title"}}</p>
+      <p class="callout__text">{{T "project.container_archived_text"}}</p>
+    </div>
+  </div>
+  {{- else if $p.ArchivedAt}}
   <div class="callout callout--warning" role="status">
     <div class="callout__body">
       <p class="callout__title">{{T "project.archived_title"}}</p>
@@ -42,6 +54,7 @@
     {{template "dash_trend" .Summary}}
     {{template "dash_fix" .Summary}}
   </div>
+  {{- if .Family}}{{template "project_family" .}}{{end}}
   <div class="layout layout--aside">
     <div class="stack">
       <section class="panel" aria-labelledby="project-about">
@@ -51,6 +64,9 @@
           <dl class="kv">
             <dt>{{T "project.kind"}}</dt><dd>{{T (print "project_type." $p.Kind)}}</dd>
             <dt>{{T "project.team"}}</dt><dd><a href="{{$.Base}}/teams/{{$p.TeamID}}">{{$p.TeamName}}</a></dd>
+            {{- with $p.Parent}}
+            <dt>{{T "project.host"}}</dt><dd><a href="{{$.Base}}/projects/{{.Slug}}">{{.Name}}</a></dd>
+            {{- end}}
             {{- if eq (print $p.Kind) "repo"}}
             <dt>{{T "project_form.forge_url"}}</dt><dd>{{with $p.ForgeURL}}<a href="{{.}}" rel="noopener noreferrer">{{.}}</a>{{else}}<span class="muted">{{T "project.no_forge"}}</span>{{end}}</dd>
             {{- end}}
@@ -68,6 +84,10 @@
           <dl class="kv">
             <dt>{{T "project_form.host_ref"}}</dt><dd class="mono">{{.HostRef}}</dd>
           </dl>
+          {{- else if .Container}}
+          <dl class="kv">
+            <dt>{{T "container.identity"}}</dt><dd class="mono">{{.Container.Key}}</dd>
+          </dl>
           {{- else}}
           <dl class="kv">
             <dt>{{T "project.branches"}}</dt>
@@ -78,6 +98,7 @@
           {{- end}}
         </div>
       </section>
+      {{- with .Container}}{{template "container_context" .}}{{end}}
     </div>
     <section class="panel" aria-labelledby="project-agent">
       <div class="panel__head"><h2 class="panel__title" id="project-agent">{{T "project.agent_title"}}</h2></div>

@@ -60,6 +60,8 @@ type ProjectRef struct {
 	Name   string
 	Kind   project.Kind
 	Labels project.Labels
+	// Parent est l'hôte d'un conteneur.
+	Parent *project.ParentRef
 }
 
 // Hit est une occurrence : un composant dans l'inventaire courant d'une référence (ou,
@@ -373,9 +375,12 @@ func (s *Service) page(ctx context.Context, tx *db.OrgTx, t target, req Request,
 		 GROUP BY h.project_id),
 	ranked AS (
 		SELECT g.project_id, p.slug, p.name, p.kind, p.labels, g.n, g.risk, g.scanned, lower(p.name) AS sort_name,
-		       count(*) OVER () AS projects, sum(g.n) OVER () AS total
-		  FROM grouped g JOIN projects p ON p.id = g.project_id)
-	SELECT project_id, slug, name, kind, labels, n, risk, scanned, sort_name, projects, total
+		       count(*) OVER () AS projects, sum(g.n) OVER () AS total, pp.id AS parent_id, pp.slug AS parent_slug,
+		       pp.name AS parent_name
+		  FROM grouped g JOIN projects p ON p.id = g.project_id
+		  LEFT JOIN projects pp ON pp.org_id = p.org_id AND pp.id = p.parent_id)
+	SELECT project_id, slug, name, kind, labels, n, risk, scanned, sort_name, projects, total, parent_id,
+	       coalesce(parent_slug, ''), coalesce(parent_name, '')
 	  FROM ranked WHERE ` + where + ` ORDER BY ` + ord.order + ` LIMIT ` + a.add(limit+1)
 	rows, err := tx.QueryContext(ctx, query, a.list...)
 	if err != nil {
@@ -390,11 +395,16 @@ func (s *Service) page(ctx context.Context, tx *db.OrgTx, t target, req Request,
 	for rows.Next() {
 		var r pageRow
 		var labels []byte
-		var kind string
+		var kind, parentSlug, parentName string
 		var scanned sql.NullTime
+		var parentID uuid.NullUUID
 		if err := rows.Scan(&r.group.Project.ID, &r.group.Project.Slug, &r.group.Project.Name, &kind, &labels,
-			&r.group.HitCount, &r.group.MaxRisk, &scanned, &r.sortName, &res.Projects, &res.Hits); err != nil {
+			&r.group.HitCount, &r.group.MaxRisk, &scanned, &r.sortName, &res.Projects, &res.Hits, &parentID, &parentSlug,
+			&parentName); err != nil {
 			return err
+		}
+		if parentID.Valid {
+			r.group.Project.Parent = &project.ParentRef{ID: parentID.UUID, Slug: parentSlug, Name: parentName}
 		}
 		r.group.Project.Kind = project.Kind(kind)
 		if err := json.Unmarshal(labels, &r.group.Project.Labels); err != nil {

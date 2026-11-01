@@ -29,6 +29,13 @@ import (
 // (inscription, signal de vie…).
 const maxAgentJSON = 64 << 10
 
+// maxContainersJSON borne le signalement des conteneurs (500 identités au plus, chacune
+// avec ses noms, son image et son empreinte).
+const maxContainersJSON = 1 << 20
+
+// containersPath est le chemin du signalement des conteneurs.
+const containersPath = "/api/v1/agent/containers"
+
 // multipartOverhead s'ajoute à la taille admise d'un SBOM pour borner le corps multipart
 // entier (partie context, en-têtes et délimiteurs).
 const multipartOverhead = 1 << 20
@@ -116,13 +123,17 @@ func principalFrom(ctx context.Context) (agent.Principal, bool) {
 type refusalKey struct{}
 
 // limitBody borne le corps de toute requête de l'API des agents : maxMultipart pour un
-// envoi multipart (SBOM), maxAgentJSON pour tout autre corps.
+// envoi multipart (SBOM), maxContainersJSON pour un signalement de conteneurs,
+// maxAgentJSON pour tout autre corps.
 func limitBody(maxMultipart int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			limit := int64(maxAgentJSON)
-			if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+			switch {
+			case strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data"):
 				limit = maxMultipart
+			case r.URL.Path == containersPath:
+				limit = maxContainersJSON
 			}
 			r.Body = http.MaxBytesReader(w, r.Body, limit)
 			next.ServeHTTP(w, r)
@@ -192,6 +203,7 @@ var operationKinds = map[string]agent.TokenKind{
 	"Enroll":            agent.KindEnrollment,
 	"Heartbeat":         agent.KindAgent,
 	"ListAgentProjects": agent.KindAgent,
+	"ReportContainers":  agent.KindAgent,
 	"CreateIngestion":   agent.KindAgent,
 	"GetIngestion":      agent.KindAgent,
 }
@@ -366,3 +378,45 @@ func (h *agentAPI) ListAgentProjects(ctx context.Context, req gen.ListAgentProje
 }
 
 type clientIPKey struct{}
+
+// ReportContainers enregistre les conteneurs qui tournent sur l'hôte de l'agent.
+func (h *agentAPI) ReportContainers(ctx context.Context, req gen.ReportContainersRequestObject) (gen.ReportContainersResponseObject, error) {
+	p, _ := principalFrom(ctx)
+	ip, _ := ctx.Value(clientIPKey{}).(string)
+	reports := make([]agent.ContainerReport, len(req.Body.Containers))
+	for i, c := range req.Body.Containers {
+		r := agent.ContainerReport{ContainerSighting: project.ContainerSighting{Key: c.Key, Context: project.ContainerContext{
+			Engine: string(c.Engine), Names: c.Names, Replicas: c.Replicas, Image: c.Image, ImageID: c.ImageId,
+			StartedAt: c.StartedAt}}}
+		if c.ComposeProject != nil {
+			r.Context.ComposeProject = *c.ComposeProject
+		}
+		if c.ComposeService != nil {
+			r.Context.ComposeService = *c.ComposeService
+		}
+		if inv := c.Inventory; inv != nil {
+			fp, err := hex.DecodeString(inv.Fingerprint)
+			if err != nil || len(fp) != 32 || inv.Fingerprint != strings.ToLower(inv.Fingerprint) {
+				return nil, &account.ValidationError{Field: "containers", Key: project.KeyContainerInvalid}
+			}
+			r.Inventory = &agent.ContainerInventory{ScannedAt: inv.ScannedAt}
+			copy(r.Inventory.Fingerprint[:], fp)
+		}
+		reports[i] = r
+	}
+	res, err := h.Agents.ReportContainers(ctx, p, req.Body.Version, reports, ip, middleware.RequestIDFrom(ctx))
+	if err != nil {
+		return nil, err
+	}
+	out := gen.ReportContainers200JSONResponse{Containers: make([]gen.ContainerState, len(res))}
+	for i, c := range res {
+		st := gen.ContainerState{Key: c.Key, Project: gen.ProjectRef{Id: c.ProjectID, Slug: c.Slug}, RefId: c.RefID,
+			Ignored: c.Ignored}
+		if c.Inventory != "" {
+			v := gen.ContainerStateInventory(c.Inventory)
+			st.Inventory = &v
+		}
+		out.Containers[i] = st
+	}
+	return out, nil
+}

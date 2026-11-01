@@ -80,6 +80,9 @@ type IdentityOptions struct {
 	// SessionMaxAge est la durée absolue d'une session authentifiée, comptée depuis la
 	// connexion, quelle que soit son activité (0 : sans).
 	SessionMaxAge time.Duration
+	// ContainerArchiveAfter est l'absence au-delà de laquelle un conteneur est archivé
+	// (affichée sur la fiche d'un hôte ; 0 : project.DefaultArchiveAfter).
+	ContainerArchiveAfter time.Duration
 
 	// routeStub, s'il est posé (tests seulement, depuis le paquet), remplace le
 	// gestionnaire de chaque route de l'organisation derrière sa garde de droit : le test

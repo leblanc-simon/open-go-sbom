@@ -37,7 +37,10 @@ const (
 // Filters restreint un résultat. Dans un même filtre, les valeurs s'additionnent (« ou ») ;
 // les filtres se combinent entre eux (« et »).
 type Filters struct {
+	// ProjectKinds : natures de premier niveau retenues (toutes si vide).
 	ProjectKinds []project.Kind
+	// Containers ajoute les conteneurs (projets enfants des hôtes), écartés sinon.
+	Containers bool
 	// Labels : étiquettes « clé=valeur », ou « clé » pour une étiquette sans valeur.
 	Labels  []string
 	Origins []sbom.Origin
@@ -52,7 +55,25 @@ type Filters struct {
 
 // Active indique si un filtre au moins est posé.
 func (f Filters) Active() bool {
-	return len(f.ProjectKinds) > 0 || len(f.Labels) > 0 || len(f.Origins) > 0 || f.KEV || len(f.Severities) > 0 || f.Resolved
+	return len(f.ProjectKinds) > 0 || f.Containers || len(f.Labels) > 0 || len(f.Origins) > 0 || f.KEV || len(f.Severities) > 0 ||
+		f.Resolved
+}
+
+// kinds renvoie les natures de projets retenues : celles demandées, ou toutes celles de
+// premier niveau, plus les conteneurs s'ils sont inclus.
+func (f Filters) kinds() []string {
+	base := f.ProjectKinds
+	if len(base) == 0 {
+		base = project.Kinds()
+	}
+	out := make([]string, 0, len(base)+1)
+	for _, k := range base {
+		out = append(out, string(k))
+	}
+	if f.Containers {
+		out = append(out, string(project.KindContainer))
+	}
+	return out
 }
 
 // Request est une recherche telle que l'écran et l'API la reçoivent : requête, filtres,
@@ -75,16 +96,18 @@ const (
 
 // Paramètres d'URL d'une recherche.
 const (
-	ParamQuery    = "q"
-	ParamKind     = "type"
-	ParamLabel    = "label"
-	ParamOrigin   = "origin"
-	ParamKEV      = "kev"
-	ParamSeverity = "severity"
-	ParamResolved = "resolved"
-	ParamSort     = "sort"
-	ParamCursor   = "cursor"
-	ParamLimit    = "limit"
+	ParamQuery = "q"
+	ParamKind  = "type"
+	// ParamContainers vaut « 1 » pour inclure les conteneurs.
+	ParamContainers = "containers"
+	ParamLabel      = "label"
+	ParamOrigin     = "origin"
+	ParamKEV        = "kev"
+	ParamSeverity   = "severity"
+	ParamResolved   = "resolved"
+	ParamSort       = "sort"
+	ParamCursor     = "cursor"
+	ParamLimit      = "limit"
 )
 
 func severityValues() []string {
@@ -129,6 +152,9 @@ func ParseRequest(v url.Values) (Request, error) {
 		}
 	}
 	slices.Sort(r.Filters.Labels)
+	if r.Filters.Containers, err = flag(v, ParamContainers); err != nil {
+		return Request{}, err
+	}
 	if r.Filters.KEV, err = flag(v, ParamKEV); err != nil {
 		return Request{}, err
 	}
@@ -202,6 +228,9 @@ func (r Request) Values() url.Values {
 	}
 	for _, k := range r.Filters.ProjectKinds {
 		v.Add(ParamKind, string(k))
+	}
+	if r.Filters.Containers {
+		v.Set(ParamContainers, "1")
 	}
 	for _, l := range r.Filters.Labels {
 		v.Add(ParamLabel, l)

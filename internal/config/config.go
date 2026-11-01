@@ -32,6 +32,12 @@ type Config struct {
 	Workers    Workers         `yaml:"workers"    env-prefix:"LOTOR_"`
 	Ingest     Ingest          `yaml:"ingest"     env-prefix:"LOTOR_"`
 	VulnDB     VulnDB          `yaml:"vulndb"     env-prefix:"LOTOR_"`
+	Containers Containers      `yaml:"containers" env-prefix:"LOTOR_"`
+}
+
+// Containers règle les conteneurs en projets enfants des hôtes (T13, ADR 0040).
+type Containers struct {
+	ArchiveAfter time.Duration `yaml:"archive_after" env:"CONTAINERS_ARCHIVE_AFTER" env-default:"168h" env-description:"Absence after which the project of a container is archived (it comes back when the container restarts)"`
 }
 
 // VulnDB règle la base de vulnérabilités (§ 12 de l'architecture, ADR 0017) : liste de

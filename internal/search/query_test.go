@@ -170,7 +170,7 @@ func TestParseRequestRejectsUnknownFilters(t *testing.T) {
 	for _, v := range []url.Values{
 		{"type": {"container"}}, {"origin": {"manual"}}, {"severity": {"severe"}}, {"kev": {"true"}},
 		{"resolved": {"yes"}}, {"sort": {"-risk"}}, {"label": {"a=b,c=d"}}, {"label": {"=x"}}, {"label": {""}},
-		{"label": {strings.Repeat("a", 300)}}, {"type": slices.Repeat([]string{"repo"}, 40)},
+		{"label": {strings.Repeat("a", 300)}}, {"type": slices.Repeat([]string{"repo"}, 40)}, {"containers": {"oui"}},
 	} {
 		if _, err := ParseRequest(v); err == nil {
 			t.Errorf("%v accepté", v)
@@ -181,6 +181,34 @@ func TestParseRequestRejectsUnknownFilters(t *testing.T) {
 	for _, l := range []string{"0", "101", "x"} {
 		if _, err := ParseRequest(url.Values{"limit": {l}}); err == nil {
 			t.Errorf("taille %s acceptée", l)
+		}
+	}
+}
+
+// TestContainersFilter : les conteneurs ne figurent que s'ils sont inclus, et
+// s'ajoutent alors aux types retenus.
+func TestContainersFilter(t *testing.T) {
+	for _, tc := range []struct {
+		v    url.Values
+		want []string
+	}{
+		{url.Values{}, []string{"repo", "host"}},
+		{url.Values{"containers": {"1"}}, []string{"repo", "host", "container"}},
+		{url.Values{"type": {"host"}}, []string{"host"}},
+		{url.Values{"type": {"host"}, "containers": {"1"}}, []string{"host", "container"}},
+	} {
+		r, err := ParseRequest(tc.v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := r.Filters.kinds(); !slices.Equal(got, tc.want) {
+			t.Errorf("%v : %v", tc.v, got)
+		}
+		if r.Filters.Containers != (tc.v.Get("containers") == "1") || r.Values().Get("containers") != tc.v.Get("containers") {
+			t.Errorf("%v : filtre relu %+v, %v", tc.v, r.Filters, r.Values())
+		}
+		if r.Filters.Active() != (len(tc.v) > 0) {
+			t.Errorf("%v : actif %v", tc.v, r.Filters.Active())
 		}
 	}
 }

@@ -71,6 +71,7 @@ func (s SyftScanner) Scan(ctx context.Context) (Inventory, error) {
 		WithTool("lotor-host-agent", s.Version).
 		WithParallelism(max(s.Parallelism, 1)).
 		WithoutFiles().
+		WithPackagesConfig(offlineCatalogers()).
 		WithCatalogerSelection(cataloging.NewSelectionRequest().WithDefaults(pkgcataloging.ImageTag))
 	doc, err := syft.CreateSBOM(ctx, src, cfg)
 	if err != nil {

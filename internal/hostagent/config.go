@@ -39,6 +39,7 @@ type Config struct {
 	Labels              map[string]string `yaml:"labels"                env:"LOTOR_HOST_AGENT_LABELS"                env-description:"Labels of the host project created at enrollment, as key:value pairs separated by commas"`
 	Server              Server            `yaml:"server"`
 	Scan                Scan              `yaml:"scan"`
+	Containers          Containers        `yaml:"containers"`
 	Resources           Resources         `yaml:"resources"`
 	Logging             appconf.Logging   `yaml:"logging" env-prefix:"LOTOR_HOST_AGENT_"`
 }
@@ -70,6 +71,27 @@ type Scan struct {
 	// Exclude complète les exclusions par défaut (DefaultExclusions) : chemins absolus,
 	// motifs doublestar admis (/srv/data/**/cache).
 	Exclude []string `yaml:"exclude" env:"LOTOR_HOST_AGENT_SCAN_EXCLUDE" env-separator:"," env-description:"Absolute paths excluded from the scan, besides the defaults"`
+}
+
+// Containers règle l'inventaire des conteneurs en cours d'exécution (T13, ADR 0041).
+// L'accès à la socket d'un moteur de conteneurs équivaut à root sur l'hôte : l'inventaire
+// est désactivé par défaut, et l'agent n'ouvre alors aucune socket.
+type Containers struct {
+	Enabled bool `yaml:"enabled" env:"LOTOR_HOST_AGENT_CONTAINERS_ENABLED" env-description:"Inventory the running containers through the Docker or Podman socket (access to an engine socket is equivalent to root)"`
+	// Sockets : vide, DefaultSockets (une socket absente est ignorée).
+	Sockets []string `yaml:"sockets" env:"LOTOR_HOST_AGENT_CONTAINERS_SOCKETS" env-separator:"," env-description:"Engine sockets (Docker API), separated by commas; default /run/docker.sock and /run/podman/podman.sock"`
+	// WorkDir reçoit l'archive d'une image le temps de son scan ; vide : <state_dir>/images.
+	WorkDir     string        `yaml:"work_dir"      env:"LOTOR_HOST_AGENT_CONTAINERS_WORK_DIR"      env-description:"Directory holding an exported image while it is scanned (default: <state_dir>/images)"`
+	MaxImageMiB int           `yaml:"max_image_mib" env:"LOTOR_HOST_AGENT_CONTAINERS_MAX_IMAGE_MIB" env-default:"4096" env-description:"Largest image exported for a scan, in MiB; a larger image is skipped"`
+	Timeout     time.Duration `yaml:"timeout"       env:"LOTOR_HOST_AGENT_CONTAINERS_TIMEOUT"       env-default:"30s"  env-description:"Timeout of one engine API call (image exports excepted)"`
+}
+
+// ImagesDir renvoie le répertoire des archives d'images.
+func (c Config) ImagesDir() string {
+	if c.Containers.WorkDir != "" {
+		return c.Containers.WorkDir
+	}
+	return filepath.Join(c.StateDir, "images")
 }
 
 // Resources borne ce que l'agent consomme.
@@ -124,6 +146,20 @@ func (c Config) Validate() error {
 		if !filepath.IsAbs(e) {
 			fail("scan.exclude", "%q : chemin absolu attendu", e)
 		}
+	}
+	for _, s := range c.Containers.Sockets {
+		if !filepath.IsAbs(s) {
+			fail("containers.sockets", "%q : chemin absolu attendu", s)
+		}
+	}
+	if c.Containers.WorkDir != "" && !filepath.IsAbs(c.Containers.WorkDir) {
+		fail("containers.work_dir", "chemin absolu attendu")
+	}
+	if c.Containers.MaxImageMiB < 16 || c.Containers.MaxImageMiB > 65536 {
+		fail("containers.max_image_mib", "entre 16 et 65536")
+	}
+	if c.Containers.Timeout < time.Second {
+		fail("containers.timeout", "une seconde au moins")
 	}
 	if c.Scan.Interval < time.Hour {
 		fail("scan.interval", "une heure au moins")

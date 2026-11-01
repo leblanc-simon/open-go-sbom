@@ -142,6 +142,13 @@
       background: linear-gradient(currentColor 0 40%, transparent 40% 60%, currentColor 60%);
     }
   }
+
+  /* Conteneur : un cercle, enfant d'un serveur ; le libellé écrit reste la référence. */
+  &.ptype--container {
+    &::before {
+      border-radius: 50%;
+    }
+  }
 }
 
 /* Agent muet : l'avertissement est porté par le texte et un pictogramme triangulaire. */

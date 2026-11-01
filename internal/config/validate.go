@@ -209,6 +209,9 @@ func (c Config) Validate() error {
 	v.positive("workers.org_limit", int64(c.Workers.OrgLimit))
 	c.Ingest.validate(&v)
 	c.VulnDB.validate(&v)
+	if c.Containers.ArchiveAfter < time.Hour {
+		v.fail("containers.archive_after", "au moins 1h (reçu %s)", c.Containers.ArchiveAfter)
+	}
 
 	return errors.Join(v.errs...)
 }

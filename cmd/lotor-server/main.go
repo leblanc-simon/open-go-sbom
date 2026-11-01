@@ -175,24 +175,25 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		CORS:           cfg.CORS,
 		CSRFSecure:     cfg.Auth.CookieSecure,
 		Identity: &web.IdentityOptions{
-			Pool:           pool,
-			Accounts:       accounts,
-			Orgs:           orgs,
-			Projects:       project.NewService(pool),
-			Agents:         agents,
-			Inventory:      inventory.NewService(pool),
-			Ingest:         ingester,
-			Findings:       finding.NewService(pool),
-			Search:         searcher,
-			Exports:        exports,
-			Reencodes:      reencodes,
-			Dashboard:      dash,
-			VulnDB:         vulndbScreen,
-			Secrets:        box,
-			Auth:           cfg.Auth,
-			MFA:            cfg.MFA,
-			LoginRateLimit: cfg.Login.RateLimit,
-			SessionMaxAge:  cfg.Login.SessionMaxAge,
+			Pool:                  pool,
+			Accounts:              accounts,
+			Orgs:                  orgs,
+			Projects:              project.NewService(pool),
+			Agents:                agents,
+			Inventory:             inventory.NewService(pool),
+			Ingest:                ingester,
+			Findings:              finding.NewService(pool),
+			Search:                searcher,
+			Exports:               exports,
+			Reencodes:             reencodes,
+			Dashboard:             dash,
+			VulnDB:                vulndbScreen,
+			Secrets:               box,
+			Auth:                  cfg.Auth,
+			MFA:                   cfg.MFA,
+			LoginRateLimit:        cfg.Login.RateLimit,
+			SessionMaxAge:         cfg.Login.SessionMaxAge,
+			ContainerArchiveAfter: cfg.Containers.ArchiveAfter,
 		},
 		AgentAPI: &api.AgentOptions{
 			Agents:           agents,
@@ -289,6 +290,9 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		if err := registerDashboard(runner, scheduler, dash); err != nil {
 			return err
 		}
+		if err := registerContainers(runner, scheduler, project.NewArchiver(pool, cfg.Containers.ArchiveAfter, nil)); err != nil {
+			return err
+		}
 		services = append(services, runner.Run, scheduler.Run, vulndb.Run)
 	}
 	return runAll(ctx, services...)
@@ -343,6 +347,17 @@ func registerDashboard(runner *jobs.Runner, scheduler *jobs.Scheduler, dash *das
 		return err
 	}
 	return scheduler.Register(dashboard.StatsSchedule())
+}
+
+// registerContainers enregistre l'archivage des conteneurs absents (T13).
+func registerContainers(runner *jobs.Runner, scheduler *jobs.Scheduler, archiver *project.Archiver) error {
+	if err := runner.Register(project.ArchiveAllKind, archiver.AllHandler()); err != nil {
+		return err
+	}
+	if err := runner.Register(project.ArchiveOrgKind, archiver.OrgHandler()); err != nil {
+		return err
+	}
+	return scheduler.Register(archiver.Schedule())
 }
 
 // runAll lance les services ensemble et attend qu'ils aient tous rendu la main ; le

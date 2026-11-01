@@ -178,6 +178,11 @@ validation:
   project_team_invalid: "Choose a team in which you can act."
   agent_team_invalid: "Choose a team in which you can manage agents."
   enrollment_team_mismatch: "The server project to attach belongs to a team other than the token's."
+  container_team: "A container follows the team of its host: move the host to change team."
+  container_absent: "This container was archived because it no longer runs; it comes back by itself when it restarts."
+  container_invalid: "A reported container is invalid (identity, image, digest, names or start date)."
+  containers_too_many: "Too many containers in one report: 500 identities at most."
+  containers_not_host: Only a host agent reports containers.
 
 home:
   title: Home
@@ -287,6 +292,9 @@ dashboard:
   kind_host:
     one: "{{.Count}} server"
     other: "{{.Count}} servers"
+  kind_container:
+    one: "{{.Count}} container"
+    other: "{{.Count}} containers"
   last_analysis: "Last vulnerability analysis:"
   no_analysis: No vulnerability analysis yet
   open_findings: Open findings
@@ -623,6 +631,9 @@ error:
       title: Token expired
       text: This token is past its expiry date. Ask an administrator of the organization for a new one.
   agent:
+    no_host_project:
+      title: Agent without an active host
+      text: "The host project of this agent is archived: its containers cannot be attached to anything. Reactivate the host project."
     disabled:
       title: Agent disabled
       text: This agent has been disabled by an administrator of the organization.
@@ -689,6 +700,7 @@ chart:
 project_type:
   repo: Repository
   host: Server
+  container: Container
 
 agent_type:
   repo: Repository agent
@@ -736,6 +748,8 @@ projects:
   empty_archived: No archived project matches.
   filter_team: "Team"
   col_team: "Team"
+  filter_containers: Include containers
+  container_of: on
 
 project:
   tab_findings: Findings
@@ -765,6 +779,29 @@ project:
   assign_agent: Repository agent in charge of this repository
   enroll_this_host: Enroll this server
   team: "Team"
+  host: Host
+  container_of: Container of
+  containers_count:
+    one: "{{.Count}} container"
+    other: "{{.Count}} containers"
+  container_archived_title: Container archived as absent
+  container_archived_text: "The host agent no longer reports this container; its project comes back by itself if the container restarts. Its history is kept."
+  containers_title: Containers and findings by scope
+  containers_meta: Distinct open vulnerabilities of each project.
+  containers_caption: "Open vulnerabilities of the host and of each of its containers, and their total"
+  col_perimeter: Scope
+  col_image: Image
+  col_container_state: State
+  col_open_vulns: Open vulnerabilities
+  perimeter_host: Host
+  perimeter_host_image: —
+  perimeter_host_state: —
+  perimeter_archived: Archived, not in the total
+  perimeter_total: "Total: host and active containers"
+  containers_hint:
+    one: "A vulnerability counts once for each project where it is open. A container absent for more than {{.Count}} day is archived; it comes back when it restarts."
+    other: "A vulnerability counts once for each project where it is open. A container absent for more than {{.Count}} days is archived; it comes back when it restarts."
+  containers_none: "No container reported. Container inventory is disabled by default in the host agent (containers.enabled): see the operations guide."
 
 project_new:
   title: New project
@@ -784,6 +821,9 @@ project_settings:
   team_title: "Project team"
   team_text: "The project belongs to the team {{.Team}}. Moving it to another team changes who sees it; a repository assigned to an agent of another team loses it."
   team_submit: "Move"
+  container_team_text: "A container follows the team of its host ({{.Team}}). To change team, move the host:"
+  container_absent_text: "This container was archived because it no longer runs: it will come back by itself when it restarts."
+  container_archive_text: "Archived by you, this container is no longer inventoried by the agent, even while it runs; its history is kept."
 
 project_form:
   kind: Project type
@@ -922,6 +962,7 @@ ref_kind:
   branch: Branch
   tag: Tag
   host: Host
+  container: Container
 
 origin:
   syft: Syft
@@ -1392,6 +1433,8 @@ search:
   remove_range: Remove the range
   unreadable_title: Versions that cannot be compared
   unreadable_text: "These versions do not read according to the ecosystem rules: whether they are in the range cannot be told. Their occurrences are not shown."
+  include_containers: Include containers
+  filter_containers: Containers included
 
 tokens:
   title: Access tokens
@@ -1516,3 +1559,32 @@ team:
   rename: "Rename"
   delete_text: "A team can only be deleted once all its projects have been moved to another team."
   delete: "Delete the team"
+
+container:
+  title: Container
+  identity: Identity
+  state: State
+  engine: Engine
+  image: Image
+  image_id: Image digest
+  compose_project: Compose project
+  compose_service: Compose service
+  names:
+    one: Name
+    other: Names
+  replicas_label: Running replicas
+  replicas:
+    one: "{{.Count}} replica"
+    other: "{{.Count}} replicas"
+  started: Started
+  seen_at: Reported on
+
+container_state:
+  running: Running
+  absent: Absent
+  archived: Archived (absent)
+  ignored: Archived
+
+container_engine:
+  docker: Docker
+  podman: Podman

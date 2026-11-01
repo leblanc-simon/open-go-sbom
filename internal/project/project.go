@@ -27,20 +27,22 @@ import (
 // ce qui revient au même sous la RLS).
 var ErrNotFound = errors.New("project: introuvable")
 
-// Kind est la nature d'un projet. Les conteneurs (projets enfants d'un hôte) arrivent en
-// T13.
+// Kind est la nature d'un projet.
 type Kind string
 
-// Natures de projets.
+// Natures de projets. Un conteneur est un projet enfant d'un hôte, créé et tenu par
+// l'agent de l'hôte (T13, ADR 0040) : il ne se crée pas à la main.
 const (
-	KindRepo Kind = "repo"
-	KindHost Kind = "host"
+	KindRepo      Kind = "repo"
+	KindHost      Kind = "host"
+	KindContainer Kind = "container"
 )
 
-// Kinds renvoie les natures de projets.
+// Kinds renvoie les natures de projets de premier niveau, celles qu'on crée à la main ;
+// les conteneurs, enfants d'un hôte, n'y sont pas.
 func Kinds() []Kind { return []Kind{KindRepo, KindHost} }
 
-// ParseKind lit une nature de projet.
+// ParseKind lit une nature de projet de premier niveau.
 func ParseKind(s string) (Kind, error) {
 	switch k := Kind(s); k {
 	case KindRepo, KindHost:
@@ -54,9 +56,10 @@ type RefKind string
 
 // Natures de références suivies.
 const (
-	RefBranch RefKind = "branch"
-	RefTag    RefKind = "tag"
-	RefHost   RefKind = "host"
+	RefBranch    RefKind = "branch"
+	RefTag       RefKind = "tag"
+	RefHost      RefKind = "host"
+	RefContainer RefKind = "container"
 )
 
 // Ref est une référence suivie active d'un projet.
@@ -80,7 +83,7 @@ type AgentRef struct {
 	LastInventoryAt *time.Time
 }
 
-// Project est un projet : un dépôt ou un serveur.
+// Project est un projet : un dépôt, un serveur ou un conteneur d'un serveur.
 type Project struct {
 	ID          uuid.UUID
 	Kind        Kind
@@ -96,8 +99,18 @@ type Project struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	Refs        []Ref // références actives, par nature puis nom (Get seulement)
+	// Parent est l'hôte d'un conteneur ; Container, son identité et son contexte.
+	Parent    *ParentRef
+	Container *Container
 
 	sortName string // lower(name) calculé par PostgreSQL, clé du curseur de List
+}
+
+// ParentRef résume l'hôte d'un conteneur.
+type ParentRef struct {
+	ID   uuid.UUID
+	Slug string
+	Name string
 }
 
 // HostRef renvoie la référence d'hôte d'un projet de serveur.
@@ -211,6 +224,8 @@ func clean(kind Kind, in Input) (Input, error) {
 		if out.HostRef, err = NormalizeHostRef(in.HostRef); err != nil {
 			return Input{}, err
 		}
+	case KindContainer:
+		// Sa référence est son identité dans l'hôte, tenue par l'agent.
 	default:
 		return Input{}, invalid("kind", KeyKindInvalid)
 	}
@@ -349,6 +364,9 @@ func freeSlug(ctx context.Context, tx *db.OrgTx, base string) (string, error) {
 // retirées (removed_at), les nouvelles créées ou réactivées. La référence d'un hôte est
 // renommée sur place, pour garder son historique.
 func syncRefs(ctx context.Context, tx *db.OrgTx, p Project, in Input) error {
+	if p.Kind == KindContainer {
+		return nil
+	}
 	if p.Kind == KindHost {
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO tracked_refs (org_id, id, project_id, project_kind, kind, name)
@@ -405,29 +423,47 @@ func newIDs(n int) []string {
 	return out
 }
 
+// columns lit un projet ; l'agent d'un conteneur est celui de son hôte (pp).
 const columns = `lower(p.name), p.id, p.kind, p.slug, p.name, p.description, p.labels, p.forge_url, p.archived_at,
 	p.created_at, p.updated_at, a.id, coalesce(a.name, ''), coalesce(a.version, ''), a.last_seen_at, a.disabled_at IS NOT NULL,
 	coalesce(a.kind, ''), a.created_at, p.team_id, t.name,
 	(SELECT max(s.last_scanned_at) FROM projects ap
 	   JOIN ref_current rc ON rc.org_id = ap.org_id AND rc.project_id = ap.id
 	   JOIN snapshots s ON s.org_id = rc.org_id AND s.id = rc.snapshot_id
-	  WHERE ap.org_id = a.org_id AND ap.agent_id = a.id)`
+	  WHERE ap.org_id = a.org_id AND ap.agent_id = a.id),
+	pp.id, coalesce(pp.slug, ''), coalesce(pp.name, ''), coalesce(p.container_key, ''), p.container, p.seen_at,
+	p.archived_absent`
 
 const from = ` FROM projects p JOIN teams t ON t.org_id = p.org_id AND t.id = p.team_id
-	LEFT JOIN agents a ON a.org_id = p.org_id AND a.id = p.agent_id`
+	LEFT JOIN projects pp ON pp.org_id = p.org_id AND pp.id = p.parent_id
+	LEFT JOIN agents a ON a.org_id = p.org_id AND a.id = coalesce(p.agent_id, pp.agent_id)`
 
 func scan(row interface{ Scan(...any) error }) (Project, error) {
 	var p Project
 	var kind string
 	var labels []byte
 	var archived, lastSeen, agentCreated, inventoried sql.NullTime
-	var agentID uuid.NullUUID
-	var agentName, agentVersion, agentKind string
+	var agentID, parentID uuid.NullUUID
+	var agentName, agentVersion, agentKind, parentSlug, parentName, containerKey string
 	var disabled sql.NullBool
+	var container []byte
+	var seen sql.NullTime
+	var absent bool
 	if err := row.Scan(&p.sortName, &p.ID, &kind, &p.Slug, &p.Name, &p.Description, &labels, &p.ForgeURL, &archived,
 		&p.CreatedAt, &p.UpdatedAt, &agentID, &agentName, &agentVersion, &lastSeen, &disabled, &agentKind, &agentCreated,
-		&p.TeamID, &p.TeamName, &inventoried); err != nil {
+		&p.TeamID, &p.TeamName, &inventoried, &parentID, &parentSlug, &parentName, &containerKey, &container, &seen,
+		&absent); err != nil {
 		return Project{}, err
+	}
+	if parentID.Valid {
+		p.Parent = &ParentRef{ID: parentID.UUID, Slug: parentSlug, Name: parentName}
+	}
+	if containerKey != "" {
+		c, err := readContainer(containerKey, container, seen, absent)
+		if err != nil {
+			return Project{}, err
+		}
+		p.Container = &c
 	}
 	p.Kind = Kind(kind)
 	if err := json.Unmarshal(labels, &p.Labels); err != nil {
@@ -572,7 +608,9 @@ func changes(p Project, in Input) map[string]string {
 }
 
 // SetArchived archive un projet (il disparaît des listes et de l'API des agents) ou le
-// réactive.
+// réactive. Un conteneur archivé par un utilisateur ne revient pas quand l'agent le
+// revoit ; un conteneur archivé pour absence ne se réactive pas à la main, il revient
+// quand il redémarre.
 func (s *Service) SetArchived(ctx context.Context, actor audit.Actor, org tenant.OrgID, slug string, archived bool) error {
 	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
 		p, err := load(ctx, tx, slug, true, false)
@@ -582,9 +620,14 @@ func (s *Service) SetArchived(ctx context.Context, actor audit.Actor, org tenant
 		if (p.ArchivedAt != nil) == archived {
 			return nil
 		}
+		if !archived && p.Container != nil && p.Container.ArchivedAbsent {
+			// Il se réactive de lui-même quand l'agent le revoit.
+			return invalid("project", KeyContainerAbsent)
+		}
 		query, action := `UPDATE projects SET archived_at = now(), updated_at = now() WHERE id = $1`, audit.ProjectArchived
 		if !archived {
-			query, action = `UPDATE projects SET archived_at = NULL, updated_at = now() WHERE id = $1`, audit.ProjectUnarchived
+			query, action = `UPDATE projects SET archived_at = NULL, archived_absent = false, updated_at = now() WHERE id = $1`,
+				audit.ProjectUnarchived
 		}
 		if _, err := tx.ExecContext(ctx, query, p.ID); err != nil {
 			return err
@@ -637,12 +680,16 @@ func (s *Service) AssignAgent(ctx context.Context, actor audit.Actor, org tenant
 // SetTeam rattache un projet à une autre équipe. L'appelant vérifie le droit
 // tenant.PermProjectMove dans les deux équipes. Un dépôt confié à un agent d'une autre
 // équipe le perd (l'agent ne sert que son équipe) ; un serveur garde son agent, qui suit
-// le projet dans sa nouvelle équipe.
+// le projet dans sa nouvelle équipe, avec ses conteneurs (clé étrangère en cascade). Un
+// conteneur suit toujours l'équipe de son hôte : il ne se rattache pas seul.
 func (s *Service) SetTeam(ctx context.Context, actor audit.Actor, org tenant.OrgID, slug string, team uuid.UUID) error {
 	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
 		p, err := load(ctx, tx, slug, true, false)
 		if err != nil {
 			return err
+		}
+		if p.Kind == KindContainer {
+			return invalid("team", KeyContainerTeam)
 		}
 		if p.TeamID == team {
 			return nil
@@ -688,6 +735,22 @@ type Filter struct {
 	Label    string    // « clé » ou « clé=valeur »
 	Archived bool      // projets archivés au lieu des actifs
 	Team     uuid.UUID // nul : toutes les équipes visibles
+	// Containers ajoute les conteneurs (projets enfants des hôtes), écartés sinon.
+	Containers bool
+}
+
+// kindCondition renvoie la condition SQL sur p.kind d'un filtre : la nature demandée (ou
+// toutes celles de premier niveau), plus les conteneurs s'ils sont inclus.
+func kindCondition(kind Kind, containers bool) string {
+	switch {
+	case kind != "" && containers:
+		return `p.kind IN ($?, 'container')`
+	case kind != "":
+		return `p.kind = $?`
+	case containers:
+		return ""
+	}
+	return `p.kind <> 'container'`
 }
 
 // DefaultPage et MaxPage bornent une page de projets.
@@ -729,8 +792,11 @@ func (s *Service) List(ctx context.Context, org tenant.OrgID, vis tenant.Visibil
 	if q := strings.TrimSpace(f.Query); q != "" {
 		add(`(lower(p.name) LIKE $? OR p.slug LIKE $?)`, "%"+likeEscape(strings.ToLower(q))+"%")
 	}
-	if f.Kind != "" {
-		add(`p.kind = $?`, string(f.Kind))
+	switch cond := kindCondition(f.Kind, f.Containers); {
+	case f.Kind != "":
+		add(cond, string(f.Kind))
+	case cond != "":
+		where = append(where, cond)
 	}
 	if f.Team != uuid.Nil {
 		add(`p.team_id = $?`, f.Team)

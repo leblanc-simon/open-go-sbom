@@ -154,6 +154,19 @@ func (c *Client) Heartbeat(ctx context.Context, req gen.HeartbeatRequest) (gen.H
 	return *rsp.JSON200, nil
 }
 
+// ReportContainers signale les conteneurs qui tournent sur l'hôte de l'agent serveur et
+// renvoie, pour chacun, son projet enfant et la réponse à son compte rendu d'inventaire.
+func (c *Client) ReportContainers(ctx context.Context, req gen.ContainerReport) (gen.ContainerReportResult, error) {
+	rsp, err := c.gen.ReportContainersWithResponse(withOp(ctx, "reportContainers"), req, c.editor(""))
+	if err != nil {
+		return gen.ContainerReportResult{}, wrapTransport("reportContainers", err)
+	}
+	if rsp.JSON200 == nil {
+		return gen.ContainerReportResult{}, responseError("reportContainers", rsp.HTTPResponse, rsp.Body)
+	}
+	return *rsp.JSON200, nil
+}
+
 // maxProjectPages borne le parcours des projets confiés (200 par page).
 const maxProjectPages = 500
 

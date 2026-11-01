@@ -33,8 +33,13 @@ type Options struct {
 	Version string
 	Client  *agentclient.Client // sans jeton : l'agent pose le sien
 	Scanner Scanner
-	Store   *Store
-	Logger  *slog.Logger
+	// Engines sont les moteurs de conteneurs interrogés (Engines(cfg.Containers)) : vide,
+	// l'inventaire des conteneurs est désactivé et aucune socket n'est ouverte.
+	Engines []ContainerEngine
+	// ImageScanner inventorie les images des conteneurs (exigé avec Engines).
+	ImageScanner ImageScanner
+	Store        *Store
+	Logger       *slog.Logger
 	// Now remplace l'horloge du système (tests).
 	Now func() time.Time
 	// IngestionWait borne l'attente du rangement d'un SBOM par le serveur (défaut 15 min).
@@ -54,7 +59,7 @@ type Agent struct {
 
 // New construit un agent.
 func New(o Options) (*Agent, error) {
-	if o.Client == nil || o.Scanner == nil || o.Store == nil || o.Logger == nil {
+	if o.Client == nil || o.Scanner == nil || o.Store == nil || o.Logger == nil || (len(o.Engines) > 0 && o.ImageScanner == nil) {
 		return nil, errors.New("hostagent: dépendances incomplètes")
 	}
 	if o.Now == nil {
@@ -104,6 +109,8 @@ type Result struct {
 	Duration   time.Duration
 	// ScanRequested : une demande de scan est arrivée pendant le cycle.
 	ScanRequested bool
+	// Containers résume l'inventaire des conteneurs (nil s'il est désactivé).
+	Containers *ContainersResult
 }
 
 // hostname renvoie le nom annoncé, tel que le serveur le range (minuscules).
@@ -207,11 +214,14 @@ func (a *Agent) Cycle(ctx context.Context) (Result, error) {
 			return Result{}, err
 		}
 		res.ScanRequested = hb.ScanRequested
-		if hb.Inventory != nil && *hb.Inventory == gen.Current {
+		if hb.Inventory != nil && *hb.Inventory == gen.HeartbeatStatusInventoryCurrent {
 			st.LastScan = inv.Started
 			res.Outcome = OutcomeConfirmed
 			a.o.Logger.InfoContext(ctx, "inventaire inchangé, confirmé", "components", inv.Components, "duration", inv.Duration.String())
-			return res, a.o.Store.Save(st)
+			if err := a.o.Store.Save(st); err != nil {
+				return res, err
+			}
+			return a.withContainers(ctx, c, res), nil
 		}
 		a.o.Logger.InfoContext(ctx, "inventaire inchangé mais inconnu du serveur : envoi du SBOM")
 	}
@@ -221,7 +231,28 @@ func (a *Agent) Cycle(ctx context.Context) (Result, error) {
 	st.ProjectID, st.RefName, st.Fingerprint = proj.Id, ref.Name, fp
 	st.LastScan, st.LastSent = inv.Started, a.o.Now().UTC()
 	res.Outcome = OutcomeSent
-	return res, a.o.Store.Save(st)
+	if err := a.o.Store.Save(st); err != nil {
+		return res, err
+	}
+	return a.withContainers(ctx, c, res), nil
+}
+
+// withContainers complète un cycle réussi sur l'hôte par l'inventaire des conteneurs,
+// s'il est activé. Ses échecs sont journalisés et comptés, sans faire échouer le cycle :
+// l'inventaire de l'hôte est rangé, et le cycle suivant reprendra les conteneurs.
+func (a *Agent) withContainers(ctx context.Context, c *agentclient.Client, res Result) Result {
+	if len(a.o.Engines) == 0 {
+		return res
+	}
+	cr, err := a.containers(ctx, c)
+	if err != nil && ctx.Err() == nil {
+		cr.Failed++
+		a.o.Logger.ErrorContext(ctx, "inventaire des conteneurs en échec", "err", err.Error())
+	}
+	res.Containers = &cr
+	a.o.Logger.InfoContext(ctx, "conteneurs inventoriés", "workloads", cr.Workloads, "images", cr.Images, "sent", cr.Sent,
+		"confirmed", cr.Confirmed, "ignored", cr.Ignored, "failed", cr.Failed, "skipped", cr.Skipped)
+	return res
 }
 
 // send envoie le SBOM et attend que le serveur l'ait rangé ; l'empreinte n'est retenue
@@ -229,6 +260,11 @@ func (a *Agent) Cycle(ctx context.Context) (Result, error) {
 func (a *Agent) send(ctx context.Context, c *agentclient.Client, proj gen.AgentProject, ref gen.TrackedRef, inv Inventory, host *gen.HostContext) error {
 	ic := gen.IngestionContext{ProjectId: proj.Id, AgentVersion: a.o.Version, ScannedAt: inv.Started, Host: host}
 	ic.Ref.Kind, ic.Ref.Name = gen.IngestionContextRefKindHost, ref.Name
+	return a.upload(ctx, c, ic, inv)
+}
+
+// upload envoie un SBOM et attend son rangement par le serveur.
+func (a *Agent) upload(ctx context.Context, c *agentclient.Client, ic gen.IngestionContext, inv Inventory) error {
 	in, err := c.Upload(ctx, ic, inv.SBOM)
 	if err != nil {
 		if agentclient.IsKey(err, agentclient.KeyTooLarge) {
@@ -252,7 +288,7 @@ func (a *Agent) send(ctx context.Context, c *agentclient.Client, proj gen.AgentP
 	if in.Outcome != nil {
 		outcome = string(*in.Outcome)
 	}
-	a.o.Logger.InfoContext(ctx, "SBOM envoyé et rangé", "ingestion", in.Id.String(), "outcome", outcome,
+	a.o.Logger.InfoContext(ctx, "SBOM envoyé et rangé", "ref", ic.Ref.Name, "ingestion", in.Id.String(), "outcome", outcome,
 		"components", inv.Components, "bytes", len(inv.SBOM), "duration", inv.Duration.String())
 	return nil
 }

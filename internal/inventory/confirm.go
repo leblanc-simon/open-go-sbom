@@ -12,9 +12,9 @@ import (
 	"leblanc.io/lotor/internal/db"
 )
 
-// Confirm traite le compte rendu d'un scan d'hôte sans changement (signal de vie de
-// l'agent serveur) : si fingerprint est l'empreinte de l'ensemble courant de la référence
-// d'hôte refID, la date de dernière analyse de l'instantané courant avance comme pour un
+// Confirm traite le compte rendu d'un scan d'hôte ou de conteneur sans changement (signal
+// de vie ou signalement des conteneurs de l'agent serveur) : si fingerprint est
+// l'empreinte de l'ensemble courant de la référence d'hôte ou de conteneur refID, la date de dernière analyse de l'instantané courant avance comme pour un
 // envoi identique, et Confirm renvoie true. Sinon (pas encore d'instantané, autre
 // ensemble, référence de dépôt), rien n'est écrit : l'agent doit envoyer son SBOM. La
 // référence est verrouillée comme par Store, si bien qu'un compte rendu et une ingestion
@@ -28,7 +28,7 @@ func Confirm(ctx context.Context, tx *db.OrgTx, refID uuid.UUID, fingerprint [32
 	if err != nil {
 		return false, wrap("verrou de la référence", err)
 	}
-	if refKind != "host" {
+	if !machineRef(refKind) {
 		return false, nil
 	}
 	var snapshotID uuid.UUID

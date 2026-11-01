@@ -82,13 +82,16 @@ func (e SearchHitStatus) Valid() bool {
 
 // Defines values for SearchProjectKind.
 const (
-	SearchProjectKindHost SearchProjectKind = "host"
-	SearchProjectKindRepo SearchProjectKind = "repo"
+	SearchProjectKindContainer SearchProjectKind = "container"
+	SearchProjectKindHost      SearchProjectKind = "host"
+	SearchProjectKindRepo      SearchProjectKind = "repo"
 )
 
 // Valid indicates whether the value is a known member of the SearchProjectKind enum.
 func (e SearchProjectKind) Valid() bool {
 	switch e {
+	case SearchProjectKindContainer:
+		return true
 	case SearchProjectKindHost:
 		return true
 	case SearchProjectKindRepo:
@@ -100,15 +103,18 @@ func (e SearchProjectKind) Valid() bool {
 
 // Defines values for SearchRefKind.
 const (
-	SearchRefKindBranch SearchRefKind = "branch"
-	SearchRefKindHost   SearchRefKind = "host"
-	SearchRefKindTag    SearchRefKind = "tag"
+	SearchRefKindBranch    SearchRefKind = "branch"
+	SearchRefKindContainer SearchRefKind = "container"
+	SearchRefKindHost      SearchRefKind = "host"
+	SearchRefKindTag       SearchRefKind = "tag"
 )
 
 // Valid indicates whether the value is a known member of the SearchRefKind enum.
 func (e SearchRefKind) Valid() bool {
 	switch e {
 	case SearchRefKindBranch:
+		return true
+	case SearchRefKindContainer:
 		return true
 	case SearchRefKindHost:
 		return true
@@ -164,6 +170,21 @@ func (e SearchTokenKind) Valid() bool {
 	case SearchTokenKindRange:
 		return true
 	case SearchTokenKindVulnerability:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchContainers.
+const (
+	SearchContainersN1 SearchContainers = "1"
+)
+
+// Valid indicates whether the value is a known member of the SearchContainers enum.
+func (e SearchContainers) Valid() bool {
+	switch e {
+	case SearchContainersN1:
 		return true
 	default:
 		return false
@@ -233,6 +254,21 @@ func (e SearchOrganizationParamsType) Valid() bool {
 	case SearchOrganizationParamsTypeHost:
 		return true
 	case SearchOrganizationParamsTypeRepo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchOrganizationParamsContainers.
+const (
+	SearchOrganizationParamsContainersN1 SearchOrganizationParamsContainers = "1"
+)
+
+// Valid indicates whether the value is a known member of the SearchOrganizationParamsContainers enum.
+func (e SearchOrganizationParamsContainers) Valid() bool {
+	switch e {
+	case SearchOrganizationParamsContainersN1:
 		return true
 	default:
 		return false
@@ -377,6 +413,21 @@ func (e ExportSearchParamsType) Valid() bool {
 	}
 }
 
+// Defines values for ExportSearchParamsContainers.
+const (
+	ExportSearchParamsContainersN1 ExportSearchParamsContainers = "1"
+)
+
+// Valid indicates whether the value is a known member of the ExportSearchParamsContainers enum.
+func (e ExportSearchParamsContainers) Valid() bool {
+	switch e {
+	case ExportSearchParamsContainersN1:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ExportSearchParamsOrigin.
 const (
 	ExportSearchParamsOriginIa   ExportSearchParamsOrigin = "ia"
@@ -487,6 +538,12 @@ type Problem struct {
 	Type string `json:"type"`
 }
 
+// ProjectRef defines model for ProjectRef.
+type ProjectRef struct {
+	Id   openapi_types.UUID `json:"id"`
+	Slug string             `json:"slug"`
+}
+
 // SearchComponent defines model for SearchComponent.
 type SearchComponent struct {
 	Id      openapi_types.UUID `json:"id"`
@@ -554,6 +611,7 @@ type SearchProject struct {
 	Kind   SearchProjectKind  `json:"kind"`
 	Labels map[string]string  `json:"labels"`
 	Name   string             `json:"name"`
+	Parent *ProjectRef        `json:"parent,omitempty"`
 	Slug   string             `json:"slug"`
 }
 
@@ -626,6 +684,9 @@ type Cursor = string
 // Org defines model for Org.
 type Org = string
 
+// SearchContainers defines model for SearchContainers.
+type SearchContainers string
+
 // SearchKEV defines model for SearchKEV.
 type SearchKEV string
 
@@ -658,6 +719,10 @@ type SearchOrganizationParams struct {
 	// Type Types de projet retenus (l'un ou l'autre).
 	Type *SearchType `form:"type,omitempty" json:"type,omitempty"`
 
+	// Containers `1` : inclut les conteneurs (projets enfants des hôtes), écartés sinon ; ils
+	// s'ajoutent aux types retenus.
+	Containers *SearchOrganizationParamsContainers `form:"containers,omitempty" json:"containers,omitempty"`
+
 	// Label Étiquettes de projet retenues, `clé=valeur` ou `clé` (l'une ou l'autre).
 	Label *SearchLabel `form:"label,omitempty" json:"label,omitempty"`
 
@@ -687,6 +752,9 @@ type SearchOrganizationParams struct {
 // SearchOrganizationParamsType defines parameters for SearchOrganization.
 type SearchOrganizationParamsType string
 
+// SearchOrganizationParamsContainers defines parameters for SearchOrganization.
+type SearchOrganizationParamsContainers string
+
 // SearchOrganizationParamsOrigin defines parameters for SearchOrganization.
 type SearchOrganizationParamsOrigin string
 
@@ -712,6 +780,10 @@ type ExportSearchParams struct {
 	// Type Types de projet retenus (l'un ou l'autre).
 	Type *SearchType `form:"type,omitempty" json:"type,omitempty"`
 
+	// Containers `1` : inclut les conteneurs (projets enfants des hôtes), écartés sinon ; ils
+	// s'ajoutent aux types retenus.
+	Containers *ExportSearchParamsContainers `form:"containers,omitempty" json:"containers,omitempty"`
+
 	// Label Étiquettes de projet retenues, `clé=valeur` ou `clé` (l'une ou l'autre).
 	Label *SearchLabel `form:"label,omitempty" json:"label,omitempty"`
 
@@ -734,6 +806,9 @@ type ExportSearchParamsFormat string
 
 // ExportSearchParamsType defines parameters for ExportSearch.
 type ExportSearchParamsType string
+
+// ExportSearchParamsContainers defines parameters for ExportSearch.
+type ExportSearchParamsContainers string
 
 // ExportSearchParamsOrigin defines parameters for ExportSearch.
 type ExportSearchParamsOrigin string
@@ -822,6 +897,19 @@ func (siw *ServerInterfaceWrapper) SearchOrganization(w http.ResponseWriter, r *
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "type"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "containers" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "containers", r.URL.Query(), &params.Containers, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "containers"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "containers", Err: err})
 		}
 		return
 	}
@@ -994,6 +1082,19 @@ func (siw *ServerInterfaceWrapper) ExportSearch(w http.ResponseWriter, r *http.R
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "type"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "containers" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "containers", r.URL.Query(), &params.Containers, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "containers"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "containers", Err: err})
 		}
 		return
 	}

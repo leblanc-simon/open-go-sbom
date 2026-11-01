@@ -283,6 +283,9 @@ func SearchResult(res search.Result) userapi.SearchResult {
 		sg := userapi.SearchGroup{Project: userapi.SearchProject{Id: g.Project.ID, Slug: g.Project.Slug, Name: g.Project.Name,
 			Kind: userapi.SearchProjectKind(g.Project.Kind), Labels: labels},
 			Occurrences: g.HitCount, MaxRisk: g.MaxRisk, LastScannedAt: g.Scanned, Truncated: g.Truncated, Hits: []userapi.SearchHit{}}
+		if pr := g.Project.Parent; pr != nil {
+			sg.Project.Parent = &userapi.ProjectRef{Id: pr.ID, Slug: pr.Slug}
+		}
 		for _, x := range g.Hits {
 			sg.Hits = append(sg.Hits, searchHit(x))
 		}
