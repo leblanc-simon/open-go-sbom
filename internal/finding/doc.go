@@ -9,5 +9,8 @@
 //   - Cycle de vie : création, prolongation, résolution (composant retiré ou plus
 //     signalé) et réouverture, historique dans finding_events.
 //   - Service sert les lectures des écrans (onglet « Constats », fiches vulnérabilité et
-//     composant).
+//     composant) et l'effet sur la sécurité du passage d'un instantané à un autre
+//     (SnapshotEffect, ADR 0038) : constats introduits et résolus, calculés à la lecture.
+//   - Un constat garde l'instantané qui l'a vu en dernier tant que la rétention ne l'a pas
+//     supprimé (snapshot_id mis à nul, ADR 0039).
 package finding

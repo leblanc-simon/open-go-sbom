@@ -94,6 +94,25 @@ var orgTables = []orgTable{
 			VALUES ($1, $2, $3, 'syft')`, tx.OrgID(), seedID(tx, "set"), seedID(tx, "component"))
 		return err
 	}},
+	{"set_diffs", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO component_sets (org_id, id, fingerprint, component_count, syft_count, ia_count, weak_count)
+			VALUES ($1, $2, sha256('set2'::bytea), 0, 0, 0, 0)`, tx.OrgID(), seedID(tx, "set2")); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `INSERT INTO set_diffs (org_id, from_set_id, to_set_id, added_count, removed_count, upgraded_count,
+			downgraded_count, computed_at) VALUES ($1, $2, $3, 0, 1, 0, 0, now())`, tx.OrgID(), seedID(tx, "set"), seedID(tx, "set2"))
+		return err
+	}},
+	{"set_diff_items", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO set_diff_items (org_id, from_set_id, to_set_id, kind, purl_base, old_component_id)
+			VALUES ($1, $2, $3, 'removed', 'pkg:npm/x', $4)`, tx.OrgID(), seedID(tx, "set"), seedID(tx, "set2"), seedID(tx, "component"))
+		return err
+	}},
+	{"snapshot_retention", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO snapshot_retention (org_id, horizon, last_run_at, snapshots_deleted, ingestions_deleted,
+			sets_deleted, blobs_deleted) VALUES ($1, now() - interval '90 days', now(), 0, 0, 0, 0)`, tx.OrgID())
+		return err
+	}},
 	{"snapshots", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
 		_, err := tx.ExecContext(ctx, `INSERT INTO snapshots (org_id, id, project_id, ref_id, agent_id, scanned_at, last_scanned_at,
 			blob_id, set_id, format, spec_version, created_at, updated_at)
@@ -248,6 +267,17 @@ func TestOrgTablesAreAllCovered(t *testing.T) {
 // (journal d'audit, migration 015) : ni UPDATE ni DELETE.
 var appendOnly = map[string]bool{"audit_events": true}
 
+// seededRows est le nombre de lignes que le harnais insère par organisation dans une
+// table, 1 sauf exception : une différence relie deux ensembles distincts (set_diffs).
+var seededRows = map[string]int{"component_sets": 2}
+
+func rowsOf(table string) int {
+	if n, ok := seededRows[table]; ok {
+		return n
+	}
+	return 1
+}
+
 // assertAppendOnly : la table refuse UPDATE et DELETE au rôle d'exécution, et la RLS
 // refuse d'y ajouter une ligne de B depuis A ; les lignes de B restent intactes.
 func assertAppendOnly(t *testing.T, tdb *dbtest.DB, a, b tenant.OrgID, tbl orgTable) {
@@ -296,7 +326,7 @@ func TestRLSOnEveryOrgTable(t *testing.T) {
 					Scan(&total, &ofB); err != nil {
 					return err
 				}
-				if total != 1 || ofB != 0 {
+				if total != rowsOf(tbl.name) || ofB != 0 {
 					t.Errorf("A voit %d lignes dont %d de B", total, ofB)
 				}
 				return nil
@@ -317,8 +347,8 @@ func TestRLSOnEveryOrgTable(t *testing.T) {
 				if err != nil {
 					t.Fatalf("mise à jour sans filtre : %v", err)
 				}
-				if n, _ := res.RowsAffected(); n != 1 {
-					t.Errorf("mise à jour sans filtre : %d lignes, attendu 1", n)
+				if n, _ := res.RowsAffected(); n != int64(rowsOf(tbl.name)) {
+					t.Errorf("mise à jour sans filtre : %d lignes, attendu %d", n, rowsOf(tbl.name))
 				}
 				return errAbort
 			})
@@ -346,7 +376,7 @@ func TestRLSOnEveryOrgTable(t *testing.T) {
 			// Les lignes de B sont intactes.
 			if err := tdb.App.InOrg(ctx, b, func(tx *db.OrgTx) error {
 				return tx.QueryRowContext(ctx, `SELECT count(*) FROM `+tbl.name).Scan(&n)
-			}); err != nil || n != 1 {
+			}); err != nil || n != rowsOf(tbl.name) {
 				t.Errorf("B : %d lignes, %v", n, err)
 			}
 		})

@@ -98,6 +98,13 @@ Tests de référence : `TestRoutePermissionsFollowMatrix`, `TestTeamFilterOnEver
 Prochains lots, en parallèle : [T12](specs/lots/T12-enrichissement-ia.md),
 [T13](specs/lots/T13-conteneurs.md), [T14](specs/lots/T14-triage-vex.md) et
 [T17](specs/lots/T17-differences-instantanes.md).
+T17 terminé : différences d'instantanés (`internal/inventory` : `History`, job
+`inventory.diff`, tables `set_diffs`/`set_diff_items` par couple d'ensembles consécutifs,
+montée ou descente par `purl_base` ; ADR 0038), effet sur la sécurité calculé à la lecture
+(`finding.SnapshotEffect`), frise et écran `/projects/{project}/compare`, API
+`…/projects/{project}/snapshots` et `…/compare` ; rétention quotidienne (`retention.*` :
+90 jours puis le dernier instantané de chaque mois, jamais le dernier d'une référence ;
+orphelins supprimés ; horizon `snapshot_retention` pour T21 ; ADR 0039).
 
 ## Règles de travail
 
