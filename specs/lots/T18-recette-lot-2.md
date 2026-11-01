@@ -176,7 +176,7 @@ n'avait pas de test de reproduction, ses tests sont nouveaux). Bilan de la revue
 | SEC2-01 | `EnablePOST` hors verrouillage par compte : force brute du TOTP depuis une session volée, qui délivre un nouveau jeu de codes de secours | Medium | Corrigé | open-go-base v1.4.1 (PR #6, `0900e0c`) : TOTP actif refusé sans examen du code, codes faux comptés dans le verrouillage ; lotor `8658ac6` : montée de version, enveloppe de la route (défense en profondeur), message du verrouillage à l'enrôlement ; tests `TestEnablePOSTOnActiveTOTPDoesNothing`, `TestEnablePOSTCountsFailures` (mfax), `TestEnableOnActiveTOTPDeliversNothing`, `TestEnrollmentCodesCountInLockout` ; ADR 0051 |
 | SEC2-02 | Inscription : un jeton d'une équipe prend, par le nom d'hôte, le projet hôte d'une autre équipe | Medium | Corrigé | `4c82c65` : rattachement par le nom borné à l'équipe du jeton, homonyme d'une autre équipe répondu « hôte déjà suivi », projet désigné passé dans une autre équipe refusé ; `TestEnrollmentByHostnameStaysInTheTokenTeam` ; ADR 0051 |
 | SEC2-03 | Changer le dépôt d'un projet garde l'IA « externe » | Low | Corrigé | `2a64942` : URL de forge changée sans le droit `ai.external` → réglage « désactivé », journalisé (`forge_url_changed`) ; `TestForgeURLChangeRevokesExternalAI` ; ADR 0051 |
-| SEC2-04 | Canal Matrix : changer le serveur sans ressaisir le jeton envoie le jeton au nouveau serveur | Low | Corrigé | `64913b3` : secret à ressaisir quand le serveur Matrix ou l'URL du webhook change, changement de destination journalisé ; `TestChannelSecretNeverFollowsNewDestination` ; ADR 0051 |
+| SEC2-04 | Canal Matrix : changer le serveur sans ressaisir le jeton envoie le jeton au nouveau serveur | Low | Corrigé | `64913b3`, `77c8741` : secret à ressaisir quand le serveur Matrix ou l'URL du webhook change, changement de destination journalisé ; `TestChannelSecretNeverFollowsNewDestination` ; ADR 0051 |
 | SEC2-05 | Projets enfants de conteneurs sans borne par hôte | Low | Corrigé | `0c9f4ec` : `containers.max_per_host` (1 000), signalement refusé en entier au-delà (409) ; `TestContainerChildrenBoundedPerHost` ; ADR 0051 |
 | SEC2-06 | Reconfiguration du TOTP : le mot de passe seul enrôle un nouveau second facteur jusqu'à la reconnexion | Low | Corrigé | `8658ac6` : nouveau mot de passe exigé (validé avant la consommation du code) ; `TestReconfigureClosesPasswordOnlyWindow` ; ADR 0051 (modifie 0048) |
 | SEC2-07 | IA : noms des fichiers exclus envoyés au fournisseur dans le prompt incrémental | Low | Corrigé | `a1bc95b` : périmètre filtré par les exclusions et la détection de clé privée, `list_dir` sans fichier à clé privée (64 Kio au plus : reste accepté au-delà), description de l'outil corrigée ; `TestIncrementalPromptOmitsExcludedFiles` ; ADR 0051 |
@@ -233,7 +233,7 @@ n'avait pas de test de reproduction, ses tests sont nouveaux). Bilan de la revue
 #### Écarts
 
 - Aucune migration : le numéro 023 réservé n'a pas servi (SEC2-10 accepté sans garde SQL).
-- `make ci` : voir le Journal de la PR (cibles toutes exécutées en local).
+- `make ci` vert en local (toutes les cibles, intégration PostgreSQL comprise).
 - L'étiquette `v1.4.1` d'open-go-base ne peut pas être poussée depuis la session (action de
   l'utilisateur, `specs/avancement.md`).
 
