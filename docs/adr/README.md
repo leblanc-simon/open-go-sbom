@@ -38,3 +38,4 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0031](0031-csrf-cookies-et-perimetre-de-l-agent-depot.md) | CSRF lié à la session, cookies __Host-, protection inter-origines ; périmètre de l'agent dépôt | Accepté |
 | [0032](0032-publication-des-versions.md) | Publication des versions : étiquette, workflow de préversion, fichiers livrés, unité du serveur | Accepté |
 | [0033](0033-renommage-en-lotor.md) | Renommage du projet en lotor : correspondance unique, migrations réécrites avant toute publication, identité visuelle | Accepté |
+| [0034](0034-equipes-et-droits.md) | Équipes et droits : rôle d'organisation membre ou administrateur, droits par équipe, filtre d'équipe déclaré à la transaction, invitations | Accepté |

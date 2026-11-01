@@ -81,16 +81,16 @@ func TestCreateRepositoryAndHost(t *testing.T) {
 	f := setup(t)
 	o := f.org(t, "a")
 
-	p, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindRepo, Name: "Portail Client",
+	p, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, project.Input{Kind: project.KindRepo, Name: "Portail Client",
 		Description: "Site public", Labels: project.Labels{"env": "prod"}, ForgeURL: "https://git.example.org/web/portail",
-		Branches: []string{"main", "release"}, Tags: []string{"v1.0"}})
+		Branches: []string{"main", "release"}, Tags: []string{"v1.0"}}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if p.Slug != "portail-client" {
 		t.Fatalf("slug %q", p.Slug)
 	}
-	got, err := f.projects.Get(ctx, o, "portail-client")
+	got, err := f.projects.Get(ctx, o, tenant.AllTeams(), "portail-client")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,33 +100,34 @@ func TestCreateRepositoryAndHost(t *testing.T) {
 	}
 
 	// Slug dérivé rendu unique ; slug explicite pris ou réservé refusé.
-	p2, err := f.projects.Create(ctx, f.actor, o, repo("Portail client", "main"))
+	p2, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, repo("Portail client", "main")))
 	if err != nil || p2.Slug != "portail-client-2" {
 		t.Fatalf("second slug : %q %v", p2.Slug, err)
 	}
-	if _, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindRepo, Slug: "portail-client", Name: "x", Branches: []string{"main"}}); !isKey(err, project.KeySlugTaken) {
+	if _, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, project.Input{Kind: project.KindRepo, Slug: "portail-client", Name: "x", Branches: []string{"main"}})); !isKey(err, project.KeySlugTaken) {
 		t.Errorf("slug pris : %v", err)
 	}
-	if _, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindRepo, Slug: "new", Name: "x", Branches: []string{"main"}}); !isKey(err, project.KeySlugInvalid) {
+	if _, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, project.Input{Kind: project.KindRepo, Slug: "new", Name: "x", Branches: []string{"main"}})); !isKey(err, project.KeySlugInvalid) {
 		t.Errorf("slug réservé : %v", err)
 	}
-	if p3, err := f.projects.Create(ctx, f.actor, o, repo("New", "main")); err != nil || p3.Slug != "new-2" {
+	if p3, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, repo("New", "main"))); err != nil || p3.Slug != "new-2" {
 		t.Errorf("slug dérivé réservé : %q %v", p3.Slug, err)
 	}
 
 	// Serveur : une seule référence d'hôte, unique dans l'organisation.
-	h, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindHost, Name: "srv-db-02", HostRef: "SRV-DB-02"})
+	h, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, project.Input{Kind: project.KindHost, Name: "srv-db-02", HostRef: "SRV-DB-02"}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if h, err = f.projects.Get(ctx, o, h.Slug); err != nil || h.HostRef() != "srv-db-02" || len(h.Refs) != 1 {
+	if h, err = f.projects.Get(ctx, o, tenant.AllTeams(), h.Slug); err != nil || h.HostRef() != "srv-db-02" || len(h.Refs) != 1 {
 		t.Fatalf("hôte : %+v %v", h, err)
 	}
-	if _, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindHost, Name: "autre", HostRef: "srv-db-02"}); !isKey(err, project.KeyHostRefTaken) {
+	if _, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, project.Input{Kind: project.KindHost, Name: "autre", HostRef: "srv-db-02"})); !isKey(err, project.KeyHostRefTaken) {
 		t.Errorf("hôte en double : %v", err)
 	}
 	// Même nom d'hôte dans une autre organisation : permis.
-	if _, err := f.projects.Create(ctx, f.actor, f.org(t, "b"), project.Input{Kind: project.KindHost, Name: "srv-db-02", HostRef: "srv-db-02"}); err != nil {
+	ob := f.org(t, "b")
+	if _, err := f.projects.Create(ctx, f.actor, ob, f.inTeam(t, ob, project.Input{Kind: project.KindHost, Name: "srv-db-02", HostRef: "srv-db-02"})); err != nil {
 		t.Errorf("hôte dans une autre organisation : %v", err)
 	}
 	if n := countOf(f.actions(t, o), audit.ProjectCreated); n != 4 {
@@ -151,11 +152,11 @@ func TestUpdateKeepsRefHistory(t *testing.T) {
 	ctx := context.Background()
 	f := setup(t)
 	o := f.org(t, "a")
-	p, err := f.projects.Create(ctx, f.actor, o, repo("api", "main", "dev"))
+	p, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, repo("api", "main", "dev")))
 	if err != nil {
 		t.Fatal(err)
 	}
-	before, _ := f.projects.Get(ctx, o, p.Slug)
+	before, _ := f.projects.Get(ctx, o, tenant.AllTeams(), p.Slug)
 	ids := map[string]uuid.UUID{}
 	for _, r := range before.Refs {
 		ids[r.Name] = r.ID
@@ -166,7 +167,7 @@ func TestUpdateKeepsRefHistory(t *testing.T) {
 	if err := f.projects.Update(ctx, f.actor, o, p.Slug, in); err != nil {
 		t.Fatal(err)
 	}
-	mid, _ := f.projects.Get(ctx, o, p.Slug)
+	mid, _ := f.projects.Get(ctx, o, tenant.AllTeams(), p.Slug)
 	if mid.Name != "API facturation" || mid.Slug != "api" || !slices.Equal(mid.RefNames(project.RefBranch), []string{"main"}) ||
 		!slices.Equal(mid.RefNames(project.RefTag), []string{"v2"}) || mid.Labels.String() != "pci" {
 		t.Fatalf("après modification : %+v", mid)
@@ -174,7 +175,7 @@ func TestUpdateKeepsRefHistory(t *testing.T) {
 	if err := f.projects.Update(ctx, f.actor, o, p.Slug, repo("API facturation", "main", "dev")); err != nil {
 		t.Fatal(err)
 	}
-	after, _ := f.projects.Get(ctx, o, p.Slug)
+	after, _ := f.projects.Get(ctx, o, tenant.AllTeams(), p.Slug)
 	for _, r := range after.Refs {
 		if r.Kind == project.RefBranch && r.ID != ids[r.Name] {
 			t.Errorf("branche %s : nouvel identifiant après réactivation", r.Name)
@@ -184,15 +185,15 @@ func TestUpdateKeepsRefHistory(t *testing.T) {
 		t.Errorf("sans référence : %v", err)
 	}
 
-	h, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindHost, Name: "srv", HostRef: "srv"})
+	h, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, project.Input{Kind: project.KindHost, Name: "srv", HostRef: "srv"}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	h, _ = f.projects.Get(ctx, o, h.Slug)
+	h, _ = f.projects.Get(ctx, o, tenant.AllTeams(), h.Slug)
 	if err := f.projects.Update(ctx, f.actor, o, h.Slug, project.Input{Name: "srv", HostRef: "srv.example.org"}); err != nil {
 		t.Fatal(err)
 	}
-	h2, _ := f.projects.Get(ctx, o, h.Slug)
+	h2, _ := f.projects.Get(ctx, o, tenant.AllTeams(), h.Slug)
 	if h2.HostRef() != "srv.example.org" || h2.Refs[0].ID != h.Refs[0].ID {
 		t.Errorf("référence d'hôte : %+v", h2.Refs)
 	}
@@ -214,12 +215,12 @@ func TestArchiveAndList(t *testing.T) {
 		{Kind: project.KindRepo, Name: "alpha", Labels: project.Labels{"env": "dev", "pci": ""}, Branches: []string{"main"}},
 		{Kind: project.KindHost, Name: "charlie_100%", HostRef: "charlie", Labels: project.Labels{"env": "prod"}},
 	} {
-		if _, err := f.projects.Create(ctx, f.actor, o, in); err != nil {
+		if _, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, in)); err != nil {
 			t.Fatal(err)
 		}
 	}
 	names := func(fl project.Filter) []string {
-		page, err := f.projects.List(ctx, o, fl, "", 50)
+		page, err := f.projects.List(ctx, o, tenant.AllTeams(), fl, "", 50)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -247,19 +248,19 @@ func TestArchiveAndList(t *testing.T) {
 	}
 
 	// Pagination stable par nom.
-	page, err := f.projects.List(ctx, o, project.Filter{}, "", 2)
+	page, err := f.projects.List(ctx, o, tenant.AllTeams(), project.Filter{}, "", 2)
 	if err != nil || len(page.Items) != 2 || page.NextCursor == "" {
 		t.Fatalf("première page : %v %v", page, err)
 	}
-	next, err := f.projects.List(ctx, o, project.Filter{}, page.NextCursor, 2)
+	next, err := f.projects.List(ctx, o, tenant.AllTeams(), project.Filter{}, page.NextCursor, 2)
 	if err != nil || len(next.Items) != 1 || next.Items[0].Name != "charlie_100%" || next.NextCursor != "" {
 		t.Fatalf("seconde page : %v %v", next, err)
 	}
-	if _, err := f.projects.List(ctx, o, project.Filter{}, "pas-un-curseur", 2); !errors.Is(err, pagination.ErrInvalidCursor) {
+	if _, err := f.projects.List(ctx, o, tenant.AllTeams(), project.Filter{}, "pas-un-curseur", 2); !errors.Is(err, pagination.ErrInvalidCursor) {
 		t.Errorf("curseur invalide : %v", err)
 	}
 	var le *pagination.LimitError
-	if _, err := f.projects.List(ctx, o, project.Filter{}, "", 0); !errors.As(err, &le) {
+	if _, err := f.projects.List(ctx, o, tenant.AllTeams(), project.Filter{}, "", 0); !errors.As(err, &le) {
 		t.Errorf("taille 0 : %v", err)
 	}
 
@@ -294,15 +295,15 @@ func TestAssignAgentRequiresActiveRepoAgent(t *testing.T) {
 	ctx := context.Background()
 	f := setup(t)
 	o, other := f.org(t, "a"), f.org(t, "b")
-	p, err := f.projects.Create(ctx, f.actor, o, repo("api", "main"))
+	p, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, repo("api", "main")))
 	if err != nil {
 		t.Fatal(err)
 	}
-	a, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, "ci", "initial", 90)
+	a, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, nil, "ci", "initial", 90)
 	if err != nil {
 		t.Fatal(err)
 	}
-	foreign, _, err := f.agents.CreateRepoAgent(ctx, f.actor, other, "ci-b", "initial", 90)
+	foreign, _, err := f.agents.CreateRepoAgent(ctx, f.actor, other, nil, "ci-b", "initial", 90)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -312,14 +313,14 @@ func TestAssignAgentRequiresActiveRepoAgent(t *testing.T) {
 	if err := f.projects.AssignAgent(ctx, f.actor, o, p.Slug, &a.ID); err != nil {
 		t.Fatal(err)
 	}
-	got, _ := f.projects.Get(ctx, o, p.Slug)
+	got, _ := f.projects.Get(ctx, o, tenant.AllTeams(), p.Slug)
 	if got.Agent == nil || got.Agent.ID != a.ID || got.Agent.Name != "ci" {
 		t.Fatalf("agent : %+v", got.Agent)
 	}
 	if err := f.projects.AssignAgent(ctx, f.actor, o, p.Slug, &a.ID); err != nil {
 		t.Fatal(err)
 	}
-	h, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindHost, Name: "srv", HostRef: "srv"})
+	h, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, project.Input{Kind: project.KindHost, Name: "srv", HostRef: "srv"}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -329,7 +330,7 @@ func TestAssignAgentRequiresActiveRepoAgent(t *testing.T) {
 	if err := f.agents.Disable(ctx, f.actor, o, a.ID); err != nil {
 		t.Fatal(err)
 	}
-	if got, _ := f.projects.Get(ctx, o, p.Slug); got.Agent != nil {
+	if got, _ := f.projects.Get(ctx, o, tenant.AllTeams(), p.Slug); got.Agent != nil {
 		t.Error("projet encore confié à un agent désactivé")
 	}
 	if err := f.projects.AssignAgent(ctx, f.actor, o, p.Slug, &a.ID); !isKey(err, project.KeyAgentInvalid) {
@@ -359,9 +360,10 @@ func TestSchemaRefusesMismatchedKinds(t *testing.T) {
 		}
 		p1, p2 := uuid.Must(uuid.NewV7()), uuid.Must(uuid.NewV7())
 		for name, stmt := range map[string]string{
-			"agent serveur sur un dépôt": `INSERT INTO projects (org_id, id, kind, slug, name, agent_id) VALUES ($1, gen_random_uuid(), 'repo', 'x', 'x', '` + host.String() + `')`,
-			"deux hôtes pour un agent": `INSERT INTO projects (org_id, id, kind, slug, name, agent_id) VALUES
-				($1, '` + p1.String() + `', 'host', 'h1', 'h1', '` + host.String() + `'), ($1, '` + p2.String() + `', 'host', 'h2', 'h2', '` + host.String() + `')`,
+			"agent serveur sur un dépôt": `INSERT INTO projects (org_id, id, kind, slug, name, agent_id, team_id) VALUES ($1, gen_random_uuid(), 'repo', 'x', 'x', '` + host.String() + `', (SELECT id FROM teams LIMIT 1))`,
+			"deux hôtes pour un agent": `INSERT INTO projects (org_id, id, kind, slug, name, agent_id, team_id) VALUES
+				($1, '` + p1.String() + `', 'host', 'h1', 'h1', '` + host.String() + `', (SELECT id FROM teams LIMIT 1)),
+				($1, '` + p2.String() + `', 'host', 'h2', 'h2', '` + host.String() + `', (SELECT id FROM teams LIMIT 1))`,
 		} {
 			if _, err := tx.ExecContext(ctx, `SAVEPOINT s`); err != nil {
 				return err
@@ -374,7 +376,7 @@ func TestSchemaRefusesMismatchedKinds(t *testing.T) {
 			}
 		}
 		repoID := uuid.Must(uuid.NewV7())
-		if _, err := tx.ExecContext(ctx, `INSERT INTO projects (org_id, id, kind, slug, name) VALUES ($1, $2, 'repo', 'r', 'r')`, tx.OrgID(), repoID); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO projects (org_id, id, kind, slug, name, team_id) VALUES ($1, $2, 'repo', 'r', 'r', (SELECT id FROM teams LIMIT 1))`, tx.OrgID(), repoID); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `SAVEPOINT s`); err != nil {
@@ -399,7 +401,7 @@ func TestAgentView(t *testing.T) {
 	ctx := context.Background()
 	f := setup(t)
 	o := f.org(t, "a")
-	a, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, "ci", "initial", 90)
+	a, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, nil, "ci", "initial", 90)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -407,7 +409,7 @@ func TestAgentView(t *testing.T) {
 	for _, n := range []string{"p1", "p2", "p3"} {
 		in := repo(n, "main")
 		in.Tags, in.ForgeURL = []string{"v1"}, "https://git.example.org/"+n
-		p, err := f.projects.Create(ctx, f.actor, o, in)
+		p, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, in))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -453,7 +455,7 @@ func TestAgentView(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, fn := range []func() error{
-		func() error { _, err := f.projects.Get(ctx, o, "absent"); return err },
+		func() error { _, err := f.projects.Get(ctx, o, tenant.AllTeams(), "absent"); return err },
 		func() error { return f.projects.SetArchived(ctx, f.actor, o, "absent", true) },
 		func() error { return f.projects.AssignAgent(ctx, f.actor, o, "absent", nil) },
 	} {
@@ -465,5 +467,132 @@ func TestAgentView(t *testing.T) {
 	if err := f.projects.Update(ctx, f.actor, o, "p1", project.Input{Name: "p1", Branches: []string{"main"}, Tags: []string{"v1"},
 		ForgeURL: "https://git.example.org/p1"}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// inTeam rattache une saisie sans équipe à l'équipe créée avec l'organisation.
+func (f fixture) inTeam(t *testing.T, org tenant.OrgID, in project.Input) project.Input {
+	t.Helper()
+	if in.TeamID == uuid.Nil {
+		in.TeamID = f.defaultTeam(t, org)
+	}
+	return in
+}
+
+// defaultTeam renvoie l'équipe créée avec l'organisation (DefaultTeamName).
+func (f fixture) defaultTeam(t *testing.T, org tenant.OrgID) uuid.UUID {
+	t.Helper()
+	teams, err := f.orgs.Teams(context.Background(), org, tenant.AllTeams())
+	if err != nil || len(teams) == 0 {
+		t.Fatalf("équipes : %v, %v", teams, err)
+	}
+	return teams[0].ID
+}
+
+// TestTeamVisibilityAndMove : Get et List ne montrent que les projets des équipes
+// visibles ; SetTeam rattache un projet, journalisé, et retire au dépôt l'agent d'une
+// autre équipe ; un agent d'équipe ne se confie qu'aux projets de son équipe.
+func TestTeamVisibilityAndMove(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	f := setup(t)
+	o := f.org(t, "a")
+	general := f.defaultTeam(t, o)
+	web, err := f.orgs.CreateTeam(ctx, f.actor, o, "Web")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := f.projects.Create(ctx, f.actor, o, f.inTeam(t, o, repo("api", "main")))
+	if err != nil || p.TeamID != general || p.TeamName != "Général" {
+		t.Fatalf("création : %+v, %v", p, err)
+	}
+	if _, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindRepo, Name: "x", Branches: []string{"main"}}); !isKey(err, project.KeyTeamInvalid) {
+		t.Fatalf("projet sans équipe : %v", err)
+	}
+	if _, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindRepo, Name: "x", Branches: []string{"main"},
+		TeamID: uuid.Must(uuid.NewV7())}); !isKey(err, project.KeyTeamInvalid) {
+		t.Fatalf("équipe inconnue : %v", err)
+	}
+	if _, err := f.projects.Get(ctx, o, tenant.OnlyTeams(web.ID), "api"); !errors.Is(err, project.ErrNotFound) {
+		t.Fatalf("projet d'une équipe invisible : %v", err)
+	}
+	if _, err := f.projects.Get(ctx, o, tenant.Visibility{}, "api"); !errors.Is(err, project.ErrNotFound) {
+		t.Fatalf("visibilité nulle : %v", err)
+	}
+	if page, err := f.projects.List(ctx, o, tenant.OnlyTeams(web.ID), project.Filter{}, "", 50); err != nil || len(page.Items) != 0 {
+		t.Fatalf("liste d'une autre équipe : %+v, %v", page.Items, err)
+	}
+	// Agent de l'équipe Web : refusé pour un projet de « Général », accepté une fois le
+	// projet rattaché à Web, perdu au retour dans « Général ».
+	a, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, &web.ID, "ci-web", "initial", 90)
+	if err != nil || a.TeamID == nil || *a.TeamID != web.ID || a.TeamName != "Web" {
+		t.Fatalf("agent d'équipe : %+v, %v", a, err)
+	}
+	if err := f.projects.AssignAgent(ctx, f.actor, o, "api", &a.ID); !isKey(err, project.KeyAgentInvalid) {
+		t.Fatalf("agent d'une autre équipe : %v", err)
+	}
+	if err := f.projects.SetTeam(ctx, f.actor, o, "api", uuid.Must(uuid.NewV7())); !isKey(err, project.KeyTeamInvalid) {
+		t.Fatalf("équipe inconnue : %v", err)
+	}
+	if err := f.projects.SetTeam(ctx, f.actor, o, "api", web.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.projects.AssignAgent(ctx, f.actor, o, "api", &a.ID); err != nil {
+		t.Fatal(err)
+	}
+	got, err := f.projects.Get(ctx, o, tenant.OnlyTeams(web.ID), "api")
+	if err != nil || got.TeamID != web.ID || got.Agent == nil {
+		t.Fatalf("projet rattaché : %+v, %v", got, err)
+	}
+	if page, err := f.projects.List(ctx, o, tenant.AllTeams(), project.Filter{Team: web.ID}, "", 50); err != nil || len(page.Items) != 1 {
+		t.Fatalf("filtre d'équipe : %+v, %v", page.Items, err)
+	}
+	if err := f.projects.SetTeam(ctx, f.actor, o, "api", general); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ = f.projects.Get(ctx, o, tenant.AllTeams(), "api"); got.Agent != nil {
+		t.Fatalf("agent d'une autre équipe gardé : %+v", got.Agent)
+	}
+	// Un agent d'organisation sert toutes les équipes.
+	orgAgent, _, err := f.agents.CreateRepoAgent(ctx, f.actor, o, nil, "ci-org", "initial", 90)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.projects.AssignAgent(ctx, f.actor, o, "api", &orgAgent.ID); err != nil {
+		t.Fatal(err)
+	}
+	if n := countOf(f.actions(t, o), audit.ProjectTeamChanged); n != 2 {
+		t.Fatalf("%d rattachements journalisés", n)
+	}
+}
+
+// TestMovingAHostTakesItsAgent : un serveur rattaché à une autre équipe emmène son agent.
+func TestMovingAHostTakesItsAgent(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	f := setup(t)
+	o := f.org(t, "a")
+	web, err := f.orgs.CreateTeam(ctx, f.actor, o, "Web")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var hostAgent uuid.UUID
+	err = f.tdb.App.InOrg(ctx, o, func(tx *db.OrgTx) error {
+		hostAgent = uuid.Must(uuid.NewV7())
+		if _, err := tx.ExecContext(ctx, `INSERT INTO agents (org_id, id, kind, name) VALUES ($1, $2, 'host', 'srv')`, tx.OrgID(), hostAgent); err != nil {
+			return err
+		}
+		_, err := project.CreateHost(ctx, tx, "srv", nil, hostAgent, f.defaultTeam(t, o))
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.projects.SetTeam(ctx, f.actor, o, "srv", web.ID); err != nil {
+		t.Fatal(err)
+	}
+	team, err := f.agents.Team(ctx, o, tenant.OnlyTeams(web.ID), hostAgent)
+	if err != nil || team == nil || *team != web.ID {
+		t.Fatalf("équipe de l'agent : %v, %v", team, err)
 	}
 }

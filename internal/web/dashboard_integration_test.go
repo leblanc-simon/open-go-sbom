@@ -23,7 +23,7 @@ func TestDashboardScreens(t *testing.T) {
 	a := newApp(t)
 	admin, viewer := a.user("admin@example.org", false), a.user("viewer@example.org", false)
 	f := repoSetup(t, a, "org-a", admin)
-	a.addMember(f.org, viewer, tenant.RoleViewer)
+	a.addTeamMember(f.org, viewer, tenant.TeamReader)
 	s := a.analysis()
 	s.publish(t, time.Now().Add(-48*time.Hour), log4shellRules()...)
 	ctx := context.Background()

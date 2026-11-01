@@ -97,9 +97,9 @@ func TestIngestAndAnalyze5000(t *testing.T) {
 			sql  string
 			args []any
 		}{
-			{`INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, 'bench', 'Bench', 'fr')`, []any{org}},
+			{`WITH o AS (INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, 'bench', 'Bench', 'fr') RETURNING id) INSERT INTO teams (org_id, id, name) SELECT id, id, 'Général' FROM o`, []any{org}},
 			{`INSERT INTO agents (org_id, id, kind, name) VALUES ($1, $2, 'repo', 'agent')`, []any{org, agentID}},
-			{`INSERT INTO projects (org_id, id, kind, slug, name, agent_id) VALUES ($1, $2, 'repo', 'bench', 'Bench', $3)`, []any{org, repo, agentID}},
+			{`INSERT INTO projects (org_id, id, kind, slug, name, agent_id, team_id) VALUES ($1, $2, 'repo', 'bench', 'Bench', $3, $1)`, []any{org, repo, agentID}},
 			{`INSERT INTO tracked_refs (org_id, id, project_id, project_kind, kind, name) VALUES ($1, $2, $3, 'repo', 'branch', 'main')`, []any{org, ref, repo}},
 		} {
 			if _, err := tx.ExecContext(ctx, q.sql, q.args...); err != nil {

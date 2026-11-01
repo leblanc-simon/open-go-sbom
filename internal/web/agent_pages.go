@@ -47,6 +47,15 @@ type agentRow struct {
 	LastSeen *stamp
 }
 
+// agentTeam renvoie l'équipe d'un agent pour la matrice des droits (uuid.Nil : agent
+// d'organisation).
+func agentTeam(a agent.Agent) uuid.UUID {
+	if a.TeamID == nil {
+		return uuid.Nil
+	}
+	return *a.TeamID
+}
+
 func agentRowOf(a agent.Agent, now time.Time) agentRow {
 	return agentRow{Agent: a, Status: statusOf(a.Activity(), now), LastSeen: stampOf(a.LastSeenAt)}
 }
@@ -83,11 +92,11 @@ func (id *identity) agents(w http.ResponseWriter, r *http.Request) {
 	}
 	view := &agentsView{
 		Page: render.Page{TitleKey: "agents.title", Nav: orgNav(acc, "agents")},
-		Base: orgBase(acc), CanAdmin: acc.Role.AtLeast(tenant.RoleAdmin), Kinds: agentKindOptions(f.Kind),
+		Base: orgBase(acc), CanAdmin: acc.CanAny(tenant.PermAgentManage), Kinds: agentKindOptions(f.Kind),
 		Disabled: f.Disabled, FlashKey: flashKey(r),
 	}
 	status := http.StatusOK
-	page, err := id.Agents.List(r.Context(), acc.Org, f, q.Get("cursor"), agent.DefaultPage)
+	page, err := id.Agents.List(r.Context(), acc.Org, acc.Visibility(), f, q.Get("cursor"), agent.DefaultPage)
 	if err != nil {
 		fe, ok := validationOf(err)
 		if !ok {
@@ -111,12 +120,15 @@ func (id *identity) agents(w http.ResponseWriter, r *http.Request) {
 		view.NextHref = template.URL("?" + next.Encode())
 	}
 	if view.CanAdmin {
-		tokens, err := id.Agents.Enrollments(r.Context(), acc.Org)
+		tokens, err := id.Agents.Enrollments(r.Context(), acc.Org, acc.Visibility())
 		if err != nil {
 			id.serverError(w, r, err)
 			return
 		}
 		for _, t := range tokens {
+			if !acc.Can(tenant.PermAgentManage, t.TeamID) {
+				continue
+			}
 			view.Enrollments = append(view.Enrollments, enrollmentRow{EnrollmentToken: t, Labels: t.Labels.Pairs(),
 				Usable: t.UsableAt(now), Expires: stampAt(t.ExpiresAt), Created: stampAt(t.CreatedAt)})
 		}
@@ -130,19 +142,24 @@ type agentNewView struct {
 	Name      string
 	TokenName string
 	Lifetimes []option
+	Teams     []option
 	Error     formError
 }
 
-func (id *identity) agentNewPage(w http.ResponseWriter, r *http.Request, status int, name, tokenName string, days int, fe formError) {
+func (id *identity) agentNewPage(w http.ResponseWriter, r *http.Request, status int, name, tokenName, team string, days int, fe formError) {
 	acc := access(r)
+	teams, ok := id.teamOptions(w, r, tenant.PermAgentManage, team, "agent_new.org_wide")
+	if !ok {
+		return
+	}
 	id.rd.Render(w, r, status, "agents/new", &agentNewView{
 		Page: render.Page{TitleKey: "agent_new.title", Nav: orgNav(acc, "agents")},
-		Base: orgBase(acc), Name: name, TokenName: tokenName, Lifetimes: lifetimeOptions(days), Error: fe,
+		Base: orgBase(acc), Name: name, TokenName: tokenName, Lifetimes: lifetimeOptions(days), Teams: teams, Error: fe,
 	})
 }
 
 func (id *identity) newAgent(w http.ResponseWriter, r *http.Request) {
-	id.agentNewPage(w, r, http.StatusOK, "", "initial", agent.DefaultTokenLifetime, formError{})
+	id.agentNewPage(w, r, http.StatusOK, "", "initial", r.URL.Query().Get("team"), agent.DefaultTokenLifetime, formError{})
 }
 
 // secretView montre une seule fois le secret d'un jeton qui vient d'être créé.
@@ -170,12 +187,20 @@ func (id *identity) createAgent(w http.ResponseWriter, r *http.Request) {
 	if !id.parseForm(w, r) {
 		return
 	}
-	name, tokenName := r.PostForm.Get("name"), r.PostForm.Get("token_name")
+	name, tokenName, teamValue := r.PostForm.Get("name"), r.PostForm.Get("token_name"), r.PostForm.Get("team")
 	days := atoiDefault(r.PostForm.Get("expires_in"), -1)
-	a, issued, err := id.Agents.CreateRepoAgent(r.Context(), id.actor(r), access(r).Org, name, tokenName, days)
+	acc := access(r)
+	// Un agent d'organisation (sans équipe) relève de l'administrateur d'organisation ; un
+	// agent d'équipe, de l'administrateur de l'équipe.
+	team, err := chosenTeam(acc, tenant.PermAgentManage, teamValue, true, agent.KeyTeamInvalid)
+	var a agent.Agent
+	var issued agent.IssuedToken
+	if err == nil {
+		a, issued, err = id.Agents.CreateRepoAgent(r.Context(), id.actor(r), acc.Org, team, name, tokenName, days)
+	}
 	if err != nil {
 		if fe, ok := validationOf(err); ok {
-			id.agentNewPage(w, r, http.StatusUnprocessableEntity, name, tokenName, days, fe)
+			id.agentNewPage(w, r, http.StatusUnprocessableEntity, name, tokenName, teamValue, days, fe)
 			return
 		}
 		id.serverError(w, r, err)
@@ -219,7 +244,8 @@ func (id *identity) agentFromPath(w http.ResponseWriter, r *http.Request) (agent
 		id.rd.Error(w, r, http.StatusNotFound)
 		return agent.Agent{}, false
 	}
-	a, err := id.Agents.Get(r.Context(), access(r).Org, aid)
+	acc := access(r)
+	a, err := id.Agents.Get(r.Context(), acc.Org, acc.Visibility(), aid)
 	if errors.Is(err, agent.ErrNotFound) {
 		id.rd.Error(w, r, http.StatusNotFound)
 		return agent.Agent{}, false
@@ -244,7 +270,7 @@ func (id *identity) renderAgent(w http.ResponseWriter, r *http.Request, status i
 	now := id.Agents.Now()
 	view := &agentView{
 		Page: render.Page{TitleKey: "agent.title", TitleArgs: map[string]any{"Name": a.Name}, Nav: orgNav(acc, "agents")},
-		Base: orgBase(acc), CanAdmin: acc.Role.AtLeast(tenant.RoleAdmin), Agent: agentRowOf(a, now),
+		Base: orgBase(acc), CanAdmin: acc.Can(tenant.PermAgentManage, agentTeam(a)), Agent: agentRowOf(a, now),
 		Lifetimes: lifetimeOptions(days), TokenName: tokenName, FlashKey: flashKey(r), Error: fe,
 	}
 	if a.Kind == agent.KindHost {
@@ -324,12 +350,17 @@ type enrollmentNewView struct {
 	MaxUses   int
 	Labels    string
 	Projects  []option
+	Teams     []option
 	Error     formError
 }
 
-func (id *identity) enrollmentNewPage(w http.ResponseWriter, r *http.Request, status int, in agent.EnrollmentInput, labels string, fe formError) {
+func (id *identity) enrollmentNewPage(w http.ResponseWriter, r *http.Request, status int, in agent.EnrollmentInput, team, labels string, fe formError) {
 	acc := access(r)
-	hosts, err := id.Projects.List(r.Context(), acc.Org, project.Filter{Kind: project.KindHost}, "", project.MaxPage)
+	teams, ok := id.teamOptions(w, r, tenant.PermAgentManage, team, "")
+	if !ok {
+		return
+	}
+	hosts, err := id.Projects.List(r.Context(), acc.Org, acc.Visibility(), project.Filter{Kind: project.KindHost}, "", project.MaxPage)
 	if err != nil {
 		id.serverError(w, r, err)
 		return
@@ -337,11 +368,11 @@ func (id *identity) enrollmentNewPage(w http.ResponseWriter, r *http.Request, st
 	view := &enrollmentNewView{
 		Page: render.Page{TitleKey: "enrollment_new.title", Nav: orgNav(acc, "agents")},
 		Base: orgBase(acc), Name: in.Name, Lifetimes: enrollmentLifetimeOptions(in.LifetimeHours), MaxUses: in.MaxUses,
-		Labels: labels, Error: fe,
+		Labels: labels, Error: fe, Teams: teams,
 		Projects: []option{{Value: "", LabelKey: "enrollment.project_create", Selected: in.ProjectSlug == ""}},
 	}
 	for _, p := range hosts.Items {
-		if p.Agent == nil {
+		if p.Agent == nil && acc.Can(tenant.PermAgentManage, p.TeamID) {
 			view.Projects = append(view.Projects, option{Value: p.Slug, Label: p.Name, Selected: p.Slug == in.ProjectSlug})
 		}
 	}
@@ -351,7 +382,7 @@ func (id *identity) enrollmentNewPage(w http.ResponseWriter, r *http.Request, st
 func (id *identity) newEnrollment(w http.ResponseWriter, r *http.Request) {
 	id.enrollmentNewPage(w, r, http.StatusOK, agent.EnrollmentInput{
 		LifetimeHours: agent.DefaultEnrollmentLifetime, MaxUses: 1, ProjectSlug: r.URL.Query().Get("project"),
-	}, "", formError{})
+	}, r.URL.Query().Get("team"), "", formError{})
 }
 
 func (id *identity) createEnrollment(w http.ResponseWriter, r *http.Request) {
@@ -361,16 +392,21 @@ func (id *identity) createEnrollment(w http.ResponseWriter, r *http.Request) {
 	f := r.PostForm
 	in := agent.EnrollmentInput{Name: f.Get("name"), LifetimeHours: atoiDefault(f.Get("expires_in"), -1),
 		MaxUses: atoiDefault(f.Get("max_uses"), 0), ProjectSlug: f.Get("project")}
+	acc := access(r)
 	labels, err := project.ParseLabels(f.Get("labels"))
 	var t agent.EnrollmentToken
 	var issued agent.IssuedToken
 	if err == nil {
 		in.Labels = labels
-		t, issued, err = id.Agents.CreateEnrollment(r.Context(), id.actor(r), access(r).Org, in)
+		var team *uuid.UUID
+		if team, err = chosenTeam(acc, tenant.PermAgentManage, f.Get("team"), false, agent.KeyTeamInvalid); err == nil {
+			in.TeamID = *team
+			t, issued, err = id.Agents.CreateEnrollment(r.Context(), id.actor(r), acc.Org, in)
+		}
 	}
 	if err != nil {
 		if fe, ok := validationOf(err); ok {
-			id.enrollmentNewPage(w, r, http.StatusUnprocessableEntity, in, f.Get("labels"), fe)
+			id.enrollmentNewPage(w, r, http.StatusUnprocessableEntity, in, f.Get("team"), f.Get("labels"), fe)
 			return
 		}
 		id.serverError(w, r, err)

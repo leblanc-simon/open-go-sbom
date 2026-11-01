@@ -105,6 +105,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			"cookie_secure", cfg.Auth.CookieSecure)
 	}
 	accounts := account.NewService(pool, cfg.Auth.BcryptCost)
+	orgs := org.NewService(pool)
 	b := cfg.Bootstrap
 	if err := accounts.Startup(ctx, account.StartupOptions{
 		AdminEmail: b.AdminEmail, AdminPassword: b.AdminPassword, RescueEmail: b.RescueEmail, RescueTicket: b.RescueTicket,
@@ -176,7 +177,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		Identity: &web.IdentityOptions{
 			Pool:           pool,
 			Accounts:       accounts,
-			Orgs:           org.NewService(pool),
+			Orgs:           orgs,
 			Projects:       project.NewService(pool),
 			Agents:         agents,
 			Inventory:      inventory.NewService(pool),
@@ -204,6 +205,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		UserAPI: &api.UserOptions{
 			Pool:             pool,
 			Accounts:         accounts,
+			Orgs:             orgs,
 			Search:           searcher,
 			Exports:          exports,
 			RateLimit:        cfg.UserAPI.RateLimit,

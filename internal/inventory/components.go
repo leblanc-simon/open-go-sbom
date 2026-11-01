@@ -62,7 +62,8 @@ type Usage struct {
 
 // ComponentUsage renvoie les références dont l'inventaire courant contient un composant
 // de base purlBase (toutes versions), du plus récent instantané au plus ancien
-// (UsageMax au plus). Références retirées et projets archivés exclus.
+// (UsageMax au plus). Références retirées, projets archivés et projets invisibles
+// (db.Visible) exclus.
 func ComponentUsage(ctx context.Context, tx *db.OrgTx, purlBase string) ([]Usage, error) {
 	rows, err := tx.QueryContext(ctx, `
 		SELECT c.id, c.version, c.purl, p.id, p.slug, p.name, p.kind, r.id, r.kind, r.name, i.origin, i.confidence, i.licenses,
@@ -73,7 +74,7 @@ func ComponentUsage(ctx context.Context, tx *db.OrgTx, purlBase string) ([]Usage
 		  JOIN tracked_refs r ON r.org_id = rc.org_id AND r.id = rc.ref_id AND r.removed_at IS NULL
 		  JOIN projects p ON p.org_id = r.org_id AND p.id = r.project_id AND p.archived_at IS NULL
 		  JOIN snapshots s ON s.org_id = rc.org_id AND s.id = rc.snapshot_id
-		 WHERE c.purl_base = $1
+		 WHERE c.purl_base = $1 AND lotor_team_visible(p.team_id)
 		 ORDER BY s.scanned_at DESC, p.name, r.name, c.version
 		 LIMIT `+strconv.Itoa(UsageMax), purlBase)
 	if err != nil {
@@ -100,14 +101,29 @@ func ComponentUsage(ctx context.Context, tx *db.OrgTx, purlBase string) ([]Usage
 	return out, wrap("usages d'un composant", rows.Err())
 }
 
-// Component renvoie le composant id et l'usage courant de sa famille (même purl_base).
-func (s *Service) Component(ctx context.Context, org tenant.OrgID, id uuid.UUID) (c Component, usage []Usage, err error) {
-	err = s.read(ctx, org, func(tx *db.OrgTx) error {
+// Component renvoie le composant id et l'usage courant de sa famille (même purl_base)
+// dans les projets visibles. Un composant qui n'a jamais figuré dans un instantané d'un
+// projet visible répond ErrNotFound : son nom ne se lit pas depuis une autre équipe.
+func (s *Service) Component(ctx context.Context, org tenant.OrgID, vis tenant.Visibility, id uuid.UUID) (c Component, usage []Usage, err error) {
+	err = s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
 		if c, err = GetComponent(ctx, tx, id); err != nil {
 			return err
 		}
+		if !vis.All() {
+			var seen bool
+			if err := tx.QueryRowContext(ctx, `SELECT EXISTS (
+				SELECT 1 FROM component_set_items i
+				  JOIN snapshots s ON s.org_id = i.org_id AND s.set_id = i.set_id
+				  JOIN projects p ON p.org_id = s.org_id AND p.id = s.project_id
+				 WHERE i.component_id = $1 AND lotor_team_visible(p.team_id))`, id).Scan(&seen); err != nil {
+				return wrap("visibilité d'un composant", err)
+			}
+			if !seen {
+				return ErrNotFound
+			}
+		}
 		usage, err = ComponentUsage(ctx, tx, c.PURLBase)
 		return err
-	})
+	}, db.ReadOnly(), db.Visible(vis))
 	return c, usage, err
 }

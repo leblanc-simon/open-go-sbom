@@ -7,6 +7,7 @@ import (
 	"errors"
 	"testing"
 
+	"leblanc.io/lotor/internal/tenant"
 	"leblanc.io/lotor/internal/vuln"
 )
 
@@ -56,26 +57,26 @@ func TestReads(t *testing.T) {
 	if err != nil || an[e.main].Matches != 2 || !an[e.main].Built.Equal(built1) {
 		t.Fatalf("analyses %+v, %v", an, err)
 	}
-	entry, rows, vc, err := s.Vulnerability(ctx, e.org, "GHSA-jfh8-c2jp-5v3q", StatusOpen)
+	entry, rows, vc, err := s.Vulnerability(ctx, e.org, tenant.AllTeams(), "GHSA-jfh8-c2jp-5v3q", StatusOpen)
 	if err != nil || entry.ID != "CVE-2021-44228" || len(rows) != 1 || vc.Open != 1 || vc.Projects != 1 || vc.Resolved != 0 {
 		t.Fatalf("fiche vulnérabilité : %+v %d %+v, %v", entry, len(rows), vc, err)
 	}
-	if _, _, _, err := s.Vulnerability(ctx, e.org, "CVE-0000-0000", StatusOpen); !errors.Is(err, vuln.ErrNotFound) {
+	if _, _, _, err := s.Vulnerability(ctx, e.org, tenant.AllTeams(), "CVE-0000-0000", StatusOpen); !errors.Is(err, vuln.ErrNotFound) {
 		t.Fatalf("vulnérabilité inconnue : %v", err)
 	}
-	comp, err := s.Component(ctx, e.org, "pkg:maven/org.apache.logging.log4j/log4j-core")
+	comp, err := s.Component(ctx, e.org, tenant.AllTeams(), "pkg:maven/org.apache.logging.log4j/log4j-core")
 	if err != nil || len(comp) != 1 {
 		t.Fatalf("famille du composant : %d, %v", len(comp), err)
 	}
 	// Une autre organisation ne voit rien de ces constats.
 	org2, _, _, _ := e.newOrg("autre")
-	if _, rows, _, err := s.Vulnerability(ctx, org2, "CVE-2021-44228", StatusOpen); err != nil || len(rows) != 0 {
+	if _, rows, _, err := s.Vulnerability(ctx, org2, tenant.AllTeams(), "CVE-2021-44228", StatusOpen); err != nil || len(rows) != 0 {
 		t.Fatalf("constats de A vus de B : %d, %v", len(rows), err)
 	}
 	if p, err := s.Project(ctx, org2, e.repo, Filter{}, "", 10); err != nil || len(p.Items) != 0 {
 		t.Fatalf("projet de A lu depuis B : %d, %v", len(p.Items), err)
 	}
-	if c, err := s.Component(ctx, org2, "pkg:maven/org.apache.logging.log4j/log4j-core"); err != nil || len(c) != 0 {
+	if c, err := s.Component(ctx, org2, tenant.AllTeams(), "pkg:maven/org.apache.logging.log4j/log4j-core"); err != nil || len(c) != 0 {
 		t.Fatalf("composants de A lus depuis B : %d, %v", len(c), err)
 	}
 }

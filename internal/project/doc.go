@@ -8,4 +8,8 @@
 // Pour l'API des agents, ListForAgent et RefForAgent travaillent dans la transaction
 // InOrg de l'appelant et ne voient que les projets actifs confiés à l'agent :
 // RefForAgent est le contrôle d'écriture d'un envoi (T05).
+//
+// Tout projet appartient à une équipe (TeamID, ADR 0034) : Get et List ne voient que les
+// projets des équipes visibles (db.Visible) ; SetTeam rattache un projet à une autre
+// équipe, et un agent d'équipe ne se confie qu'aux projets de son équipe.
 package project

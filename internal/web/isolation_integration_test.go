@@ -6,6 +6,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -50,7 +51,8 @@ func fill(pattern string, params map[string]string) string {
 // cause.
 var globalRoutes = []string{
 	"", "/login", "/login/2fa", "/logout", "/account", "/account/password", "/account/tokens",
-	"/account/tokens/{tokenID}/revoke",
+	"/account/tokens/{tokenID}/revoke", "/account/invitations", "/account/invitations/{invitationID}/accept",
+	"/account/invitations/{invitationID}/decline",
 	"/account/totp/setup", "/account/totp/enable", "/static/*", "/api/*", "/sitemap",
 }
 
@@ -165,7 +167,7 @@ func TestRolesInOrganization(t *testing.T) {
 	a := newApp(t)
 	admin, viewer, newcomer := a.user("admin@example.org", false), a.user("viewer@example.org", false), a.user("new@example.org", false)
 	o := a.org("org-a", admin)
-	a.addMember(o, viewer, tenant.RoleViewer)
+	a.addTeamMember(o, viewer, tenant.TeamReader)
 
 	v := a.signIn(viewer)
 	if p := v.get("/o/org-a/members"); p.status != http.StatusOK || !strings.Contains(p.body, admin.Email) {
@@ -191,13 +193,41 @@ func TestRolesInOrganization(t *testing.T) {
 	}
 
 	ad := a.signIn(admin)
+	// SEC-09 : l'invitation répond de même, que l'adresse ait un compte ou non.
+	known := ad.post("/o/org-a/members", url.Values{"email": {newcomer.Email}, "role": {"member"}})
+	unknown := ad.post("/o/org-a/members", url.Values{"email": {"absent@example.org"}, "role": {"member"}})
+	if known.status != http.StatusSeeOther || known.status != unknown.status || known.location != unknown.location ||
+		!strings.Contains(known.location, "member_invited") {
+		t.Fatalf("invitations : %d %q, %d %q", known.status, known.location, unknown.status, unknown.location)
+	}
+	if p := ad.get("/o/org-a/members"); !strings.Contains(p.body, "absent@example.org") || !strings.Contains(p.body, newcomer.Email) {
+		t.Errorf("invitations en attente absentes de la page des membres")
+	}
+	// Le compte invité n'est pas membre tant qu'il n'a pas accepté.
+	nb := a.signIn(newcomer)
+	if p := nb.get("/o/org-a"); p.status != http.StatusNotFound {
+		t.Fatalf("invité avant acceptation : %d", p.status)
+	}
+	inv := nb.get("/account/invitations")
+	m := regexp.MustCompile(`/account/invitations/([0-9a-f-]{36})/accept`).FindStringSubmatch(inv.body)
+	if m == nil || !strings.Contains(inv.body, "Org org-a") {
+		t.Fatalf("invitation absente de la page du compte :\n%s", inv.body)
+	}
+	if p := nb.post("/account/invitations/"+m[1]+"/accept", nil); p.status != http.StatusSeeOther || !strings.Contains(p.location, "invitation_accepted") {
+		t.Fatalf("acceptation : %d %q", p.status, p.location)
+	}
+	if p := nb.get("/o/org-a"); p.status != http.StatusOK {
+		t.Fatalf("membre après acceptation : %d", p.status)
+	}
+	if p := nb.post("/account/invitations/"+m[1]+"/accept", nil); p.status != http.StatusNotFound {
+		t.Errorf("seconde acceptation : %d", p.status)
+	}
 	steps := []struct {
 		path string
 		form url.Values
 		done string
 	}{
-		{"/o/org-a/members", url.Values{"email": {newcomer.Email}, "role": {"analyst"}}, "member_added"},
-		{"/o/org-a/members/" + itoa(newcomer.ID) + "/role", url.Values{"role": {"viewer"}}, "member_updated"},
+		{"/o/org-a/members/" + itoa(newcomer.ID) + "/role", url.Values{"role": {"admin"}}, "member_updated"},
 		{"/o/org-a/members/" + itoa(newcomer.ID) + "/remove", nil, "member_removed"},
 		{"/o/org-a/settings", url.Values{"name": {"Atelier Nord"}, "language": {"en"}}, "org_saved"},
 	}
@@ -210,9 +240,8 @@ func TestRolesInOrganization(t *testing.T) {
 	if p := ad.post("/o/org-a/members/"+itoa(admin.ID)+"/remove", nil); p.status != http.StatusUnprocessableEntity {
 		t.Errorf("retrait du dernier administrateur : %d", p.status)
 	}
-	if p := ad.post("/o/org-a/members", url.Values{"email": {"absent@example.org"}, "role": {"viewer"}}); p.status != http.StatusUnprocessableEntity ||
-		!strings.Contains(unescape(p.body), "No account uses") { // langue de l'organisation : en
-		t.Errorf("compte inconnu : %d", p.status)
+	if p := ad.post("/o/org-a/members", url.Values{"email": {"pas une adresse"}, "role": {"member"}}); p.status != http.StatusUnprocessableEntity {
+		t.Errorf("adresse invalide : %d", p.status)
 	}
 	// La langue de l'organisation s'applique à un membre sans préférence ni Accept-Language.
 	if p := ad.get("/o/org-a"); p.header.Get("Content-Language") != "en" || !strings.Contains(p.body, "Open findings") {
@@ -220,7 +249,8 @@ func TestRolesInOrganization(t *testing.T) {
 	}
 	auditPage := ad.get("/o/org-a/audit")
 	body := unescape(auditPage.body)
-	for _, want := range []string{"new@example.org added with the role analyst", "Role of new@example.org: analyst → viewer",
+	for _, want := range []string{"new@example.org invited with the role member", "absent@example.org invited with the role member",
+		"Invitation accepted by new@example.org (role member)", "Role of new@example.org: member → admin",
 		"new@example.org removed from the organization", "Organization renamed from “Org org-a” to “Atelier Nord”"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("journal de l'organisation sans « %s »", want)
@@ -238,21 +268,21 @@ func TestOrgResourcesOfAnotherOrganizationAnswer404(t *testing.T) {
 	alice, bob := a.user("alice@example.org", false), a.user("bob@example.org", false)
 	a.org("org-a", alice)
 	orgB := a.org("org-b", bob)
-	if _, err := a.projects.Create(ctx, audit.System, orgB.ID, project.Input{Kind: project.KindRepo, Name: "projet-b", Branches: []string{"main"}}); err != nil {
+	if _, err := a.projects.Create(ctx, audit.System, orgB.ID, a.inTeam(orgB.ID, project.Input{Kind: project.KindRepo, Name: "projet-b", Branches: []string{"main"}})); err != nil {
 		t.Fatal(err)
 	}
-	agB, _, err := a.agents.CreateRepoAgent(ctx, audit.System, orgB.ID, "ci-b", "initial", 90)
+	agB, _, err := a.agents.CreateRepoAgent(ctx, audit.System, orgB.ID, nil, "ci-b", "initial", 90)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := a.projects.AssignAgent(ctx, audit.System, orgB.ID, "projet-b", &agB.ID); err != nil {
 		t.Fatal(err)
 	}
-	agB, err = a.agents.Get(ctx, orgB.ID, agB.ID)
+	agB, err = a.agents.Get(ctx, orgB.ID, tenant.AllTeams(), agB.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	enrB, _, err := a.agents.CreateEnrollment(ctx, audit.System, orgB.ID, agent.EnrollmentInput{Name: "parc", LifetimeHours: 24, MaxUses: 1})
+	enrB, _, err := a.agents.CreateEnrollment(ctx, audit.System, orgB.ID, a.enrollTeam(orgB.ID, agent.EnrollmentInput{Name: "parc", LifetimeHours: 24, MaxUses: 1}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,15 +313,15 @@ func TestOrgResourcesOfAnotherOrganizationAnswer404(t *testing.T) {
 	if n < 11 {
 		t.Fatalf("%d routes de ressources parcourues", n)
 	}
-	got, err := a.agents.Get(ctx, orgB.ID, agB.ID)
+	got, err := a.agents.Get(ctx, orgB.ID, tenant.AllTeams(), agB.ID)
 	if err != nil || got.DisabledAt != nil || len(got.Tokens) != 1 || got.Tokens[0].RevokedAt != nil {
 		t.Fatalf("agent de B modifié : %+v %v", got, err)
 	}
-	pb, err := a.projects.Get(ctx, orgB.ID, "projet-b")
+	pb, err := a.projects.Get(ctx, orgB.ID, tenant.AllTeams(), "projet-b")
 	if err != nil || pb.ArchivedAt != nil || pb.Name != "projet-b" || pb.Agent == nil {
 		t.Fatalf("projet de B modifié : %+v %v", pb, err)
 	}
-	list, err := a.agents.Enrollments(ctx, orgB.ID)
+	list, err := a.agents.Enrollments(ctx, orgB.ID, tenant.AllTeams())
 	if err != nil || len(list) != 1 || list[0].RevokedAt != nil {
 		t.Fatalf("jeton d'inscription de B modifié : %+v %v", list, err)
 	}

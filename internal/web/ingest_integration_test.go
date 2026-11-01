@@ -142,11 +142,11 @@ func repoSetup(t *testing.T, a *app, slug string, admin user) repoFixture {
 	t.Helper()
 	ctx := context.Background()
 	o := a.org(slug, admin)
-	ag, tok, err := a.agents.CreateRepoAgent(ctx, audit.System, o.ID, "ci", "initial", 90)
+	ag, tok, err := a.agents.CreateRepoAgent(ctx, audit.System, o.ID, nil, "ci", "initial", 90)
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := a.projects.Create(ctx, audit.System, o.ID, project.Input{Kind: project.KindRepo, Name: "Portail client", Branches: []string{"main"}})
+	p, err := a.projects.Create(ctx, audit.System, o.ID, a.inTeam(o.ID, project.Input{Kind: project.KindRepo, Name: "Portail client", Branches: []string{"main"}}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +210,7 @@ func TestIngestionAPIErrors(t *testing.T) {
 	f, g := repoSetup(t, a, "org-a", admin), repoSetup(t, a, "org-b", a.user("b@example.org", false))
 	token, p, org := f.token, f.p, f.org.ID
 	otherToken, other := g.token, g.p
-	_, enr, err := a.agents.CreateEnrollment(context.Background(), audit.System, org, agent.EnrollmentInput{Name: "x", LifetimeHours: 24, MaxUses: 5})
+	_, enr, err := a.agents.CreateEnrollment(context.Background(), audit.System, org, a.enrollTeam(org, agent.EnrollmentInput{Name: "x", LifetimeHours: 24, MaxUses: 5}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -282,7 +282,7 @@ func TestSnapshotScreens(t *testing.T) {
 	admin, viewer := a.user("admin@example.org", false), a.user("viewer@example.org", false)
 	f := repoSetup(t, a, "org-a", admin)
 	token, p, org := f.token, f.p, f.org.ID
-	a.addMember(f.org, viewer, tenant.RoleViewer)
+	a.addTeamMember(f.org, viewer, tenant.TeamReader)
 	ctx := context.Background()
 	var snapshotID string
 	for i, name := range []string{"portail-client.cdx16.json", "portail-client-ia.cdx16.json", "nope"} {

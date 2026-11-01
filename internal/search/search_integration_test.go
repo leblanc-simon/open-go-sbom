@@ -13,6 +13,7 @@ import (
 
 	"leblanc.io/lotor/internal/finding"
 	"leblanc.io/lotor/internal/sbom"
+	"leblanc.io/lotor/internal/tenant"
 	"leblanc.io/lotor/internal/vuln"
 )
 
@@ -129,7 +130,7 @@ func TestSearchKnownDataset(t *testing.T) {
 			var paged []string
 			req := f.request("q=lodash&limit=1&sort=" + string(sort))
 			for range 10 {
-				res, err := f.search.Search(context.Background(), f.a, req)
+				res, err := f.search.Search(context.Background(), f.a, tenant.AllTeams(), req)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -150,7 +151,7 @@ func TestSearchKnownDataset(t *testing.T) {
 		res := f.run(f.a, "q=lodash&limit=1")
 		req := f.request("q=lodash&limit=1&sort=name")
 		req.Cursor = res.NextCursor
-		if _, err := f.search.Search(context.Background(), f.a, req); err == nil {
+		if _, err := f.search.Search(context.Background(), f.a, tenant.AllTeams(), req); err == nil {
 			t.Fatal("curseur d'un autre ordre accepté")
 		}
 	})
@@ -174,7 +175,7 @@ func TestSearchKnownDataset(t *testing.T) {
 	t.Run("export", func(t *testing.T) {
 		req := f.request("q=log4j-core")
 		var csvOut bytes.Buffer
-		if err := f.search.Export(context.Background(), f.a, req, FormatCSV, &csvOut); err != nil {
+		if err := f.search.Export(context.Background(), f.a, tenant.AllTeams(), req, FormatCSV, &csvOut); err != nil {
 			t.Fatal(err)
 		}
 		records, err := csv.NewReader(&csvOut).ReadAll()
@@ -186,7 +187,7 @@ func TestSearchKnownDataset(t *testing.T) {
 			t.Fatalf("lignes CSV : %v", records[1:])
 		}
 		var jsonOut bytes.Buffer
-		if err := f.search.Export(context.Background(), f.a, f.request("q=CVE-2021-44228"), FormatJSON, &jsonOut); err != nil {
+		if err := f.search.Export(context.Background(), f.a, tenant.AllTeams(), f.request("q=CVE-2021-44228"), FormatJSON, &jsonOut); err != nil {
 			t.Fatal(err)
 		}
 		var doc struct {
@@ -202,17 +203,17 @@ func TestSearchKnownDataset(t *testing.T) {
 			t.Fatalf("JSON : %+v", doc)
 		}
 		var empty bytes.Buffer
-		if err := f.search.Export(context.Background(), f.a, f.request("q=inexistant-zzz"), FormatJSON, &empty); err != nil ||
+		if err := f.search.Export(context.Background(), f.a, tenant.AllTeams(), f.request("q=inexistant-zzz"), FormatJSON, &empty); err != nil ||
 			!json.Valid(empty.Bytes()) {
 			t.Fatalf("export vide : %s, %v", empty.String(), err)
 		}
-		if err := f.search.Export(context.Background(), f.a, req, Format("xml"), &empty); err == nil {
+		if err := f.search.Export(context.Background(), f.a, tenant.AllTeams(), req, Format("xml"), &empty); err == nil {
 			t.Fatal("format inconnu accepté")
 		}
 	})
 
 	t.Run("étiquettes", func(t *testing.T) {
-		labels, err := f.search.Labels(context.Background(), f.a)
+		labels, err := f.search.Labels(context.Background(), f.a, tenant.AllTeams())
 		if err != nil || !slices.Equal(labels, []string{"env=dev", "env=prod", "exposé-internet"}) {
 			t.Fatalf("%v, %v", labels, err)
 		}

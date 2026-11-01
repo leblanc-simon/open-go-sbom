@@ -392,6 +392,21 @@ limite absolue de `login.session_max_age` (7 jours) depuis la connexion. Un jeto
 lié à la session : un formulaire affiché avant une connexion ou une déconnexion est refusé
 (« formulaire expiré », recharger la page).
 
+**Membres, équipes et invitations** (T16, ADR 0034). Le rôle d'organisation vaut
+membre ou administrateur ; les droits sur les projets viennent du rôle d'équipe (lecteur,
+analyste, administrateur d'équipe), selon la matrice
+[`security/permissions.md`](security/permissions.md). Un administrateur d'organisation
+**invite** une adresse (page des membres) : la réponse est la même que l'adresse ait un
+compte ou non, et le compte ne devient membre qu'en acceptant l'invitation
+(`/account/invitations`, 30 jours). Un compte qui n'existe pas encore peut être créé par
+l'administration de l'instance tant que l'invitation court. L'administration de
+l'instance ajoute aussi directement un administrateur à une organisation. **À la mise à
+jour vers la version des équipes**, la migration crée dans chaque organisation une équipe
+« Général » (« General » en anglais) qui reçoit tous les projets, jetons d'inscription et
+agents serveur, et dont chaque membre devient membre avec son ancien rôle (lecteur →
+lecteur, analyste → analyste, administrateur → administrateur d'équipe) : personne ne perd
+d'accès ; les agents dépôt deviennent des agents d'organisation.
+
 **Jetons personnels.** Leur création exige un code TOTP ; changer de mot de passe propose
 (case cochée) de les révoquer tous. Les sessions et défis expirés sont purgés toutes les
 heures (job `auth.purge`, instances à workers).

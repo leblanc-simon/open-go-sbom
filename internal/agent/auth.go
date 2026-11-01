@@ -167,11 +167,12 @@ type enrollmentRow struct {
 	uses      int
 	labels    project.Labels
 	projectID uuid.NullUUID
+	teamID    uuid.UUID
 	revoked   bool
 }
 
 func readEnrollment(ctx context.Context, tx *db.OrgTx, publicID string, lock bool) (uuid.UUID, enrollmentRow, error) {
-	query := `SELECT id, name, secret_hash, expires_at, max_uses, uses, labels, project_id, revoked_at IS NOT NULL
+	query := `SELECT id, name, secret_hash, expires_at, max_uses, uses, labels, project_id, team_id, revoked_at IS NOT NULL
 		FROM enrollment_tokens WHERE public_id = $1`
 	if lock {
 		query += ` FOR UPDATE`
@@ -180,7 +181,7 @@ func readEnrollment(ctx context.Context, tx *db.OrgTx, publicID string, lock boo
 	var r enrollmentRow
 	var labels []byte
 	err := tx.QueryRowContext(ctx, query, publicID).
-		Scan(&id, &r.name, &r.stored, &r.expires, &r.maxUses, &r.uses, &labels, &r.projectID, &r.revoked)
+		Scan(&id, &r.name, &r.stored, &r.expires, &r.maxUses, &r.uses, &labels, &r.projectID, &r.teamID, &r.revoked)
 	if errors.Is(err, sql.ErrNoRows) {
 		return uuid.UUID{}, enrollmentRow{}, errInvalid
 	}
@@ -274,7 +275,7 @@ func (s *Service) Enroll(ctx context.Context, p Principal, req EnrollRequest, ip
 			return err
 		}
 		now := s.Now()
-		if out.Agent, err = newAgent(ctx, tx, KindHost, host, req.Version, 0, &now); err != nil {
+		if out.Agent, err = newAgent(ctx, tx, KindHost, host, req.Version, 0, &now, &r.teamID); err != nil {
 			if v, ok := account.IsValidation(err); ok && v.Key == KeyNameTaken {
 				return &ConflictError{Key: KeyHostTaken}
 			}
@@ -282,6 +283,15 @@ func (s *Service) Enroll(ctx context.Context, p Principal, req EnrollRequest, ip
 		}
 		if out.Project, out.Created, err = hostProject(ctx, tx, r, host, out.Agent.ID); err != nil {
 			return err
+		}
+		// L'agent suit l'équipe de son hôte : celle du jeton pour un projet créé, celle du
+		// projet rattaché sinon.
+		if !out.Created {
+			if err := tx.QueryRowContext(ctx, `UPDATE agents a SET team_id = p.team_id FROM projects p
+				 WHERE a.id = $1 AND p.id = $2 RETURNING p.team_id`, out.Agent.ID, out.Project.ID).Scan(&out.Project.TeamID); err != nil {
+				return err
+			}
+			out.Agent.TeamID = &out.Project.TeamID
 		}
 		var t Token
 		if t, out.Token, err = insertToken(ctx, tx, out.Agent.ID, r.name, nil, 0); err != nil {
@@ -292,7 +302,8 @@ func (s *Service) Enroll(ctx context.Context, p Principal, req EnrollRequest, ip
 		}
 		if out.Created {
 			if err := audit.RecordOrg(ctx, tx, actor, audit.Event{Action: audit.ProjectCreated, TargetType: "project",
-				TargetID: out.Project.ID.String(), TargetLabel: out.Project.Slug, Details: map[string]string{"kind": string(project.KindHost)}}); err != nil {
+				TargetID: out.Project.ID.String(), TargetLabel: out.Project.Slug,
+				Details: map[string]string{"kind": string(project.KindHost), "team": out.Project.TeamName}}); err != nil {
 				return err
 			}
 		}
@@ -325,7 +336,7 @@ func hostProject(ctx context.Context, tx *db.OrgTx, r enrollmentRow, host string
 	err := tx.QueryRowContext(ctx, query, arg).Scan(&pid, &slug, &archived, &assigned)
 	switch {
 	case errors.Is(err, sql.ErrNoRows) && !r.projectID.Valid:
-		p, err := project.CreateHost(ctx, tx, host, r.labels, agentID)
+		p, err := project.CreateHost(ctx, tx, host, r.labels, agentID, r.teamID)
 		if v, ok := account.IsValidation(err); ok && v.Key == project.KeyHostRefTaken {
 			return project.Project{}, false, &ConflictError{Key: KeyHostTaken}
 		}

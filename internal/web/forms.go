@@ -42,6 +42,18 @@ var flashes = map[string]string{
 	"org_unarchived":   "flash.org_unarchived",
 	"account_updated":  "flash.account_updated",
 
+	"member_invited":       "flash.member_invited",
+	"invitation_revoked":   "flash.invitation_revoked",
+	"invitation_accepted":  "flash.invitation_accepted",
+	"invitation_declined":  "flash.invitation_declined",
+	"team_created":         "flash.team_created",
+	"team_renamed":         "flash.team_renamed",
+	"team_deleted":         "flash.team_deleted",
+	"team_member_added":    "flash.team_member_added",
+	"team_member_updated":  "flash.team_member_updated",
+	"team_member_removed":  "flash.team_member_removed",
+	"project_team_changed": "flash.project_team_changed",
+
 	"project_created":     "flash.project_created",
 	"project_saved":       "flash.project_saved",
 	"project_archived":    "flash.project_archived",

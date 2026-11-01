@@ -59,9 +59,9 @@ internal/
   jobs/                  # file de traitements PostgreSQL + planificateur
   secret/                # chiffrement des secrets stockés (AES-256-GCM, clés versionnées)
   audit/                 # journal d'audit
-  tenant/                # type OrgID, contexte, garde d'organisation
+  tenant/                # type OrgID, contexte, rôles, matrice des droits, visibilité d'équipe
   account/               # comptes (écriture dans users), méthode d'authentification, rendu
-  org/                   # organisations, appartenances, rôles (+ équipes en T16)
+  org/                   # organisations, membres, équipes, invitations, accès d'une requête
   project/               # projets, références suivies, hiérarchie hôte/conteneurs
   agent/                 # agents, jetons d'inscription et d'agent, signaux de vie
   token/                 # format des jetons (agt, enr, pat), tirage, lecture, empreinte
@@ -264,10 +264,11 @@ Données **par organisation** (toutes portent `org_id`) :
 
 | Table | Contenu |
 | --- | --- |
-| `organizations`, `org_memberships` | organisation (slug, nom, langue par défaut) ; compte × organisation × rôle |
-| `projects` | type (`repo`, `host`, `container`), nom, slug, étiquettes, `parent_id` (T13), équipe (T16), archivage |
+| `organizations`, `org_memberships` | organisation (slug, nom, langue par défaut) ; compte × organisation × rôle (`member`, `admin`) |
+| `teams`, `team_members`, `org_invitations` | équipes ; membre de l'organisation × équipe × rôle d'équipe (`reader`, `analyst`, `admin`) ; invitations à rejoindre l'organisation (T16, ADR 0034) |
+| `projects` | type (`repo`, `host`, `container`), nom, slug, étiquettes, `parent_id` (T13), équipe (obligatoire, T16), archivage |
 | `tracked_refs` | référence suivie (branche, tag, ou l'hôte) |
-| `agents`, `agent_tokens`, `enrollment_tokens` | agents et jetons hachés ; pour un agent serveur, demande de scan en attente et dernier contexte d'hôte (T07) |
+| `agents`, `agent_tokens`, `enrollment_tokens` | agents (équipe facultative : sans équipe, agent d'organisation) et jetons hachés ; jeton d'inscription rattaché à une équipe, dont héritent projet et agent inscrits ; pour un agent serveur, demande de scan en attente et dernier contexte d'hôte (T07) |
 | `components` | composant de l'organisation : purl canonique (unique par organisation), `purl_base`, type, nom, version, CPE, empreintes |
 | `component_sets`, `component_set_items` | ensemble d'inventaire adressé par son empreinte ; ses composants avec origine (`syft`, `ia`), confiance, modèle, preuve, portée, licences, identification faible |
 | `sbom_blobs` | SBOM brut compressé, dédoublonné par empreinte SHA-256 |
@@ -277,7 +278,7 @@ Données **par organisation** (toutes portent `org_id`) :
 | `findings`, `finding_events` | constat (référence × composant × vulnérabilité) : première et dernière détection, résolution et motif, risque, base ; historique (ouvert, résolu, rouvert) |
 | `ref_analyses` | dernière analyse de chaque référence : ensemble et base analysés |
 | `audit_events`, `org_daily_stats`, `project_daily_stats` | journal d'audit ; statistiques quotidiennes de l'organisation et de chaque projet actif (une ligne par jour UTC, réécrite à chaque passage horaire, ADR 0027) |
-| `triage_decisions`, `policies`, `notification_channels`, `teams`… | lots 2 et 3 |
+| `triage_decisions`, `policies`, `notification_channels`… | lots 2 et 3 |
 
 Les **ensembles d'inventaire** sont adressés par contenu : deux instantanés au même
 inventaire partagent le même ensemble. Un nouveau commit sans changement de dépendances
@@ -327,7 +328,20 @@ rétention supprime les ensembles orphelins.
   qui donnent l'organisation d'un jeton présenté à l'API des agents ; 0024 :
   `lotor_search_component_names`, `lotor_search_component_hashes`, qui ne sortent pas
   de l'organisation déclarée par `InOrg` mais contournent la RLS pour servir les index de
-  recherche, § 13), et tout ajout est relu comme un changement de sécurité.
+  recherche, § 13 ; 0034 : `lotor_user_invitations`, les invitations en attente adressées
+  à l'e-mail d'un compte), et tout ajout est relu comme un changement de sécurité.
+
+### Équipes : filtre de visibilité à l'intérieur d'une organisation
+
+- Tout projet appartient à une équipe. Un membre ne voit que les projets de ses équipes ;
+  un administrateur d'organisation voit tout (ADR 0034).
+- Une lecture pour un compte ouvre `InOrg` avec `db.Visible(tenant.Visibility)`, qui
+  déclare les équipes visibles dans `lotor.teams` (« * » ou un tableau d'uuid), et filtre
+  par la fonction SQL `lotor_team_visible(team_id)`. Sans déclaration, la fonction
+  échoue : un filtre oublié ne montre jamais tous les projets.
+- Ce filtre ne remplace pas la RLS : il s'applique à l'intérieur de l'organisation
+  déclarée. Une ressource d'une équipe invisible répond 404, comme une ressource d'une
+  autre organisation.
 - La RLS s'ajoute aux autres protections sans les remplacer : PostgreSQL ne l'applique pas
   aux contrôles de clés étrangères (d'où les clés composites), et `tenant.OrgID` garde des
   erreurs claires et des plans de requête prévisibles.
@@ -382,10 +396,18 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
 - Secrets TOTP chiffrés en base par `internal/secret` (enveloppe du store de mfax),
   rechiffrés par la clé active au démarrage (ADR 0013).
 - Pas d'envoi de courriel avant T15 : les comptes sont créés avec un mot de passe temporaire.
-- Rôles d'organisation : `viewer`, `analyst` (trie les constats), `admin`. En T16
-  (décision du 1er novembre 2026), le rôle d'organisation devient membre ou
-  administrateur (qui voit tout) et les droits sur les projets viennent du rôle d'équipe
-  (lecteur, analyste, administrateur) ; l'existant passe dans une équipe « Général ».
+- Rôles (T16, décision du 1er novembre 2026, ADR 0034) : le rôle d'organisation vaut
+  `member` ou `admin` (qui voit et gère tout) ; les droits sur un projet, un agent ou une
+  équipe viennent du rôle dans l'équipe de la ressource : `reader` (consulte), `analyst`
+  (trie les constats, demande un scan), `admin` (gère les projets, les agents, les jetons
+  d'inscription et les membres de l'équipe). Créer, renommer ou supprimer une équipe,
+  inviter ou retirer un membre, les paramètres et le journal de l'organisation restent à
+  ses administrateurs. La matrice est la source unique des contrôles, du document
+  `docs/security/permissions.md` et des tests par route (`tenant.Matrix`, table
+  `orgRoutes` de `internal/web`). L'existant est passé dans une équipe « Général ».
+- Un compte devient membre d'une organisation en **acceptant une invitation** (30 jours ;
+  réponse identique que le compte existe ou non, SEC-09) ; seul l'administrateur de
+  l'instance ajoute directement un membre.
 - Jetons : préfixés par leur nature (`lotor_agt_`, `lotor_enr_`, `lotor_pat_`), puis un
   identifiant public (128 bits) et un secret de 256 bits, en base32 minuscule séparés par
   `_`. Seul le SHA-256 du secret est stocké ; comparaison en temps constant ; révocation
@@ -393,7 +415,8 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
   d'un jeton d'agent est résolue par `crossorg`, le reste vérifié dans `InOrg` (ADR 0014).
   Un jeton personnel appartient au compte (table globale) : lecture seule, valable dans
   les organisations dont son propriétaire est membre au moment de chaque requête
-  (`crossorg.Access`), 7 jours à 1 an, 20 actifs au plus (ADR 0025) ; création soumise à
+  (`crossorg.Access`), avec ses rôles d'équipe du moment (ADR 0034), 7 jours à 1 an,
+  20 actifs au plus (ADR 0025) ; création soumise à
   un code TOTP (`mfax.Service.Confirm`), révocation d'office à la réinitialisation ou au
   changement des identifiants, refus pour un compte en attente (ADR 0029).
 - Agents : un projet est confié à au plus un agent de même nature (clé étrangère
@@ -501,7 +524,7 @@ qu'aucune mesure ne la justifie (ADR 0015).
   l'écosystème. Une recherche approchée par nom n'accepte pas de plage.
 - Exécution sur `ref_current` + `component_set_items` + `components` (+ `findings` pour la
   pire vulnérabilité, ou pour une recherche par vulnérabilité), filtrée par organisation
-  (et par équipe après T16). Résultats groupés par projet, paginés par curseur sur les
+  (RLS) et par équipe (`lotor_team_visible`, ADR 0034). Résultats groupés par projet, paginés par curseur sur les
   projets (risque, nom ou instantané), exportables en CSV et JSON en flux ; mêmes
   paramètres d'URL pour l'écran et l'API (`search.Request`).
 - La RLS ajoute le filtre d'organisation à chaque requête, et un opérateur non
@@ -529,7 +552,9 @@ qu'aucune mesure ne la justifie (ADR 0015).
   - interface : identifiant de requête → limitation par IP → journalisation → récupération
     de panique → en-têtes de sécurité → session (authx) → changement de mot de passe imposé
     → protection inter-origines → CSRF (csrfx, jeton lié à la session) → langue →
-    organisation courante → handler ;
+    organisation courante (rôles d'équipe compris) → droit de la route (table
+    `orgRoutes` : permission et ressource qui porte l'équipe ; 404 pour une ressource
+    invisible, 403 pour un droit manquant) → handler ;
   - API agent (`/api/v1/agent/`) : jeton d'agent, limitation par jeton, pas de session ni
     de CSRF ;
   - API utilisateur (`/api/v1/orgs/{org}/`) : jeton personnel sans CSRF, garde
@@ -701,7 +726,7 @@ qu'aucune mesure ne la justifie (ADR 0015).
   (injection d'instructions).
 - L'accès à la socket d'un moteur de conteneurs équivaut à root : désactivé par défaut,
   documenté comme tel.
-- Journal d'audit : connexions et échecs, comptes et rôles, jetons, organisations, équipes,
+- Journal d'audit : connexions et échecs, comptes et rôles, invitations, jetons, organisations, équipes et leurs membres, rattachement des projets,
   décisions de triage, politiques, canaux, paramètres d'organisation. **En ajout seul**
   pour le rôle d'exécution (ni `UPDATE`, ni `DELETE`, ni `TRUNCATE`, vérifié au
   démarrage), qui n'a pas non plus de droit `CREATE` (ADR 0030).

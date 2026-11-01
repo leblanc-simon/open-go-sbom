@@ -49,13 +49,20 @@ func day(t time.Time) time.Time {
 	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 }
 
-// scope restreint les lectures à l'organisation entière (project nul) ou à un projet.
-type scope struct{ project uuid.UUID }
+// scope restreint les lectures aux projets visibles de l'organisation (project nul) ou à
+// un projet. Dans le premier cas, les équipes visibles sont déclarées à la transaction
+// (db.Visible) et filtrées par lotor_team_visible ; all indique qu'elles le sont toutes,
+// ce qui permet de lire les statistiques de l'organisation plutôt que d'additionner
+// celles des projets.
+type scope struct {
+	project uuid.UUID
+	all     bool
+}
 
 func (s scope) org() bool { return s.project == uuid.Nil }
 
 // openWhere sélectionne les constats ouverts des références actives : des projets actifs
-// pour l'organisation, du projet demandé sinon (projets joints en p dans les deux cas). Le paramètre $1 porte la portée dans les
+// et visibles pour l'organisation, du projet demandé sinon (projets joints en p dans les deux cas). Le paramètre $1 porte la portée dans les
 // deux cas (NULL pour l'organisation), pour que les requêtes numérotent leurs paramètres
 // de la même façon. joins s'ajoute aux jointures (composants…).
 func (s scope) openWhere(joins string) string {
@@ -63,7 +70,8 @@ func (s scope) openWhere(joins string) string {
 		return ` FROM findings f
 		  JOIN tracked_refs r ON r.org_id = f.org_id AND r.id = f.ref_id
 		  JOIN projects p ON p.org_id = f.org_id AND p.id = f.project_id` + joins + `
-		 WHERE f.status = 'open' AND r.removed_at IS NULL AND p.archived_at IS NULL AND $1::uuid IS NULL`
+		 WHERE f.status = 'open' AND r.removed_at IS NULL AND p.archived_at IS NULL AND $1::uuid IS NULL
+		   AND lotor_team_visible(p.team_id)`
 	}
 	return ` FROM findings f
 	  JOIN tracked_refs r ON r.org_id = f.org_id AND r.id = f.ref_id
@@ -165,7 +173,7 @@ func fixTimes(ctx context.Context, tx *db.OrgTx, sc scope, from, to time.Time) (
 		  FROM findings f`
 	if sc.org() {
 		query += ` JOIN projects p ON p.org_id = f.org_id AND p.id = f.project_id
-		 WHERE p.archived_at IS NULL AND $1::uuid IS NULL`
+		 WHERE p.archived_at IS NULL AND $1::uuid IS NULL AND lotor_team_visible(p.team_id)`
 	} else {
 		query += ` WHERE f.project_id = $1`
 	}
@@ -193,15 +201,24 @@ func seconds(s float64) time.Duration {
 }
 
 // series lit les statistiques enregistrées de la portée dans [from, to), un jour sur step
-// en remontant depuis to.
+// en remontant depuis to. Pour une partie seulement des équipes, la série additionne les
+// statistiques des projets visibles (rattachés à leur équipe actuelle).
 func series(ctx context.Context, tx *db.OrgTx, sc scope, from, to time.Time, step int) ([]Point, error) {
-	table, cond := "org_daily_stats", "$1::uuid IS NULL"
-	if !sc.org() {
-		table, cond = "project_daily_stats", "project_id = $1"
+	query := `SELECT day, open_critical, open_high, open_medium, open_low, open_negligible, open_unknown, open_kev
+		  FROM org_daily_stats WHERE $1::uuid IS NULL AND day >= $2 AND day < $3 AND ($3::date - day) % $4 = 0 ORDER BY day`
+	switch {
+	case !sc.org():
+		query = `SELECT day, open_critical, open_high, open_medium, open_low, open_negligible, open_unknown, open_kev
+		  FROM project_daily_stats WHERE project_id = $1 AND day >= $2 AND day < $3 AND ($3::date - day) % $4 = 0 ORDER BY day`
+	case !sc.all:
+		query = `SELECT s.day, sum(s.open_critical), sum(s.open_high), sum(s.open_medium), sum(s.open_low),
+		       sum(s.open_negligible), sum(s.open_unknown), sum(s.open_kev)
+		  FROM project_daily_stats s JOIN projects p ON p.org_id = s.org_id AND p.id = s.project_id
+		 WHERE $1::uuid IS NULL AND lotor_team_visible(p.team_id)
+		   AND s.day >= $2 AND s.day < $3 AND ($3::date - s.day) % $4 = 0
+		 GROUP BY s.day ORDER BY s.day`
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT day, open_critical, open_high, open_medium, open_low, open_negligible,
-		open_unknown, open_kev FROM `+table+` WHERE `+cond+` AND day >= $2 AND day < $3 AND ($3::date - day) % $4 = 0
-		ORDER BY day`, sc.arg(), from, to, step)
+	rows, err := tx.QueryContext(ctx, query, sc.arg(), from, to, step)
 	if err != nil {
 		return nil, wrap("série", err)
 	}
@@ -226,7 +243,8 @@ func series(ctx context.Context, tx *db.OrgTx, sc scope, from, to time.Time, ste
 // lastAnalysis renvoie la dernière analyse d'une référence de la portée.
 func lastAnalysis(ctx context.Context, tx *db.OrgTx, sc scope) (*time.Time, error) {
 	var t sql.NullTime
-	query := `SELECT max(analyzed_at) FROM ref_analyses WHERE $1::uuid IS NULL`
+	query := `SELECT max(a.analyzed_at) FROM ref_analyses a JOIN projects p ON p.org_id = a.org_id AND p.id = a.project_id
+		WHERE $1::uuid IS NULL AND lotor_team_visible(p.team_id)`
 	if !sc.org() {
 		query = `SELECT max(analyzed_at) FROM ref_analyses WHERE project_id = $1`
 	}
@@ -288,14 +306,15 @@ func (s *Service) Project(ctx context.Context, org tenant.OrgID, projectID uuid.
 	return out, err
 }
 
-// Org renvoie le tableau de bord d'une organisation.
-func (s *Service) Org(ctx context.Context, org tenant.OrgID, period Period) (Org, error) {
+// Org renvoie le tableau de bord d'une organisation, limité aux projets et agents des
+// équipes visibles.
+func (s *Service) Org(ctx context.Context, org tenant.OrgID, vis tenant.Visibility, period Period) (Org, error) {
 	var out Org
-	err := s.read(ctx, org, func(tx *db.OrgTx) error {
+	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
 		now := s.Now()
 		var err error
 		var projects []ExposedProject
-		if out.Summary, projects, err = summary(ctx, tx, scope{}, now, period); err != nil {
+		if out.Summary, projects, err = summary(ctx, tx, scope{all: vis.All()}, now, period); err != nil {
 			return err
 		}
 		out.Exposed = projects[:min(len(projects), TopN)]
@@ -305,15 +324,16 @@ func (s *Service) Org(ctx context.Context, org tenant.OrgID, period Period) (Org
 		if out.Widespread, err = widespread(ctx, tx); err != nil {
 			return err
 		}
-		out.SilentAgents, out.Silent, err = agent.Silent(ctx, tx, now, TopN)
+		out.SilentAgents, out.Silent, err = agent.Silent(ctx, tx, now, TopN, true)
 		return err
-	})
+	}, db.ReadOnly(), db.Isolation(sql.LevelRepeatableRead), db.Visible(vis))
 	return out, err
 }
 
-// projectKinds compte les projets actifs par nature.
+// projectKinds compte les projets actifs et visibles par nature.
 func projectKinds(ctx context.Context, tx *db.OrgTx) (map[project.Kind]int, error) {
-	rows, err := tx.QueryContext(ctx, `SELECT kind, count(*) FROM projects WHERE archived_at IS NULL GROUP BY kind`)
+	rows, err := tx.QueryContext(ctx, `SELECT kind, count(*) FROM projects WHERE archived_at IS NULL
+		AND lotor_team_visible(team_id) GROUP BY kind`)
 	if err != nil {
 		return nil, wrap("projets", err)
 	}

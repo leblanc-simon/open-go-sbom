@@ -28,6 +28,8 @@ nav:
   admin_orgs: Organizations
   projects: Projects
   agents: Agents
+  teams: "Teams"
+  invitations: "Invitations"
 
 org_switcher:
   caption: Organization
@@ -43,8 +45,7 @@ theme:
   dark: "Theme: dark"
 
 role:
-  viewer: Viewer
-  analyst: Analyst
+  member: Member
   admin: Administrator
 
 status:
@@ -92,6 +93,17 @@ flash:
   job_discarded: The job is discarded and removed from the queue.
   vulndb_import_queued: "Archive received: a worker instance verifies and installs it, which takes several minutes."
   vulndb_purged: The archives that are not the target are deleted.
+  member_invited: "Invitation recorded: the account will see it among its invitations and can accept it."
+  invitation_revoked: "Invitation revoked."
+  invitation_accepted: "Invitation accepted: you are a member of the organization."
+  invitation_declined: "Invitation declined."
+  team_created: "Team created."
+  team_renamed: "Team renamed."
+  team_deleted: "Team deleted."
+  team_member_added: "Member added to the team."
+  team_member_updated: "Team role changed."
+  team_member_removed: "Member removed from the team."
+  project_team_changed: "Project moved to its new team."
 
 table:
   actions: Actions
@@ -154,6 +166,18 @@ validation:
     ref: Give a project assigned to the agent and a reference (branch, tag or host).
     agent_version: The agent version has at most 64 characters, without spaces.
     scanned_at: "The scan date is required, after the year 2000, and at most one hour ahead of the server clock."
+  team_name_invalid: "The team name must have 1 to 100 characters."
+  team_name_taken: "A team already has this name in the organization."
+  team_has_projects: "This team still has projects: move them to another team first."
+  team_limit: "The organization has reached the maximum number of teams."
+  team_role_invalid: "Unknown team role."
+  team_member_exists: "This member already belongs to the team."
+  team_member_not_org_member: "This address is not that of a member of the organization: invite the account from the members page first."
+  invitation_limit: "The organization has reached the maximum number of pending invitations: revoke some before inviting."
+  invitation_unknown: "This invitation no longer exists or has expired."
+  project_team_invalid: "Choose a team in which you can act."
+  agent_team_invalid: "Choose a team in which you can manage agents."
+  enrollment_team_mismatch: "The server project to attach belongs to a team other than the token's."
 
 home:
   title: Home
@@ -166,8 +190,9 @@ home:
   no_org_title: No organization
   no_org_text: >-
     Your account is not a member of any organization. Ask an administrator of the
-    organization to add you.
+    organization to invite you, then accept the invitation.
   create_org: Create an organization
+  invitations: "See my invitations"
 
 login:
   title: Sign in
@@ -312,7 +337,7 @@ dashboard:
 members:
   title: Members
   heading: Organization members
-  lead: Members see the organization's data according to their role; only its administrators manage them.
+  lead: Members see the projects of their teams, according to their team role; organization administrators see and manage everything.
   add_title: Add a member
   email: E-mail address
   role: Role
@@ -324,6 +349,16 @@ members:
   role_of: "Role of {{.Email}}"
   change_role: Change role
   remove: Remove
+  invite_title: "Invite an account"
+  invite: "Invite"
+  invite_hint: "The account joins the organization by accepting the invitation, valid for 30 days. Nothing here tells whether the address already has an account: an instance administrator creates it if needed."
+  invitations_title: "Pending invitations"
+  invited_by: "Invited by"
+  invited_by_unknown: "unknown"
+  invited_on: "Sent on"
+  invitation_expires: "Expires on"
+  invitation_expired: "Expired"
+  invitation_revoke: "Revoke"
 
 org_settings:
   title: Organization settings
@@ -388,6 +423,17 @@ audit:
     vulndb_imported: "Vulnerability database imported ({{.Target}}, built {{.D_built}})"
     vulndb_import_failed: "Vulnerability database import rejected ({{.Target}}): {{.D_error}}"
     vulndb_archives_purged: "Vulnerability database archives purged: {{.D_archives}}"
+    member_invited: "{{.Target}} invited with the role {{.D_role}}"
+    invitation_revoked: "Invitation of {{.Target}} revoked"
+    invitation_accepted: "Invitation accepted by {{.Target}} (role {{.D_role}})"
+    invitation_declined: "Invitation declined by {{.Target}}"
+    team_created: "Team {{.Target}} created"
+    team_renamed: "Team renamed from “{{.D_from}}” to “{{.D_to}}”"
+    team_deleted: "Team {{.Target}} deleted"
+    team_member_added: "{{.Target}} added to the team {{.D_team}} with the role {{.D_role}}"
+    team_member_role_changed: "Role of {{.Target}} in the team {{.D_team}}: {{.D_from}} → {{.D_to}}"
+    team_member_removed: "{{.Target}} removed from the team {{.D_team}}"
+    project_team_changed: "Project {{.Target}} moved to the team {{.D_to}} (formerly {{.D_from}})"
 
 admin:
   vulndb_missing_title: No vulnerability database
@@ -688,6 +734,8 @@ projects:
   no_labels: None
   empty: No project matches. Create a repository, or enroll a server with an enrollment token.
   empty_archived: No archived project matches.
+  filter_team: "Team"
+  col_team: "Team"
 
 project:
   tab_findings: Findings
@@ -716,6 +764,7 @@ project:
   no_agent: No agent
   assign_agent: Repository agent in charge of this repository
   enroll_this_host: Enroll this server
+  team: "Team"
 
 project_new:
   title: New project
@@ -732,6 +781,9 @@ project_settings:
   archive: Archive the project
   unarchive_text: Once unarchived, the project is offered to its agent again.
   unarchive: Unarchive the project
+  team_title: "Project team"
+  team_text: "The project belongs to the team {{.Team}}. Moving it to another team changes who sees it; a repository assigned to an agent of another team loses it."
+  team_submit: "Move"
 
 project_form:
   kind: Project type
@@ -751,6 +803,8 @@ project_form:
   host_ref: Host name
   host_ref_hint: The name the agent announces when enrolling; it identifies the host within the organization.
   create: Create the project
+  team: "Team"
+  team_hint: "The team whose members will see the project and manage it according to their role."
 
 agents:
   title: Agents
@@ -785,6 +839,8 @@ agents:
   expiry_365: 1 year
   expiry_0: No expiry
   expiry_none: No expiry
+  col_team: "Team"
+  org_wide: "Organization (all teams)"
 
 agent:
   title: "Agent {{.Name}}"
@@ -804,6 +860,7 @@ agent:
   disable_title: Disabling
   disable_text: Its tokens are revoked and its projects taken away; a server can enroll again.
   disable: Disable the agent
+  team_value: "Team {{.Team}}"
 
 agent_new:
   title: New repository agent
@@ -814,6 +871,8 @@ agent_new:
   name_hint: For instance the instance that hosts it.
   token_name: Name of the first token
   create: Create the agent
+  org_wide: "None: organization agent"
+  team_hint: "A team agent is managed by the team administrators and only serves its projects; an organization agent serves every team."
 
 token_created:
   title: Token created
@@ -857,6 +916,7 @@ enrollment_new:
   project_hint: An existing server project without an agent, or a project created for each host.
   labels_hint: "Applied to the projects created on enrollment: env=prod, dc=paris."
   create: Create the token
+  team_hint: "Projects created at enrollment and enrolled agents will belong to this team."
 
 ref_kind:
   branch: Branch
@@ -1395,3 +1455,64 @@ confirm:
   reset_totp_text: "Codes from the current authenticator app are no longer accepted, the password is replaced by a temporary one (shown only once, to pass on to its holder), the sessions of the account are closed and its personal access tokens revoked. Its holder sets up a new TOTP, then changes the password at the next sign-in."
   job_heading: "Discard the job {{.Kind}}?"
   job_text: "The job and its last error are deleted (attempts: {{.Attempts}}); it will not run again. For it to run again, the data that queued it must be produced again."
+  invitation_heading: "Revoke the invitation of {{.Email}}?"
+  invitation_text: "{{.Email}} will no longer be able to join {{.Org}} with this invitation. A new invitation remains possible."
+  invitation_submit: "Revoke the invitation"
+  team_heading: "Delete the team {{.Name}}?"
+  team_text: "Its members leave it, its agents become organization agents and its enrollment tokens are deleted. A team that still has projects cannot be deleted."
+  team_submit: "Delete the team"
+  team_member_heading: "Remove {{.Email}} from the team {{.Team}}?"
+  team_member_text: "{{.Email}} will no longer see the projects of the team {{.Team}}, unless through another of their teams. They remain a member of the organization."
+  team_member_submit: "Remove from the team"
+  decline_heading: "Decline the invitation of {{.Org}}?"
+  decline_text: "The invitation is deleted: only a new invitation from an administrator of {{.Org}} would let you join it."
+  decline_submit: "Decline the invitation"
+
+team_role:
+  reader: "Reader"
+  analyst: "Analyst"
+  admin: "Team administrator"
+
+invitations:
+  title: "Invitations"
+  heading: "Invitations"
+  lead: "The organizations inviting you to join them. You only become a member by accepting."
+  list_title: "Pending invitations"
+  col_org: "Organization"
+  accept: "Accept"
+  decline: "Decline"
+  empty: "No pending invitation."
+
+teams:
+  title: "Teams"
+  heading: "Teams"
+  lead: "Every project belongs to a team; a member sees the projects of their teams, with the rights of their team role."
+  create_title: "Create a team"
+  name: "Team name"
+  create: "Create"
+  list_title: "List of teams"
+  col_your_role: "Your role"
+  col_members: "Members"
+  col_projects: "Active projects"
+  not_member: "not a member"
+  empty: "No visible team: an organization administrator must add you to a team."
+
+team:
+  title: "Team {{.Name}}"
+  members_count:
+    one: "{{.Count}} member"
+    other: "{{.Count}} members"
+  projects_count:
+    one: "{{.Count}} active project"
+    other: "{{.Count}} active projects"
+  add_title: "Add a member to the team"
+  role: "Team role"
+  role_of: "Team role of {{.Email}}"
+  add: "Add"
+  add_hint: "Only a member of the organization can join a team."
+  members_title: "Team members"
+  no_members: "No member in this team."
+  settings_title: "Team settings"
+  rename: "Rename"
+  delete_text: "A team can only be deleted once all its projects have been moved to another team."
+  delete: "Delete the team"

@@ -19,14 +19,19 @@ const silentPage = 500
 // d'agents muets à l'instant now, avec les keep plus longtemps silencieux (dernier contact
 // le plus ancien d'abord). L'état est celui de Agent.StateAt, la règle des écrans des
 // agents : le tableau de bord ne la recalcule pas. Lecture par pages, mémoire bornée par
-// keep.
-func Silent(ctx context.Context, tx *db.OrgTx, now time.Time, keep int) (int, []Agent, error) {
+// keep. visible restreint aux agents des équipes déclarées par db.Visible (tableau de bord
+// d'un compte) ; sans lui, tous les agents de l'organisation (statistiques quotidiennes).
+func Silent(ctx context.Context, tx *db.OrgTx, now time.Time, keep int, visible bool) (int, []Agent, error) {
+	filter := ""
+	if visible {
+		filter = " AND lotor_team_visible(a.team_id)"
+	}
 	count := 0
 	var longest []Agent
 	after := uuid.Nil
 	for {
 		rows, err := tx.QueryContext(ctx, `SELECT `+agentColumns+` FROM agents a
-			 WHERE a.disabled_at IS NULL AND a.id > $2 ORDER BY a.id LIMIT $3`, now, after, silentPage)
+			 WHERE a.disabled_at IS NULL AND a.id > $2`+filter+` ORDER BY a.id LIMIT $3`, now, after, silentPage)
 		if err != nil {
 			return 0, nil, wrap("agents muets", err)
 		}

@@ -33,6 +33,9 @@ func TestDynamicKeysExist(t *testing.T) {
 	for _, r := range tenant.Roles() {
 		want = append(want, "role."+string(r))
 	}
+	for _, r := range tenant.TeamRoles() {
+		want = append(want, "team_role."+string(r))
+	}
 	for _, k := range flashes {
 		want = append(want, k)
 	}
@@ -44,10 +47,9 @@ func TestDynamicKeysExist(t *testing.T) {
 		account.KeyPasswordUnchanged, account.KeyPasswordMismatch, account.KeyPasswordWrong, account.KeyLanguageInvalid,
 		account.KeyThemeInvalid, account.KeyDefaultOrgInvalid, account.KeyEmailTaken, account.KeyLastAdmin,
 		account.KeyCannotTargetSelf, account.KeyRescueTicketTooShort,
-		org.KeySlugInvalid, org.KeySlugTaken, org.KeyNameInvalid, org.KeyLanguage, org.KeyRoleInvalid,
-		org.KeyMemberExists, org.KeyUnknownAccount, org.KeyLastOrgAdmin,
 		"login.error.invalid_credentials", "login.error.attempts_exhausted", "verify.error.invalid_code",
 		"totp_setup.error.invalid_code", "error.csrf.title", "error.csrf.text")
+	want = append(want, org.ValidationKeys()...)
 	want = append(want, project.ValidationKeys()...)
 	want = append(want, agent.ValidationKeys()...)
 	for _, k := range agent.ErrorKeys() {

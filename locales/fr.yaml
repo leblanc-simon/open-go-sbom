@@ -28,6 +28,8 @@ nav:
   admin_orgs: Organisations
   projects: Projets
   agents: Agents
+  teams: "Équipes"
+  invitations: "Invitations"
 
 org_switcher:
   caption: Organisation
@@ -43,8 +45,7 @@ theme:
   dark: "Thème : sombre"
 
 role:
-  viewer: Lecteur
-  analyst: Analyste
+  member: Membre
   admin: Administrateur
 
 status:
@@ -92,6 +93,17 @@ flash:
   job_discarded: Le traitement est abandonné et supprimé de la file.
   vulndb_import_queued: "Archive reçue : une instance worker la vérifie et l'installe, ce qui prend plusieurs minutes."
   vulndb_purged: Les archives qui ne sont pas la cible sont supprimées.
+  member_invited: "Invitation enregistrée : le compte la verra dans ses invitations et pourra l'accepter."
+  invitation_revoked: "Invitation révoquée."
+  invitation_accepted: "Invitation acceptée : vous êtes membre de l'organisation."
+  invitation_declined: "Invitation déclinée."
+  team_created: "Équipe créée."
+  team_renamed: "Équipe renommée."
+  team_deleted: "Équipe supprimée."
+  team_member_added: "Membre ajouté à l'équipe."
+  team_member_updated: "Rôle d'équipe modifié."
+  team_member_removed: "Membre retiré de l'équipe."
+  project_team_changed: "Projet rattaché à sa nouvelle équipe."
 
 table:
   actions: Actions
@@ -154,6 +166,18 @@ validation:
     ref: Indiquez un projet confié à l'agent et une référence (branche, étiquette ou hôte).
     agent_version: La version de l'agent compte au plus 64 caractères, sans espace.
     scanned_at: "La date de scan est obligatoire, postérieure à l'an 2000, et au plus une heure en avance sur l'horloge du serveur."
+  team_name_invalid: "Le nom de l'équipe doit compter de 1 à 100 caractères."
+  team_name_taken: "Une équipe porte déjà ce nom dans l'organisation."
+  team_has_projects: "Cette équipe a encore des projets : rattachez-les d'abord à une autre équipe."
+  team_limit: "L'organisation a atteint le nombre maximal d'équipes."
+  team_role_invalid: "Rôle d'équipe inconnu."
+  team_member_exists: "Ce membre fait déjà partie de l'équipe."
+  team_member_not_org_member: "Cette adresse n'est pas celle d'un membre de l'organisation : invitez d'abord le compte depuis la page des membres."
+  invitation_limit: "L'organisation a atteint le nombre maximal d'invitations en attente : révoquez-en avant d'inviter."
+  invitation_unknown: "Cette invitation n'existe plus ou a expiré."
+  project_team_invalid: "Choisissez une équipe dans laquelle vous pouvez agir."
+  agent_team_invalid: "Choisissez une équipe dans laquelle vous pouvez gérer les agents."
+  enrollment_team_mismatch: "Le projet de serveur à rattacher appartient à une autre équipe que celle du jeton."
 
 home:
   title: Accueil
@@ -166,8 +190,9 @@ home:
   no_org_title: Aucune organisation
   no_org_text: >-
     Votre compte n'est membre d'aucune organisation. Demandez à un administrateur de
-    l'organisation de vous y ajouter.
+    l'organisation de vous inviter, puis acceptez l'invitation.
   create_org: Créer une organisation
+  invitations: "Voir mes invitations"
 
 login:
   title: Connexion
@@ -312,7 +337,7 @@ dashboard:
 members:
   title: Membres
   heading: Membres de l'organisation
-  lead: Les membres voient les données de l'organisation selon leur rôle ; seuls ses administrateurs les gèrent.
+  lead: Les membres voient les projets de leurs équipes, selon leur rôle d'équipe ; les administrateurs de l'organisation voient et gèrent tout.
   add_title: Ajouter un membre
   email: Adresse e-mail
   role: Rôle
@@ -324,6 +349,16 @@ members:
   role_of: "Rôle de {{.Email}}"
   change_role: Modifier le rôle
   remove: Retirer
+  invite_title: "Inviter un compte"
+  invite: "Inviter"
+  invite_hint: "Le compte rejoint l'organisation en acceptant l'invitation, valable 30 jours. Rien n'indique ici si l'adresse a déjà un compte : un administrateur de l'instance le crée au besoin."
+  invitations_title: "Invitations en attente"
+  invited_by: "Invité par"
+  invited_by_unknown: "inconnu"
+  invited_on: "Envoyée le"
+  invitation_expires: "Expire le"
+  invitation_expired: "Expirée"
+  invitation_revoke: "Révoquer"
 
 org_settings:
   title: Paramètres de l'organisation
@@ -388,6 +423,17 @@ audit:
     vulndb_imported: "Base de vulnérabilités importée ({{.Target}}, construite le {{.D_built}})"
     vulndb_import_failed: "Import de la base de vulnérabilités refusé ({{.Target}}) : {{.D_error}}"
     vulndb_archives_purged: "Archives de la base de vulnérabilités purgées : {{.D_archives}}"
+    member_invited: "{{.Target}} invité avec le rôle {{.D_role}}"
+    invitation_revoked: "Invitation de {{.Target}} révoquée"
+    invitation_accepted: "Invitation acceptée par {{.Target}} (rôle {{.D_role}})"
+    invitation_declined: "Invitation déclinée par {{.Target}}"
+    team_created: "Équipe {{.Target}} créée"
+    team_renamed: "Équipe renommée de « {{.D_from}} » en « {{.D_to}} »"
+    team_deleted: "Équipe {{.Target}} supprimée"
+    team_member_added: "{{.Target}} ajouté à l'équipe {{.D_team}} avec le rôle {{.D_role}}"
+    team_member_role_changed: "Rôle de {{.Target}} dans l'équipe {{.D_team}} : {{.D_from}} → {{.D_to}}"
+    team_member_removed: "{{.Target}} retiré de l'équipe {{.D_team}}"
+    project_team_changed: "Projet {{.Target}} rattaché à l'équipe {{.D_to}} (auparavant {{.D_from}})"
 
 admin:
   vulndb_missing_title: Aucune base de vulnérabilités
@@ -688,6 +734,8 @@ projects:
   no_labels: Aucune
   empty: Aucun projet ne correspond. Créez un dépôt, ou inscrivez un serveur avec un jeton d'inscription.
   empty_archived: Aucun projet archivé ne correspond.
+  filter_team: "Équipe"
+  col_team: "Équipe"
 
 project:
   tab_findings: Constats
@@ -716,6 +764,7 @@ project:
   no_agent: Aucun agent
   assign_agent: Agent dépôt chargé de ce dépôt
   enroll_this_host: Inscrire ce serveur
+  team: "Équipe"
 
 project_new:
   title: Nouveau projet
@@ -732,6 +781,9 @@ project_settings:
   archive: Archiver le projet
   unarchive_text: Réactivé, le projet est de nouveau proposé à son agent.
   unarchive: Réactiver le projet
+  team_title: "Équipe du projet"
+  team_text: "Le projet appartient à l'équipe {{.Team}}. Le rattacher à une autre équipe change qui le voit ; un dépôt confié à un agent d'une autre équipe le perd."
+  team_submit: "Rattacher"
 
 project_form:
   kind: Type de projet
@@ -751,6 +803,8 @@ project_form:
   host_ref: Nom de l'hôte
   host_ref_hint: Le nom que l'agent annonce à l'inscription ; il identifie l'hôte dans l'organisation.
   create: Créer le projet
+  team: "Équipe"
+  team_hint: "L'équipe dont les membres verront le projet et le géreront selon leur rôle."
 
 agents:
   title: Agents
@@ -785,6 +839,8 @@ agents:
   expiry_365: 1 an
   expiry_0: Sans expiration
   expiry_none: Sans expiration
+  col_team: "Équipe"
+  org_wide: "Organisation (toutes les équipes)"
 
 agent:
   title: "Agent {{.Name}}"
@@ -804,6 +860,7 @@ agent:
   disable_title: Désactivation
   disable_text: Ses jetons sont révoqués et ses projets lui sont retirés ; un serveur pourra s'inscrire de nouveau.
   disable: Désactiver l'agent
+  team_value: "Équipe {{.Team}}"
 
 agent_new:
   title: Nouvel agent dépôt
@@ -814,6 +871,8 @@ agent_new:
   name_hint: Par exemple l'instance qui l'héberge.
   token_name: Nom du premier jeton
   create: Créer l'agent
+  org_wide: "Aucune : agent d'organisation"
+  team_hint: "Un agent d'équipe est géré par les administrateurs de l'équipe et ne sert que ses projets ; un agent d'organisation sert toutes les équipes."
 
 token_created:
   title: Jeton créé
@@ -857,6 +916,7 @@ enrollment_new:
   project_hint: Un projet de serveur existant, sans agent, ou un projet créé pour chaque hôte.
   labels_hint: "Appliquées aux projets créés à l'inscription : env=prod, dc=paris."
   create: Créer le jeton
+  team_hint: "Les projets créés à l'inscription et les agents inscrits appartiendront à cette équipe."
 
 ref_kind:
   branch: Branche
@@ -1395,3 +1455,64 @@ confirm:
   reset_totp_text: "Les codes de son application d'authentification ne seront plus acceptés, son mot de passe sera remplacé par un mot de passe temporaire (affiché une seule fois, à transmettre à son titulaire), les sessions du compte seront fermées et ses jetons d'accès personnels révoqués. Son titulaire configurera un nouveau TOTP puis changera de mot de passe à sa prochaine connexion."
   job_heading: "Abandonner le traitement {{.Kind}} ?"
   job_text: "Le traitement et sa dernière erreur seront supprimés (tentatives : {{.Attempts}}) ; il ne sera plus relancé. Pour qu'il s'exécute de nouveau, il faudra reproduire la donnée qui l'a mis en file."
+  invitation_heading: "Révoquer l'invitation de {{.Email}} ?"
+  invitation_text: "{{.Email}} ne pourra plus rejoindre {{.Org}} avec cette invitation. Une nouvelle invitation reste possible."
+  invitation_submit: "Révoquer l'invitation"
+  team_heading: "Supprimer l'équipe {{.Name}} ?"
+  team_text: "Ses membres la quittent, ses agents deviennent des agents d'organisation et ses jetons d'inscription sont supprimés. Une équipe qui a encore des projets ne peut pas être supprimée."
+  team_submit: "Supprimer l'équipe"
+  team_member_heading: "Retirer {{.Email}} de l'équipe {{.Team}} ?"
+  team_member_text: "{{.Email}} ne verra plus les projets de l'équipe {{.Team}}, sauf par une autre de ses équipes. Il reste membre de l'organisation."
+  team_member_submit: "Retirer de l'équipe"
+  decline_heading: "Décliner l'invitation de {{.Org}} ?"
+  decline_text: "L'invitation est supprimée : seule une nouvelle invitation d'un administrateur de {{.Org}} vous permettrait de la rejoindre."
+  decline_submit: "Décliner l'invitation"
+
+team_role:
+  reader: "Lecteur"
+  analyst: "Analyste"
+  admin: "Administrateur d'équipe"
+
+invitations:
+  title: "Invitations"
+  heading: "Invitations"
+  lead: "Les organisations qui vous invitent à les rejoindre. Vous n'en devenez membre qu'en acceptant."
+  list_title: "Invitations en attente"
+  col_org: "Organisation"
+  accept: "Accepter"
+  decline: "Décliner"
+  empty: "Aucune invitation en attente."
+
+teams:
+  title: "Équipes"
+  heading: "Équipes"
+  lead: "Chaque projet appartient à une équipe ; un membre voit les projets de ses équipes, avec les droits de son rôle d'équipe."
+  create_title: "Créer une équipe"
+  name: "Nom de l'équipe"
+  create: "Créer"
+  list_title: "Liste des équipes"
+  col_your_role: "Votre rôle"
+  col_members: "Membres"
+  col_projects: "Projets actifs"
+  not_member: "pas membre"
+  empty: "Aucune équipe visible : un administrateur de l'organisation doit vous ajouter à une équipe."
+
+team:
+  title: "Équipe {{.Name}}"
+  members_count:
+    one: "{{.Count}} membre"
+    other: "{{.Count}} membres"
+  projects_count:
+    one: "{{.Count}} projet actif"
+    other: "{{.Count}} projets actifs"
+  add_title: "Ajouter un membre à l'équipe"
+  role: "Rôle d'équipe"
+  role_of: "Rôle d'équipe de {{.Email}}"
+  add: "Ajouter"
+  add_hint: "Seul un membre de l'organisation peut rejoindre une équipe."
+  members_title: "Membres de l'équipe"
+  no_members: "Aucun membre dans cette équipe."
+  settings_title: "Paramètres de l'équipe"
+  rename: "Renommer"
+  delete_text: "Une équipe ne peut être supprimée qu'une fois tous ses projets rattachés à une autre équipe."
+  delete: "Supprimer l'équipe"

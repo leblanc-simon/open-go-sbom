@@ -8,7 +8,7 @@
   {{template "form_error" .Error}}
   {{- if .CanAdmin}}
   <section class="panel" aria-labelledby="members-add">
-    <div class="panel__head"><h2 class="panel__title" id="members-add">{{T "members.add_title"}}</h2></div>
+    <div class="panel__head"><h2 class="panel__title" id="members-add">{{T "members.invite_title"}}</h2></div>
     <div class="panel__body">
       <form class="form form--inline" method="post" action="{{.Base}}/members">
         {{csrfField .Page.CSRFToken}}
@@ -24,11 +24,44 @@
             {{- end}}
           </select>
         </div>
-        <button type="submit" class="btn btn--primary">{{T "members.add"}}</button>
+        <button type="submit" class="btn btn--primary">{{T "members.invite"}}</button>
       </form>
-      <p class="field__hint">{{T "members.add_hint"}}</p>
+      <p class="field__hint">{{T "members.invite_hint"}}</p>
     </div>
   </section>
+  {{- if .Invitations}}
+  <section class="panel" aria-labelledby="members-invitations">
+    <div class="panel__head"><h2 class="panel__title" id="members-invitations">{{T "members.invitations_title"}}</h2></div>
+    <div class="table-wrap" role="group" aria-labelledby="members-invitations" tabindex="0">
+      <table class="data-table">
+        <caption class="visually-hidden">{{T "members.invitations_title"}}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{{T "members.email"}}</th>
+            <th scope="col">{{T "members.role"}}</th>
+            <th scope="col">{{T "members.invited_by"}}</th>
+            <th scope="col">{{T "members.invited_on"}}</th>
+            <th scope="col">{{T "members.invitation_expires"}}</th>
+            <th scope="col" class="cell-actions">{{T "table.actions"}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{- $base := .Base}}
+          {{- range .Invitations}}
+          <tr>
+            <th scope="row">{{.Email}}</th>
+            <td>{{T .RoleKey}}</td>
+            <td>{{with .InvitedBy}}{{.}}{{else}}<span class="muted">{{T "members.invited_by_unknown"}}</span>{{end}}</td>
+            <td>{{template "stamp" .Created}}</td>
+            <td>{{if .Expired}}<span class="status status--revoked">{{T "members.invitation_expired"}}</span>{{else}}{{template "stamp" .Expires}}{{end}}</td>
+            <td class="cell-actions"><a class="btn btn--sm btn--danger" href="{{$base}}/invitations/{{.ID}}/revoke">{{T "members.invitation_revoke"}}<span class="visually-hidden"> {{.Email}}</span></a></td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {{- end}}
   {{- end}}
   <section class="panel" aria-labelledby="members-list">
     <div class="panel__head"><h2 class="panel__title" id="members-list">{{T "members.list_title"}}</h2></div>

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"leblanc.io/lotor/internal/audit"
 	"leblanc.io/lotor/internal/db"
@@ -22,9 +23,10 @@ func orgNav(acc tenant.Access, current string) []render.NavItem {
 		{LabelKey: "nav.search", Href: base + "/search", Current: current == "search"},
 		{LabelKey: "nav.projects", Href: base + "/projects", Current: current == "projects"},
 		{LabelKey: "nav.agents", Href: base + "/agents", Current: current == "agents"},
+		{LabelKey: "nav.teams", Href: base + "/teams", Current: current == "teams"},
 		{LabelKey: "nav.members", Href: base + "/members", Current: current == "members"},
 	}
-	if acc.Role.AtLeast(tenant.RoleAdmin) {
+	if acc.Can(tenant.PermOrgManage, uuid.Nil) {
 		nav = append(nav,
 			render.NavItem{LabelKey: "nav.org_settings", Href: base + "/settings", Current: current == "settings"},
 			render.NavItem{LabelKey: "nav.audit", Href: base + "/audit", Current: current == "audit"})
@@ -43,16 +45,25 @@ type memberRow struct {
 	Self    bool
 }
 
+type invitationRow struct {
+	org.Invitation
+	RoleKey string
+	Created *stamp
+	Expires *stamp
+	Expired bool
+}
+
 type membersView struct {
 	render.Page
-	Base       string
-	CanAdmin   bool
-	Members    []memberRow
-	Roles      []option
-	NextCursor string
-	FlashKey   string
-	Error      formError
-	Email      string
+	Base        string
+	CanAdmin    bool
+	Members     []memberRow
+	Invitations []invitationRow
+	Roles       []option
+	NextCursor  string
+	FlashKey    string
+	Error       formError
+	Email       string
 }
 
 func roleOptions(selected tenant.Role) []option {
@@ -77,11 +88,23 @@ func (id *identity) membersPage(w http.ResponseWriter, r *http.Request, status i
 	v := viewerFrom(r)
 	view := &membersView{
 		Page: render.Page{TitleKey: "members.title", Nav: orgNav(acc, "members")},
-		Base: orgBase(acc), CanAdmin: acc.Role.AtLeast(tenant.RoleAdmin), Roles: roleOptions(tenant.RoleViewer),
+		Base: orgBase(acc), CanAdmin: acc.Can(tenant.PermMembersManage, uuid.Nil), Roles: roleOptions(tenant.RoleMember),
 		NextCursor: page.NextCursor, FlashKey: flashKey(r), Error: fe, Email: email,
 	}
 	for _, m := range page.Items {
 		view.Members = append(view.Members, memberRow{Member: m, RoleKey: "role." + string(m.Role), Self: m.UserID == v.user.ID})
+	}
+	if view.CanAdmin {
+		invitations, err := id.Orgs.Invitations(r.Context(), acc.Org)
+		if err != nil {
+			id.serverError(w, r, err)
+			return
+		}
+		now := id.Agents.Now()
+		for _, i := range invitations {
+			view.Invitations = append(view.Invitations, invitationRow{Invitation: i, RoleKey: "role." + string(i.Role),
+				Created: dateOf(&i.CreatedAt), Expires: dateOf(&i.ExpiresAt), Expired: i.Expired(now)})
+		}
 	}
 	id.rd.Render(w, r, status, "org/members", view)
 }
@@ -106,13 +129,47 @@ func (id *identity) memberResult(w http.ResponseWriter, r *http.Request, err err
 	}
 }
 
-func (id *identity) addMember(w http.ResponseWriter, r *http.Request) {
+// inviteMember invite une adresse à rejoindre l'organisation (SEC-09) : la réponse est la
+// même que l'adresse ait un compte ou non.
+func (id *identity) inviteMember(w http.ResponseWriter, r *http.Request) {
 	if !id.parseForm(w, r) {
 		return
 	}
 	email := r.PostForm.Get("email")
-	err := id.Orgs.AddMember(r.Context(), id.actor(r), access(r).Org, email, tenant.Role(r.PostForm.Get("role")))
-	id.memberResult(w, r, err, "member_added", email)
+	err := id.Orgs.Invite(r.Context(), id.actor(r), access(r).Org, email, tenant.Role(r.PostForm.Get("role")))
+	id.memberResult(w, r, err, "member_invited", email)
+}
+
+// confirmRevokeInvitation : révocation d'une invitation.
+func (id *identity) confirmRevokeInvitation(w http.ResponseWriter, r *http.Request) {
+	acc := access(r)
+	iid, err := uuid.Parse(chi.URLParam(r, "invitationID"))
+	if err != nil {
+		id.rd.Error(w, r, http.StatusNotFound)
+		return
+	}
+	inv, err := id.Orgs.Invitation(r.Context(), acc.Org, iid)
+	if errors.Is(err, org.ErrNotFound) {
+		id.rd.Error(w, r, http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		id.serverError(w, r, err)
+		return
+	}
+	id.confirm(w, r, confirmation{nav: orgNav(acc, "members"), heading: "confirm.invitation_heading",
+		text: "confirm.invitation_text", submit: "confirm.invitation_submit",
+		args: map[string]any{"Email": inv.Email, "Org": acc.Name}, cancel: orgBase(acc) + "/members"})
+}
+
+func (id *identity) revokeInvitation(w http.ResponseWriter, r *http.Request) {
+	iid, err := uuid.Parse(chi.URLParam(r, "invitationID"))
+	if err != nil {
+		id.rd.Error(w, r, http.StatusNotFound)
+		return
+	}
+	err = id.Orgs.RevokeInvitation(r.Context(), id.actor(r), access(r).Org, iid)
+	id.memberResult(w, r, err, "invitation_revoked", "")
 }
 
 func (id *identity) setMemberRole(w http.ResponseWriter, r *http.Request) {

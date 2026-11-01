@@ -161,7 +161,7 @@ func (f *fixture) newOrg(slug string) tenant.OrgID {
 	if err != nil {
 		f.t.Fatal(err)
 	}
-	f.exec(org, `INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, $2, $2, 'fr')`, org, slug)
+	f.exec(org, `WITH o AS (INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, $2, $2, 'fr') RETURNING id) INSERT INTO teams (org_id, id, name) SELECT id, id, 'Général' FROM o`, org, slug)
 	return org
 }
 
@@ -173,7 +173,7 @@ func (f *fixture) agent(org tenant.OrgID, kind, name string) uuid.UUID {
 
 func (f *fixture) project(org tenant.OrgID, kind, slug, labels string, agent uuid.UUID) uuid.UUID {
 	id := uuid.Must(uuid.NewV7())
-	f.exec(org, `INSERT INTO projects (org_id, id, kind, slug, name, labels, agent_id) VALUES ($1, $2, $3, $4, $4, $5, $6)`,
+	f.exec(org, `INSERT INTO projects (org_id, id, kind, slug, name, labels, agent_id, team_id) VALUES ($1, $2, $3, $4, $4, $5, $6, $1)`,
 		org, id, kind, slug, labels, agent)
 	if kind == "host" {
 		f.exec(org, `INSERT INTO tracked_refs (org_id, id, project_id, project_kind, kind, name) VALUES ($1, $2, $3, 'host', 'host', $4)`,
@@ -224,7 +224,7 @@ func (f *fixture) push(org tenant.OrgID, agent, projectID uuid.UUID, ref string,
 func (f *fixture) run(org tenant.OrgID, params string) Result {
 	f.t.Helper()
 	req := f.request(params)
-	res, err := f.search.Search(context.Background(), org, req)
+	res, err := f.search.Search(context.Background(), org, tenant.AllTeams(), req)
 	if err != nil {
 		f.t.Fatalf("%s : %v", params, err)
 	}

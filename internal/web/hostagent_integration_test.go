@@ -117,13 +117,13 @@ func TestHostAgentEndToEnd(t *testing.T) {
 	a.decoder()
 	admin, analyst, viewer := a.user("admin@example.org", false), a.user("analyste@example.org", false), a.user("lecteur@example.org", false)
 	o := a.org("org-a", admin)
-	a.addMember(o, analyst, tenant.RoleAnalyst)
-	a.addMember(o, viewer, tenant.RoleViewer)
+	a.addTeamMember(o, analyst, tenant.TeamAnalyst)
+	a.addTeamMember(o, viewer, tenant.TeamReader)
 	b := a.signIn(admin)
 	srv, caFile := a.tlsAPI(nil)
 
 	created := b.post("/o/org-a/enrollment-tokens", url.Values{"name": {"parc"}, "expires_in": {"24"}, "max_uses": {"1"},
-		"labels": {"env=prod"}, "project": {""}})
+		"labels": {"env=prod"}, "project": {""}, "team": {a.defaultTeam(o.ID).String()}})
 	enr := shownToken(t, created)
 	body := unescape(created.body)
 	for _, want := range []string{"Installer l'agent serveur", "systemctl enable --now lotor-host-agent.service",
@@ -141,7 +141,7 @@ func TestHostAgentEndToEnd(t *testing.T) {
 	if err != nil || res.Outcome != hostagent.OutcomeSent || res.Components < 7 {
 		t.Fatalf("premier cycle : %+v %v", res, err)
 	}
-	p, err := a.projects.Get(ctx, o.ID, "srv-agent-01")
+	p, err := a.projects.Get(ctx, o.ID, tenant.AllTeams(), "srv-agent-01")
 	if err != nil || p.Labels["env"] != "prod" || p.Labels["role"] != "db" {
 		t.Fatalf("projet de l'hôte : %+v %v", p, err)
 	}
@@ -263,11 +263,12 @@ func TestHostAgentMutualTLS(t *testing.T) {
 	a := newApp(t, func(o *RouterOptions) { o.AgentAPI.RequireClientCert = true })
 	a.decoder()
 	admin := a.user("admin@example.org", false)
-	a.org("org-a", admin)
+	oa := a.org("org-a", admin)
 	b := a.signIn(admin)
 	agents := newTestPKI(t)
 	srv, caFile := a.tlsAPI(agents.pool)
-	created := b.post("/o/org-a/enrollment-tokens", url.Values{"name": {"parc"}, "expires_in": {"24"}, "max_uses": {"2"}, "project": {""}})
+	created := b.post("/o/org-a/enrollment-tokens", url.Values{"name": {"parc"}, "expires_in": {"24"}, "max_uses": {"2"}, "project": {""},
+		"team": {a.defaultTeam(oa.ID).String()}})
 	enr := shownToken(t, created)
 
 	// Sans certificat : refus explicite, le jeton n'est pas consommé.

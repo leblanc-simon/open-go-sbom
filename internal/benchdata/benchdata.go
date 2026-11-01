@@ -92,8 +92,11 @@ func Generate(ctx context.Context, pool *db.Pool, org tenant.OrgID, slug string,
 	}{
 		{"organisation", `INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, $2, $2, 'fr')`,
 			[]any{org, slug}},
-		{"projets", `INSERT INTO projects (org_id, id, kind, slug, name)
-			SELECT $1, gen_random_uuid(), 'repo', 'p-' || g, 'Projet ' || g FROM generate_series(1, $2) g`, []any{org, p.Projects}},
+		// Une seule équipe, d'identifiant celui de l'organisation : tous les projets lui
+		// appartiennent (les mesures se font avec la visibilité de toutes les équipes).
+		{"équipe", `INSERT INTO teams (org_id, id, name) VALUES ($1, $1, 'Général')`, []any{org}},
+		{"projets", `INSERT INTO projects (org_id, id, kind, slug, name, team_id)
+			SELECT $1, gen_random_uuid(), 'repo', 'p-' || g, 'Projet ' || g, $1 FROM generate_series(1, $2) g`, []any{org, p.Projects}},
 		{"références", `INSERT INTO tracked_refs (org_id, id, project_id, project_kind, kind, name)
 			SELECT org_id, gen_random_uuid(), id, 'repo', 'branch', 'main' FROM projects`, nil},
 		{"composants", `INSERT INTO components (org_id, id, purl, purl_base, type, name, version)

@@ -16,6 +16,11 @@
 //     répandus (familles purl_base, par nombre de projets touchés), agents muets (règle
 //     agent.Agent.StateAt, celle des écrans des agents).
 //
+// Les indicateurs de l'organisation se limitent aux projets et agents des équipes visibles
+// du compte (db.Visible, ADR 0034). Pour un membre, la série additionne les
+// project_daily_stats de ses projets (rattachés à leur équipe actuelle) ; pour un
+// administrateur, elle lit org_daily_stats.
+//
 // Seules les séries temporelles lisent org_daily_stats et project_daily_stats ; le
 // dernier point d'une série est l'état courant, si bien que le premier jour la courbe n'a
 // qu'un point, jamais une série inventée.

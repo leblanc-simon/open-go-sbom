@@ -50,6 +50,7 @@
           {{- if $p.Description}}<p class="prewrap">{{$p.Description}}</p>{{else}}<p class="muted">{{T "project.no_description"}}</p>{{end}}
           <dl class="kv">
             <dt>{{T "project.kind"}}</dt><dd>{{T (print "project_type." $p.Kind)}}</dd>
+            <dt>{{T "project.team"}}</dt><dd><a href="{{$.Base}}/teams/{{$p.TeamID}}">{{$p.TeamName}}</a></dd>
             {{- if eq (print $p.Kind) "repo"}}
             <dt>{{T "project_form.forge_url"}}</dt><dd>{{with $p.ForgeURL}}<a href="{{.}}" rel="noopener noreferrer">{{.}}</a>{{else}}<span class="muted">{{T "project.no_forge"}}</span>{{end}}</dd>
             {{- end}}

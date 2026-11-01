@@ -111,11 +111,11 @@ func TestReferenceDataset(t *testing.T) {
 		return err
 	})
 	measure("fiche vulnérabilité", func(i int) error {
-		_, _, _, err := s.Vulnerability(ctx, org, "CVE-2099-00"+[]string{"001", "021", "041", "061", "081"}[i%5], finding.StatusOpen)
+		_, _, _, err := s.Vulnerability(ctx, org, tenant.AllTeams(), "CVE-2099-00"+[]string{"001", "021", "041", "061", "081"}[i%5], finding.StatusOpen)
 		return err
 	})
 	measure("fiche composant", func(i int) error {
-		_, err := s.Component(ctx, org, "pkg:npm/lib-"+[]string{"0", "100", "200", "300", "400"}[i%5])
+		_, err := s.Component(ctx, org, tenant.AllTeams(), "pkg:npm/lib-"+[]string{"0", "100", "200", "300", "400"}[i%5])
 		return err
 	})
 }

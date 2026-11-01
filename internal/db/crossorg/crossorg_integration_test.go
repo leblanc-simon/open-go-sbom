@@ -44,12 +44,12 @@ func TestCrossOrgReturnsOnlyWhatIsNeeded(t *testing.T) {
 		}
 		return id
 	}
-	a := mk("a", "en", alice, "analyst", false)
+	a := mk("a", "en", alice, "member", false)
 	mk("b", "fr", bob, "admin", false)
-	mk("c", "fr", alice, "viewer", true)
+	mk("c", "fr", alice, "member", true)
 
 	acc, err := crossorg.Access(ctx, q, "a", alice)
-	if err != nil || acc.Org != a || acc.Role != tenant.RoleAnalyst || acc.Language != "en" || acc.Name != "A" {
+	if err != nil || acc.Org != a || acc.Role != tenant.RoleMember || acc.Language != "en" || acc.Name != "A" {
 		t.Fatalf("accès : %+v, %v", acc, err)
 	}
 	for _, c := range []struct {
@@ -100,8 +100,11 @@ func TestTokenOrgResolvesOnlyActiveOrganizations(t *testing.T) {
 				SELECT $1, gen_random_uuid(), a.id, $2, sha256('s'::bytea), 'initial' FROM agents a`, id, agentPub); err != nil {
 				return err
 			}
-			_, err := tx.ExecContext(ctx, `INSERT INTO enrollment_tokens (org_id, id, public_id, secret_hash, name, expires_at, max_uses)
-				VALUES ($1, gen_random_uuid(), $2, sha256('s'::bytea), 'parc', now() + interval '1 hour', 1)`, id, enrPub)
+			if _, err := tx.ExecContext(ctx, `INSERT INTO teams (org_id, id, name) VALUES ($1, $1, 'Général')`, id); err != nil {
+				return err
+			}
+			_, err := tx.ExecContext(ctx, `INSERT INTO enrollment_tokens (org_id, id, public_id, secret_hash, name, expires_at, max_uses, team_id)
+				VALUES ($1, gen_random_uuid(), $2, sha256('s'::bytea), 'parc', now() + interval '1 hour', 1, $1)`, id, enrPub)
 			return err
 		}); err != nil {
 			t.Fatal(err)

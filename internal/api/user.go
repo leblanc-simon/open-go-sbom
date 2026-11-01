@@ -18,8 +18,8 @@ import (
 	"leblanc.io/lotor/internal/api/gen/userapi"
 	"leblanc.io/lotor/internal/api/problem"
 	"leblanc.io/lotor/internal/db"
-	"leblanc.io/lotor/internal/db/crossorg"
 	"leblanc.io/lotor/internal/locale"
+	"leblanc.io/lotor/internal/org"
 	"leblanc.io/lotor/internal/search"
 	"leblanc.io/lotor/internal/tenant"
 	"leblanc.io/lotor/internal/web/middleware"
@@ -29,6 +29,7 @@ import (
 type UserOptions struct {
 	Pool     *db.Pool
 	Accounts *account.Service
+	Orgs     *org.Service
 	Search   *search.Service
 	Exports  *search.ExportLimiter
 	Catalog  *locale.Catalog
@@ -44,7 +45,7 @@ type UserOptions struct {
 // seule, ADR 0025), limitation par jeton, garde d'organisation (404 hors des organisations
 // du compte), puis le serveur généré.
 func MountUser(r chi.Router, o UserOptions) error {
-	if o.Pool == nil || o.Accounts == nil || o.Search == nil || o.Exports == nil || o.Catalog == nil || o.Logger == nil {
+	if o.Pool == nil || o.Accounts == nil || o.Orgs == nil || o.Search == nil || o.Exports == nil || o.Catalog == nil || o.Logger == nil {
 		return errors.New("api: dépendances de l'API utilisateur incomplètes")
 	}
 	h := &userAPI{UserOptions: o}
@@ -116,11 +117,12 @@ func (h *userAPI) writeRefusal(w http.ResponseWriter, r *http.Request) {
 
 // orgGuard vérifie, à chaque requête, que le propriétaire du jeton est membre de
 // l'organisation de l'URL (active) : sinon 404, comme l'interface, pour ne rien révéler.
+// Ses rôles d'équipe du moment bornent ce que le jeton voit (ADR 0034).
 func (h *userAPI) orgGuard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p, _ := r.Context().Value(userKey{}).(account.TokenPrincipal)
-		acc, err := crossorg.Access(r.Context(), h.Pool.DB(), chi.URLParam(r, "org"), p.UserID)
-		if errors.Is(err, crossorg.ErrNoAccess) {
+		acc, err := h.Orgs.Access(r.Context(), chi.URLParam(r, "org"), p.UserID)
+		if errors.Is(err, org.ErrNoAccess) {
 			problem.Write(w, r, h.Catalog, http.StatusNotFound, problem.KeyNotFound, nil)
 			return
 		}
@@ -157,7 +159,7 @@ func (h *userAPI) SearchOrganization(w http.ResponseWriter, r *http.Request, _ u
 	req, err := search.ParseRequest(r.URL.Query())
 	if err == nil {
 		var res search.Result
-		if res, err = h.Search.Search(r.Context(), acc.Org, req); err == nil {
+		if res, err = h.Search.Search(r.Context(), acc.Org, acc.Visibility(), req); err == nil {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(SearchResult(res))
 			return
@@ -173,7 +175,7 @@ func (h *userAPI) ExportSearch(w http.ResponseWriter, r *http.Request, _ userapi
 	acc, _ := tenant.AccessFrom(r.Context())
 	p, _ := r.Context().Value(userKey{}).(account.TokenPrincipal)
 	ServeExport(w, r, ExportOptions{Search: h.Search, Exports: h.Exports, Catalog: h.Catalog, Logger: h.Logger,
-		Org: acc.Org, Slug: acc.Slug, Format: string(params.Format), UserID: p.UserID})
+		Org: acc.Org, Visibility: acc.Visibility(), Slug: acc.Slug, Format: string(params.Format), UserID: p.UserID})
 }
 
 // ExportOptions décrit un export de recherche servi par ServeExport.
@@ -183,8 +185,10 @@ type ExportOptions struct {
 	Catalog *locale.Catalog
 	Logger  *slog.Logger
 	Org     tenant.OrgID
-	Slug    string
-	Format  string
+	// Visibility borne l'export aux projets des équipes visibles du compte.
+	Visibility tenant.Visibility
+	Slug       string
+	Format     string
 	// UserID est le compte de l'export : ses exports simultanés sont bornés.
 	UserID int64
 }
@@ -229,7 +233,7 @@ func ServeExport(w http.ResponseWriter, r *http.Request, o ExportOptions) {
 		hd.Set("Content-Type", contentType)
 		hd.Set("Content-Disposition", `attachment; filename="`+name+`"`)
 	}}
-	if err := o.Search.Export(ctx, o.Org, req, format, lw); err != nil {
+	if err := o.Search.Export(ctx, o.Org, o.Visibility, req, format, lw); err != nil {
 		middleware.Logger(r.Context(), o.Logger).Error("export de recherche", "err", err, "format", string(format))
 		if !lw.started {
 			problem.Write(w, r, o.Catalog, http.StatusInternalServerError, problem.KeyInternal, nil)

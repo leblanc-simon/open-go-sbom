@@ -523,7 +523,11 @@ func TestStopReleaseYieldsToPendingTwin(t *testing.T) {
 	}
 	<-started
 	twin := enqueue(t, tdb.App, Job{Kind: "test.twin", UniqueKey: "k"})
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	// Stop libère les jobs pendant la dernière marge de son délai (le quart, 2 s au plus) ;
+	// ici la libération enchaîne deux transactions (remise en attente refusée par la clé
+	// d'unicité, puis suppression). Avec 500 ms, la marge de 125 ms ne tenait pas sur une
+	// machine chargée (CI en -race) : délai de 4 s, marge de 1 s.
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 	if err := r.Stop(ctx); err != nil {
 		t.Fatal(err)

@@ -86,9 +86,9 @@ func (e *env) newOrg(slug string) (tenant.OrgID, uuid.UUID, uuid.UUID, uuid.UUID
 	}
 	agent, repo, main := newID(), newID(), newID()
 	suffix := strings.ReplaceAll(org.String()[24:], "-", "")
-	e.execIn(org, `INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, $2, 'Org', 'fr')`, org, "o-"+suffix)
+	e.execIn(org, `WITH o AS (INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, $2, 'Org', 'fr') RETURNING id) INSERT INTO teams (org_id, id, name) SELECT id, id, 'Général' FROM o`, org, "o-"+suffix)
 	e.execIn(org, `INSERT INTO agents (org_id, id, kind, name) VALUES ($1, $2, 'repo', 'agent')`, org, agent)
-	e.execIn(org, `INSERT INTO projects (org_id, id, kind, slug, name, agent_id) VALUES ($1, $2, 'repo', $3, $3, $4)`, org, repo, slug, agent)
+	e.execIn(org, `INSERT INTO projects (org_id, id, kind, slug, name, agent_id, team_id) VALUES ($1, $2, 'repo', $3, $3, $4, $1)`, org, repo, slug, agent)
 	e.execIn(org, `INSERT INTO tracked_refs (org_id, id, project_id, project_kind, kind, name) VALUES ($1, $2, $3, 'repo', 'branch', 'main')`,
 		org, main, repo)
 	return org, agent, repo, main

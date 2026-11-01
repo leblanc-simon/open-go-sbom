@@ -144,14 +144,14 @@ func (id *identity) search(w http.ResponseWriter, r *http.Request) {
 	if req.Q != "" {
 		view.TitleKey, view.TitleArgs = "search.title_query", map[string]any{"Query": req.Q}
 	}
-	labels, err := id.Search.Labels(r.Context(), acc.Org)
+	labels, err := id.Search.Labels(r.Context(), acc.Org, acc.Visibility())
 	if err != nil {
 		id.serverError(w, r, err)
 		return
 	}
 	id.searchFacets(view, req, labels)
 	if view.ErrorKey == "" && req.Q != "" {
-		res, err := id.Search.Search(r.Context(), acc.Org, req)
+		res, err := id.Search.Search(r.Context(), acc.Org, acc.Visibility(), req)
 		switch {
 		case err == nil:
 			id.searchResults(view, req, res)
@@ -289,5 +289,5 @@ func (id *identity) searchResults(view *searchView, req search.Request, res sear
 func (id *identity) searchExport(w http.ResponseWriter, r *http.Request) {
 	acc := access(r)
 	apiv1.ServeExport(w, r, apiv1.ExportOptions{Search: id.Search, Exports: id.Exports, Catalog: id.cat, Logger: id.logger,
-		Org: acc.Org, Slug: acc.Slug, Format: r.URL.Query().Get("format"), UserID: viewerFrom(r).user.ID})
+		Org: acc.Org, Visibility: acc.Visibility(), Slug: acc.Slug, Format: r.URL.Query().Get("format"), UserID: viewerFrom(r).user.ID})
 }

@@ -90,6 +90,8 @@ type Project struct {
 	Labels      Labels
 	ForgeURL    string
 	Agent       *AgentRef
+	TeamID      uuid.UUID // équipe du projet (toujours présente, ADR 0034)
+	TeamName    string
 	ArchivedAt  *time.Time
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
@@ -124,6 +126,7 @@ func (p Project) RefNames(kind RefKind) []string {
 // serveur.
 type Input struct {
 	Kind        Kind
+	TeamID      uuid.UUID // équipe, à la création seulement (SetTeam la change ensuite)
 	Slug        string
 	Name        string
 	Description string
@@ -224,12 +227,17 @@ func (s *Service) Create(ctx context.Context, actor audit.Actor, org tenant.OrgI
 	if err != nil {
 		return Project{}, err
 	}
+	team := in.TeamID
 	in, err = clean(kind, in)
 	if err != nil {
 		return Project{}, err
 	}
+	in.TeamID = team
 	if in.Slug != "" && (!slugPattern.MatchString(in.Slug) || reservedSlugs[in.Slug]) {
 		return Project{}, invalid("slug", KeySlugInvalid)
+	}
+	if in.TeamID == uuid.Nil {
+		return Project{}, invalid("team", KeyTeamInvalid)
 	}
 	var p Project
 	err = s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
@@ -237,16 +245,17 @@ func (s *Service) Create(ctx context.Context, actor audit.Actor, org tenant.OrgI
 		if err != nil {
 			return err
 		}
-		return audit.RecordOrg(ctx, tx, actor, event(audit.ProjectCreated, p, map[string]string{"kind": string(p.Kind)}))
+		return audit.RecordOrg(ctx, tx, actor, event(audit.ProjectCreated, p, map[string]string{"kind": string(p.Kind), "team": p.TeamName}))
 	})
 	return p, wrap("création d'un projet", err)
 }
 
 // CreateHost crée, dans la transaction de l'appelant, le projet de serveur d'un hôte qui
 // s'inscrit : nom et référence tirés du nom d'hôte, slug dérivé et rendu unique, agent
-// confié. Utilisé par l'inscription des agents.
-func CreateHost(ctx context.Context, tx *db.OrgTx, hostRef string, labels Labels, agentID uuid.UUID) (Project, error) {
+// confié, dans l'équipe du jeton d'inscription. Utilisé par l'inscription des agents.
+func CreateHost(ctx context.Context, tx *db.OrgTx, hostRef string, labels Labels, agentID, teamID uuid.UUID) (Project, error) {
 	in, err := clean(KindHost, Input{Name: hostRef, HostRef: hostRef, Labels: labels})
+	in.TeamID = teamID
 	if err != nil {
 		return Project{}, err
 	}
@@ -271,20 +280,27 @@ func insert(ctx context.Context, tx *db.OrgTx, in Input, agentID *uuid.UUID) (Pr
 	if err != nil {
 		return Project{}, err
 	}
-	p := Project{ID: id, Kind: in.Kind, Slug: slug, Name: in.Name, Description: in.Description, Labels: in.Labels, ForgeURL: in.ForgeURL}
+	p := Project{ID: id, Kind: in.Kind, Slug: slug, Name: in.Name, Description: in.Description, Labels: in.Labels,
+		ForgeURL: in.ForgeURL, TeamID: in.TeamID}
 	err = tx.QueryRowContext(ctx, `
-		INSERT INTO projects (org_id, id, kind, slug, name, description, labels, forge_url, agent_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING created_at, updated_at`,
-		tx.OrgID(), id, string(in.Kind), slug, in.Name, in.Description, labels, in.ForgeURL, agentID,
+		INSERT INTO projects (org_id, id, kind, slug, name, description, labels, forge_url, agent_id, team_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING created_at, updated_at`,
+		tx.OrgID(), id, string(in.Kind), slug, in.Name, in.Description, labels, in.ForgeURL, agentID, in.TeamID,
 	).Scan(&p.CreatedAt, &p.UpdatedAt)
 	if pgCode(err) == "23505" {
 		return Project{}, invalid("slug", KeySlugTaken)
+	}
+	if pgCode(err) == "23503" && pgConstraint(err) == "projects_team_fk" {
+		return Project{}, invalid("team", KeyTeamInvalid)
 	}
 	if err != nil {
 		return Project{}, err
 	}
 	if agentID != nil {
 		p.Agent = &AgentRef{ID: *agentID}
+	}
+	if err := tx.QueryRowContext(ctx, `SELECT name FROM teams WHERE id = $1`, in.TeamID).Scan(&p.TeamName); err != nil {
+		return Project{}, err
 	}
 	if err := syncRefs(ctx, tx, p, in); err != nil {
 		return Project{}, err
@@ -391,13 +407,14 @@ func newIDs(n int) []string {
 
 const columns = `lower(p.name), p.id, p.kind, p.slug, p.name, p.description, p.labels, p.forge_url, p.archived_at,
 	p.created_at, p.updated_at, a.id, coalesce(a.name, ''), coalesce(a.version, ''), a.last_seen_at, a.disabled_at IS NOT NULL,
-	coalesce(a.kind, ''), a.created_at,
+	coalesce(a.kind, ''), a.created_at, p.team_id, t.name,
 	(SELECT max(s.last_scanned_at) FROM projects ap
 	   JOIN ref_current rc ON rc.org_id = ap.org_id AND rc.project_id = ap.id
 	   JOIN snapshots s ON s.org_id = rc.org_id AND s.id = rc.snapshot_id
 	  WHERE ap.org_id = a.org_id AND ap.agent_id = a.id)`
 
-const from = ` FROM projects p LEFT JOIN agents a ON a.org_id = p.org_id AND a.id = p.agent_id`
+const from = ` FROM projects p JOIN teams t ON t.org_id = p.org_id AND t.id = p.team_id
+	LEFT JOIN agents a ON a.org_id = p.org_id AND a.id = p.agent_id`
 
 func scan(row interface{ Scan(...any) error }) (Project, error) {
 	var p Project
@@ -409,7 +426,7 @@ func scan(row interface{ Scan(...any) error }) (Project, error) {
 	var disabled sql.NullBool
 	if err := row.Scan(&p.sortName, &p.ID, &kind, &p.Slug, &p.Name, &p.Description, &labels, &p.ForgeURL, &archived,
 		&p.CreatedAt, &p.UpdatedAt, &agentID, &agentName, &agentVersion, &lastSeen, &disabled, &agentKind, &agentCreated,
-		&inventoried); err != nil {
+		&p.TeamID, &p.TeamName, &inventoried); err != nil {
 		return Project{}, err
 	}
 	p.Kind = Kind(kind)
@@ -435,9 +452,13 @@ func scan(row interface{ Scan(...any) error }) (Project, error) {
 	return p, nil
 }
 
-// load lit un projet par son slug, avec ses références actives.
-func load(ctx context.Context, tx *db.OrgTx, slug string, lock bool) (Project, error) {
+// load lit un projet par son slug, avec ses références actives. visible restreint aux
+// projets des équipes déclarées par db.Visible (lectures pour un compte).
+func load(ctx context.Context, tx *db.OrgTx, slug string, lock, visible bool) (Project, error) {
 	query := `SELECT ` + columns + from + ` WHERE p.slug = $1`
+	if visible {
+		query += ` AND lotor_team_visible(p.team_id)`
+	}
 	if lock {
 		query += ` FOR UPDATE OF p`
 	}
@@ -473,14 +494,15 @@ func activeRefs(ctx context.Context, tx *db.OrgTx, projectID uuid.UUID) ([]Ref, 
 	return out, rows.Err()
 }
 
-// Get renvoie un projet par son slug.
-func (s *Service) Get(ctx context.Context, org tenant.OrgID, slug string) (Project, error) {
+// Get renvoie un projet visible par son slug ; ErrNotFound pour un projet d'une équipe
+// invisible, comme pour un projet inconnu.
+func (s *Service) Get(ctx context.Context, org tenant.OrgID, vis tenant.Visibility, slug string) (Project, error) {
 	var p Project
 	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
 		var err error
-		p, err = load(ctx, tx, slug, false)
+		p, err = load(ctx, tx, slug, false, true)
 		return err
-	}, db.ReadOnly())
+	}, db.ReadOnly(), db.Visible(vis))
 	return p, wrap("lecture d'un projet", err)
 }
 
@@ -488,7 +510,7 @@ func (s *Service) Get(ctx context.Context, org tenant.OrgID, slug string) (Proje
 // forge et références, ou référence d'hôte. Nature et slug ne changent pas.
 func (s *Service) Update(ctx context.Context, actor audit.Actor, org tenant.OrgID, slug string, in Input) error {
 	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
-		p, err := load(ctx, tx, slug, true)
+		p, err := load(ctx, tx, slug, true, false)
 		if err != nil {
 			return err
 		}
@@ -553,7 +575,7 @@ func changes(p Project, in Input) map[string]string {
 // réactive.
 func (s *Service) SetArchived(ctx context.Context, actor audit.Actor, org tenant.OrgID, slug string, archived bool) error {
 	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
-		p, err := load(ctx, tx, slug, true)
+		p, err := load(ctx, tx, slug, true, false)
 		if err != nil {
 			return err
 		}
@@ -576,7 +598,7 @@ func (s *Service) SetArchived(ctx context.Context, actor audit.Actor, org tenant
 // serveur reçoit son agent à l'inscription, jamais d'ici.
 func (s *Service) AssignAgent(ctx context.Context, actor audit.Actor, org tenant.OrgID, slug string, agentID *uuid.UUID) error {
 	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
-		p, err := load(ctx, tx, slug, true)
+		p, err := load(ctx, tx, slug, true, false)
 		if err != nil {
 			return err
 		}
@@ -588,9 +610,11 @@ func (s *Service) AssignAgent(ctx context.Context, actor audit.Actor, org tenant
 		}
 		details := map[string]string{"agent": "-"}
 		if agentID != nil {
+			// Un agent sert les projets de son équipe, ou de toutes s'il est d'organisation.
 			var name string
 			err := tx.QueryRowContext(ctx,
-				`SELECT name FROM agents WHERE id = $1 AND kind = 'repo' AND disabled_at IS NULL FOR SHARE`, *agentID).Scan(&name)
+				`SELECT name FROM agents WHERE id = $1 AND kind = 'repo' AND disabled_at IS NULL
+				    AND (team_id IS NULL OR team_id = $2) FOR SHARE`, *agentID, p.TeamID).Scan(&name)
 			if errors.Is(err, sql.ErrNoRows) {
 				return invalid("agent", KeyAgentInvalid)
 			}
@@ -610,12 +634,60 @@ func (s *Service) AssignAgent(ctx context.Context, actor audit.Actor, org tenant
 	return wrap("affectation d'un agent", err)
 }
 
+// SetTeam rattache un projet à une autre équipe. L'appelant vérifie le droit
+// tenant.PermProjectMove dans les deux équipes. Un dépôt confié à un agent d'une autre
+// équipe le perd (l'agent ne sert que son équipe) ; un serveur garde son agent, qui suit
+// le projet dans sa nouvelle équipe.
+func (s *Service) SetTeam(ctx context.Context, actor audit.Actor, org tenant.OrgID, slug string, team uuid.UUID) error {
+	err := s.pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
+		p, err := load(ctx, tx, slug, true, false)
+		if err != nil {
+			return err
+		}
+		if p.TeamID == team {
+			return nil
+		}
+		var name string
+		err = tx.QueryRowContext(ctx, `SELECT name FROM teams WHERE id = $1 FOR SHARE`, team).Scan(&name)
+		if errors.Is(err, sql.ErrNoRows) {
+			return invalid("team", KeyTeamInvalid)
+		}
+		if err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE projects SET team_id = $2, updated_at = now() WHERE id = $1`, p.ID, team); err != nil {
+			return err
+		}
+		details := map[string]string{"from": p.TeamName, "to": name}
+		if p.Agent != nil {
+			switch p.Kind {
+			case KindHost:
+				if _, err := tx.ExecContext(ctx, `UPDATE agents SET team_id = $2 WHERE id = $1`, p.Agent.ID, team); err != nil {
+					return err
+				}
+			case KindRepo:
+				res, err := tx.ExecContext(ctx, `UPDATE projects SET agent_id = NULL WHERE id = $1 AND EXISTS (
+					SELECT 1 FROM agents a WHERE a.id = $2 AND a.team_id IS NOT NULL AND a.team_id <> $3)`, p.ID, p.Agent.ID, team)
+				if err != nil {
+					return err
+				}
+				if n, _ := res.RowsAffected(); n > 0 {
+					details["agent"] = "-"
+				}
+			}
+		}
+		return audit.RecordOrg(ctx, tx, actor, event(audit.ProjectTeamChanged, p, details))
+	})
+	return wrap("rattachement d'un projet", err)
+}
+
 // Filter restreint une liste de projets.
 type Filter struct {
-	Query    string // partie du nom ou du slug
-	Kind     Kind   // vide : toutes natures
-	Label    string // « clé » ou « clé=valeur »
-	Archived bool   // projets archivés au lieu des actifs
+	Query    string    // partie du nom ou du slug
+	Kind     Kind      // vide : toutes natures
+	Label    string    // « clé » ou « clé=valeur »
+	Archived bool      // projets archivés au lieu des actifs
+	Team     uuid.UUID // nul : toutes les équipes visibles
 }
 
 // DefaultPage et MaxPage bornent une page de projets.
@@ -633,8 +705,8 @@ func likeEscape(s string) string {
 	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }
 
-// List renvoie une page de projets, par nom.
-func (s *Service) List(ctx context.Context, org tenant.OrgID, f Filter, cursor string, limit int) (pagination.Page[Project], error) {
+// List renvoie une page des projets visibles, par nom.
+func (s *Service) List(ctx context.Context, org tenant.OrgID, vis tenant.Visibility, f Filter, cursor string, limit int) (pagination.Page[Project], error) {
 	if limit < 1 || limit > MaxPage {
 		return pagination.Page[Project]{}, &pagination.LimitError{Max: MaxPage}
 	}
@@ -645,7 +717,7 @@ func (s *Service) List(ctx context.Context, org tenant.OrgID, f Filter, cursor s
 		}
 	}
 	args := []any{f.Archived, limit + 1}
-	where := []string{`(p.archived_at IS NOT NULL) = $1`}
+	where := []string{`(p.archived_at IS NOT NULL) = $1`, `lotor_team_visible(p.team_id)`}
 	add := func(cond string, v any) {
 		args = append(args, v)
 		where = append(where, strings.ReplaceAll(cond, "$?", "$"+strconv.Itoa(len(args))))
@@ -659,6 +731,9 @@ func (s *Service) List(ctx context.Context, org tenant.OrgID, f Filter, cursor s
 	}
 	if f.Kind != "" {
 		add(`p.kind = $?`, string(f.Kind))
+	}
+	if f.Team != uuid.Nil {
+		add(`p.team_id = $?`, f.Team)
 	}
 	if l := strings.TrimSpace(f.Label); l != "" {
 		k, v, hasValue := strings.Cut(l, "=")
@@ -694,6 +769,6 @@ func (s *Service) List(ctx context.Context, org tenant.OrgID, f Filter, cursor s
 		}
 		page, err = pagination.Build(out, limit, func(p Project) any { return listCursor{N: p.sortName, I: p.ID} })
 		return err
-	}, db.ReadOnly())
+	}, db.ReadOnly(), db.Visible(vis))
 	return page, wrap("liste des projets", err)
 }

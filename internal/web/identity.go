@@ -22,7 +22,6 @@ import (
 	"leblanc.io/lotor/internal/audit"
 	"leblanc.io/lotor/internal/dashboard"
 	"leblanc.io/lotor/internal/db"
-	"leblanc.io/lotor/internal/db/crossorg"
 	"leblanc.io/lotor/internal/finding"
 	"leblanc.io/lotor/internal/ingest"
 	"leblanc.io/lotor/internal/inventory"
@@ -38,14 +37,15 @@ import (
 
 // Chemins du parcours de connexion.
 const (
-	pathLogin     = "/login"
-	pathVerify    = "/login/2fa"
-	pathTOTPSetup = "/account/totp/setup"
-	pathTOTPOn    = "/account/totp/enable"
-	pathPassword  = "/account/password"
-	pathTokens    = "/account/tokens"
-	pathLogout    = "/logout"
-	pathHome      = "/"
+	pathLogin       = "/login"
+	pathVerify      = "/login/2fa"
+	pathTOTPSetup   = "/account/totp/setup"
+	pathTOTPOn      = "/account/totp/enable"
+	pathPassword    = "/account/password"
+	pathTokens      = "/account/tokens"
+	pathInvitations = "/account/invitations"
+	pathLogout      = "/logout"
+	pathHome        = "/"
 )
 
 // IdentityOptions branche les comptes, les sessions, le TOTP et les organisations sur
@@ -80,6 +80,12 @@ type IdentityOptions struct {
 	// SessionMaxAge est la durée absolue d'une session authentifiée, comptée depuis la
 	// connexion, quelle que soit son activité (0 : sans).
 	SessionMaxAge time.Duration
+
+	// routeStub, s'il est posé (tests seulement, depuis le paquet), remplace le
+	// gestionnaire de chaque route de l'organisation derrière sa garde de droit : le test
+	// dérivé de la matrice éprouve ainsi toute la chaîne (session, CSRF, garde
+	// d'organisation, droit de la route) sans effet de bord.
+	routeStub http.HandlerFunc
 }
 
 // identity porte authx, mfax et ce que l'interface en tire : visiteur, gardes, rendu des
@@ -320,8 +326,8 @@ func (id *identity) requireInstanceAdmin(next http.Handler) http.Handler {
 func (id *identity) orgGuard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		v := viewerFrom(r)
-		acc, err := crossorg.Access(r.Context(), id.Pool.DB(), chi.URLParam(r, "slug"), v.user.ID)
-		if errors.Is(err, crossorg.ErrNoAccess) {
+		acc, err := id.Orgs.Access(r.Context(), chi.URLParam(r, "slug"), v.user.ID)
+		if errors.Is(err, org.ErrNoAccess) {
 			id.rd.Error(w, r, http.StatusNotFound)
 			return
 		}
@@ -348,20 +354,6 @@ func (id *identity) orgGuard(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-// requireOrgRole réserve une page de l'organisation aux rôles au moins égaux à min (403
-// sinon : le membre connaît déjà l'organisation).
-func (id *identity) requireOrgRole(min tenant.Role) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if acc, ok := tenant.AccessFrom(r.Context()); !ok || !acc.Role.AtLeast(min) {
-				id.rd.Error(w, r, http.StatusForbidden)
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
 }
 
 // safeNext ne garde qu'un chemin local pour ?next=.

@@ -117,7 +117,7 @@ func TestNewTargetRescansEachActiveRefOnce(t *testing.T) {
 	e.execIn(e.org, `INSERT INTO tracked_refs (org_id, id, project_id, project_kind, kind, name, removed_at)
 		VALUES ($1, $2, $3, 'repo', 'branch', 'old', now())`, e.org, ref3, e.repo)
 	archivedRepo, archivedRef := newID(), newID()
-	e.execIn(e.org, `INSERT INTO projects (org_id, id, kind, slug, name, archived_at) VALUES ($1, $2, 'repo', 'vieux', 'vieux', now())`,
+	e.execIn(e.org, `INSERT INTO projects (org_id, id, kind, slug, name, archived_at, team_id) VALUES ($1, $2, 'repo', 'vieux', 'vieux', now(), $1)`,
 		e.org, archivedRepo)
 	e.execIn(e.org, `INSERT INTO tracked_refs (org_id, id, project_id, project_kind, kind, name) VALUES ($1, $2, $3, 'repo', 'branch', 'main')`,
 		e.org, archivedRef, archivedRepo)

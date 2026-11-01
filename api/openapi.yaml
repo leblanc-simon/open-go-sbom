@@ -233,7 +233,9 @@ paths:
         par projet, toutes dans l'export). La requête est un nom de composant, un purl
         éventuellement suivi d'une plage `vers` (`pkg:npm/lodash vers:npm/<4.17.21`), un
         identifiant `CVE-…` ou `GHSA-…`, ou une empreinte SHA-256. Une organisation dont le
-        propriétaire du jeton n'est pas membre répond 404.
+        propriétaire du jeton n'est pas membre répond 404 ; les résultats se limitent aux
+        projets des équipes du propriétaire du jeton (tous pour un administrateur de
+        l'organisation).
       security:
         - personalToken: []
       parameters:

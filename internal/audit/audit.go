@@ -46,6 +46,17 @@ const (
 	MemberAdded            Action = "member.added"
 	MemberRoleChanged      Action = "member.role_changed"
 	MemberRemoved          Action = "member.removed"
+	MemberInvited          Action = "member.invited"
+	InvitationRevoked      Action = "invitation.revoked"
+	InvitationAccepted     Action = "invitation.accepted"
+	InvitationDeclined     Action = "invitation.declined"
+	TeamCreated            Action = "team.created"
+	TeamRenamed            Action = "team.renamed"
+	TeamDeleted            Action = "team.deleted"
+	TeamMemberAdded        Action = "team_member.added"
+	TeamMemberRoleChanged  Action = "team_member.role_changed"
+	TeamMemberRemoved      Action = "team_member.removed"
+	ProjectTeamChanged     Action = "project.team_changed"
 	ProjectCreated         Action = "project.created"
 	ProjectUpdated         Action = "project.updated"
 	ProjectArchived        Action = "project.archived"
@@ -78,6 +89,8 @@ func Actions() []Action {
 		AccountBootstrapped, AccountRescueTOTPReset, AccountLocked,
 		OrgCreated, OrgRenamed, OrgLanguageChanged, OrgArchived, OrgUnarchived,
 		MemberAdded, MemberRoleChanged, MemberRemoved,
+		MemberInvited, InvitationRevoked, InvitationAccepted, InvitationDeclined,
+		TeamCreated, TeamRenamed, TeamDeleted, TeamMemberAdded, TeamMemberRoleChanged, TeamMemberRemoved, ProjectTeamChanged,
 		ProjectCreated, ProjectUpdated, ProjectArchived, ProjectUnarchived, ProjectAgentChanged,
 		AgentCreated, AgentEnrolled, AgentDisabled, AgentScanRequested, AgentTokenCreated, AgentTokenRevoked,
 		EnrollmentTokenCreated, EnrollmentTokenRevoked, PersonalTokenCreated, PersonalTokenRevoked,

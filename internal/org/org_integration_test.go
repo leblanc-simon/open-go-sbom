@@ -90,7 +90,7 @@ func TestCreateValidatesAndRegistersFirstAdmin(t *testing.T) {
 		p, err := audit.ListOrg(ctx, tx, "", audit.MaxPage)
 		events = len(p.Items)
 		return err
-	}); err != nil || events != 2 {
+	}); err != nil || events != 3 { // org.created, member.added, team.created
 		t.Fatalf("journal de l'organisation : %d, %v", events, err)
 	}
 }
@@ -103,7 +103,7 @@ func TestOrganizationKeepsOneAdmin(t *testing.T) {
 	f := setup(t)
 	a, b := f.user(t, "a@example.org"), f.user(t, "b@example.org")
 	o, _ := f.orgs.Create(ctx, audit.System, "o", "O", "fr", a.ID)
-	if err := f.orgs.SetMemberRole(ctx, audit.System, o.ID, a.ID, tenant.RoleViewer); !isKey(err, org.KeyLastOrgAdmin) {
+	if err := f.orgs.SetMemberRole(ctx, audit.System, o.ID, a.ID, tenant.RoleMember); !isKey(err, org.KeyLastOrgAdmin) {
 		t.Fatalf("rétrogradation : %v", err)
 	}
 	if err := f.orgs.RemoveMember(ctx, audit.System, o.ID, a.ID); !isKey(err, org.KeyLastOrgAdmin) {
@@ -112,7 +112,7 @@ func TestOrganizationKeepsOneAdmin(t *testing.T) {
 	if err := f.orgs.AddMember(ctx, audit.System, o.ID, b.Email, "chef"); !isKey(err, org.KeyRoleInvalid) {
 		t.Fatalf("rôle inconnu : %v", err)
 	}
-	if err := f.orgs.AddMember(ctx, audit.System, o.ID, "x", tenant.RoleViewer); !isKey(err, account.KeyEmailInvalid) {
+	if err := f.orgs.AddMember(ctx, audit.System, o.ID, "x", tenant.RoleMember); !isKey(err, account.KeyEmailInvalid) {
 		t.Fatalf("adresse invalide : %v", err)
 	}
 	if err := f.orgs.AddMember(ctx, audit.System, o.ID, b.Email, tenant.RoleAdmin); err != nil {
@@ -127,13 +127,13 @@ func TestOrganizationKeepsOneAdmin(t *testing.T) {
 	if err := f.orgs.SetMemberRole(ctx, audit.System, o.ID, a.ID, "chef"); !isKey(err, org.KeyRoleInvalid) {
 		t.Fatalf("rôle inconnu : %v", err)
 	}
-	if err := f.orgs.SetMemberRole(ctx, audit.System, o.ID, a.ID, tenant.RoleAnalyst); err != nil {
+	if err := f.orgs.SetMemberRole(ctx, audit.System, o.ID, a.ID, tenant.RoleMember); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.orgs.RemoveMember(ctx, audit.System, o.ID, 9999); !errors.Is(err, org.ErrNotFound) {
 		t.Fatalf("membre inconnu : %v", err)
 	}
-	if m, err := f.orgs.Member(ctx, o.ID, a.ID); err != nil || m.Email != a.Email || m.Role != tenant.RoleAnalyst || !m.Active {
+	if m, err := f.orgs.Member(ctx, o.ID, a.ID); err != nil || m.Email != a.Email || m.Role != tenant.RoleMember || !m.Active {
 		t.Fatalf("membre : %+v, %v", m, err)
 	}
 	if _, err := f.orgs.Member(ctx, o.ID, 9999); !errors.Is(err, org.ErrNotFound) {

@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/tenant"
 )
 
 // TestComponentUsage : un composant et l'usage courant de sa famille ; références
@@ -29,7 +30,7 @@ func TestComponentUsage(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := NewService(d.App)
-	c, usage, err := s.Component(ctx, f.org, id)
+	c, usage, err := s.Component(ctx, f.org, tenant.AllTeams(), id)
 	if err != nil || c.PURLBase != "pkg:npm/paquet-00000" || c.Version != "1.0.0" || len(c.CPEs) != 1 {
 		t.Fatalf("composant %+v, %v", c, err)
 	}
@@ -39,14 +40,14 @@ func TestComponentUsage(t *testing.T) {
 	}
 	f.exec(t, `UPDATE projects SET archived_at = now() WHERE id = $1`, f.host)
 	f.exec(t, `UPDATE tracked_refs SET removed_at = now() WHERE id = $1`, f.main)
-	if _, usage, err := s.Component(ctx, f.org, id); err != nil || len(usage) != 0 {
+	if _, usage, err := s.Component(ctx, f.org, tenant.AllTeams(), id); err != nil || len(usage) != 0 {
 		t.Fatalf("usages après retrait et archivage : %+v, %v", usage, err)
 	}
-	if _, _, err := s.Component(ctx, f.org, uuid.New()); !errors.Is(err, ErrNotFound) {
+	if _, _, err := s.Component(ctx, f.org, tenant.AllTeams(), uuid.New()); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("composant inconnu : %v", err)
 	}
 	other := newFixture(t, d.App)
-	if _, _, err := s.Component(ctx, other.org, id); !errors.Is(err, ErrNotFound) {
+	if _, _, err := s.Component(ctx, other.org, tenant.AllTeams(), id); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("composant d'une autre organisation : %v", err)
 	}
 }

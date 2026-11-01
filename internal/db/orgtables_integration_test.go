@@ -42,14 +42,31 @@ var orgTables = []orgTable{
 			VALUES ($1, $2, $3, 'member.added')`, tx.OrgID(), uuid.Must(uuid.NewV7()), userID)
 		return err
 	}},
+	{"teams", "org_id", func(ctx context.Context, tx *db.OrgTx, userID int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO teams (org_id, id, name, created_by) VALUES ($1, $2, 'Général', $3)`,
+			tx.OrgID(), seedID(tx, "team"), userID)
+		return err
+	}},
+	{"team_members", "org_id", func(ctx context.Context, tx *db.OrgTx, userID int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO team_members (org_id, team_id, user_id, role) VALUES ($1, $2, $3, 'admin')`,
+			tx.OrgID(), seedID(tx, "team"), userID)
+		return err
+	}},
+	{"org_invitations", "org_id", func(ctx context.Context, tx *db.OrgTx, userID int64) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO org_invitations (org_id, id, email, role, invited_by, expires_at)
+			VALUES ($1, $2, 'invite@example.org', 'member', $3, now() + interval '30 days')`,
+			tx.OrgID(), uuid.Must(uuid.NewV7()), userID)
+		return err
+	}},
 	{"agents", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
-		_, err := tx.ExecContext(ctx, `INSERT INTO agents (org_id, id, kind, name) VALUES ($1, $2, 'host', 'srv-01')`,
-			tx.OrgID(), seedID(tx, "agent"))
+		_, err := tx.ExecContext(ctx, `INSERT INTO agents (org_id, id, kind, name, team_id) VALUES ($1, $2, 'host', 'srv-01', $3)`,
+			tx.OrgID(), seedID(tx, "agent"), seedID(tx, "team"))
 		return err
 	}},
 	{"projects", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
-		_, err := tx.ExecContext(ctx, `INSERT INTO projects (org_id, id, kind, slug, name, agent_id)
-			VALUES ($1, $2, 'host', 'srv-01', 'srv-01', $3)`, tx.OrgID(), seedID(tx, "project"), seedID(tx, "agent"))
+		_, err := tx.ExecContext(ctx, `INSERT INTO projects (org_id, id, kind, slug, name, agent_id, team_id)
+			VALUES ($1, $2, 'host', 'srv-01', 'srv-01', $3, $4)`, tx.OrgID(), seedID(tx, "project"), seedID(tx, "agent"),
+			seedID(tx, "team"))
 		return err
 	}},
 	{"tracked_refs", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
@@ -131,9 +148,9 @@ var orgTables = []orgTable{
 		return err
 	}},
 	{"enrollment_tokens", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
-		_, err := tx.ExecContext(ctx, `INSERT INTO enrollment_tokens (org_id, id, public_id, secret_hash, name, expires_at, max_uses)
-			VALUES ($1, $2, $3, sha256('e'::bytea), 'parc', now() + interval '1 day', 5)`,
-			tx.OrgID(), uuid.Must(uuid.NewV7()), publicID(tx, "e"))
+		_, err := tx.ExecContext(ctx, `INSERT INTO enrollment_tokens (org_id, id, public_id, secret_hash, name, expires_at, max_uses, team_id)
+			VALUES ($1, $2, $3, sha256('e'::bytea), 'parc', now() + interval '1 day', 5, $4)`,
+			tx.OrgID(), uuid.Must(uuid.NewV7()), publicID(tx, "e"), seedID(tx, "team"))
 		return err
 	}},
 	{"org_daily_stats", "org_id", func(ctx context.Context, tx *db.OrgTx, _ int64) error {
@@ -333,5 +350,44 @@ func TestRLSOnEveryOrgTable(t *testing.T) {
 				t.Errorf("B : %d lignes, %v", n, err)
 			}
 		})
+	}
+}
+
+// TestTeamVisibilityFailsClosed : lotor_team_visible ne répond que si la transaction a
+// déclaré ses équipes visibles (db.Visible) ; sans déclaration, sur une connexion neuve ou
+// réutilisée, la requête échoue au lieu de tout montrer (ADR 0034).
+func TestTeamVisibilityFailsClosed(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	tdb := dbtest.New(t)
+	tdb.App.DB().SetMaxOpenConns(1)
+	a := newOrg(t)
+	seedOrg(t, tdb, a, "a@example.org")
+	team := uuid.NewSHA1(a.UUID(), []byte("team"))
+	count := func(opts ...db.TxOption) (int, error) {
+		var n int
+		err := tdb.App.InOrg(ctx, a, func(tx *db.OrgTx) error {
+			return tx.QueryRowContext(ctx, `SELECT count(*) FROM projects WHERE lotor_team_visible(team_id)`).Scan(&n)
+		}, append(opts, db.ReadOnly())...)
+		return n, err
+	}
+	if n, err := count(); err == nil {
+		t.Fatalf("connexion neuve sans équipes déclarées : %d projets sans erreur", n)
+	}
+	cases := []struct {
+		v    tenant.Visibility
+		want int
+	}{
+		{tenant.AllTeams(), 1}, {tenant.OnlyTeams(team), 1}, {tenant.OnlyTeams(uuid.New()), 0}, {tenant.OnlyTeams(), 0},
+		{tenant.Visibility{}, 0},
+	}
+	for _, c := range cases {
+		if n, err := count(db.Visible(c.v)); err != nil || n != c.want {
+			t.Errorf("visibilité %q : %d projets, %v ; attendu %d", c.v.Setting(), n, err, c.want)
+		}
+	}
+	// Connexion réutilisée : le réglage de la transaction précédente vaut '' et échoue.
+	if n, err := count(); err == nil {
+		t.Fatalf("connexion réutilisée sans équipes déclarées : %d projets sans erreur", n)
 	}
 }

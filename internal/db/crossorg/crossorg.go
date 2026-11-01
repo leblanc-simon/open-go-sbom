@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+
 	"leblanc.io/lotor/internal/db"
 	"leblanc.io/lotor/internal/tenant"
 )
@@ -158,4 +160,43 @@ func tokenOrg(ctx context.Context, q db.Querier, query, publicID string) (tenant
 		return tenant.OrgID{}, ErrUnknownToken
 	}
 	return id.V, nil
+}
+
+// Invitation est une invitation en attente d'un compte.
+type Invitation struct {
+	Org       tenant.OrgID
+	ID        uuid.UUID
+	Slug      string
+	Name      string
+	Role      tenant.Role
+	CreatedAt time.Time
+	ExpiresAt time.Time
+}
+
+// UserInvitations renvoie les invitations en attente adressées à l'e-mail de userID
+// (50 au plus, des organisations actives dont il n'est pas membre ; fonction
+// lotor_user_invitations, ADR 0034).
+func UserInvitations(ctx context.Context, q db.Querier, userID int64) ([]Invitation, error) {
+	rows, err := q.QueryContext(ctx, `SELECT org_id, invitation_id, slug, name, role, created_at, expires_at
+		  FROM lotor_user_invitations($1)`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("crossorg: invitations du compte : %w", err)
+	}
+	defer rows.Close()
+	var out []Invitation
+	for rows.Next() {
+		var i Invitation
+		var role string
+		if err := rows.Scan(&i.Org, &i.ID, &i.Slug, &i.Name, &role, &i.CreatedAt, &i.ExpiresAt); err != nil {
+			return nil, fmt.Errorf("crossorg: invitations du compte : %w", err)
+		}
+		if i.Role, err = tenant.ParseRole(role); err != nil {
+			return nil, err
+		}
+		out = append(out, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("crossorg: invitations du compte : %w", err)
+	}
+	return out, nil
 }
