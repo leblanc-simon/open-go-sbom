@@ -15,6 +15,10 @@ import (
 // (projet archivé) ; ses conteneurs ne peuvent être rattachés à rien.
 const KeyNoHostProject = "error.agent.no_host_project"
 
+// KeyContainersLimit : le signalement créerait plus de projets enfants que
+// containers.max_per_host n'en permet pour l'hôte ; rien n'est créé (SEC2-05).
+const KeyContainersLimit = "error.agent.containers_limit"
+
 // KeyContainersNotHost : seul un agent serveur signale des conteneurs.
 const KeyContainersNotHost = "validation.containers_not_host"
 
@@ -78,9 +82,12 @@ func (s *Service) ReportContainers(ctx context.Context, p Principal, version str
 			p.AgentID, version, now); err != nil {
 			return err
 		}
-		states, err := project.SightContainers(ctx, tx, actor, p.AgentID, sightings, now)
+		states, err := project.SightContainers(ctx, tx, actor, p.AgentID, sightings, now, s.maxContainers)
 		if errors.Is(err, project.ErrNoHost) {
 			return &ConflictError{Key: KeyNoHostProject}
+		}
+		if errors.Is(err, project.ErrContainerLimit) {
+			return &ConflictError{Key: KeyContainersLimit}
 		}
 		if err != nil {
 			return err

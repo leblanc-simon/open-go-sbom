@@ -636,7 +636,8 @@ func (id *identity) saveProject(w http.ResponseWriter, r *http.Request) {
 	f.Kind, f.Slug = p.Kind, p.Slug
 	in, err := f.input()
 	if err == nil {
-		err = id.Projects.Update(r.Context(), id.actor(r), access(r).Org, p.Slug, in)
+		err = id.Projects.Update(r.Context(), id.actor(r), access(r).Org, p.Slug, in,
+			access(r).Can(tenant.PermAIExternal, p.TeamID) && !id.ForbidExternalAI)
 	}
 	id.projectResult(w, r, err, p, "project_saved", func(fe formError) {
 		id.projectSettingsPage(w, r, http.StatusUnprocessableEntity, p, f, fe)

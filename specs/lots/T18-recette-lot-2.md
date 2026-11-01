@@ -2,7 +2,7 @@
 
 | Lot fonctionnel | Dépend de | Statut |
 | --- | --- | --- |
-| 2 · IA et triage | T12, T13, T14, T15, T16, T17 | En cours (partie 1, compléments, faite) |
+| 2 · IA et triage | T12, T13, T14, T15, T16, T17 | En cours (partie 1, compléments, et partie 2, sécurité, faites) |
 
 ## Objectif
 
@@ -34,7 +34,9 @@ un taux de faux positifs mesuré et tenu, et publier une préversion `v0.2.0` du
 - [ ] Zéro composant d'origine IA accepté sans preuve vérifiée, sur le corpus et le pilote.
 - [ ] Taux de faux positifs et rappel dans les seuils validés en T12, sur le corpus et sur
       l'échantillon pilote annoté.
-- [ ] Aucune faiblesse de gravité haute ou critique ouverte.
+- [x] Aucune faiblesse de gravité haute ou critique ouverte. (Aucune trouvée par la revue
+      du lot 2 ; les 2 Medium et les 5 Low sont corrigés, 2 des 3 Note aussi, voir « Revue
+      de sécurité ».)
 - [ ] Grille RGAA remplie pour chaque nouvel écran, sans non-conformité bloquante.
 - [x] Un utilisateur peut se connecter avec un code de secours, à usage unique
       (partie 1, `TestRecoveryCodes`).
@@ -155,3 +157,86 @@ d'autres agents.
 
 Aucune nouvelle fonction `crossorg`, aucune nouvelle dépendance tierce (open-go-base
 monte de version).
+
+### Partie 2 — revue de sécurité
+
+Réalisée le 1er novembre 2026, branche `lot/T18-securite`, en autonomie : les décisions
+marquées **[à relire]** n'ont pas été validées explicitement. Revue indépendante
+(relecteur distinct des auteurs, OWASP Risk Rating) de `lot/T18-complements` à `a9b5cf4`
+(T12 à T17 et partie 1 de T18) et d'open-go-base `a0f777f` (mfax v1.4.0) ; chaque
+constat a été démontré par un test de reproduction, transformé ici en test de
+non-régression qui échoue sans le correctif et passe avec (vérifié pour chacun ; SEC2-09
+n'avait pas de test de reproduction, ses tests sont nouveaux). Bilan de la revue :
+0 Critical, 0 High, 2 Medium, 5 Low, 3 Note ; aucune fuite entre organisations.
+
+#### Constats
+
+| Id | Titre | Gravité | Statut | Commit ou justification |
+| --- | --- | --- | --- | --- |
+| SEC2-01 | `EnablePOST` hors verrouillage par compte : force brute du TOTP depuis une session volée, qui délivre un nouveau jeu de codes de secours | Medium | Corrigé | open-go-base v1.4.1 (PR #6, `0900e0c`) : TOTP actif refusé sans examen du code, codes faux comptés dans le verrouillage ; lotor `8658ac6` : montée de version, enveloppe de la route (défense en profondeur), message du verrouillage à l'enrôlement ; tests `TestEnablePOSTOnActiveTOTPDoesNothing`, `TestEnablePOSTCountsFailures` (mfax), `TestEnableOnActiveTOTPDeliversNothing`, `TestEnrollmentCodesCountInLockout` ; ADR 0051 |
+| SEC2-02 | Inscription : un jeton d'une équipe prend, par le nom d'hôte, le projet hôte d'une autre équipe | Medium | Corrigé | `4c82c65` : rattachement par le nom borné à l'équipe du jeton, homonyme d'une autre équipe répondu « hôte déjà suivi », projet désigné passé dans une autre équipe refusé ; `TestEnrollmentByHostnameStaysInTheTokenTeam` ; ADR 0051 |
+| SEC2-03 | Changer le dépôt d'un projet garde l'IA « externe » | Low | Corrigé | `2a64942` : URL de forge changée sans le droit `ai.external` → réglage « désactivé », journalisé (`forge_url_changed`) ; `TestForgeURLChangeRevokesExternalAI` ; ADR 0051 |
+| SEC2-04 | Canal Matrix : changer le serveur sans ressaisir le jeton envoie le jeton au nouveau serveur | Low | Corrigé | `64913b3`, `77c8741` : secret à ressaisir quand le serveur Matrix ou l'URL du webhook change, changement de destination journalisé ; `TestChannelSecretNeverFollowsNewDestination` ; ADR 0051 |
+| SEC2-05 | Projets enfants de conteneurs sans borne par hôte | Low | Corrigé | `0c9f4ec` : `containers.max_per_host` (1 000), signalement refusé en entier au-delà (409) ; `TestContainerChildrenBoundedPerHost` ; ADR 0051 |
+| SEC2-06 | Reconfiguration du TOTP : le mot de passe seul enrôle un nouveau second facteur jusqu'à la reconnexion | Low | Corrigé | `8658ac6` : nouveau mot de passe exigé (validé avant la consommation du code) ; `TestReconfigureClosesPasswordOnlyWindow` ; ADR 0051 (modifie 0048) |
+| SEC2-07 | IA : noms des fichiers exclus envoyés au fournisseur dans le prompt incrémental | Low | Corrigé | `a1bc95b` : périmètre filtré par les exclusions et la détection de clé privée, `list_dir` sans fichier à clé privée (64 Kio au plus : reste accepté au-delà), description de l'outil corrigée ; `TestIncrementalPromptOmitsExcludedFiles` ; ADR 0051 |
+| SEC2-08 | Garde SSRF : préfixes de traduction et plages réservées non refusés ; ports libres | Note | Corrigé, ports acceptés | `f9db5f5` : plages réservées, NAT64, 6to4, IPv4-compatibles jugés sur l'IPv4 portée ; `TestForbiddenAddresses` étendu ; ports non restreints, risque accepté et documenté **[à relire]** ; ADR 0051 |
+| SEC2-09 | Outil `search` de l'IA : contexte ignoré, recherche sans résultat gratuite, appels par tour non bornés | Note | Corrigé | `d666ebb` : délai vérifié pendant la recherche et entre deux outils, 2 Kio par recherche, 20 appels par réponse ; `TestRunBoundsToolCallsPerTurn`, `TestSearchIsChargedAndCancellable` ; ADR 0051 |
+| SEC2-10 | `lotor_user_invitations` (`SECURITY DEFINER`) sans garde SQL | Note | Accepté **[à relire]** | Même nature que SEC-12 : appelée avec l'identifiant de la session seulement, acceptation revérifiée sous la RLS, métadonnées seules ; consigné au modèle de menace ; ADR 0051 |
+
+#### Livré
+
+- **open-go-base v1.4.1** (PR #6 fusionnée en squash, commit `0900e0c`, étiquette `v1.4.1`
+  créée en local, à pousser) : `EnablePOST` refuse un TOTP actif et passe par le
+  verrouillage par compte (`?error=2fa_locked`, repris par `SetupGET`) ; tests, `doc.go`,
+  README, CLAUDE.md. `go vet ./...` et `go test -race ./...` verts. lotor monté sur
+  `v1.3.1-0.20261101111845-0900e0c6a132`.
+- lotor : enveloppe `enableTOTP`, message `totp_setup.error.locked` ; reconfiguration avec
+  nouveau mot de passe (`account.CheckReconfigurePassword`, `ReconfigureTOTP` avec mot de
+  passe, formulaire de `/account/security`) ; inscription bornée à l'équipe du jeton ;
+  `project.Service.Update(…, externalAI)` ; `notify.UpdateChannel` et destination ;
+  `containers.max_per_host` (`agent.WithMaxContainersPerHost`,
+  `project.ErrContainerLimit`, `error.agent.containers_limit`, OpenAPI) ; filtre du
+  périmètre incrémental et `list_dir` ; `delivery.Forbidden` ; `llm.Budget.MaxCallsPerTurn`,
+  recherche sous délai et budget.
+- Traductions FR et EN : `security.reconfigure_password`, `security.reconfigure_password_hint`,
+  `security.reconfigure_text`, `login.totp_reconfigured`, `totp_setup.error.locked`,
+  `channel_form.secret_keep`, `error.agent.containers_limit`.
+- Documentation : ADR 0051 (et statut de 0048), modèle de menace version 3 (acteurs selon
+  T16, administrateur d'équipe, porteur d'un jeton d'inscription, fournisseur de modèle ;
+  frontières 9 « équipe A ↔ équipe B » et 10 « agent dépôt ↔ fournisseur de modèle » ;
+  actifs codes de secours, secrets des canaux, code lu par l'IA ; toutes les mises à jour
+  proposées par la revue), `specs/architecture.md` (second facteur, agents, § 23), `docs/operations.md`,
+  `docs/utilisation.md`, `docs/notifications.md`, guides de démarrage, `config.example.yaml`,
+  `CHANGELOG.md`.
+
+#### Décisions
+
+- Reconfiguration du second facteur : nouveau mot de passe exigé, jetons personnels gardés
+  ([ADR 0051](../../docs/adr/0051-corrections-revue-securite-lot2.md) § 2) **[à relire]**.
+- Défense en profondeur de SEC2-01 gardée dans lotor malgré mfax v1.4.1 ; échecs
+  d'enrôlement non journalisés un par un (verrouillage journalisé) (ADR 0051 § 1)
+  **[à relire]**.
+- Inscription : homonyme d'une autre équipe répondu « hôte déjà suivi », archivé compris ;
+  projet désigné passé dans une autre équipe refusé (ADR 0051 § 3) **[à relire]**.
+- IA externe ramenée à « désactivé » (pas « local ») au changement de dépôt (ADR 0051 § 4)
+  **[à relire]**.
+- Canaux : ressaisie du secret au changement de serveur Matrix ou d'URL de webhook ; salon
+  Matrix libre (ADR 0051 § 5) **[à relire]**.
+- `containers.max_per_host` = 1 000, refus du signalement entier, pas de quota quotidien
+  (ADR 0051 § 6) **[à relire]**.
+- Détection de clé privée dans `list_dir` limitée aux fichiers de 64 Kio (ADR 0051 § 7)
+  **[à relire]**.
+- Ports des canaux non restreints ; SEC2-10 accepté (ADR 0051 § 8 et § 10) **[à relire]**.
+- 20 appels d'outils par réponse, 2 Kio par recherche (ADR 0051 § 9) **[à relire]**.
+
+#### Écarts
+
+- Aucune migration : le numéro 023 réservé n'a pas servi (SEC2-10 accepté sans garde SQL).
+- `make ci` vert en local (toutes les cibles, intégration PostgreSQL comprise).
+- L'étiquette `v1.4.1` d'open-go-base ne peut pas être poussée depuis la session (action de
+  l'utilisateur, `specs/avancement.md`).
+
+#### ADR créés
+
+- [0051 — Corrections de la revue de sécurité du lot 2](../../docs/adr/0051-corrections-revue-securite-lot2.md).

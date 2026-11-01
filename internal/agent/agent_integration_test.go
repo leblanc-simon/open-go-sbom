@@ -769,3 +769,62 @@ func TestEnrollmentInheritsTheTokenTeam(t *testing.T) {
 		t.Fatalf("jetons après suppression d'une équipe : %d", len(all))
 	}
 }
+
+// TestEnrollmentByHostnameStaysInTheTokenTeam : SEC2-02. Sans projet désigné, un jeton
+// d'inscription d'une équipe ne prend pas, par le seul nom d'hôte déclaré, le projet hôte
+// d'une autre équipe (sans agent, avec agent ou archivé) : la réponse est celle d'un hôte
+// déjà suivi, le projet reste intact. Dans l'équipe du jeton, le rattachement par le nom
+// fonctionne toujours ; un projet désigné passé dans une autre équipe n'est plus confié.
+func TestEnrollmentByHostnameStaysInTheTokenTeam(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	f := setup(t)
+	o := f.org(t, "a")
+	general := f.defaultTeam(t, o)
+	web, err := f.orgs.CreateTeam(ctx, f.actor, o, "Web")
+	if err != nil {
+		t.Fatal(err)
+	}
+	h, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindHost, Name: "db-prod", HostRef: "db-prod", TeamID: general})
+	if err != nil {
+		t.Fatal(err)
+	}
+	webToken := func() string { return f.enrollment(t, o, agent.EnrollmentInput{TeamID: web.ID}) }
+	if _, err := f.enroll(t, webToken(), "db-prod"); authKey(err) != agent.KeyHostTaken {
+		t.Fatalf("hôte sans agent d'une autre équipe, par le nom : %v", err)
+	}
+	if got, err := f.projects.Get(ctx, o, tenant.AllTeams(), h.Slug); err != nil || got.Agent != nil || got.TeamID != general {
+		t.Fatalf("projet de l'autre équipe après la tentative : %+v, %v", got, err)
+	}
+	// Archivé : même réponse (pas d'oracle sur l'état d'un projet d'une autre équipe).
+	old, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindHost, Name: "old", HostRef: "old", TeamID: general})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.projects.SetArchived(ctx, f.actor, o, old.Slug, true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.enroll(t, webToken(), "old"); authKey(err) != agent.KeyHostTaken {
+		t.Fatalf("hôte archivé d'une autre équipe, par le nom : %v", err)
+	}
+	// L'équipe du projet le rattache par le nom ; ensuite, Web reçoit toujours « pris ».
+	own, err := f.enroll(t, f.enrollment(t, o, agent.EnrollmentInput{TeamID: general}), "db-prod")
+	if err != nil || own.Created || own.Project.ID != h.ID || own.Agent.TeamID == nil || *own.Agent.TeamID != general {
+		t.Fatalf("rattachement par le nom dans l'équipe : %+v, %v", own, err)
+	}
+	if _, err := f.enroll(t, webToken(), "db-prod"); authKey(err) != agent.KeyHostTaken {
+		t.Fatalf("hôte suivi d'une autre équipe, par le nom : %v", err)
+	}
+	// Projet désigné, puis passé dans une autre équipe avant l'inscription.
+	moved, err := f.projects.Create(ctx, f.actor, o, project.Input{Kind: project.KindHost, Name: "srv-moved", HostRef: "srv-moved", TeamID: web.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tok := f.enrollment(t, o, agent.EnrollmentInput{TeamID: web.ID, ProjectSlug: moved.Slug})
+	if err := f.projects.SetTeam(ctx, f.actor, o, moved.Slug, general); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.enroll(t, tok, "srv-moved"); authKey(err) != agent.KeyProjectUnavailable {
+		t.Fatalf("projet désigné passé dans une autre équipe : %v", err)
+	}
+}

@@ -14,6 +14,7 @@ import (
 
 	"leblanc.io/lotor/internal/agent"
 	"leblanc.io/lotor/internal/audit"
+	"leblanc.io/lotor/internal/db"
 	"leblanc.io/lotor/internal/ingest"
 	"leblanc.io/lotor/internal/project"
 	"leblanc.io/lotor/internal/sbom"
@@ -197,5 +198,65 @@ func TestReportContainersRefusals(t *testing.T) {
 	}
 	if _, err := f.agents.ReportContainers(ctx, p, "1", []agent.ContainerReport{containerReport("web", "x", nil)}, "", ""); authKey(err) != agent.KeyNoHostProject {
 		t.Errorf("hôte archivé : %v", err)
+	}
+}
+
+// TestContainerChildrenBoundedPerHost : SEC2-05. Les projets enfants d'un hôte, actifs ou
+// archivés, sont bornés (containers.max_per_host) : un signalement qui créerait davantage
+// est refusé en entier, sans projet ni ligne d'audit ; les conteneurs connus se signalent
+// toujours, et une identité déjà suivie ne compte pas comme une création.
+func TestContainerChildrenBoundedPerHost(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	f := setup(t)
+	o := f.org(t, "a")
+	p, e := f.hostAgent(t, o, "srv-c", nil)
+	agents := agent.NewService(f.tdb.App, agent.WithClock(f.clock.Now), agent.WithMaxContainersPerHost(5))
+	report := func(keys ...string) error {
+		reps := make([]agent.ContainerReport, len(keys))
+		for i, k := range keys {
+			reps[i] = containerReport(k, "nginx:1.27", nil)
+		}
+		_, err := agents.ReportContainers(ctx, p, "1.1.0", reps, "192.0.2.7", "req")
+		return err
+	}
+	if err := report("c1", "c2", "c3", "c4"); err != nil {
+		t.Fatal(err)
+	}
+	// Archivé par un utilisateur : il compte toujours.
+	if err := f.projects.SetArchived(ctx, f.actor, o, "srv-c-c4", true); err != nil {
+		t.Fatal(err)
+	}
+	if err := report("c1", "c5", "c6"); authKey(err) != agent.KeyContainersLimit {
+		t.Fatalf("6 projets enfants pour une borne de 5 : %v", err)
+	}
+	host, err := f.projects.Get(ctx, o, tenant.AllTeams(), e.Project.Slug)
+	if err != nil {
+		t.Fatal(err)
+	}
+	children := func() (n, audits int) {
+		t.Helper()
+		if err := f.tdb.App.InOrg(ctx, o, func(tx *db.OrgTx) error {
+			if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM projects WHERE parent_id = $1`, host.ID).Scan(&n); err != nil {
+				return err
+			}
+			return tx.QueryRowContext(ctx, `SELECT count(*) FROM audit_events WHERE action = 'project.created' AND details->>'kind' = 'container'`).Scan(&audits)
+		}, db.ReadOnly()); err != nil {
+			t.Fatal(err)
+		}
+		return n, audits
+	}
+	if n, audits := children(); n != 4 || audits != 4 {
+		t.Fatalf("après le refus : %d projets enfants, %d créations journalisées", n, audits)
+	}
+	// Connus plus un nouveau : tient sous la borne.
+	if err := report("c1", "c2", "c3", "c4", "c5"); err != nil {
+		t.Fatalf("signalement sous la borne : %v", err)
+	}
+	if err := report("c1", "c2", "c3", "c4", "c5"); err != nil {
+		t.Fatalf("signalement des conteneurs connus, à la borne : %v", err)
+	}
+	if n, _ := children(); n != 5 {
+		t.Fatalf("projets enfants : %d", n)
 	}
 }

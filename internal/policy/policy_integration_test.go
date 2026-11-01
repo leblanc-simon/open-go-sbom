@@ -587,7 +587,7 @@ func TestContainerProjects(t *testing.T) {
 		}
 		states, err = project.SightContainers(ctx, tx, actor, hostAgent, []project.ContainerSighting{{Key: "shop/api",
 			Context: project.ContainerContext{Engine: project.EngineDocker, Names: []string{"shop-api-1"}, Replicas: 1,
-				Image: "shop/api:1.0", ImageID: "sha256:" + strings.Repeat("b", 64)}}}, time.Now().UTC())
+				Image: "shop/api:1.0", ImageID: "sha256:" + strings.Repeat("b", 64)}}}, time.Now().UTC(), project.DefaultMaxContainersPerHost)
 		return err
 	}); err != nil {
 		t.Fatal(err)

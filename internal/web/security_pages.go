@@ -6,8 +6,10 @@ import (
 	"regexp"
 	"strings"
 
+	"leblanc.io/open-go-base/authx"
 	"leblanc.io/open-go-base/mfax"
 
+	"leblanc.io/lotor/internal/account"
 	"leblanc.io/lotor/internal/render"
 )
 
@@ -31,6 +33,7 @@ type securityView struct {
 	Low       bool
 	FlashKey  string
 	Error     formError
+	MinLength int
 	// Codes : le jeu qui vient d'être généré, montré une seule fois.
 	Codes []string
 }
@@ -46,6 +49,7 @@ func (id *identity) renderSecurity(w http.ResponseWriter, r *http.Request, statu
 	}
 	view.Page = render.Page{TitleKey: "security.title", Nav: accountNav("security")}
 	view.Remaining, view.Total, view.Low = remaining, id.recoveryTotal(), remaining <= lowRecoveryCodes
+	view.MinLength = account.MinPasswordLength
 	if view.Codes != nil {
 		// Les codes ne doivent survivre ni dans un cache ni dans l'historique.
 		w.Header().Set("Cache-Control", "no-store")
@@ -89,15 +93,37 @@ func (id *identity) regenerateRecoveryCodes(w http.ResponseWriter, r *http.Reque
 	id.renderSecurity(w, r, http.StatusOK, &securityView{Codes: codes})
 }
 
+// enableTOTP confirme l'enrôlement du TOTP (mfax.EnablePOST). Défense en profondeur de
+// SEC2-01 : un TOTP déjà actif ne se « réactive » pas, sans même examiner le code ; sinon
+// une session volée devinerait un code par force brute et recevrait un nouveau jeu de codes
+// de secours. open-go-base v1.4.1 applique la même règle et compte chaque code faux dans
+// le verrouillage par compte.
+func (id *identity) enableTOTP(w http.ResponseWriter, r *http.Request) {
+	if u := authx.UserFrom(r); u != nil && id.mfa.Enabled(u.ID) {
+		http.Redirect(w, r, pathSecurity, http.StatusSeeOther)
+		return
+	}
+	id.mfa.EnablePOST(w, r)
+}
+
 // reconfigureTOTP retire le TOTP du compte à la demande de son titulaire, qui prouve
 // détenir un facteur par un code TOTP ou, s'il a perdu son application, par un code de
-// secours. Toutes ses sessions sont fermées : la connexion suivante (mot de passe) mène à un
-// nouvel enrôlement, le TOTP restant obligatoire.
+// secours, et choisit un nouveau mot de passe (SEC2-06 : sans lui, l'ancien mot de passe
+// seul enrôlerait un second facteur jusqu'à la reconnexion du titulaire). Toutes ses
+// sessions sont fermées : la connexion suivante (nouveau mot de passe) mène à un nouvel
+// enrôlement, le TOTP restant obligatoire.
 func (id *identity) reconfigureTOTP(w http.ResponseWriter, r *http.Request) {
 	if !id.parseForm(w, r) {
 		return
 	}
 	v := viewerFrom(r)
+	password, confirm := r.PostForm.Get("password"), r.PostForm.Get("confirm")
+	// Le mot de passe est validé avant le code : un refus ne doit pas consommer un code de
+	// secours.
+	if err := id.Accounts.CheckReconfigurePassword(r.Context(), v.user.ID, password, confirm); err != nil {
+		id.reconfigureError(w, r, err)
+		return
+	}
 	code := strings.TrimSpace(r.PostForm.Get("reconfigure_code"))
 	var ok bool
 	var err error
@@ -112,12 +138,22 @@ func (id *identity) reconfigureTOTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if err := id.Accounts.ReconfigureTOTP(r.Context(), id.actor(r), v.user.ID); err != nil {
-		id.serverError(w, r, err)
+	if err := id.Accounts.ReconfigureTOTP(r.Context(), id.actor(r), v.user.ID, password, confirm); err != nil {
+		id.reconfigureError(w, r, err)
 		return
 	}
 	id.mgr.Logout(w, r)
 	http.Redirect(w, r, pathLogin+"?done="+doneTOTPReconfigured, http.StatusSeeOther)
+}
+
+// reconfigureError rend la page du second facteur avec l'erreur de saisie d'un mot de
+// passe refusé, ou une erreur interne.
+func (id *identity) reconfigureError(w http.ResponseWriter, r *http.Request, err error) {
+	if fe, ok := validationOf(err); ok {
+		id.renderSecurity(w, r, http.StatusUnprocessableEntity, &securityView{Error: fe})
+		return
+	}
+	id.serverError(w, r, err)
 }
 
 // confirmFailure traduit l'issue d'une réauthentification : done vaut vrai si la requête

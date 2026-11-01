@@ -274,7 +274,7 @@ login:
   submit: Continue
   help: "Forgot your password? Contact an instance administrator. Lost your device: use a recovery code at the next step."
   info_title: "Information"
-  totp_reconfigured: "Your second factor was removed and your sessions closed. Sign in to set up your new authenticator app."
+  totp_reconfigured: "Your second factor was removed and your sessions closed. Sign in with your new password to set up your new authenticator app."
   error:
     title: Sign-in refused
     invalid_credentials: Incorrect e-mail address or password.
@@ -311,6 +311,7 @@ totp_setup:
   submit: Enable
   error:
     invalid_code: "This code is incorrect: a new key was generated, scan the QR code again."
+    locked: "Too many incorrect codes: the account is locked for a while; try again later with the new key below."
 
 profile:
   title: My account
@@ -747,6 +748,9 @@ error:
       title: Token expired
       text: This token is past its expiry date. Ask an administrator of the organization for a new one.
   agent:
+    containers_limit:
+      title: "Too many containers for this host"
+      text: "This report would create more container projects than the instance allows for one host (containers.max_per_host); nothing was created. Archive the containers that are gone, or ask the operator to raise the bound."
     no_host_project:
       title: Agent without an active host
       text: "The host project of this agent is archived: its containers cannot be attached to anything. Reactivate the host project."
@@ -1607,9 +1611,11 @@ security:
   regenerate_hint: "Confirm with the code of your authenticator app."
   regenerate: "Generate new codes"
   reconfigure_title: "Change authenticator app"
-  reconfigure_text: "New phone, lost app: remove your current second factor. All your sessions will be closed; at your next sign-in, your password will lead you to set up a new app and new recovery codes. Your personal access tokens are kept."
+  reconfigure_text: "New phone, lost app: remove your current second factor and choose a new password. All your sessions will be closed; at your next sign-in, this new password will lead you to set up a new app and new recovery codes. Your personal access tokens are kept."
   reconfigure_code: "TOTP code or recovery code"
   reconfigure_hint: "The six-digit code of your app or, if you lost it, a recovery code (it will be used up)."
+  reconfigure_password: "New password"
+  reconfigure_password_hint: "At least {{.Min}} characters. Required: until the new app is set up, the password alone gives access to it; the old one may have been stolen."
   reconfigure: "Remove and reconfigure"
   error:
     invalid_code: "This code is incorrect, expired or already used."
@@ -2152,7 +2158,7 @@ channel_form:
   room_hint: "Internal room identifier, for instance !abcdef:example.org."
   secret: "Secret"
   secret_hint: "Webhook HMAC key (at least 16 characters), Matrix access token, or Mattermost or Slack incoming webhook URL. Encrypted, never shown again."
-  secret_keep: "Leave empty to keep the current secret."
+  secret_keep: "Leave empty to keep the current secret, unless you change the Matrix server or the webhook URL: enter it again then (a secret never follows a new destination)."
   enabled: "Active"
 channel_kind:
   email: "E-mail"

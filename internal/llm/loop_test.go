@@ -138,3 +138,45 @@ func TestRunWithoutProvider(t *testing.T) {
 		t.Fatal("erreur attendue")
 	}
 }
+
+// TestRunBoundsToolCallsPerTurn : SEC2-09. Au-delà de MaxCallsPerTurn, les appels d'une
+// même réponse reçoivent une erreur sans être exécutés ; le délai est vérifié entre deux
+// appels.
+func TestRunBoundsToolCallsPerTurn(t *testing.T) {
+	calls := make([]llmtest.Call, 30)
+	for i := range calls {
+		calls[i] = llmtest.Call{Name: "count", Input: map[string]int{"i": i}}
+	}
+	var ran int
+	handlers := map[string]llm.Handler{
+		"count": func(context.Context, json.RawMessage) (llm.Result, error) {
+			ran++
+			return llm.Result{Content: "ok"}, nil
+		},
+		"submit": func(context.Context, json.RawMessage) (llm.Result, error) {
+			return llm.Result{Content: "ok", Done: true}, nil
+		},
+	}
+	script := &llmtest.Script{Steps: []llmtest.Step{llmtest.Tools(calls...), llmtest.Tools(llmtest.Call{Name: "submit", Input: map[string]any{}})}}
+	rec := llmtest.Record(script)
+	out, err := llm.Run(context.Background(), llm.Session{Provider: rec, Prompt: "go", Handlers: handlers, Budget: llm.Budget{MaxCallsPerTurn: 20}})
+	if err != nil || !out.Done || ran != 20 {
+		t.Fatalf("Run = %+v, %v ; %d outils exécutés, attendu 20", out, err, ran)
+	}
+	results := rec.Exchanges()[1].Request.Messages[2].Blocks
+	if len(results) != 30 || !results[29].ToolResult.IsError || results[19].ToolResult.IsError {
+		t.Fatalf("résultats : %d", len(results))
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	ran = 0
+	handlers["count"] = func(context.Context, json.RawMessage) (llm.Result, error) {
+		ran++
+		cancel()
+		return llm.Result{Content: "ok"}, nil
+	}
+	script = &llmtest.Script{Steps: []llmtest.Step{llmtest.Tools(calls...)}}
+	if _, err := llm.Run(ctx, llm.Session{Provider: script, Prompt: "go", Handlers: handlers}); !errors.Is(err, context.Canceled) || ran != 1 {
+		t.Fatalf("délai entre deux outils : %v, %d exécutés", err, ran)
+	}
+}

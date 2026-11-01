@@ -394,8 +394,10 @@ empreinte est gardée (table `mfa_recovery_codes`). Un code de secours remplace 
 verrouillage comme des codes TOTP faux. Depuis **Mon compte → Second facteur**, le
 titulaire voit le nombre de codes restants, en régénère un jeu (code TOTP exigé, l'ancien
 jeu devient caduc) ou **reconfigure** son application : un code TOTP ou un code de secours
-retire le second facteur et ferme ses sessions, la connexion suivante impose un nouvel
-enrôlement. Un titulaire qui a perdu à la fois son application et ses codes passe toujours
+et un nouveau mot de passe retirent le second facteur, remplacent le mot de passe et ferment
+ses sessions ; la connexion suivante impose un nouvel enrôlement (le nouveau mot de passe
+ferme la fenêtre où l'ancien, peut-être dérobé, suffirait à enrôler un second facteur :
+SEC2-06, ADR 0051). Un titulaire qui a perdu à la fois son application et ses codes passe toujours
 par un administrateur (réinitialisation du TOTP). Les comptes enrôlés avant la mise à jour
 n'ont pas de codes : la page **Second facteur** les invite à en générer. Le journal d'audit
 enregistre chaque jeu généré, chaque code utilisé (avec le nombre restant) ou refusé, et
@@ -435,7 +437,10 @@ Les écrans **Projets** et **Agents** d'une organisation (`/o/<slug>/projects`,
   hôte), étiquettes des projets créés, ou projet de serveur existant à rattacher. Chaque
   hôte l'échange contre son propre jeton d'agent (`POST /api/v1/agent/enroll`) ; le
   serveur crée le projet de l'hôte, ou rattache l'agent au projet désigné, ou au projet
-  qui suit déjà ce nom d'hôte s'il n'a plus d'agent actif.
+  qui suit déjà ce nom d'hôte s'il n'a plus d'agent actif **et s'il est dans l'équipe du
+  jeton** ; un homonyme d'une autre équipe répond « hôte déjà suivi »
+  (`error.enrollment.host_taken`) sans être pris : désigner le projet, ou créer le jeton
+  dans la bonne équipe (SEC2-02).
 - **Agent dépôt** (`lotor-repo-agent`, T08) : « Nouvel agent dépôt » crée l'agent et son
   premier jeton ; les dépôts lui sont confiés depuis leur fiche.
 - Un jeton n'est **affiché qu'une fois** ; seul son SHA-256 est conservé. Le fournir à
@@ -599,6 +604,13 @@ l'utilisateur `lotor-agent` (et quiconque le compromet) ait ce pouvoir.
   sont jamais purgés un conteneur archivé à la main (son archivage dit à l'agent de
   l'ignorer) ni un conteneur qui porte une décision de triage. S'il revient plus tard,
   le conteneur est un nouveau projet.
+- **Borne par hôte** (T18, SEC2-05) : un hôte porte au plus `containers.max_per_host`
+  projets de conteneurs, actifs ou archivés (1 000 ; `LOTOR_CONTAINERS_MAX_PER_HOST`). Un
+  signalement qui en créerait davantage est refusé en entier (409,
+  `error.agent.containers_limit`, journalisé par l'agent) : un jeton d'agent volé ne peut
+  plus créer des milliers de projets et de lignes d'audit indélébiles. Seule la purge
+  libère de la place ; sur un hôte qui crée beaucoup de conteneurs éphémères nommés au
+  hasard, relever la borne ou nommer les conteneurs (services Compose).
 
 ### Mesures
 
@@ -864,8 +876,12 @@ Configuration (`config.example.yaml`) :
 - `notify.timeout` (30 s) : durée maximale d'un envoi.
 - `notify.allow_private_networks` (`false`) : les canaux saisis par les administrateurs
   d'organisation ne peuvent joindre **aucune adresse de bouclage, privée, de lien local,
-  partagée ni de multidiffusion** (protection contre les requêtes vers le réseau interne,
-  SSRF) ; la vérification se fait à la connexion, après la résolution DNS. Ne le passer à
+  partagée ni de multidiffusion**, ni les plages réservées (bancs d'essai, documentation,
+  classe E), ni une adresse IPv6 qui porte une telle adresse IPv4 (NAT64 `64:ff9b::/96`,
+  6to4 `2002::/16`) (protection contre les requêtes vers le réseau interne, SSRF) ; la
+  vérification se fait à la connexion, après la résolution DNS. Les ports ne sont pas
+  restreints : un administrateur d'organisation peut, par le test d'un canal, savoir si
+  un port d'un hôte public répond depuis le serveur (risque accepté, SEC2-08). Ne le passer à
   `true` que si toutes les organisations de l'instance sont de confiance (relais
   interne). Les envois HTTP ne passent par **aucun mandataire** (`HTTPS_PROXY` est ignoré) :
   un serveur qui ne sort que par un proxy ne joint que les canaux e-mail.
@@ -1105,7 +1121,7 @@ ADR 0042 (fournisseurs), 0043 (réglages, politique d'envoi de code, vérificate
 | Niveau | Réglage | Effet |
 | --- | --- | --- |
 | Instance (serveur) | `ai.forbid_external` (`LOTOR_AI_FORBID_EXTERNAL`, faux par défaut) | Vrai : aucun dépôt ne peut être envoyé à un fournisseur externe ; un dépôt réglé « fournisseur externe » est traité comme « modèle local uniquement » |
-| Projet (interface) | **Paramètres du dépôt → Enrichissement IA** : IA désactivée (défaut), modèle local uniquement, fournisseur externe autorisé | « Fournisseur externe » est réservé aux administrateurs d'organisation ; les autres réglages aux administrateurs de l'équipe du projet ; chaque changement est journalisé (`project.ai_mode_changed`) |
+| Projet (interface) | **Paramètres du dépôt → Enrichissement IA** : IA désactivée (défaut), modèle local uniquement, fournisseur externe autorisé | « Fournisseur externe » est réservé aux administrateurs d'organisation ; les autres réglages aux administrateurs de l'équipe du projet ; chaque changement est journalisé (`project.ai_mode_changed`) ; changer l'URL de forge d'un dépôt « externe » sans ce droit ramène le réglage à « désactivé » (motif `forge_url_changed`, SEC2-03) |
 | Agent dépôt | `ai.local` (Ollama) et `ai.external` (Anthropic) | Sans modèle configuré, l'agent envoie le SBOM Syft seul, quel que soit le réglage des projets |
 
 Un dépôt réglé « IA désactivée » n'appelle jamais de modèle. « Modèle local uniquement »
@@ -1120,7 +1136,10 @@ exclus (`.env*`, `*.pem`, `*.key`, `id_rsa*`, `.ssh/`, `.aws/`, `.npmrc`, `.netr
 `*.tfstate`, `*.tfvars`, `credentials*`, `secrets*`, `kubeconfig*`… et `ai.exclude`), tout
 fichier qui contient une clé privée, les fichiers binaires ou de plus de 2 Mio, le
 répertoire `.git`, les secrets de l'agent (jeton, clés des forges, clé d'API) et son
-environnement. Le volume lu est borné par `ai.max_read_kib` par analyse.
+environnement. Un fichier exclu n'est pas non plus **nommé** : ni dans la liste des
+fichiers modifiés, ni dans une liste de répertoire (SEC2-07 ; un fichier de plus de
+64 Kio qui contiendrait une clé privée est listé, puis refusé à la lecture). Le volume
+lu est borné par `ai.max_read_kib` par analyse.
 
 **Modèle local (Ollama).** Un modèle qui sait appeler des outils, servi par Ollama dans
 l'infrastructure de l'exploitant :
@@ -1151,7 +1170,9 @@ configuration de l'agent fixe l'adresse (`ai.external.base_url`, https) et la cl
 
 **Budget et repli.** Une analyse s'arrête au-delà de `ai.max_turns` (40),
 `ai.max_input_tokens` (600 000, cache compris), `ai.max_output_tokens` (40 000),
-`ai.max_read_kib` (1 Mio) ou `ai.timeout` (20 min) ; une erreur ou un refus du fournisseur
+`ai.max_read_kib` (1 Mio ; chaque recherche y coûte 2 Kio en plus de ses résultats) ou
+`ai.timeout` (20 min, vérifié aussi entre deux outils et pendant une recherche) ; une
+réponse du modèle n'exécute que 20 appels d'outils au plus ; une erreur ou un refus du fournisseur
 a le même effet : le SBOM part avec les seuls composants de Syft, marqué « enrichissement
 incomplet » (fiche de l'instantané). L'analyse est incrémentale (fichiers modifiés depuis
 le dernier commit analysé par le modèle, selon la forge, et fichiers des composants IA

@@ -72,7 +72,7 @@ var candidateSchema = map[string]any{
 }
 
 var aiTools = []llm.Tool{
-	{Name: toolListDir, Description: "List the entries of a directory of the repository (\".\" for the root). Hidden files are not listed.",
+	{Name: toolListDir, Description: "List the entries of a directory of the repository (\".\" for the root). Files excluded from the analysis (secrets, keys, version-control data) are not listed.",
 		Schema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"path"},
 			"properties": map[string]any{"path": str("Directory path relative to the repository root", 1024)}}},
 	{Name: toolRead, Description: fmt.Sprintf("Read a range of lines of a text file of the repository (at most %d lines per call). Lines are numbered.", maxReadLines),
@@ -239,7 +239,7 @@ func (t *toolbox) readFile(_ context.Context, input json.RawMessage) (llm.Result
 	return data(ex)
 }
 
-func (t *toolbox) search(_ context.Context, input json.RawMessage) (llm.Result, error) {
+func (t *toolbox) search(ctx context.Context, input json.RawMessage) (llm.Result, error) {
 	var in struct {
 		Pattern string `json:"pattern"`
 		Glob    string `json:"glob"`
@@ -253,7 +253,11 @@ func (t *toolbox) search(_ context.Context, input json.RawMessage) (llm.Result, 
 		return llm.Result{Content: `{"error":"invalid regular expression"}`, IsError: true}, nil
 	}
 	glob := strings.TrimPrefix(strings.TrimSpace(in.Glob), "./")
-	hits, truncated, err := t.ws.search(re, glob, in.Max)
+	hits, truncated, err := t.ws.search(ctx, re, glob, in.Max)
+	if ctx.Err() != nil {
+		// Délai de l'analyse dépassé pendant la recherche : la boucle s'arrête.
+		return llm.Result{}, ctx.Err()
+	}
 	if err != nil {
 		return toolError(err)
 	}

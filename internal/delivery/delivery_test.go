@@ -25,6 +25,11 @@ func TestForbiddenAddresses(t *testing.T) {
 		"127.0.0.1": true, "::1": true, "10.1.2.3": true, "172.16.0.1": true, "192.168.1.1": true, "169.254.169.254": true,
 		"100.64.0.1": true, "0.0.0.0": true, "0.1.2.3": true, "fe80::1": true, "fc00::1": true, "::ffff:127.0.0.1": true,
 		"224.0.0.1": true, "::": true, "93.184.216.34": false, "2606:4700::1111": false, "1.1.1.1": false,
+		// SEC2-08 : préfixes de traduction (jugés sur l'IPv4 portée) et plages réservées.
+		"64:ff9b::7f00:1": true, "64:ff9b::a9fe:a9fe": true, "64:ff9b::a00:1": true, "64:ff9b::5db8:d822": false,
+		"64:ff9b:1::a9fe:a9fe": true, "2002:7f00:1::1": true, "2002:a9fe:a9fe::1": true, "2002:5db8:d822::1": false,
+		"::7f00:1": true, "fec0::1": true, "2001:0:4136:e378::1": true, "2001:db8::1": true, "100::1": true,
+		"198.18.0.1": true, "192.0.0.1": true, "192.0.2.1": true, "240.0.0.1": true, "255.255.255.255": true,
 	} {
 		if got := Forbidden(netip.MustParseAddr(addr)); got != want {
 			t.Errorf("%s : %v", addr, got)

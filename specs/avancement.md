@@ -18,6 +18,7 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 | T15 | #26 | Terminé (PR à fusionner) | `cel.dev/cel-go` v0.32.0 (nouveau chemin de `github.com/google/cel-go`) ; contexte typé à deux sujets, `finding.actionable`, coût borné ; « correctif depuis » = première vue par lotor ; violations par couple règle × sujet ; verdict sur l'état courant de la référence ; modèle AGPL indisponible jusqu'à T20 ; objectifs de délai exprimés par des règles ; règles et canaux aux administrateurs ; envois uniques par canal × violation, 30 tentatives puis relance quotidienne ; clé HMAC fournie, garde SSRF sans mandataire ; statut de commit synchrone, désactivé par défaut, jeton GitHub séparé ; rotation des secrets des canaux — tous **[à relire]** |
 | T12 | #25 | Terminé (PR à fusionner), mesure avec un vrai modèle à faire par l'utilisateur | SDK officiel d'Anthropic construit sans environnement (ADR 0042) ; réglage par dépôt, permission `ai.external`, `ai.forbid_external` ramène à « local » (ADR 0043) ; règles du vérificateur au-delà de la fiche (documentation, manifestes, marqueurs d'injection, purl dans l'extrait) ; statut `carried` et commits intermédiaires sans modèle ; confinement sans processus fils (ADR 0044) ; exclusions intégrées ; budgets par défaut ; prompt système en anglais — tous **[à relire]** |
 | T13 | #24 | Terminé (PR à fusionner) | Client HTTP sur socket Unix plutôt que le client moby (écart au § 5) ; scan de l'image exportée (`docker save`) ; catalogueurs hors ligne aussi pour l'hôte ; équipe imposée par clé étrangère en cascade ; signalement dédié qui vaut signal de vie ; archivage à la main qui tient ; conteneurs écartés des listes et de la recherche, comptés au tableau de bord ; agrégat par vulnérabilités distinctes — tous **[à relire]** |
+| T18 (2/n, sécurité) | #28 | Fait (PR à fusionner) ; open-go-base PR #6 fusionnée (`0900e0c`), étiquette `v1.4.1` à pousser | Revue du lot 2 : 0 High, 2 Medium et 5 Low corrigés, 2 Note corrigées, 1 acceptée ; reconfiguration du second facteur avec nouveau mot de passe (modifie ADR 0048) ; défense en profondeur de l'enrôlement gardée dans lotor ; inscription par le nom bornée à l'équipe, homonyme répondu « hôte déjà suivi » ; IA externe ramenée à « désactivé » au changement de dépôt ; secret de canal à ressaisir au changement de destination ; `containers.max_per_host` = 1 000, signalement refusé en entier ; détection de clé dans `list_dir` limitée à 64 Kio ; ports des canaux libres ; 20 appels d'outils par réponse, 2 Kio par recherche ; SEC2-10 accepté — tous **[à relire]** ([ADR 0051](../docs/adr/0051-corrections-revue-securite-lot2.md)) |
 | T18 (1/n, compléments) | #27 | Fait (PR à fusionner) ; open-go-base PR #5 fusionnée (`a0f777f`), étiquette `v1.4.0` à pousser | Codes de secours : 16 caractères de Crockford (80 bits), SHA-256 lié au compte, 10 par défaut, régénération après un code TOTP, reconfiguration de l'application par le titulaire (au-delà de la fiche), pas de bannière pour les comptes sans codes ; recherche : statut de triage de tous les constats, filtre `triage` refusé hors vulnérabilité, recherche par composant sans constats masqués ; purge des conteneurs archivés pour absence depuis 180 jours, jamais archivés à la main ni triés ; boutons de revue des détections IA de T12 non livrés — tous **[à relire]** |
 
 ### Décisions à relire, par thème
@@ -188,6 +189,30 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 - Boutons « Confirmer la détection » / « Signaler une erreur » de T12 non livrés (fonction
   nouvelle, hors T18) ([T18](lots/T18-recette-lot-2.md#écarts)).
 
+#### Revue de sécurité du lot 2 (T18, partie 2)
+
+- Second facteur : `POST /account/totp/enable` refusé sur un TOTP actif (dans mfax v1.4.1
+  et, en défense en profondeur, dans lotor), codes faux comptés dans le verrouillage ;
+  échecs d'enrôlement non journalisés un par un
+  ([ADR 0051](../docs/adr/0051-corrections-revue-securite-lot2.md) § 1).
+- Reconfiguration de l'application par le titulaire : **nouveau mot de passe exigé**,
+  validé avant la consommation du code ; jetons personnels gardés (ADR 0051 § 2, modifie
+  ADR 0048).
+- Inscription d'un agent serveur par le nom d'hôte bornée à l'équipe du jeton ; homonyme
+  d'une autre équipe (avec ou sans agent, archivé) répondu « hôte déjà suivi » ; projet
+  désigné passé dans une autre équipe refusé (ADR 0051 § 3).
+- IA externe ramenée à « désactivé » (pas « local ») quand un acteur sans `ai.external`
+  change l'URL du dépôt (ADR 0051 § 4).
+- Secret d'un canal à ressaisir quand le serveur Matrix ou l'URL du webhook change ; salon
+  Matrix modifiable sans ressaisie (ADR 0051 § 5).
+- `containers.max_per_host` (1 000) : signalement refusé en entier au-delà, pas de quota
+  quotidien (ADR 0051 § 6).
+- Détection de clé privée dans `list_dir` limitée aux fichiers de 64 Kio (ADR 0051 § 7).
+- Garde SSRF étendue (plages réservées, NAT64, 6to4) ; ports des canaux non restreints,
+  oracle de balayage accepté (ADR 0051 § 8).
+- 20 appels d'outils exécutés par réponse du modèle, 2 Kio par recherche (ADR 0051 § 9).
+- `lotor_user_invitations` sans garde SQL : accepté comme SEC-12 (ADR 0051 § 10).
+
 #### Écarts
 
 - T15 : statut de commit vérifié contre des forges simulées seulement ; canaux Matrix,
@@ -220,6 +245,16 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
    codes de secours de mfax ; compatible). Puis, dans lotor, sur une branche :
    `go get leblanc.io/open-go-base@v1.4.0 && go mod tidy` (même code que la pseudo-version
    `v1.3.1-0.20261101100848-a0f777f827c9`), `make ci`, PR.
+0. **Pousser l'étiquette d'open-go-base `v1.4.1`** (créée en local) :
+   `git -C ../open-go-base push origin v1.4.1` (commit `0900e0c`, PR #6 : `EnablePOST` de
+   mfax sous verrouillage par compte, SEC2-01 ; compatible). Puis, dans lotor :
+   `go get leblanc.io/open-go-base@v1.4.1 && go mod tidy` (même code que la pseudo-version
+   `v1.3.1-0.20261101111845-0900e0c6a132`).
+0. Après la publication d'une version contenant T18 (partie 2) : prévenir les
+   utilisateurs que « Changer d'application d'authentification » demande désormais un
+   nouveau mot de passe ; vérifier `containers.max_per_host` (1 000) sur les hôtes qui
+   portent beaucoup de conteneurs ; un administrateur qui change le serveur Matrix ou
+   l'URL d'un webhook doit ressaisir le secret.
 0. Après la publication d'une version contenant T18 (partie 1) : le premier passage
    nocturne de la rétention supprime les conteneurs archivés pour absence depuis plus de
    180 jours, avec leur historique ; régler `containers.purge_after` (`0` : jamais) avant

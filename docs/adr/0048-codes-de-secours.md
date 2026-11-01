@@ -1,6 +1,6 @@
 # 0048 — Codes de secours du second facteur
 
-- Statut : Accepté
+- Statut : Accepté (reconfiguration modifiée par [0051](0051-corrections-revue-securite-lot2.md) : nouveau mot de passe exigé)
 - Date : 2026-11-01
 - Lot : T18
 

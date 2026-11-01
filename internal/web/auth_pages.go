@@ -106,8 +106,11 @@ func (a authRenderer) RenderSetup(w http.ResponseWriter, r *http.Request, v mfax
 		// de l'utilisateur ; la CSP autorise img-src data:.
 		QR: template.URL(v.QRDataURI),
 	}
-	if v.Code == mfax.CodeInvalidCode {
+	switch v.Code {
+	case mfax.CodeInvalidCode:
 		view.ErrorKey = "totp_setup.error.invalid_code"
+	case mfax.CodeLocked:
+		view.ErrorKey = "totp_setup.error.locked"
 	}
 	a.id.rd.Render(w, r, http.StatusOK, "auth/totp_setup", view)
 }

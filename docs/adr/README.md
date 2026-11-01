@@ -55,3 +55,4 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0048](0048-codes-de-secours.md) | Codes de secours du second facteur : mfax v1.4.0, affichage unique, reconfiguration par le titulaire | Accepté |
 | [0049](0049-purge-des-conteneurs-archives.md) | Purge des conteneurs archivés pour absence depuis 180 jours, par la rétention nocturne | Accepté |
 | [0050](0050-equipe-et-triage-dans-la-recherche.md) | Équipe et statut de triage dans la recherche : filtres, résultats, export | Accepté |
+| [0051](0051-corrections-revue-securite-lot2.md) | Corrections de la revue de sécurité du lot 2 : enrôlement du TOTP, reconfiguration avec nouveau mot de passe, inscription bornée à l'équipe, IA externe et secrets liés à leur destination, conteneurs bornés par hôte | Accepté |
