@@ -36,7 +36,7 @@ const (
 // ErrorKeys liste les clés d'erreur du paquet (tests de traduction).
 func ErrorKeys() []string {
 	return []string{KeyTokenInvalid, KeyTokenRevokedErr, KeyTokenExpired, KeyAgentDisabledErr,
-		KeyEnrollmentExhausted, KeyHostTaken, KeyProjectUnavailable, KeyNoHostProject}
+		KeyEnrollmentExhausted, KeyHostTaken, KeyProjectUnavailable, KeyNoHostProject, KeyContainersLimit}
 }
 
 // AuthError est le refus d'un jeton présenté à l'API des agents.

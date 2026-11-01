@@ -224,6 +224,9 @@ func (c Config) Validate() error {
 	if c.Containers.PurgeAfter != 0 && c.Containers.PurgeAfter < time.Duration(c.Retention.Days)*24*time.Hour {
 		v.fail("containers.purge_after", "0 (jamais) ou au moins retention.days (%d jours ; reçu %s)", c.Retention.Days, c.Containers.PurgeAfter)
 	}
+	if c.Containers.MaxPerHost < 1 || c.Containers.MaxPerHost > 100000 {
+		v.fail("containers.max_per_host", "doit être compris entre 1 et 100000 (reçu %d)", c.Containers.MaxPerHost)
+	}
 	if c.Containers.ArchiveAfter < time.Hour {
 		v.fail("containers.archive_after", "au moins 1h (reçu %s)", c.Containers.ArchiveAfter)
 	}

@@ -66,6 +66,9 @@ type Containers struct {
 	// PurgeAfter : archivé pour absence depuis plus longtemps, le projet d'un conteneur est
 	// supprimé avec son historique par la rétention nocturne (T18, ADR 0048).
 	PurgeAfter time.Duration `yaml:"purge_after" env:"CONTAINERS_PURGE_AFTER" env-default:"4320h" env-description:"Time archived for absence after which the project of a container is deleted with its history, by the nightly retention (0: never; at least retention.days)"`
+	// MaxPerHost borne les projets enfants d'un hôte, actifs ou archivés (SEC2-05) : un
+	// signalement qui en créerait davantage est refusé sans rien créer.
+	MaxPerHost int `yaml:"max_per_host" env:"CONTAINERS_MAX_PER_HOST" env-default:"1000" env-description:"Maximum number of container projects (active or archived) under one host; a report that would create more is refused"`
 }
 
 // Retention règle la rétention des instantanés (T17, ADR 0039), appliquée chaque nuit

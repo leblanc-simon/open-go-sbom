@@ -53,7 +53,7 @@ func (f fixture) sight(t *testing.T, org tenant.OrgID, agentID uuid.UUID, now ti
 	var out []project.ChildState
 	err := f.tdb.App.InOrg(context.Background(), org, func(tx *db.OrgTx) error {
 		var err error
-		out, err = project.SightContainers(context.Background(), tx, audit.Actor{Email: "agent"}, agentID, s, now)
+		out, err = project.SightContainers(context.Background(), tx, audit.Actor{Email: "agent"}, agentID, s, now, project.DefaultMaxContainersPerHost)
 		return err
 	})
 	return out, err
@@ -113,7 +113,7 @@ func TestContainerChildren(t *testing.T) {
 		if _, err := project.RefForAgent(ctx, tx, agentB, web.ID, project.RefContainer, "shop/web"); !errors.Is(err, project.ErrNotFound) {
 			t.Errorf("référence du conteneur pour un autre agent : %v", err)
 		}
-		if _, err := project.SightContainers(ctx, tx, audit.System, uuid.Must(uuid.NewV7()), nil, now); !errors.Is(err, project.ErrNoHost) {
+		if _, err := project.SightContainers(ctx, tx, audit.System, uuid.Must(uuid.NewV7()), nil, now, project.DefaultMaxContainersPerHost); !errors.Is(err, project.ErrNoHost) {
 			t.Errorf("agent sans hôte : %v", err)
 		}
 		return nil

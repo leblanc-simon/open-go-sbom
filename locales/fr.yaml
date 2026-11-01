@@ -748,6 +748,9 @@ error:
       title: Jeton expiré
       text: Ce jeton a dépassé sa date d'expiration. Demandez-en un nouveau à un administrateur de l'organisation.
   agent:
+    containers_limit:
+      title: "Trop de conteneurs pour cet hôte"
+      text: "Ce signalement créerait plus de projets de conteneurs que la borne de l'instance n'en permet pour un hôte (containers.max_per_host) ; rien n'a été créé. Archivez les conteneurs disparus ou demandez à l'exploitant de relever la borne."
     no_host_project:
       title: Agent sans hôte actif
       text: "Le projet de l'hôte de cet agent est archivé : ses conteneurs ne peuvent être rattachés à rien. Réactivez le projet de l'hôte."

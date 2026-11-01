@@ -50,7 +50,7 @@ func valid() Config {
 	c.Ingest = Ingest{MaxUploadMiB: 32, MaxDecompressedMiB: 64, MaxDepth: 64, MaxComponents: 50000, DecodeTimeout: 5 * time.Minute,
 		MaxPerRefPerDay: 200, MaxOrgStorageMiB: 10240, MaxReencodes: 2}
 	c.VulnDB = defaultVulnDB
-	c.Containers = Containers{ArchiveAfter: 168 * time.Hour, PurgeAfter: 4320 * time.Hour}
+	c.Containers = Containers{ArchiveAfter: 168 * time.Hour, PurgeAfter: 4320 * time.Hour, MaxPerHost: 1000}
 	c.Retention.Days = 90
 	c.Notify = Notify{Timeout: 30 * time.Second, DigestHour: 7}
 	c.SMTP = SMTP{Port: 587, TLS: "starttls", HELO: "localhost"}
@@ -243,6 +243,7 @@ func TestValidate(t *testing.T) {
 		{"limite des jetons refusés", "agent_api.failure_rate_limit", func(c *Config) { c.AgentAPI.FailureRateLimit = -1 }},
 		{"archivage des conteneurs", "containers.archive_after", func(c *Config) { c.Containers.ArchiveAfter = time.Minute }},
 		{"purge des conteneurs sous la rétention", "containers.purge_after", func(c *Config) { c.Containers.PurgeAfter = 24 * time.Hour }},
+		{"borne des conteneurs par hôte", "containers.max_per_host", func(c *Config) { c.Containers.MaxPerHost = 0 }},
 		{"limite de l'API utilisateur", "user_api.rate_limit", func(c *Config) { c.UserAPI.RateLimit = -1 }},
 		{"limite des jetons personnels refusés", "user_api.failure_rate_limit", func(c *Config) { c.UserAPI.FailureRateLimit = -1 }},
 		{"durée d'un export", "user_api.export_timeout", func(c *Config) { c.UserAPI.ExportTimeout = 0 }},

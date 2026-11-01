@@ -604,6 +604,13 @@ l'utilisateur `lotor-agent` (et quiconque le compromet) ait ce pouvoir.
   sont jamais purgés un conteneur archivé à la main (son archivage dit à l'agent de
   l'ignorer) ni un conteneur qui porte une décision de triage. S'il revient plus tard,
   le conteneur est un nouveau projet.
+- **Borne par hôte** (T18, SEC2-05) : un hôte porte au plus `containers.max_per_host`
+  projets de conteneurs, actifs ou archivés (1 000 ; `LOTOR_CONTAINERS_MAX_PER_HOST`). Un
+  signalement qui en créerait davantage est refusé en entier (409,
+  `error.agent.containers_limit`, journalisé par l'agent) : un jeton d'agent volé ne peut
+  plus créer des milliers de projets et de lignes d'audit indélébiles. Seule la purge
+  libère de la place ; sur un hôte qui crée beaucoup de conteneurs éphémères nommés au
+  hasard, relever la borne ou nommer les conteneurs (services Compose).
 
 ### Mesures
 

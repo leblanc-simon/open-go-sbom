@@ -748,6 +748,9 @@ error:
       title: Token expired
       text: This token is past its expiry date. Ask an administrator of the organization for a new one.
   agent:
+    containers_limit:
+      title: "Too many containers for this host"
+      text: "This report would create more container projects than the instance allows for one host (containers.max_per_host); nothing was created. Archive the containers that are gone, or ask the operator to raise the bound."
     no_host_project:
       title: Agent without an active host
       text: "The host project of this agent is archived: its containers cannot be attached to anything. Reactivate the host project."

@@ -141,7 +141,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 		collectors.NewDBStatsCollector(pool.DB(), "app"),
 	)
-	agents := agent.NewService(pool)
+	agents := agent.NewService(pool, agent.WithMaxContainersPerHost(cfg.Containers.MaxPerHost))
 	dash := dashboard.NewService(pool)
 	validator, err := schema.New()
 	if err != nil {
