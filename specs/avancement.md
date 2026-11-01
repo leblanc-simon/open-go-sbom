@@ -13,6 +13,7 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 | Lot | PR | Statut | Décisions à relire |
 | --- | --- | --- | --- |
 | T16 | #21 | Terminé (PR à fusionner) | Filtre d'équipe déclaré à la transaction, fermé par défaut ; matrice des droits (administrateur d'équipe sans gestion des équipes ni des membres de l'organisation, rattachement avec droit dans les deux équipes) ; 404 pour une équipe invisible ; agents sans équipe = agents d'organisation, agents dépôt existants d'organisation ; équipe « Général » aussi pour une nouvelle organisation, « General » en anglais ; invitations de 30 jours, sans équipe, bornées, nouvelle fonction `crossorg` ; tendance d'un membre additionnée par projet ; point d'essai `routeStub` — tous **[à relire]** |
+| T13 | à venir | Terminé (PR à fusionner) | Client HTTP sur socket Unix plutôt que le client moby (écart au § 5) ; scan de l'image exportée (`docker save`) ; catalogueurs hors ligne aussi pour l'hôte ; équipe imposée par clé étrangère en cascade ; signalement dédié qui vaut signal de vie ; archivage à la main qui tient ; conteneurs écartés des listes et de la recherche, comptés au tableau de bord ; agrégat par vulnérabilités distinctes — tous **[à relire]** |
 
 ### Décisions à relire, par thème
 
@@ -45,17 +46,54 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
   `lotor_user_invitations` ([ADR 0034](../docs/adr/0034-equipes-et-droits.md),
   [modèle de menace](../docs/security/threat-model.md)).
 
+#### Conteneurs (T13)
+
+- API Docker de Docker et Podman par un client HTTP sur socket Unix, sans bibliothèque
+  cliente, plutôt que le client moby du graphe de stereoscope (écart au § 5 de
+  l'architecture, mis à jour) ; moteur détecté par `/version`
+  ([ADR 0041](../docs/adr/0041-inventaire-des-conteneurs-par-l-agent.md)).
+- Image exportée (`docker save`) dans `<state_dir>/images` et scannée par la source
+  `docker-archive` de Syft, une fois par image, 4 096 Mio au plus ; empreintes d'images
+  gardées par l'agent et confirmées par le serveur, jamais de SBOM sur le disque
+  ([ADR 0041](../docs/adr/0041-inventaire-des-conteneurs-par-l-agent.md)).
+- Catalogueurs de Syft hors ligne pour le scan de l'hôte aussi (plus de `go list` sous
+  `/`) : un hôte qui porte des modules Go renvoie une fois son SBOM
+  ([ADR 0041](../docs/adr/0041-inventaire-des-conteneurs-par-l-agent.md)).
+- Équipe du conteneur imposée par une clé étrangère `ON UPDATE CASCADE` vers l'hôte ;
+  conteneur sans agent propre ; nom `hôte/identité`
+  ([ADR 0040](../docs/adr/0040-conteneurs-en-projets-enfants.md)).
+- Signalement `POST /api/v1/agent/containers` (500 identités, 1 Mio), qui vaut signal de
+  vie et porte les comptes rendus d'inventaire ; l'hôte vient du jeton
+  ([ADR 0040](../docs/adr/0040-conteneurs-en-projets-enfants.md)).
+- Conteneur archivé à la main : reste archivé, l'agent l'ignore ; archivé pour absence :
+  revient seul, pas de réactivation à la main
+  ([ADR 0040](../docs/adr/0040-conteneurs-en-projets-enfants.md)).
+- Conteneurs écartés par défaut des listes et de la recherche (`containers=1` s'ajoute à
+  `type`), comptés dans le tableau de bord de l'organisation
+  ([ADR 0040](../docs/adr/0040-conteneurs-en-projets-enfants.md)).
+- Fiche hôte : vulnérabilités distinctes par projet à la plus haute sévérité, conteneurs
+  archivés hors du total ; état « absent » d'un conteneur non signalé depuis le dernier
+  inventaire de l'hôte, à une heure près
+  ([ADR 0040](../docs/adr/0040-conteneurs-en-projets-enfants.md)).
+
 #### Écarts
 
 - T16 : captures d'écran clair et sombre non faites (aucune CSS nouvelle ; audit RGAA du
   lot 2 en T18) ; filtre « équipe » de la recherche non livré (recherche filtrée par les
   équipes visibles) ([T16](lots/T16-equipes-droits.md#écarts)).
+- T13 : captures clair et sombre non faites (composants existants, un seul modificateur
+  CSS) ; Podman non essayé (Docker 29 essayé pour de vrai) ; purge des conteneurs archivés
+  depuis longtemps renvoyée à T18 ([T13](lots/T13-conteneurs.md#écarts)).
 
 ### Actions pour l'utilisateur
 
-1. Relire les décisions **[à relire]** ci-dessus (ADR 0034, matrice
+1. Relire les décisions **[à relire]** ci-dessus (ADR 0034, 0040, 0041, matrice
    [`docs/security/permissions.md`](../docs/security/permissions.md)).
-2. Après la publication d'une version contenant T16 : vérifier sur une instance réelle
+2. Après la publication d'une version contenant T13 : essayer l'inventaire des conteneurs
+   sur un hôte réel (Docker avec docker compose, puis Podman sans root avec son ACL,
+   `docs/operations.md`, « Conteneurs »), en connaissance de l'équivalence root de la
+   socket.
+3. Après la publication d'une version contenant T16 : vérifier sur une instance réelle
    que la migration 016 a placé chaque membre dans l'équipe « Général » avec son ancien
    rôle (page **Équipes** de chaque organisation).
 

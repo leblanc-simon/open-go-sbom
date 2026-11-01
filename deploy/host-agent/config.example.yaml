@@ -44,6 +44,18 @@ scan:
   # conteneurs). Motifs admis : /srv/data/**/cache.
   exclude: []
 
+# Conteneurs en cours d'exécution (Docker, Podman), chacun projet enfant de l'hôte.
+# L'ACCÈS À LA SOCKET D'UN MOTEUR DE CONTENEURS ÉQUIVAUT À ROOT : désactivé par défaut,
+# l'agent n'ouvre alors aucune socket. Préférer la socket Podman d'un compte sans root
+# (docs/operations.md, « Conteneurs »).
+containers:
+  enabled: false
+  sockets: []            # vide : /run/docker.sock puis /run/podman/podman.sock (absente : ignorée)
+  #  - /run/user/1000/podman/podman.sock
+  work_dir: ""           # archive d'une image le temps de son scan ; vide : <state_dir>/images
+  max_image_mib: 4096    # une image plus grosse n'est pas inventoriée
+  timeout: 30s           # par appel au moteur (export d'image excepté)
+
 # Sobriété : l'unité systemd ajoute Nice=19 et IOSchedulingClass=idle.
 resources:
   max_procs: 1           # GOMAXPROCS et catalogueurs simultanés

@@ -39,3 +39,5 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0032](0032-publication-des-versions.md) | Publication des versions : étiquette, workflow de préversion, fichiers livrés, unité du serveur | Accepté |
 | [0033](0033-renommage-en-lotor.md) | Renommage du projet en lotor : correspondance unique, migrations réécrites avant toute publication, identité visuelle | Accepté |
 | [0034](0034-equipes-et-droits.md) | Équipes et droits : rôle d'organisation membre ou administrateur, droits par équipe, filtre d'équipe déclaré à la transaction, invitations | Accepté |
+| [0040](0040-conteneurs-en-projets-enfants.md) | Conteneurs en projets enfants : modèle, signalement par l'agent, archivage, agrégats par périmètre | Accepté |
+| [0041](0041-inventaire-des-conteneurs-par-l-agent.md) | Inventaire des conteneurs par l'agent serveur : désactivé par défaut, API Docker sur socket Unix, scan de l'image exportée | Accepté |

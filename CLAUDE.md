@@ -98,6 +98,15 @@ Tests de référence : `TestRoutePermissionsFollowMatrix`, `TestTeamFilterOnEver
 Prochains lots, en parallèle : [T12](specs/lots/T12-enrichissement-ia.md),
 [T13](specs/lots/T13-conteneurs.md), [T14](specs/lots/T14-triage-vex.md) et
 [T17](specs/lots/T17-differences-instantanes.md).
+T13 terminé : conteneurs en projets enfants (ADR 0040, 0041). Projet de nature
+`container`, enfant de l'hôte (`Project.Parent`), dans son équipe par clé étrangère en
+cascade ; l'agent serveur (`containers.enabled`, désactivé par défaut : aucune socket
+ouverte sans lui) lit l'API Docker de Docker ou Podman sur socket Unix, identité
+`projet/service` Compose sinon nom (`hostagent.Identity`), signale ses conteneurs
+(`POST /api/v1/agent/containers`, création sous son hôte seul), scanne chaque image
+exportée une fois ; archivage après `containers.archive_after` (7 jours) et retour au
+redémarrage ; fiche hôte par périmètre (`dashboard.Family`) ; conteneurs écartés des
+listes et de la recherche sauf `containers=1`.
 
 ## Règles de travail
 

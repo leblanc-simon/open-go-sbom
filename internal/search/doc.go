@@ -14,7 +14,8 @@
 //     (identifiant et alias du catalogue) ;
 //  2. les occurrences sont lues sur ref_current, component_set_items et findings, pour les
 //     références actives des projets actifs et visibles (équipes déclarées par
-//     db.Visible, filtre lotor_team_visible, ADR 0034), filtres appliqués en SQL ;
+//     db.Visible, filtre lotor_team_visible, ADR 0034), filtres appliqués en SQL ; les
+//     conteneurs des serveurs en sont écartés sauf Filters.Containers (ADR 0040) ;
 //  3. une page de projets (curseur par ordre : risque, nom, instantané), puis leurs
 //     occurrences (MaxGroupHits par projet).
 //
