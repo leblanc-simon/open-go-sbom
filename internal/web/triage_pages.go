@@ -175,7 +175,17 @@ func (id *identity) renderFinding(w http.ResponseWriter, r *http.Request, status
 		view.Form.Scope = string(triage.ScopeProject)
 	}
 	if view.Form.Status == "" {
+		// Formulaire neuf : il part de la décision appliquée (statut, justification,
+		// échéance) ; le commentaire reste à écrire.
 		view.Form.Status = string(row.TriageStatus)
+		for _, h := range history {
+			if h.Applied && h.Action == triage.ActionSet {
+				view.Form.Justification = string(h.Justification)
+				if h.ExpiresOn != nil {
+					view.Form.ExpiresOn = h.ExpiresOn.Format(time.DateOnly)
+				}
+			}
+		}
 	}
 	today := id.Agents.Now().UTC()
 	view.MinExpiry = today.Format(time.DateOnly)

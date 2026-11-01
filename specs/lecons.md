@@ -695,3 +695,32 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
   borner les boucles de charge par `timeout`, sans `pkill`.
 - **Outil d'isolement des agents (suite)** : `sleep N` suivi d'une autre commande est
   refusé. Règle : `run_in_background` pour une commande longue, puis lecture de sa sortie.
+
+## Triage et VEX (T14)
+
+- **Aller-retour entre deux vocabulaires** : noter la valeur d'origine seulement quand la
+  correspondance « perd de l'information » (non réciproque) ne suffit pas : même une
+  correspondance réciproque change de liste, et l'aller-retour ramenait
+  `vulnerable_code_not_present` au lieu de `code_not_present` (trouvé par le test
+  d'aller-retour d'un format à l'autre). Règle : pour tout échange entre formats, tester
+  l'aller-retour dans le même format **et** d'un format à l'autre, sur toutes les valeurs.
+- **Course entre une décision et une analyse** : sans verrou, un constat inséré par une
+  analyse en cours échappe au recalcul d'une décision validée entre-temps (`READ
+  COMMITTED`, chacune ignore l'écriture non validée de l'autre). Règle : verrou
+  consultatif d'organisation, exclusif pour la décision, partagé pour l'analyse, pris
+  **avant** toute lecture qui conditionne le travail — y compris un « existe-t-il des
+  décisions ? » d'optimisation, qu'une première décision en cours de validation
+  rendrait faux.
+- **Schéma OpenVEX fermé** : `additionalProperties: false` à tous les niveaux ; une
+  information propre au projet ne peut aller que dans un champ texte (`status_notes`),
+  sous une forme relisible (`[lotor:clé=valeur;…]`).
+- **Champ révélé en CSS et `required`** : un champ masqué par `display: none` (choix non
+  coché, `:has(input:checked)`) mais `required` empêche l'envoi du formulaire sans
+  message visible. Règle : pas de `required` sur un champ conditionnel, validation
+  serveur.
+- **Compteur global dans un test d'écran** : `a.countRows` passe par `InTx`, hors
+  organisation ; sur une table d'organisation, la RLS échoue (`''::uuid`). Règle :
+  compter dans `InOrg` pour une table d'organisation.
+- **Statut matérialisé et CHECK** : une contrainte « décision nulle ⇒ à analyser » oblige
+  les jeux de test qui posent un statut à insérer d'abord une décision ; prévoir l'aide
+  dans le jeu de test du paquet qui lit le statut (tableau de bord).

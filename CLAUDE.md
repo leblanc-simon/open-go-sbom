@@ -98,6 +98,13 @@ Tests de référence : `TestRoutePermissionsFollowMatrix`, `TestTeamFilterOnEver
 Prochains lots, en parallèle : [T12](specs/lots/T12-enrichissement-ia.md),
 [T13](specs/lots/T13-conteneurs.md), [T14](specs/lots/T14-triage-vex.md) et
 [T17](specs/lots/T17-differences-instantanes.md).
+T14 terminé : triage et VEX (`internal/triage`, `internal/triage/vex`, ADR 0035 à 0037).
+Décisions de projet (composant exact) ou d'organisation (`purl_base`, plage `vers`,
+permission `triage.org`), journal `triage_decisions` en ajout seul, statut effectif rangé
+sur chaque constat (`findings.triage_status`), recalculé à chaque décision et classé par
+l'analyse (`finding.Classifier`) ; échéance des risques acceptés (job `triage.expire`) ;
+export OpenVEX et CycloneDX (écran et API), import de VEX d'éditeurs. T15 réutilise
+`triage_status` et `triage.Options.OnChange` (voir le `doc.go` de `triage`).
 
 ## Règles de travail
 

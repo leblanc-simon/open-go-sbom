@@ -12,7 +12,8 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 
 | Lot | PR | Statut | Décisions à relire |
 | --- | --- | --- | --- |
-| T16 | #21 | Terminé (PR à fusionner) | Filtre d'équipe déclaré à la transaction, fermé par défaut ; matrice des droits (administrateur d'équipe sans gestion des équipes ni des membres de l'organisation, rattachement avec droit dans les deux équipes) ; 404 pour une équipe invisible ; agents sans équipe = agents d'organisation, agents dépôt existants d'organisation ; équipe « Général » aussi pour une nouvelle organisation, « General » en anglais ; invitations de 30 jours, sans équipe, bornées, nouvelle fonction `crossorg` ; tendance d'un membre additionnée par projet ; point d'essai `routeStub` — tous **[à relire]** |
+| T16 | #21 | Terminé | Filtre d'équipe déclaré à la transaction, fermé par défaut ; matrice des droits (administrateur d'équipe sans gestion des équipes ni des membres de l'organisation, rattachement avec droit dans les deux équipes) ; 404 pour une équipe invisible ; agents sans équipe = agents d'organisation, agents dépôt existants d'organisation ; équipe « Général » aussi pour une nouvelle organisation, « General » en anglais ; invitations de 30 jours, sans équipe, bornées, nouvelle fonction `crossorg` ; tendance d'un membre additionnée par projet ; point d'essai `routeStub` — tous **[à relire]** |
+| T14 | à venir | Terminé (PR à fusionner) | Statut effectif rangé sur chaque constat, verrou consultatif ; journal en ajout seul avec retrait, échéance qui ramène « à analyser » à sa portée ; décision de projet sur le purl exact ; permission `triage.org` ; échéance par job ; audit d'un import groupé ; tableau de bord sans non affectés ni faux positifs ; VEX (structures OpenVEX propres, marques `[lotor:…]`, justification d'origine toujours notée, export des seuls constats ouverts décidés, import de projet par famille et version) ; fiche du constat en page au lieu du tiroir — tous **[à relire]** |
 
 ### Décisions à relire, par thème
 
@@ -45,8 +46,29 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
   `lotor_user_invitations` ([ADR 0034](../docs/adr/0034-equipes-et-droits.md),
   [modèle de menace](../docs/security/threat-model.md)).
 
+#### Triage et VEX (T14)
+
+- Statut effectif rangé sur chaque constat, recalculé à chaque décision et classé par
+  l'analyse sous un verrou consultatif ; journal `triage_decisions` en ajout seul avec
+  retrait explicite ; échéance qui ramène « à analyser » à sa portée ; décision de projet
+  sur le purl exact ; permission `triage.org` pour les administrateurs ; échéance par un
+  job par décision, risque accepté borné à 3 ans ; un événement d'audit par import ;
+  tableau de bord sans les constats non affectés ni faux positifs
+  ([ADR 0035](../docs/adr/0035-decisions-de-triage.md)).
+- VEX : OpenVEX par des structures propres (`openvex/go-vex` écarté), marques
+  `[lotor:…]` et propriétés `lotor:`, justification d'origine toujours notée quand elle
+  change de liste, export des seuls constats ouverts qui ont une décision, import de
+  projet par famille, version et qualificatifs compatibles, bornes 1 Mio et 5 000
+  déclarations, pas d'import par l'API ([ADR 0036](../docs/adr/0036-echanges-vex.md)).
+- Écrans : fiche du constat en page au lieu du tiroir de la maquette, justification et
+  commentaire exigés, deux vocabulaires proposés, onglet VEX, rubrique Triage
+  ([ADR 0037](../docs/adr/0037-ecrans-du-triage.md)).
+
 #### Écarts
 
+- T14 : triage livré en page (pas en tiroir) ; audit RGAA manuel des écrans en T18 ;
+  statut de triage absent des résultats de recherche (à reprendre en T18 avec le filtre
+  d'équipe) ([T14](lots/T14-triage-vex.md#écarts)).
 - T16 : captures d'écran clair et sombre non faites (aucune CSS nouvelle ; audit RGAA du
   lot 2 en T18) ; filtre « équipe » de la recherche non livré (recherche filtrée par les
   équipes visibles) ([T16](lots/T16-equipes-droits.md#écarts)).
@@ -58,6 +80,10 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 2. Après la publication d'une version contenant T16 : vérifier sur une instance réelle
    que la migration 016 a placé chaque membre dans l'équipe « Général » avec son ancien
    rôle (page **Équipes** de chaque organisation).
+3. Relire les décisions de T14 (ADR 0035 à 0037), en particulier la correspondance des
+   justifications VEX (ADR 0036) et le choix d'une page plutôt que du tiroir (ADR 0037) ;
+   vérifier qu'un mandataire inverse en production laisse passer 1 Mio sur les routes
+   d'import VEX (`docs/operations.md`, « Triage et VEX »).
 
 ## Lot 1
 
