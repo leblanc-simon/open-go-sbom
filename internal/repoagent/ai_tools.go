@@ -72,7 +72,7 @@ var candidateSchema = map[string]any{
 }
 
 var aiTools = []llm.Tool{
-	{Name: toolListDir, Description: "List the entries of a directory of the repository (\".\" for the root). Hidden files are not listed.",
+	{Name: toolListDir, Description: "List the entries of a directory of the repository (\".\" for the root). Files excluded from the analysis (secrets, keys, version-control data) are not listed.",
 		Schema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"path"},
 			"properties": map[string]any{"path": str("Directory path relative to the repository root", 1024)}}},
 	{Name: toolRead, Description: fmt.Sprintf("Read a range of lines of a text file of the repository (at most %d lines per call). Lines are numbered.", maxReadLines),

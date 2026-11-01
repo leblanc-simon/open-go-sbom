@@ -193,6 +193,11 @@ func (e *enricher) enrich(ctx context.Context, in enrichInput) enrichResult {
 		return res
 	}
 	defer ws.Close()
+	// Les fichiers modifiés viennent de la forge, sans filtre : un fichier exclu (secret,
+	// clé) n'est jamais nommé dans le prompt (SEC2-07).
+	if in.Scope != nil {
+		in.Scope = slices.DeleteFunc(slices.Clone(in.Scope), func(f string) bool { return !ws.visible(f) })
+	}
 	ctx, cancel := context.WithTimeout(ctx, e.cfg.Timeout)
 	defer cancel()
 	tb := &toolbox{ws: ws}

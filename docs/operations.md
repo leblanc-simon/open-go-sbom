@@ -1132,7 +1132,10 @@ exclus (`.env*`, `*.pem`, `*.key`, `id_rsa*`, `.ssh/`, `.aws/`, `.npmrc`, `.netr
 `*.tfstate`, `*.tfvars`, `credentials*`, `secrets*`, `kubeconfig*`… et `ai.exclude`), tout
 fichier qui contient une clé privée, les fichiers binaires ou de plus de 2 Mio, le
 répertoire `.git`, les secrets de l'agent (jeton, clés des forges, clé d'API) et son
-environnement. Le volume lu est borné par `ai.max_read_kib` par analyse.
+environnement. Un fichier exclu n'est pas non plus **nommé** : ni dans la liste des
+fichiers modifiés, ni dans une liste de répertoire (SEC2-07 ; un fichier de plus de
+64 Kio qui contiendrait une clé privée est listé, puis refusé à la lecture). Le volume
+lu est borné par `ai.max_read_kib` par analyse.
 
 **Modèle local (Ollama).** Un modèle qui sait appeler des outils, servi par Ollama dans
 l'infrastructure de l'exploitant :
