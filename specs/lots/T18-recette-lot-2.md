@@ -2,7 +2,7 @@
 
 | Lot fonctionnel | Dépend de | Statut |
 | --- | --- | --- |
-| 2 · IA et triage | T12, T13, T14, T15, T16, T17 | En cours (parties 1 (compléments), 2 (sécurité) et 3 (accessibilité) faites) |
+| 2 · IA et triage | T12, T13, T14, T15, T16, T17 | Terminé (mesure de l'IA avec une clé et publication de `v0.2.0` : actions de l'utilisateur) |
 
 ## Objectif
 
@@ -31,9 +31,19 @@ un taux de faux positifs mesuré et tenu, et publier une préversion `v0.2.0` du
 
 ## Critères d'acceptation
 
-- [ ] Zéro composant d'origine IA accepté sans preuve vérifiée, sur le corpus et le pilote.
+- [x] Zéro composant d'origine IA accepté sans preuve vérifiée, sur le corpus et le pilote.
+      (Partie 4 : par construction — le vérificateur est le seul juge — et contrôlé de
+      l'extérieur par `checkProof` sur chaque composant IA du SBOM relu par le décodeur
+      du serveur : corpus, 467 candidats adverses, 47 acceptés, tous revérifiés
+      (`TestNoAIComponentWithoutVerifiedProof`, en CI) ; échantillon pilote,
+      2 234 candidats d'un modèle fictif crédule, 101 acceptés, tous revérifiés
+      (`make eval-ai` en mode `credulous`). `make eval-ai` refait ce contrôle sur chaque
+      composant accepté par le vrai modèle **[à relire]**.)
 - [ ] Taux de faux positifs et rappel dans les seuils validés en T12, sur le corpus et sur
-      l'échantillon pilote annoté.
+      l'échantillon pilote annoté. (**Non mesuré** : aucune clé d'API ni modèle local dans
+      l'environnement ; corpus étendu (11 cas), échantillon pilote annoté (4 dépôts) et
+      harnais prêts ; mesure à faire par l'utilisateur, pas à pas dans
+      `docs/operations.md`, « Évaluer l'enrichissement IA ».)
 - [x] Aucune faiblesse de gravité haute ou critique ouverte. (Aucune trouvée par la revue
       du lot 2 ; les 2 Medium et les 5 Low sont corrigés, 2 des 3 Note aussi, voir « Revue
       de sécurité ».)
@@ -43,7 +53,9 @@ un taux de faux positifs mesuré et tenu, et publier une préversion `v0.2.0` du
       après).
 - [x] Un utilisateur peut se connecter avec un code de secours, à usage unique
       (partie 1, `TestRecoveryCodes`).
-- [ ] `v0.2.0` publiée.
+- [ ] `v0.2.0` publiée. (Prête : `CHANGELOG.md` section `[0.2.0] - 2026-11-01`,
+      `make release VERSION=v0.2.0` vérifié ; la pose de l'étiquette est refusée dans la
+      session, action de l'utilisateur décrite dans `specs/avancement.md`.)
 
 ## Décisions
 
@@ -328,3 +340,236 @@ focus visible dans les deux thèmes ; captures de contrôle à 1 280 et 390 px.
 #### ADR créés
 
 Aucun. Aucune migration, aucune nouvelle dépendance.
+
+### Partie 4 — Recette, mesures et préversion
+
+Réalisée le 1er novembre 2026, branche `lot/T18-recette`, en autonomie : les décisions
+marquées **[à relire]** n'ont pas été validées explicitement. Environnement : 4 cœurs
+partagés Intel Xeon 2,8 GHz, 15 Gio, PostgreSQL 16.15, Docker 29.9.2 et Docker Compose
+5.6.1 (démarrés pour la recette puis arrêtés), Podman 4.9.3 (installé pour la recette puis
+retiré).
+
+#### Évaluation de l'enrichissement IA
+
+Sans clé d'API ni modèle local, rien n'a été mesuré avec un vrai modèle : aucun chiffre
+de précision, de rappel ou de coût n'est donné ici. Fait :
+
+- **Contrôle indépendant du critère « zéro composant sans preuve vérifiée »** :
+  `checkProof` revérifie chaque composant IA du SBOM final (fusionné, encodé, relu par le
+  décodeur du serveur) contre le dépôt, sans réutiliser le vérificateur : chemin propre,
+  fichier ordinaire atteint sans lien, jamais exclu ni porteur d'un secret, extrait à la
+  ligne annoncée, version et nom dans la preuve, empreinte exacte.
+  `TestNoAIComponentWithoutVerifiedProof` (en CI) fait soumettre, sur chaque cas du
+  corpus, tout ce qu'un modèle crédule ou détourné pourrait proposer : composants annotés,
+  pièges, versions inventées, demandes des instructions malveillantes, centaines de
+  lignes porteuses d'un numéro, mutations (ligne hors tolérance, version voisine, `../`,
+  chemin absolu, nom ou type changé) et liens symboliques plantés dans le dépôt : 467
+  candidats, 47 acceptés, **tous revérifiés**, 420 rejetés, aucun par un lien.
+- **Défaut trouvé et corrigé** par ce contrôle : les composants IA d'image de conteneur
+  (`FROM` d'un Dockerfile) étaient émis en type CycloneDX `container`, que le décodeur de
+  Syft du serveur ignore : acceptés par le vérificateur, ils disparaissaient à
+  l'ingestion (`ai_merge.go` : toujours `library`, le purl `pkg:docker/…` dit la nature).
+- **Corpus étendu** à 11 cas : `vendored-python` (`__version__.py` de requests recopié ;
+  version de l'application, mise à jour citée en commentaire) et `ci-makefile-vars`
+  (version d'outil dans une variable du `Makefile`, images d'intégration continue dont
+  une par variable ; `latest`, image sans étiquette, version du dépôt), calqué sur
+  l'échantillon pilote. Modèle crédule sur le corpus : 14 acceptés à raison, 5 pièges à
+  preuve réelle, rappel 100 % — **pour ce modèle fictif**, pas une mesure.
+- **Échantillon pilote annoté** (`testdata/ai-pilot`) : les quatre dépôts publics du
+  parc pilote du lot 1 aux mêmes commits (cobra `adbc881`, sftp `5bdc2b0`, gitlab-shell
+  `09ef3a7`, jekyll `3137780`), clonés par `scripts/ai-pilot-fetch.sh` (tête vérifiée) ;
+  annotation à la main, confrontée au SBOM de Syft (même version que l'agent) :
+  **4 composants attendus**, tous dans gitlab-shell (gotestsum 1.10.0 et golangci-lint
+  1.55.2 par variables du `Makefile`, images `docker:20.10.15` et
+  `sourcegraph/lsif-go:v1.9`) ; actions GitHub vues par Syft et cas discutables
+  « ignorés » ; pièges (version du dépôt, `latest`, manifestes). Règles d'annotation dans
+  son README.
+- **`make eval-ai` par jeu** (`corpus`, `pilote` avec `LOTOR_EVAL_AI_PILOT_DIR`), seuils
+  sur chacun, revérification de chaque preuve pour tout fournisseur, et mode
+  `LOTOR_EVAL_AI_PROVIDER=credulous` (contrôle à blanc sans clé). Joué ici en
+  `credulous` : corpus 47 composants revérifiés ; **pilote 2 234 candidats, 101 acceptés,
+  tous revérifiés**, chaque composant annoté prouvable (aucun oubli), 6 « ignorés ».
+- Procédure de la mesure réelle, pas à pas : `docs/operations.md`, « Évaluer
+  l'enrichissement IA » (clé, clonage du pilote, contrôle à blanc, mesure, lecture,
+  report et choix du modèle).
+
+#### Mesures consolidées
+
+Mêmes commandes que T11 (`docs/benchmarks.md`, section T18), sur le jeu de référence
+**complété des équipes, des conteneurs et du triage** (`benchdata.AddTeamsAndContainers` :
+10 équipes, 50 hôtes de 10 conteneurs, 1 550 projets, 1,11 million de liens, 83 270
+constats, environ 7 400 décisions de triage), base Grype réelle v6.1.10 du 1er novembre
+2026 ; machine : **4 cœurs partagés**, moins puissante que la référence (16 cœurs).
+
+| Mesure (commande) | Cible | Résultat (p95) | Verdict |
+| --- | --- | --- | --- |
+| Ingestion et analyse de 5 000 composants, vraie base (`make bench-ingest`) | 30 s | **5,62 s** (froid 5,54 s, p50 5,24 s, dont ingestion 0,60 s) | tenue |
+| Recherche, pire cas : page suivante du nom large (`make bench-search`) | 2 s | **446 ms** (nom large 437 ms) | tenue |
+| Recherche, membre d'une équipe / filtre équipe / conteneurs compris | 2 s | 339 / 232 / 386 ms | tenue |
+| Recherche par vulnérabilité, membre d'une équipe / filtre triage | 2 s | 22 / 29 ms | tenue |
+| Export CSV (16 837 lignes ; 18 507 avec les conteneurs) | — | 810 ms ; 945 ms | — |
+| Tableau de bord, 12 mois, administrateur (`make bench`) | 1 s | **841 ms** (90 jours : 814 ms) | tenue |
+| Tableau de bord, membre d'une équipe (12 mois / 90 jours) | 1 s | 567 / 752 ms | tenue |
+| Fiche hôte et ses 10 conteneurs / fiche conteneur / fiche projet | 1 s | 39 / 29 / 36 ms | tenue |
+| Scan de l'agent serveur, `/` sans `/root`, `/home`, `/tmp` (protocole de T07) | 5 min de CPU, 1 Gio | **2 min 13 s de CPU, 819 Mio** au plus sur 4 cycles | tenue |
+| Inventaire d'une image de conteneur (recette, Docker et Podman) | — | 1,5 à 3 s par image | — |
+
+Par rapport au lot 1 : la recherche large passe de 288-344 à 437-446 ms et le tableau de
+bord de 663 à 841 ms (marge de 16 %, la plus serrée), sur un jeu plus gros et avec les
+filtres d'équipe et de triage ; l'agent serveur, hors ligne depuis T13, consomme moins
+(2 min 13 s et 819 Mio contre 3 min 8 s et 921 Mio). Le plan du nom large a changé
+(boucle sur les 1 050 projets visibles, 301 ms pour le décompte contre 15,6 ms) : noté
+dans `docs/benchmarks.md`, sans action (cible tenue avec une marge d'un facteur 4,5).
+Les cibles du cahier des charges restent « proposées », à confirmer par l'utilisateur.
+
+#### Recette fonctionnelle
+
+Parc de démonstration fixé avant les vérifications ; listes attendues établies hors de
+l'application (contenu réel des images, `apk info`, avis des distributions) :
+
+- serveur `srv-recette` (racine minimale : `os-release` et base dpkg d'Ubuntu 24.04,
+  838 composants), agent serveur ;
+- Docker : projet Compose `shop` (`web` nginx 1.25.3-alpine sur Alpine 3.18.6, `cache`
+  redis 7.0.0-alpine sur Alpine 3.16.0, `worker` alpine 3.18.0 en **deux répliques**) et
+  conteneur `outil` (alpine 3.18.0) ; Podman : conteneur `batch` (alpine 3.18.0) ;
+- CVE de contrôle **CVE-2023-2650** (OpenSSL) : attendu **outil, shop/cache,
+  shop/worker** (libcrypto3/libssl3 3.1.0-r4, corrigé en 3.1.1-r0 ; libcrypto1.1/libssl1.1
+  1.1.1o-r0, corrigé en 1.1.1u-r0) ; pas shop/web (3.1.4-r5), pas l'hôte.
+
+Instance réelle (binaires, TLS par une autorité de test, rôles PostgreSQL séparés, base
+Grype téléchargée par le serveur lui-même), pilotée par l'interface comme un navigateur
+(formulaires, jeton CSRF, codes TOTP calculés) et par les API ; outillage hors dépôt.
+
+Exercé, tout conforme sauf le défaut corrigé plus bas :
+
+- **Mise à jour 0.1.0 → 0.2.0** : instance montée avec les binaires **publiés** de
+  `v0.1.0` (archives vérifiées par `SHA256SUMS`), organisation, administrateur, lecteur
+  (`viewer`) et analyste (`analyst`) ajoutés directement, jeton d'inscription, hôte
+  inscrit par l'agent 0.1.0 ; puis serveur 0.2.0 sur la même base : migrations 016 à 022
+  (puis 023) appliquées, chaque membre dans « Général » avec son ancien rôle (admin,
+  analyst → analyste, viewer → lecteur ; rôle d'organisation « membre »), projet, agent
+  et jeton d'inscription dans « Général » ; l'agent **0.1.0** continue (inventaire
+  inchangé, confirmé), puis l'agent 0.2.0 reprend son état et son inscription.
+- **Codes de secours** : administrateur enrôlé en 0.1.0 invité depuis **Second facteur**,
+  10 codes générés contre un code TOTP ; nouveau compte : codes montrés à l'enrôlement ;
+  connexion par un code de secours (arrivée sur la page du second facteur), **même code
+  refusé** ensuite ; audit `auth.recovery_code_used`.
+- **Équipes et droits** : équipe « Web », compte invité qui accepte depuis **Mon compte ›
+  Invitations**, ajouté lecteur de l'équipe ; il reçoit **404** sur l'hôte et ses
+  conteneurs et une recherche vide ; le lecteur de « Général » voit tout ; le lecteur n'a
+  pas de panneau de triage et son `POST` est refusé (**403**) ; l'hôte rattaché à « Web »
+  **emmène ses 4 conteneurs** (5 projets), qui deviennent visibles du compte de « Web » et
+  invisibles (404) du lecteur de « Général ».
+- **Conteneurs enfants** : 4 identités pour 5 conteneurs Docker (les deux répliques de
+  `shop/worker` forment un projet), l'image alpine partagée par `outil` et `shop/worker`
+  scannée **une fois** ; conteneur **Podman** (rootful, socket `/run/podman/podman.sock`)
+  inventorié à côté de Docker, moteur `podman` ; fiche hôte avec les conteneurs par
+  périmètre ; conteneurs absents de la recherche sans « Inclure les conteneurs » ;
+  `outil` supprimé : **« Absent »** sur la fiche hôte une fois l'heure de tolérance
+  passée (temps simulé : `seen_at` reculé de 2 h en base).
+- **CVE de contrôle** : CVE-2023-2650 avec les conteneurs → exactement **outil,
+  shop/cache, shop/worker**, à l'écran et par l'API utilisateur (jeton personnel) ; sans
+  les conteneurs, aucun projet.
+- **Triage et VEX** : l'analyste déclare le constat CVE-2023-2650 / libcrypto3 de `outil`
+  « non affecté » (`vulnerable_code_not_in_execute_path`) ; le même couple de
+  `shop/worker` reste « à analyser » (portée projet) ; recherche `triage=not_affected` →
+  `outil` seul, `triage=in_triage` → les trois (libssl3 de `outil` reste à analyser) ;
+  filtre `triage` sur une recherche par nom → 400 ; export **OpenVEX** par l'API : une
+  déclaration `not_affected` avec la justification d'origine.
+- **Politiques, alertes, verdict** : canal webhook (récepteur local, signature HMAC
+  vérifiée), « Envoyer un test » reçu et signé ; politique bloquante « critique ou élevée,
+  à traiter, sur un conteneur » : aperçu, 195 violations, écran **Violations**, messages
+  `violations.opened` signés ; **verdict** par l'API des agents : `fail` sur `shop/web`
+  (99 violations bloquantes, résumé traduit), `pass` sur l'hôte, 404 sur un instantané
+  inconnu.
+- **Différences** : `shop/cache` passé de redis 7.0.0 à 7.0.15 ; nouvel instantané ;
+  frise avec montées de version ; comparaison avec le précédent : 13 montées, 8 ajouts,
+  5 retraits, **104 constats résolus** (dont CVE-2023-36824 sur redis, CVE-2023-0286 sur
+  libcrypto1.1).
+
+**Défaut trouvé et corrigé : doublons de notification.** La politique ci-dessus a fait
+partir 295 violations pour 195 (le premier lot de 100 deux fois, à 3 ms d'écart, même
+`X-Lotor-Delivery`) : deux jobs d'envoi du même canal tournaient en même temps, la clé
+d'unicité des jobs ne valant que pour les jobs en attente. Correctif : réservation du lot
+sous le verrou du canal avant l'appel réseau (migration 023, ADR 0052,
+`TestConcurrentSendsNeverDuplicate`, qui échoue sans elle) ; serveur reconstruit,
+migration 023 appliquée sur l'instance de recette, nouvelle politique ouvrant 224
+violations : **4 messages, 224 violations reçues, aucune en double**.
+
+Non exercé ici (et pourquoi) :
+
+- **rétention, archivage après 7 jours, purge après 180 jours** : demandent l'écoulement
+  du temps ; couverts par les tests d'intégration de T17, T13 et T18 (partie 1) ;
+- **enrichissement IA par un vrai modèle** et **agent dépôt** : pas de clé ni de forge ;
+  l'agent dépôt a été recetté au lot 1 (forge simulée) et l'enrichissement de bout en bout
+  par `TestRepoAgentAIEnrichmentAgainstServer` (faux fournisseur) ;
+- **Podman sans root**, **statut de commit** sur une vraie forge, canaux **e-mail,
+  Matrix, Mattermost, Slack** réels, **import de VEX** d'éditeur à l'écran, **résumé
+  quotidien**, **mTLS** (recetté au lot 1, non rejoué) : actions de l'utilisateur ou
+  couverts par les tests.
+
+#### Documentation et préversion
+
+- Guides de démarrage FR et EN : invitations et équipes, inscription par équipe,
+  conteneurs, enrichissement IA, section « Trier, comparer, être alerté ».
+- `docs/operations.md` : passage de 0.1.0 à 0.2.0 (migrations, rétention, purge, codes de
+  secours, agents), évaluation de l'IA pas à pas ; `docs/notifications.md` (envois
+  simultanés) ; `docs/benchmarks.md` (complément du jeu, mesures du lot 2, agent
+  serveur) ; `docs/utilisation.md`, `docs/notifications.md` et `config.example.yaml`
+  relus : à jour.
+- `CHANGELOG.md` : section `## [0.2.0] - 2026-11-01` (introduction, mise à jour depuis
+  0.1.0, liens vers les PR #21 à #29), « Corrigé » (composants IA d'image, doublons de
+  notification, `make bench-search`).
+- `make release VERSION=v0.2.0 RELEASE_DIR=…` (répertoire temporaire vide) : six
+  archives, quatre paquets (`lotor-host-agent_0.2.0_amd64.deb`…), `SHA256SUMS` vérifié
+  par `sha256sum -c`, `lotor-server --version` donne `v0.2.0` ; extraction des notes de
+  la section `[0.2.0]` rejouée. Étiquette non posée (refusée par le mandataire) : action
+  de l'utilisateur.
+- `v0.1.0` constatée publiée (préversion du 1er novembre 2026, 01:10 UTC) : critère de
+  T11 coché, statuts mis à jour.
+
+#### Décisions
+
+- **Critère « zéro composant sans preuve » coché sur des modèles fictifs** (crédule,
+  hostile, adverse) et le contrôle indépendant `checkProof`, le vrai modèle restant à
+  mesurer ; le contrôle est rejoué à chaque `make eval-ai` **[à relire]**.
+- **Échantillon pilote = les quatre dépôts publics du lot 1 aux mêmes commits**, non
+  recopiés dans le dépôt (clonés par script, tête vérifiée) ; annotation « ignoré » pour
+  ce que Syft voit déjà et les cas discutables (chaîne d'outils, image formée de
+  variables) ; purl au type le plus précis, comme le demande le prompt **[à relire]**.
+- **Mode `credulous` de `make eval-ai`** : contrôle à blanc des annotations et des preuves
+  sans clé, explicitement pas une mesure (seuils non appliqués) **[à relire]**.
+- **Composants IA toujours de type `library`** (image comprise), plutôt qu'adapter le
+  décodeur du serveur aux composants `container` des SBOM tiers (changement d'ingestion
+  plus large) **[à relire]**.
+- **Réservation des envois de notification** (migration 023, 10 minutes, réessai par la
+  file pour l'envoi qui trouve un lot réservé) plutôt qu'une transaction tenue pendant
+  l'appel réseau ([ADR 0052](../../docs/adr/0052-envois-de-notification-reserves.md))
+  **[à relire]**.
+- **Jeu de mesure complété** (10 équipes, 50 hôtes × 10 conteneurs de 200 composants, une
+  décision de triage sur dix constats ouverts), mesures « membre » avec une équipe sur
+  dix ; agent serveur mesuré sur 4 cycles (pas 20 : 2 min de CPU chacun) **[à relire]**.
+- **Recette sur une mise à jour réelle 0.1.0 → 0.2.0** plutôt que sur une instance neuve,
+  pour vérifier la migration des équipes et la compatibilité de l'agent 0.1.0 ; parc en
+  conteneurs Docker et Podman ; temps de l'état « absent » simulé en base ; outillage
+  hors dépôt (client de l'interface, récepteur de webhook, scripts) **[à relire]**.
+- `CHANGELOG.md` daté du 1er novembre 2026 ; à ajuster au jour de la pose de l'étiquette
+  **[à relire]**.
+
+#### Écarts
+
+- Seuils de l'IA non mesurés (critère non coché) ; `v0.2.0` non publiée (critère non
+  coché) : actions de l'utilisateur.
+- `make bench-search` cassé depuis T16 dans son dernier pas (plans) : corrigé dans le
+  test (visibilité déclarée), sans effet sur le produit.
+- Rétention, archivage et purge non rejoués en temps réel ; Podman sans root, forges,
+  canaux réels non essayés (voir « Non exercé »).
+- Deux défauts du produit trouvés et corrigés (composants IA d'image perdus, doublons de
+  notification).
+
+#### ADR créés
+
+- [0052 — Envois de notification réservés avant l'appel réseau](../../docs/adr/0052-envois-de-notification-reserves.md).
+
+Migration **023** (`notification_deliveries.claimed_at`). Aucune nouvelle dépendance,
+aucune nouvelle fonction `crossorg`.

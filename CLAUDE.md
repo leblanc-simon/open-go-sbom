@@ -78,11 +78,9 @@ mfax, `csrfx.WithSessionBinding`), audit RGAA (grille
 conventions au § 14 de l'architecture), recette sur un parc pilote (trois conteneurs et
 quatre dépôts publics, trois CVE de contrôle exactes), mesures consolidées
 (`docs/benchmarks.md`), `docs/operations.md` complet, guides de démarrage
-(`docs/demarrage.md`, `docs/getting-started.md`), préversion `v0.1.0` prête
-(`CHANGELOG.md`, `.github/workflows/release.yml`, `scripts/release.sh`, unité
-`deploy/systemd/lotor-server.service`, ADR 0032). Publication de `v0.1.0` : action de
-l'utilisateur ([`specs/avancement.md`](specs/avancement.md)) ; open-go-base suivi par
-étiquette (`v1.3.0`).
+(`docs/demarrage.md`, `docs/getting-started.md`), préversion `v0.1.0` (`CHANGELOG.md`,
+`.github/workflows/release.yml`, `scripts/release.sh`, unité
+`deploy/systemd/lotor-server.service`, ADR 0032), publiée le 1er novembre 2026.
 Projet renommé **lotor** (open-go-sbom, préfixe `ogsbom`, avant le 31 octobre 2026) :
 module `leblanc.io/lotor`, commandes `lotor-*`, préfixe `LOTOR_`, objets SQL `lotor_*`,
 identité visuelle dans `docs/logo/` (ADR 0033).
@@ -136,7 +134,7 @@ Mattermost, Slack, secrets chiffrés, envois uniques par canal × violation et r
 `internal/delivery` : HTTP gardé contre la SSRF, SMTP ; ADR 0046), statut de commit de
 l'agent dépôt (`status.*`, désactivé par défaut ; ADR 0047), écrans des politiques, des
 violations et des canaux, section « Alertes » du tableau de bord ; `docs/notifications.md`.
-T18 en cours (partie 1, compléments, faite) : codes de secours du second facteur
+T18 (partie 1, compléments) : codes de secours du second facteur
 (open-go-base v1.4.0, `mfax.WithRecoveryCodes` ; page `/account/security`, reconfiguration
 de l'application par le titulaire `account.ReconfigureTOTP` ; ADR 0048), purge des
 conteneurs archivés pour absence par la rétention (`containers.purge_after`, 180 jours ;
@@ -148,8 +146,20 @@ changement de dépôt, secret de canal à ressaisir au changement de destination
 `containers.max_per_host`, fichiers exclus jamais nommés au modèle, garde SSRF étendue,
 `llm.Budget.MaxCallsPerTurn`. Partie 3 faite : audit RGAA des écrans du lot 2 (grille
 [`docs/accessibilite/grille-rgaa-lot2.md`](docs/accessibilite/grille-rgaa-lot2.md), 100 %
-après corrections ; conventions ajoutées au § 14 de l'architecture). Restent les mesures,
-l'évaluation de l'IA, la recette et `v0.2.0`.
+après corrections ; conventions ajoutées au § 14 de l'architecture). Partie 4 faite, **T18
+terminé, lot 2 terminé** : évaluation de l'IA sans modèle réel (contrôle indépendant des
+preuves `checkProof`, corpus de 11 cas, échantillon pilote annoté `testdata/ai-pilot` et
+`scripts/ai-pilot-fetch.sh`, `make eval-ai` par jeu et mode `credulous`), mesures avec les
+équipes et les conteneurs (`benchdata.AddTeamsAndContainers`, `docs/benchmarks.md`),
+recette sur une mise à jour réelle 0.1.0 → 0.2.0 (Docker, Compose et Podman), deux défauts
+corrigés (composants IA d'image perdus à l'ingestion ; doublons de notification : envois
+réservés, migration 023, ADR 0052), `CHANGELOG.md` `[0.2.0]` prêt. Restent à l'utilisateur
+(`specs/avancement.md`) : étiquettes open-go-base `v1.4.0` et `v1.4.1`, mesure de l'IA avec
+une clé, publication de `v0.2.0`. Prochains lots (lot 3), en parallèle :
+[T19](specs/lots/T19-dependency-track.md), [T20](specs/lots/T20-licences.md),
+[T21](specs/lots/T21-recherche-historique.md), [T22](specs/lots/T22-agent-windows.md),
+[T23](specs/lots/T23-hors-ligne.md) et [T25](specs/lots/T25-sso-oidc.md) (T24 après T19
+et T23).
 
 ## Règles de travail
 

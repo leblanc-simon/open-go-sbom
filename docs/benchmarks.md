@@ -1,7 +1,7 @@
 # Mesures de performance
 
 Protocole des cibles chiffrées du cahier des charges et de l'architecture (§ 13 et § 21),
-écrit en T06 (ADR 0019) et réutilisé par T09, T10, T11 et T21. Une cible non tenue garde
+écrit en T06 (ADR 0019) et réutilisé par T09, T10, T11, T18 et T21. Une cible non tenue garde
 le lot ouvert, sauf nouvelle cible validée par l'utilisateur.
 
 ## Machine de référence
@@ -44,6 +44,17 @@ en 31 versions (4.17.0 à 4.17.29 et « latest », illisible selon npm), une par
 cas le plus lourd d'une plage `vers` : une occurrence par projet), et une empreinte
 SHA-256 sur 1 000 composants. Le jeu de `Generate` n'a qu'une version par paquet et
 aucune empreinte.
+
+Pour le lot 2 (T18), `benchdata.AddTeamsAndContainers(ctx, pool, org, params,
+benchdata.ReferenceTeams())` complète le jeu : **10 équipes** entre lesquelles les
+1 000 dépôts sont répartis (`p-<n>` dans l'équipe `n mod 10`), **50 hôtes** répartis de
+même, portant chacun **10 conteneurs** enfants dans l'équipe de leur hôte (550 projets de
+plus, 200 composants chacun : 1 110 000 liens au total, 83 270 constats), et une
+**décision de triage** de projet pour un constat ouvert sur dix (environ 7 400 :
+non affecté, faux positif, affecté, risque accepté à parts égales), qui donne leur statut
+aux constats. Environ 40 s de plus. `make bench` et `make bench-search` l'appliquent ; les
+mesures « membre d'une équipe » se font avec la visibilité d'une seule équipe (105 projets
+sur 1 050), comme un compte qui n'administre pas l'organisation.
 
 ## Commandes
 
@@ -178,3 +189,73 @@ Plafond tenu sur les six cycles : CPU au plus 3 min 8 s (marge 37 %), mémoire a
 parcourus, voir T07). Moindre privilège vérifié à chaque passage (sans la capacité, les
 paquets ne sont pas lus). Sur les conteneurs du parc pilote (300 à 400 composants), un
 cycle complet prend 3 à 5 s.
+
+### T18 — Mesures consolidées du lot 2, avec les équipes et les conteneurs
+
+Rejouées le 1er novembre 2026 sur le même commit (`44a1715`), l'une après l'autre, sans
+autre charge, sur l'environnement de réalisation (**4 cœurs partagés** Intel Xeon
+2,8 GHz, 15 Gio, PostgreSQL 16.15), **moins puissant que la machine de référence** :
+chaque cible tenue ici vaut pour la référence. Jeu de référence complété des équipes, des
+conteneurs et des décisions de triage (ci-dessus) ; base Grype réelle v6.1.10 du
+1er novembre 2026 (00:24 UTC), installée par `grype db update`.
+
+| Mesure | Commande | Cible | Froid | p50 | p95 | Maximum | Verdict |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Ingestion et analyse, 5 000 composants, vraie base | `make bench-ingest` | 30 s | 5,54 s | 5,24 s | **5,62 s** | 5,62 s | tenue |
+| dont ingestion (réception, décodage, rangement) | idem | — | — | — | 0,60 s | — | — |
+| Recherche, nom large `lib-1` (16 837 occurrences, 1 050 projets) | `make bench-search` | 2 s | 328 ms | 311 ms | **437 ms** | 489 ms | tenue |
+| Recherche, page suivante du nom large (pire cas) | idem | 2 s | 345 ms | 326 ms | **446 ms** | 522 ms | tenue |
+| Recherche, nom large filtré (sévérité, dépôts, tri) | idem | 2 s | 526 ms | 286 ms | 399 ms | 426 ms | tenue |
+| Recherche, nom large, **conteneurs compris** (18 507, 1 550 projets) | idem | 2 s | 296 ms | 290 ms | 386 ms | 406 ms | tenue |
+| Recherche, nom large, **membre d'une équipe** (1 688, 105 projets) | idem | 2 s | 212 ms | 232 ms | 339 ms | 442 ms | tenue |
+| Recherche, nom large, **filtre équipe** | idem | 2 s | 149 ms | 181 ms | 232 ms | 256 ms | tenue |
+| Recherche, vulnérabilité (201 projets) | idem | 2 s | 25 ms | 19 ms | 29 ms | 32 ms | tenue |
+| Recherche, vulnérabilité, **membre d'une équipe** | idem | 2 s | 20 ms | 15 ms | 22 ms | 30 ms | tenue |
+| Recherche, vulnérabilité, **filtre triage** et conteneurs | idem | 2 s | 19 ms | 18 ms | 29 ms | 30 ms | tenue |
+| Recherche, plage `vers` sur lodash (677 projets) | idem | 2 s | 31 ms | 44 ms | 51 ms | 53 ms | tenue |
+| Recherche, empreinte SHA-256 | idem | 2 s | 81 ms | 74 ms | 104 ms | 110 ms | tenue |
+| Export CSV de `lib-1` (16 837 lignes, 20 passages) | idem | — | — | 654 ms | 810 ms | 810 ms | — |
+| Export CSV de `lib-1`, conteneurs compris (18 507 lignes) | idem | — | — | 739 ms | 945 ms | 945 ms | — |
+| Tableau de bord, 90 jours (administrateur) | `make bench` | 1 s | 532 ms | 656 ms | **814 ms** | 821 ms | tenue |
+| Tableau de bord, 12 mois (administrateur) | idem | 1 s | 628 ms | 679 ms | **841 ms** | 884 ms | tenue |
+| Tableau de bord, 90 jours, **membre d'une équipe** | idem | 1 s | 752 ms | 405 ms | 752 ms | 857 ms | tenue |
+| Tableau de bord, 12 mois, **membre d'une équipe** | idem | 1 s | 490 ms | 459 ms | 567 ms | 598 ms | tenue |
+| Fiche projet, 90 jours | idem | 1 s | 36 ms | 30 ms | 36 ms | 38 ms | tenue |
+| Fiche d'un **hôte et de ses 10 conteneurs** (périmètre) | idem | 1 s | 37 ms | 31 ms | 39 ms | 47 ms | tenue |
+| Fiche d'un **conteneur** | idem | 1 s | 21 ms | 23 ms | 29 ms | 49 ms | tenue |
+| Fiche projet, membre d'une équipe | idem | 1 s | 23 ms | 23 ms | 28 ms | 33 ms | tenue |
+
+Lectures des écrans (`make bench`, sans cible) : onglet « Constats » p95 14,9 ms,
+décomptes par référence 3,3 ms, fiche vulnérabilité 25,2 ms (membre d'une équipe
+12,2 ms), fiche composant 6,9 ms (membre 1,5 ms) ; statistiques du jour de l'organisation
+0,43 s ; génération du jeu 44 s et du complément 40 s.
+
+Comparaison avec le lot 1 (T11, même machine) : la recherche large passe de 288 à 437 ms
+au 95e centile et le tableau de bord de 626-663 à 814-841 ms, sur un jeu plus gros
+(1 550 projets au lieu de 1 000, 1,11 million de liens), avec le filtre des équipes (T16)
+et le statut de triage (T14) dans les requêtes ; la part de chacun n'a pas été isolée. La
+cible la plus serrée reste le tableau de bord (marge de 16 %). Plan du nom large (`EXPLAIN ANALYZE`, rôle d'exécution, visibilité de toutes les équipes) : le
+planificateur part désormais des 1 050 projets visibles (`projects_org_id_id_kind_key`)
+et lit leurs liens par `component_set_items_pkey` (1 050 boucles, 301 ms pour le
+décompte), au lieu de `component_set_items_component_idx` au lot 1 (15,6 ms) ; la plage
+sur lodash (7,6 ms) et la vulnérabilité (`findings_vuln_idx`, 4,6 ms) gardent leurs
+index. Les cibles du cahier des
+charges restent « proposées », à confirmer par l'utilisateur.
+
+**Agent serveur** (protocole de T07, `-tags measure -count=2`, binaire réel sous `nobody`
+avec `CAP_DAC_READ_SEARCH`, `max_procs` 1, racine `/` sans `/root`, `/home`, `/tmp`, SBOM
+gzip 3,5 Mio ; cible : 5 min de CPU et 1 Gio par scan). Le scan de l'hôte est hors ligne
+depuis T13 (plus de `go list` sous `/`) :
+
+| Passage | Cycle | Durée | CPU | Mémoire maximale |
+| --- | --- | --- | --- | --- |
+| 1 | envoi | 3 min 22 s | 2 min 13 s | 791 Mio |
+| 1 | signal de vie | 2 min 4 s | 2 min 1 s | 782 Mio |
+| 2 | envoi | 1 min 57 s | 1 min 51 s | 794 Mio |
+| 2 | signal de vie | 1 min 43 s | 1 min 43 s | 819 Mio |
+
+Plafond tenu sur les quatre cycles : CPU au plus 2 min 13 s (marge 56 %, contre 3 min 8 s
+au lot 1), mémoire au plus 819 Mio (marge 20 %, contre 921 Mio) ; moindre privilège
+vérifié à chaque passage. Conteneurs (recette du lot 2, Docker 29.9 et Podman 4.9) : une
+image Alpine ou Redis s'inventorie en 1,5 à 3 s, nginx (64 composants) en 2,4 s ; une
+image partagée par deux projets n'est scannée qu'une fois.

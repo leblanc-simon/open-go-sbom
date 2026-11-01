@@ -8,18 +8,37 @@ appliquées automatiquement, sans retour arrière.
 
 ## [Non publié]
 
+## [0.2.0] - 2026-11-01
+
+Préversion du **lot 2 · IA et triage** : équipes et droits, conteneurs des serveurs,
+triage et VEX, politiques et alertes, différences d'instantanés et rétention,
+enrichissement IA prouvé de l'agent dépôt, codes de secours du second facteur. Mêmes
+fichiers qu'en 0.1.0 (trois rôles, linux amd64 et arm64, paquets deb et rpm de l'agent
+serveur, sommes SHA-256).
+
+**Mise à jour depuis 0.1.0** : les migrations 016 à 023 s'appliquent au démarrage (équipe
+« Général » créée dans chaque organisation, avec tous ses projets et tous ses membres à
+leur ancien rôle) ; la rétention nocturne réduit dès la première nuit l'historique
+antérieur à 90 jours (un instantané par mois) et supprime les conteneurs archivés pour
+absence depuis 180 jours : régler `retention.*` et `containers.purge_after` avant la mise
+à jour si une autre politique est voulue ; les comptes existants n'ont pas de codes de
+secours (à générer depuis **Mon compte › Second facteur**). Détail :
+[`docs/operations.md`](https://github.com/leblanc-simon/lotor/blob/main/docs/operations.md#mise-à-jour).
+
 ### Ajouté
 
 - Codes de secours du second facteur (T18, ADR 0048 ; open-go-base v1.4.0) : dix codes à
   usage unique, hachés, montrés une seule fois à l'enrôlement ; connexion par « Utiliser
   un code de secours » ; page **Mon compte › Second facteur** : codes restants,
   régénération (code TOTP exigé), changement d'application d'authentification par un code
-  TOTP ou un code de secours (nouvel enrôlement imposé). Réglage `mfa.recovery_codes`.
+  TOTP ou un code de secours (nouvel enrôlement imposé). Réglage `mfa.recovery_codes`
+  ([#27](https://github.com/leblanc-simon/lotor/pull/27)).
 - Recherche (T18, ADR 0050) : filtre « équipe » (`team`) et équipe de chaque projet ;
   statut de triage de chaque constat d'une recherche par vulnérabilité, filtre `triage` ;
-  colonnes `team` et `triage_status` ajoutées en fin d'export.
+  colonnes `team` et `triage_status` ajoutées en fin d'export ([#27](https://github.com/leblanc-simon/lotor/pull/27)).
 - Purge des conteneurs archivés pour absence depuis 180 jours, avec leur historique, par la
-  rétention nocturne (T18, ADR 0049) ; réglage `containers.purge_after` (`0` : jamais).
+  rétention nocturne (T18, ADR 0049) ; réglage `containers.purge_after` (`0` : jamais)
+  ([#27](https://github.com/leblanc-simon/lotor/pull/27)).
 
 - Politiques, alertes et statuts de commit (T15, ADR 0045 à 0047) : règles en CEL sur les
   constats ou les agents, vérifiées avant l'enregistrement (position de l'erreur, coût
@@ -31,7 +50,8 @@ appliquées automatiquement, sans retour arrière.
   quotidien, sans doublon et réessayé, bouton « Envoyer un test » ; verdict d'un
   instantané `GET /api/v1/agent/snapshots/{id}/verdict` ; l'agent dépôt peut publier le
   verdict comme statut de commit sur GitHub et GitLab (`status.enabled`). Réglages
-  `notify.*` et `smtp.*` ; format du webhook : [`docs/notifications.md`](docs/notifications.md).
+  `notify.*` et `smtp.*` ; format du webhook :
+  [`docs/notifications.md`](https://github.com/leblanc-simon/lotor/blob/main/docs/notifications.md) ([#26](https://github.com/leblanc-simon/lotor/pull/26)).
 
 - Équipes et droits (T16, ADR 0034) : chaque projet appartient à une équipe ; un membre ne
   voit que les projets de ses équipes, sur toutes les surfaces (listes, fiches, recherche
@@ -39,9 +59,10 @@ appliquées automatiquement, sans retour arrière.
   agit selon son rôle d'équipe (lecteur, analyste, administrateur d'équipe) ; écrans des
   équipes et de leurs membres, rattachement d'un projet à une autre équipe, agents et
   jetons d'inscription rattachés à une équipe ; matrice des droits
-  [`docs/security/permissions.md`](docs/security/permissions.md), générée depuis le code.
+  [`docs/security/permissions.md`](https://github.com/leblanc-simon/lotor/blob/main/docs/security/permissions.md),
+  générée depuis le code ([#21](https://github.com/leblanc-simon/lotor/pull/21)).
 - Invitations : un administrateur d'organisation invite une adresse, le compte accepte ou
-  décline depuis « Mon compte » → « Invitations ».
+  décline depuis « Mon compte » → « Invitations » ([#21](https://github.com/leblanc-simon/lotor/pull/21)).
 - Enrichissement IA de l'agent dépôt (T12, ADR 0042 à 0044) : un modèle (Ollama en local,
   ou Anthropic, `claude-sonnet-5-5` par défaut) trouve les composants qu'aucun manifeste ne
   déclare (bibliothèques recopiées, images de base, scripts de CDN, outils installés par
@@ -52,16 +73,17 @@ appliquées automatiquement, sans retour arrière.
   administrateur d'organisation, audité ; `ai.forbid_external` sur l'instance). Bloc
   « preuve » sur la fiche composant, inventaire par origine sur la fiche projet, statut
   d'enrichissement des instantanés. Corpus d'évaluation annoté (`testdata/ai-corpus`) et
-  cible `make eval-ai`. Nouvelle dépendance : SDK Go officiel d'Anthropic (v2.4.0).
+  cible `make eval-ai`. Nouvelle dépendance : SDK Go officiel d'Anthropic (v2.4.0)
+  ([#25](https://github.com/leblanc-simon/lotor/pull/25)).
 - Différences d'instantanés (T17, ADR 0038) : la frise des instantanés d'une référence
   indique les composants ajoutés, retirés, montés ou descendus de version depuis le
   précédent ; écran de comparaison de deux instantanés quelconques d'un projet, avec
   l'effet sur la sécurité (constats introduits et résolus) ; routes d'API
-  `GET /api/v1/orgs/{org}/projects/{project}/snapshots` et `…/compare`.
+  `GET /api/v1/orgs/{org}/projects/{project}/snapshots` et `…/compare` ([#22](https://github.com/leblanc-simon/lotor/pull/22)).
 - Rétention des instantanés (T17, ADR 0039) : tout est gardé 90 jours, puis le dernier
   instantané de chaque mois, sans limite de durée ; le dernier instantané d'une référence
   n'est jamais supprimé ; les réceptions hors fenêtre, puis les ensembles d'inventaire et
-  SBOM devenus orphelins sont supprimés chaque nuit. Réglages `retention.*`.
+  SBOM devenus orphelins sont supprimés chaque nuit. Réglages `retention.*` ([#22](https://github.com/leblanc-simon/lotor/pull/22)).
 - Triage et VEX (T14, ADR 0035 à 0037) : chaque constat a un statut de triage (à
   analyser, affecté, non affecté avec justification VEX, faux positif, risque accepté
   jusqu'à une date, corrigé), décidé pour un projet ou pour toute l'organisation (une
@@ -70,7 +92,8 @@ appliquées automatiquement, sans retour arrière.
   statut, constats non affectés et faux positifs masqués par défaut ; échéance
   automatique des risques acceptés ; export OpenVEX et CycloneDX VEX d'un projet
   (interface et `GET /api/v1/orgs/{org}/projects/{project}/vex`), import des VEX
-  d'éditeurs pour un projet ou pour l'organisation ; chaque décision est journalisée.
+  d'éditeurs pour un projet ou pour l'organisation ; chaque décision est journalisée
+  ([#23](https://github.com/leblanc-simon/lotor/pull/23)).
 - Conteneurs en projets enfants (T13, ADR 0040 et 0041) : l'agent serveur inventorie les
   conteneurs Docker et Podman en cours d'exécution (option `containers.enabled`,
   **désactivée par défaut** : l'accès à la socket d'un moteur équivaut à root) ; chaque
@@ -79,33 +102,53 @@ appliquées automatiquement, sans retour arrière.
   serveur avec ses conteneurs et leurs constats par périmètre ; filtre « Inclure les
   conteneurs » des listes de projets et de la recherche (écran et API, `containers=1`) ;
   un conteneur absent depuis `containers.archive_after` (7 jours) est archivé et revient
-  s'il redémarre. Nouvelle opération de l'API des agents `reportContainers`.
+  s'il redémarre. Nouvelle opération de l'API des agents `reportContainers` ([#24](https://github.com/leblanc-simon/lotor/pull/24)).
+
+- Évaluation de l'enrichissement IA (T18) : échantillon pilote annoté des quatre dépôts
+  publics du parc pilote (`testdata/ai-pilot`, `scripts/ai-pilot-fetch.sh`), deux cas de
+  plus au corpus, `make eval-ai` par jeu (corpus, pilote) avec revérification de chaque
+  preuve et contrôle à blanc sans clé (`LOTOR_EVAL_AI_PROVIDER=credulous`) ; jeu de mesure
+  complété des équipes, conteneurs et décisions de triage (`benchdata.AddTeamsAndContainers`).
+
+### Corrigé
+
+- Un composant trouvé par l'IA qui est une image de conteneur (image de base d'un
+  Dockerfile, image de l'intégration continue) disparaissait à l'ingestion : l'agent
+  l'émettait avec le type CycloneDX « container », que le décodeur du serveur ignore. Les
+  composants IA sont désormais tous de type « library », le purl `pkg:docker/…` disant la
+  nature (T18).
+- Deux envois de notification simultanés du même canal pouvaient envoyer deux fois le
+  même lot de violations (même `X-Lotor-Delivery`) : chaque envoi réserve désormais son
+  lot avant l'appel réseau (T18, ADR 0052, migration 023).
+- `make bench-search` échouait dans son dernier pas (plans `EXPLAIN ANALYZE` sans la
+  visibilité des équipes) depuis l'arrivée des équipes (T18).
 
 ### Modifié
 
 - La recherche par composant ne compte plus les constats « non affecté » ni « faux
   positif » parmi les vulnérabilités ouvertes d'une occurrence (T18) ; le filtre `triage`
-  sur une recherche qui n'est pas par vulnérabilité répond 400.
+  sur une recherche qui n'est pas par vulnérabilité répond 400 ([#27](https://github.com/leblanc-simon/lotor/pull/27)).
 - L'enrôlement du TOTP montre désormais les codes de secours avant de continuer (réponse
   200 au lieu d'une redirection). La migration 022 accorde les droits sur
-  `mfa_recovery_codes`.
+  `mfa_recovery_codes` ([#27](https://github.com/leblanc-simon/lotor/pull/27)).
 - Le tableau de bord ne compte plus les constats « non affecté » ni « faux positif »
-  parmi les constats ouverts (T14).
+  parmi les constats ouverts (T14, [#23](https://github.com/leblanc-simon/lotor/pull/23)).
 - Le rôle d'organisation vaut désormais « membre » ou « administrateur » (les rôles
   `viewer` et `analyst` disparaissent). La migration 016 crée une équipe « Général » par
   organisation, y rattache projets, jetons d'inscription et agents serveur, et y fait
-  entrer chaque membre avec son ancien rôle : aucun accès n'est perdu.
+  entrer chaque membre avec son ancien rôle : aucun accès n'est perdu ([#21](https://github.com/leblanc-simon/lotor/pull/21)).
 - La migration 017 rend facultatif l'instantané d'un constat et de son historique : un
-  constat dont la rétention supprime le dernier instantané reste, sans lien vers lui.
+  constat dont la rétention supprime le dernier instantané reste, sans lien vers lui
+  ([#22](https://github.com/leblanc-simon/lotor/pull/22)).
 - Le scan de l'hôte par l'agent serveur se fait hors ligne, comme celui des images : Syft
   n'exécute plus `go list` sur les modules Go trouvés sous `/` et ne cherche plus de
   licences sur le réseau. L'inventaire d'un hôte qui porte des modules Go peut changer une
-  fois (renvoi de son SBOM).
+  fois (renvoi de son SBOM) ([#24](https://github.com/leblanc-simon/lotor/pull/24)).
 
 ### Sécurité
 
 - SEC-09 corrigé : l'ajout d'un membre passe par une invitation à accepter, avec une
-  réponse identique que le compte existe ou non.
+  réponse identique que le compte existe ou non ([#21](https://github.com/leblanc-simon/lotor/pull/21)).
 - Revue de sécurité du lot 2 (T18, ADR 0051 ; open-go-base v1.4.1) : l'enrôlement du TOTP
   ne « réactive » plus un second facteur actif et compte ses codes faux dans le
   verrouillage par compte (SEC2-01) ; « Changer d'application d'authentification » exige
@@ -116,7 +159,7 @@ appliquées automatiquement, sans retour arrière.
   bornés par hôte, réglage `containers.max_per_host` (1 000, SEC2-05) ; les fichiers
   exclus ne sont plus nommés au fournisseur de modèle (SEC2-07) ; garde SSRF étendue aux
   adresses NAT64, 6to4 et aux plages réservées (SEC2-08) ; outil de recherche de l'IA
-  sous délai et budget, 20 appels d'outils par réponse (SEC2-09).
+  sous délai et budget, 20 appels d'outils par réponse (SEC2-09) ([#28](https://github.com/leblanc-simon/lotor/pull/28)).
 
 ### Accessibilité
 
@@ -125,7 +168,7 @@ appliquées automatiquement, sans retour arrière.
   T18). Panneau de triage : champs complémentaires hors de l'étiquette du statut ; fiche
   composant lisible à 320 px avec une version longue ; titre des fiches de constat avec
   le projet et la référence ; statut traduit sur la confirmation du retrait d'une
-  décision ; décomptes accordés (équipe, alertes du tableau de bord).
+  décision ; décomptes accordés (équipe, alertes du tableau de bord) ([#29](https://github.com/leblanc-simon/lotor/pull/29)).
 
 ## [0.1.0] - 2026-11-01
 
@@ -225,5 +268,6 @@ arm64), paquets deb et rpm de l'agent serveur, sommes SHA-256. Installation :
   corrections ([grille](https://github.com/leblanc-simon/lotor/blob/main/docs/accessibilite/grille-rgaa-lot1.md),
   [#14](https://github.com/leblanc-simon/lotor/pull/14)).
 
-[Non publié]: https://github.com/leblanc-simon/lotor/compare/v0.1.0...HEAD
+[Non publié]: https://github.com/leblanc-simon/lotor/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/leblanc-simon/lotor/releases/tag/v0.2.0
 [0.1.0]: https://github.com/leblanc-simon/lotor/releases/tag/v0.1.0

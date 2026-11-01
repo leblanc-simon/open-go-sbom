@@ -10,17 +10,41 @@ Réalisation autonome du lot 2 (T16, puis T12, T13, T14, T17, T15 et la recette 
 demandée le 1er novembre 2026 : enchaîner jusqu'à la recette sans attendre les réponses de
 l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 
+### Synthèse
+
+Le lot 2 est **réalisé** ; la mesure de l'IA par un vrai modèle et la publication de
+`v0.2.0` reviennent à l'utilisateur. Livré : équipes et droits (T16), enrichissement IA
+prouvé de l'agent dépôt (T12), conteneurs en projets enfants (T13), triage et VEX (T14),
+politiques, alertes et statuts de commit (T15), différences d'instantanés et rétention
+(T17), puis la recette T18 : codes de secours du second facteur (open-go-base v1.4.0 et
+v1.4.1), revue de sécurité (aucune faiblesse haute ni critique ; 2 Medium et 5 Low
+corrigés), audit RGAA (100 % des critères applicables) et recette proprement dite. Le
+critère du lot, **aucun composant ajouté par l'IA sans preuve vérifiée**, est tenu par
+construction et contrôlé de l'extérieur sur le corpus (11 cas) et sur l'échantillon pilote
+annoté (4 dépôts réels) ; **le taux de faux positifs et le rappel d'un vrai modèle ne sont
+pas mesurés** (aucune clé dans la session : procédure prête). Toutes les cibles chiffrées
+tiennent avec les équipes et les conteneurs, sur une machine moins puissante que la
+référence (recherche 446 ms pour 2 s, tableau de bord 841 ms pour 1 s, ingestion 5,6 s
+pour 30 s, agent 2 min 13 s et 819 Mio). La recette sur une instance 0.1.0 réelle mise à
+jour en 0.2.0 (Docker, Compose, Podman) a tout vérifié sauf ce qui demande l'écoulement du
+temps ou des services réels, et trouvé deux défauts, corrigés (composants IA d'image
+perdus à l'ingestion ; doublons de notification). `v0.2.0` est prête (`CHANGELOG.md`,
+`make release` vérifié). Restent à l'utilisateur : les étiquettes d'open-go-base, la
+mesure de l'IA avec une clé, la publication de `v0.2.0`, les essais sur des services réels
+et la relecture des décisions (voir « Actions pour l'utilisateur »).
+
 | Lot | PR | Statut | Décisions à relire |
 | --- | --- | --- | --- |
 | T16 | #21 | Terminé | Filtre d'équipe déclaré à la transaction, fermé par défaut ; matrice des droits (administrateur d'équipe sans gestion des équipes ni des membres de l'organisation, rattachement avec droit dans les deux équipes) ; 404 pour une équipe invisible ; agents sans équipe = agents d'organisation, agents dépôt existants d'organisation ; équipe « Général » aussi pour une nouvelle organisation, « General » en anglais ; invitations de 30 jours, sans équipe, bornées, nouvelle fonction `crossorg` ; tendance d'un membre additionnée par projet ; point d'essai `routeStub` — tous **[à relire]** |
 | T17 | #22 | Terminé | Différences enregistrées pour les seuls couples consécutifs, par job ; appariement par `purl_base` et version, même version = retrait + ajout, versions incomparables « approchées » ; effet sur la sécurité calculé à la lecture, sans `not_matched` ; « un par mois » = le dernier du mois, instantané en vigueur à la coupure toujours gardé ; fenêtre sur scan et réception ; `count` en plus de `days` ; réceptions hors fenêtre supprimées, orphelins même rétention désactivée, composants jamais purgés ; constat sans instantané (`SET NULL`) ; verrous ingestion / rétention ; horizon pour T21 ; frise = liste enrichie — tous **[à relire]** |
-| T14 | #23 | Terminé (PR à fusionner) | Statut effectif rangé sur chaque constat, verrou consultatif ; journal en ajout seul avec retrait, échéance qui ramène « à analyser » à sa portée ; décision de projet sur le purl exact ; permission `triage.org` ; échéance par job ; audit d'un import groupé ; tableau de bord sans non affectés ni faux positifs ; VEX (structures OpenVEX propres, marques `[lotor:…]`, justification d'origine toujours notée, export des seuls constats ouverts décidés, import de projet par famille et version) ; fiche du constat en page au lieu du tiroir — tous **[à relire]** |
-| T15 | #26 | Terminé (PR à fusionner) | `cel.dev/cel-go` v0.32.0 (nouveau chemin de `github.com/google/cel-go`) ; contexte typé à deux sujets, `finding.actionable`, coût borné ; « correctif depuis » = première vue par lotor ; violations par couple règle × sujet ; verdict sur l'état courant de la référence ; modèle AGPL indisponible jusqu'à T20 ; objectifs de délai exprimés par des règles ; règles et canaux aux administrateurs ; envois uniques par canal × violation, 30 tentatives puis relance quotidienne ; clé HMAC fournie, garde SSRF sans mandataire ; statut de commit synchrone, désactivé par défaut, jeton GitHub séparé ; rotation des secrets des canaux — tous **[à relire]** |
-| T12 | #25 | Terminé (PR à fusionner), mesure avec un vrai modèle à faire par l'utilisateur | SDK officiel d'Anthropic construit sans environnement (ADR 0042) ; réglage par dépôt, permission `ai.external`, `ai.forbid_external` ramène à « local » (ADR 0043) ; règles du vérificateur au-delà de la fiche (documentation, manifestes, marqueurs d'injection, purl dans l'extrait) ; statut `carried` et commits intermédiaires sans modèle ; confinement sans processus fils (ADR 0044) ; exclusions intégrées ; budgets par défaut ; prompt système en anglais — tous **[à relire]** |
-| T13 | #24 | Terminé (PR à fusionner) | Client HTTP sur socket Unix plutôt que le client moby (écart au § 5) ; scan de l'image exportée (`docker save`) ; catalogueurs hors ligne aussi pour l'hôte ; équipe imposée par clé étrangère en cascade ; signalement dédié qui vaut signal de vie ; archivage à la main qui tient ; conteneurs écartés des listes et de la recherche, comptés au tableau de bord ; agrégat par vulnérabilités distinctes — tous **[à relire]** |
-| T18 (2/n, sécurité) | #28 | Fait (PR à fusionner) ; open-go-base PR #6 fusionnée (`0900e0c`), étiquette `v1.4.1` à pousser | Revue du lot 2 : 0 High, 2 Medium et 5 Low corrigés, 2 Note corrigées, 1 acceptée ; reconfiguration du second facteur avec nouveau mot de passe (modifie ADR 0048) ; défense en profondeur de l'enrôlement gardée dans lotor ; inscription par le nom bornée à l'équipe, homonyme répondu « hôte déjà suivi » ; IA externe ramenée à « désactivé » au changement de dépôt ; secret de canal à ressaisir au changement de destination ; `containers.max_per_host` = 1 000, signalement refusé en entier ; détection de clé dans `list_dir` limitée à 64 Kio ; ports des canaux libres ; 20 appels d'outils par réponse, 2 Kio par recherche ; SEC2-10 accepté — tous **[à relire]** ([ADR 0051](../docs/adr/0051-corrections-revue-securite-lot2.md)) |
-| T18 (1/n, compléments) | #27 | Fait (PR à fusionner) ; open-go-base PR #5 fusionnée (`a0f777f`), étiquette `v1.4.0` à pousser | Codes de secours : 16 caractères de Crockford (80 bits), SHA-256 lié au compte, 10 par défaut, régénération après un code TOTP, reconfiguration de l'application par le titulaire (au-delà de la fiche), pas de bannière pour les comptes sans codes ; recherche : statut de triage de tous les constats, filtre `triage` refusé hors vulnérabilité, recherche par composant sans constats masqués ; purge des conteneurs archivés pour absence depuis 180 jours, jamais archivés à la main ni triés ; boutons de revue des détections IA de T12 non livrés — tous **[à relire]** |
-| T18 (3/n, accessibilité) | #29 | Fait (PR à fusionner) | Audit RGAA des écrans du lot 2 : 93,1 % puis 100 %, 4 NC mineures corrigées ; régénération des codes et changement d'application sans page de confirmation (code saisi = confirmation, 11.12) ; champs du triage révélés par `:has()` sans repli ; défaut d'un écran du lot 1 (fiche composant) corrigé ici ; statuts de triage cliquables conformes à 10.6 sans soulignement permanent — tous **[à relire]** |
+| T14 | #23 | Terminé | Statut effectif rangé sur chaque constat, verrou consultatif ; journal en ajout seul avec retrait, échéance qui ramène « à analyser » à sa portée ; décision de projet sur le purl exact ; permission `triage.org` ; échéance par job ; audit d'un import groupé ; tableau de bord sans non affectés ni faux positifs ; VEX (structures OpenVEX propres, marques `[lotor:…]`, justification d'origine toujours notée, export des seuls constats ouverts décidés, import de projet par famille et version) ; fiche du constat en page au lieu du tiroir — tous **[à relire]** |
+| T13 | #24 | Terminé | Client HTTP sur socket Unix plutôt que le client moby (écart au § 5) ; scan de l'image exportée (`docker save`) ; catalogueurs hors ligne aussi pour l'hôte ; équipe imposée par clé étrangère en cascade ; signalement dédié qui vaut signal de vie ; archivage à la main qui tient ; conteneurs écartés des listes et de la recherche, comptés au tableau de bord ; agrégat par vulnérabilités distinctes — tous **[à relire]** |
+| T12 | #25 | Terminé (mesure avec un vrai modèle : action de l'utilisateur, reprise par T18) | SDK officiel d'Anthropic construit sans environnement (ADR 0042) ; réglage par dépôt, permission `ai.external`, `ai.forbid_external` ramène à « local » (ADR 0043) ; règles du vérificateur au-delà de la fiche (documentation, manifestes, marqueurs d'injection, purl dans l'extrait) ; statut `carried` et commits intermédiaires sans modèle ; confinement sans processus fils (ADR 0044) ; exclusions intégrées ; budgets par défaut ; prompt système en anglais — tous **[à relire]** |
+| T15 | #26 | Terminé | `cel.dev/cel-go` v0.32.0 (nouveau chemin de `github.com/google/cel-go`) ; contexte typé à deux sujets, `finding.actionable`, coût borné ; « correctif depuis » = première vue par lotor ; violations par couple règle × sujet ; verdict sur l'état courant de la référence ; modèle AGPL indisponible jusqu'à T20 ; objectifs de délai exprimés par des règles ; règles et canaux aux administrateurs ; envois uniques par canal × violation, 30 tentatives puis relance quotidienne ; clé HMAC fournie, garde SSRF sans mandataire ; statut de commit synchrone, désactivé par défaut, jeton GitHub séparé ; rotation des secrets des canaux — tous **[à relire]** |
+| T18 (1/n, compléments) | #27 | Fait ; open-go-base PR #5 fusionnée (`a0f777f`), étiquette `v1.4.0` à pousser | Codes de secours : 16 caractères de Crockford (80 bits), SHA-256 lié au compte, 10 par défaut, régénération après un code TOTP, reconfiguration de l'application par le titulaire (au-delà de la fiche), pas de bannière pour les comptes sans codes ; recherche : statut de triage de tous les constats, filtre `triage` refusé hors vulnérabilité, recherche par composant sans constats masqués ; purge des conteneurs archivés pour absence depuis 180 jours, jamais archivés à la main ni triés ; boutons de revue des détections IA de T12 non livrés — tous **[à relire]** |
+| T18 (2/n, sécurité) | #28 | Fait ; open-go-base PR #6 fusionnée (`0900e0c`), étiquette `v1.4.1` à pousser | Revue du lot 2 : 0 High, 2 Medium et 5 Low corrigés, 2 Note corrigées, 1 acceptée ; reconfiguration du second facteur avec nouveau mot de passe (modifie ADR 0048) ; défense en profondeur de l'enrôlement gardée dans lotor ; inscription par le nom bornée à l'équipe, homonyme répondu « hôte déjà suivi » ; IA externe ramenée à « désactivé » au changement de dépôt ; secret de canal à ressaisir au changement de destination ; `containers.max_per_host` = 1 000, signalement refusé en entier ; détection de clé dans `list_dir` limitée à 64 Kio ; ports des canaux libres ; 20 appels d'outils par réponse, 2 Kio par recherche ; SEC2-10 accepté — tous **[à relire]** ([ADR 0051](../docs/adr/0051-corrections-revue-securite-lot2.md)) |
+| T18 (3/n, accessibilité) | #29 | Fait | Audit RGAA des écrans du lot 2 : 93,1 % puis 100 %, 4 NC mineures corrigées ; régénération des codes et changement d'application sans page de confirmation (code saisi = confirmation, 11.12) ; champs du triage révélés par `:has()` sans repli ; défaut d'un écran du lot 1 (fiche composant) corrigé ici ; statuts de triage cliquables conformes à 10.6 sans soulignement permanent — tous **[à relire]** |
+| T18 (4/n, recette) | #30 | Terminé, **lot 2 terminé** (mesure de l'IA avec une clé et `v0.2.0` : actions de l'utilisateur) | Critère « zéro composant IA sans preuve » coché sur modèles fictifs et contrôle indépendant `checkProof` ; échantillon pilote = les quatre dépôts du lot 1, non recopiés, « ignoré » pour ce que Syft voit ; mode `credulous` de `make eval-ai` ; composants IA toujours `library` ; envois de notification réservés (migration 023, [ADR 0052](../docs/adr/0052-envois-de-notification-reserves.md)) ; jeu de mesure complété des équipes et conteneurs ; recette sur une mise à jour réelle 0.1.0 → 0.2.0, temps de l'état « absent » simulé, outillage hors dépôt ; `CHANGELOG.md` daté du 1er novembre — tous **[à relire]** ([T18](lots/T18-recette-lot-2.md#partie-4--recette-mesures-et-préversion)) |
 
 ### Décisions à relire, par thème
 
@@ -228,86 +252,125 @@ l'utilisateur, en consignant chaque décision pour une relecture a posteriori.
 - Statuts de triage cliquables (pastilles) jugés conformes à 10.6 sans soulignement
   permanent ([grille, § 3](../docs/accessibilite/grille-rgaa-lot2.md#3-grille-des-écrans-du-lot-2-106-critères)).
 
+#### Recette du lot 2 : évaluation, mesures et préversion (T18, partie 4)
+
+- Critère « aucun composant IA sans preuve vérifiée » coché sur des modèles fictifs
+  (crédule, hostile, adverse) et le contrôle indépendant `checkProof`, rejoué par chaque
+  `make eval-ai` ; les seuils (faux positifs, rappel) restent à mesurer avec un vrai modèle
+  ([T18](lots/T18-recette-lot-2.md#décisions-4)).
+- Échantillon pilote : les quatre dépôts publics du lot 1 aux mêmes commits, clonés par
+  `scripts/ai-pilot-fetch.sh` et non recopiés ; règles d'annotation (attendu, ignoré,
+  piège) dans `testdata/ai-pilot/README.md` ; mode `credulous` pour un contrôle à blanc
+  sans clé ([T18](lots/T18-recette-lot-2.md#décisions-4)).
+- Composants IA émis en type `library`, image comprise, plutôt qu'un décodeur du serveur
+  élargi aux composants `container` ([T18](lots/T18-recette-lot-2.md#décisions-4)).
+- Envois de notification réservés sous le verrou du canal avant l'appel réseau
+  (`claimed_at`, 10 minutes, réessai par la file) plutôt qu'une transaction tenue pendant
+  l'envoi ([ADR 0052](../docs/adr/0052-envois-de-notification-reserves.md)).
+- Mesures sur le jeu de référence complété (10 équipes, 50 hôtes × 10 conteneurs, triage
+  d'un constat ouvert sur dix), « membre » = une équipe sur dix, agent serveur sur
+  4 cycles ; cibles tenues sur 4 cœurs, valant pour la référence ; cibles du cahier des
+  charges toujours « proposées » ([`benchmarks.md`](../docs/benchmarks.md#t18--mesures-consolidées-du-lot-2-avec-les-équipes-et-les-conteneurs)).
+- Recette sur une mise à jour réelle 0.1.0 → 0.2.0 (binaires publiés), parc en
+  conteneurs Docker, Compose et Podman, temps de l'état « absent » simulé en base,
+  outillage hors dépôt ; `CHANGELOG.md` daté du 1er novembre 2026
+  ([T18](lots/T18-recette-lot-2.md#recette-fonctionnelle)).
+
+
 #### Écarts
 
-- T15 : statut de commit vérifié contre des forges simulées seulement ; canaux Matrix,
-  Slack et Mattermost vérifiés par la forme des requêtes ; pas de réglage d'objectifs de
-  délai ; captures et audit RGAA des nouveaux écrans et mesure de l'aperçu renvoyés à T18
-  ([T15](lots/T15-politiques-alertes.md#écarts)).
-
 - T12 : **mesure de la précision, du rappel et du coût avec un vrai modèle non faite**
-  (aucune clé d'API dans l'environnement) : critère des seuils non vérifié ; captures clair
-  et sombre non faites ([T12](lots/T12-enrichissement-ia.md#écarts)).
-- T14 : triage livré en page (pas en tiroir) ; audit RGAA manuel des écrans en T18 ;
-  statut de triage absent des résultats de recherche (à reprendre en T18 avec le filtre
-  d'équipe) ([T14](lots/T14-triage-vex.md#écarts)).
-- T16 : captures d'écran clair et sombre non faites (aucune CSS nouvelle ; audit RGAA du
-  lot 2 en T18) ; filtre « équipe » de la recherche non livré (recherche filtrée par les
-  équipes visibles) ([T16](lots/T16-equipes-droits.md#écarts)).
-- T17 : captures d'écran clair et sombre non faites (un seul composant CSS nouveau,
-  `change.css` ; audit RGAA en T18) ; réceptions hors fenêtre supprimées en plus des
-  orphelins ; tri des constats de T14 à prendre en compte dans l'effet sur la sécurité
-  une fois T14 fusionné (T18) ([T17](lots/T17-differences-instantanes.md#écarts)).
-
-- T13 : captures clair et sombre non faites (composants existants, un seul modificateur
-  CSS) ; Podman non essayé (Docker 29 essayé pour de vrai) ; purge des conteneurs archivés
-  depuis longtemps renvoyée à T18 ([T13](lots/T13-conteneurs.md#écarts)).
+  (aucune clé d'API ni modèle local), reprise et préparée par T18 (corpus étendu,
+  échantillon pilote, contrôle à blanc) : critère des seuils non coché ; captures clair et
+  sombre non faites ([T12](lots/T12-enrichissement-ia.md#écarts),
+  [T18](lots/T18-recette-lot-2.md#écarts-3)).
+- T13 : Podman **rootful** essayé par la recette de T18 (Podman 4.9.3, avec Docker 29.9
+  et Compose) ; **Podman sans root non essayé** ; purge des conteneurs archivés livrée en
+  T18 (partie 1) ([T13](lots/T13-conteneurs.md#écarts)).
+- T14 : triage livré en page (pas en tiroir) ; statut de triage dans la recherche livré
+  en T18 (partie 1) ; import de VEX d'éditeur non rejoué par la recette (tests
+  d'intégration) ([T14](lots/T14-triage-vex.md#écarts)).
+- T15 : statut de commit vérifié contre des forges simulées seulement ; canaux Matrix,
+  Slack, Mattermost et e-mail non essayés sur de vrais services (webhook générique essayé
+  par la recette, signature vérifiée) ; pas de réglage d'objectifs de délai ; aperçu
+  d'une politique exercé sur l'instance de recette, non mesuré sur le jeu de référence
+  ([T15](lots/T15-politiques-alertes.md#écarts)).
+- T16 : filtre « équipe » de la recherche livré en T18 (partie 1) ; captures d'écran non
+  faites, audit RGAA du lot 2 fait en T18 ([T16](lots/T16-equipes-droits.md#écarts)).
+- T17 : réceptions hors fenêtre supprimées en plus des orphelins ; rétention non rejouée
+  en temps réel par la recette (tests d'intégration) ([T17](lots/T17-differences-instantanes.md#écarts)).
+- T18 : boutons de revue des détections IA de T12 non livrés (fonction nouvelle) ;
+  recommandations R-L2-01 à R-L2-05 de la grille RGAA ouvertes ; `make bench-search`
+  cassé depuis T16 dans son dernier pas, corrigé ([T18](lots/T18-recette-lot-2.md#écarts)).
 
 ### Actions pour l'utilisateur
 
-0. **Pousser l'étiquette d'open-go-base `v1.4.0`** (créée en local, refus HTTP 403 du
-   mandataire) : `git -C ../open-go-base push origin v1.4.0` (commit `a0f777f`, PR #5 :
-   codes de secours de mfax ; compatible). Puis, dans lotor, sur une branche :
-   `go get leblanc.io/open-go-base@v1.4.0 && go mod tidy` (même code que la pseudo-version
-   `v1.3.1-0.20261101100848-a0f777f827c9`), `make ci`, PR.
-0. **Pousser l'étiquette d'open-go-base `v1.4.1`** (créée en local) :
-   `git -C ../open-go-base push origin v1.4.1` (commit `0900e0c`, PR #6 : `EnablePOST` de
-   mfax sous verrouillage par compte, SEC2-01 ; compatible). Puis, dans lotor :
-   `go get leblanc.io/open-go-base@v1.4.1 && go mod tidy` (même code que la pseudo-version
-   `v1.3.1-0.20261101111845-0900e0c6a132`).
-0. Après la publication d'une version contenant T18 (partie 2) : prévenir les
-   utilisateurs que « Changer d'application d'authentification » demande désormais un
-   nouveau mot de passe ; vérifier `containers.max_per_host` (1 000) sur les hôtes qui
-   portent beaucoup de conteneurs ; un administrateur qui change le serveur Matrix ou
-   l'URL d'un webhook doit ressaisir le secret.
-0. Après la publication d'une version contenant T18 (partie 1) : le premier passage
-   nocturne de la rétention supprime les conteneurs archivés pour absence depuis plus de
-   180 jours, avec leur historique ; régler `containers.purge_after` (`0` : jamais) avant
-   la mise à jour si une autre durée est voulue. Les comptes existants n'ont pas de codes
-   de secours : les inviter à en générer (**Mon compte › Second facteur**).
-1. Relire les décisions **[à relire]** ci-dessus (ADR 0034, 0040, 0041, matrice
-   [`docs/security/permissions.md`](../docs/security/permissions.md)).
-2. Après la publication d'une version contenant T13 : essayer l'inventaire des conteneurs
-   sur un hôte réel (Docker avec docker compose, puis Podman sans root avec son ACL,
-   `docs/operations.md`, « Conteneurs »), en connaissance de l'équivalence root de la
-   socket.
-3. Après la publication d'une version contenant T16 : vérifier sur une instance réelle
-   que la migration 016 a placé chaque membre dans l'équipe « Général » avec son ancien
-   rôle (page **Équipes** de chaque organisation).
-4. Après la publication d'une version contenant T17 : le premier passage nocturne de la
-   rétention réduit l'historique antérieur à 90 jours (un instantané par mois) ; régler
-   `retention.*` avant la mise à jour si une autre politique est voulue
-   ([`operations.md`](../docs/operations.md#rétention-des-instantanés)).
-5. Relire les décisions de T14 (ADR 0035 à 0037), en particulier la correspondance des
-   justifications VEX (ADR 0036) et le choix d'une page plutôt que du tiroir (ADR 0037) ;
-   vérifier qu'un mandataire inverse en production laisse passer 1 Mio sur les routes
-   d'import VEX (`docs/operations.md`, « Triage et VEX »).
-6. **Mesurer l'enrichissement IA avec un vrai modèle** (T12, non fait faute de clé
-   d'API) : `LOTOR_EVAL_AI_PROVIDER=anthropic LOTOR_EVAL_AI_API_KEY_FILE=<fichier 0600>
-   LOTOR_EVAL_AI_RUNS=3 LOTOR_EVAL_AI_REPORT=/tmp/eval-ai.json make eval-ai`
-   (procédure : [`docs/operations.md`](../docs/operations.md#évaluer-lenrichissement-ia)) ;
-   reporter taux de faux positifs, rappel et coût moyen par analyse dans le Journal de T12
-   (ou de T18, qui reprend la mesure pour la recette) ; confirmer ou changer le modèle par
-   défaut `claude-sonnet-5-5` ; si un seuil n'est pas tenu (faux positifs ≤ 5 %, rappel
-   ≥ 80 %), ajuster le prompt (nouvelle version) avant d'activer l'IA sur des projets.
-   Facultatif : la même mesure avec un modèle local (`LOTOR_EVAL_AI_PROVIDER=ollama`).
-6. Relire les décisions de T15 (ADR 0045 à 0047). Pour publier le verdict des politiques
-   sur les commits : accorder *Commit statuses : Read and write* à la GitHub App (et
-   l'accepter sur chaque installation), donner la portée `api` et le rôle Developer au
-   compte de service GitLab, poser `status.enabled: true` sur l'agent dépôt et
-   `notify.public_url` sur le serveur, puis vérifier un statut sur un vrai commit
-   ([`docs/operations.md`](../docs/operations.md#statut-de-commit)). Pour les courriels :
-   configurer `smtp.*`, puis « Envoyer un test » depuis un canal e-mail.
+Le mandataire git de la session refuse les pushs d'étiquettes (HTTP 403). Dans l'ordre :
+
+1. **Pousser les étiquettes d'open-go-base** créées en local, toutes compatibles :
+   `git -C ../open-go-base push origin v1.4.0` (commit `a0f777f`, PR #5 : codes de secours
+   de mfax), puis `git -C ../open-go-base push origin v1.4.1` (commit `0900e0c`, PR #6 :
+   `EnablePOST` sous verrouillage, SEC2-01).
+2. **Passer lotor de la pseudo-version à `v1.4.1`** : sur une branche,
+   `go get leblanc.io/open-go-base@v1.4.1 && go mod tidy` (même code que
+   `v1.3.1-0.20261101111845-0900e0c6a132` ; ne pas s'arrêter à `v1.4.0`), `make ci`, PR,
+   fusion quand la CI est verte.
+3. **Mesurer l'enrichissement IA avec une clé** (critère de T18 non coché), pas à pas dans
+   [`docs/operations.md`](../docs/operations.md#évaluer-lenrichissement-ia) :
+   `scripts/ai-pilot-fetch.sh /tmp/lotor-ai-pilot`, contrôle à blanc
+   (`LOTOR_EVAL_AI_PROVIDER=credulous`), puis
+   `LOTOR_EVAL_AI_PROVIDER=anthropic LOTOR_EVAL_AI_API_KEY_FILE=<fichier 0600>
+   LOTOR_EVAL_AI_PILOT_DIR=/tmp/lotor-ai-pilot LOTOR_EVAL_AI_RUNS=3
+   LOTOR_EVAL_AI_REPORT=/tmp/eval-ai.json make eval-ai`. Reporter, pour le corpus **et**
+   le pilote, faux positifs, rappel et coût moyen dans le Journal de T18 ; cocher le
+   critère s'ils tiennent (faux positifs ≤ 5 %, rappel ≥ 80 %) ; **confirmer ou changer le
+   modèle par défaut** `claude-sonnet-5-5` ; sinon ajuster le prompt (nouvelle version)
+   avant d'activer l'IA sur des projets. Facultatif : la même mesure avec Ollama.
+4. **Publier la préversion `v0.2.0`**, après les étapes 1 et 2 (et 3 si le résultat doit
+   figurer dans les notes) :
+   1. vérifier la section `## [0.2.0] - 2026-11-01` de `CHANGELOG.md` (date du jour de la
+      pose ; ajouter le résultat de l'IA et la PR de l'étape 2 s'il y a lieu) et la CI de
+      `main` ;
+   2. `git fetch origin && git tag -a v0.2.0 origin/main -m "lotor 0.2.0 — préversion du lot 2"` ;
+   3. `git push origin v0.2.0` ;
+   4. suivre le workflow **release** ; vérifier sur *Releases* une **préversion** `v0.2.0`
+      avec six archives, quatre paquets et `SHA256SUMS` (`sha256sum -c --ignore-missing
+      SHA256SUMS` sur un téléchargement) ;
+   5. cocher « `v0.2.0` publiée » dans [T18](lots/T18-recette-lot-2.md). En cas d'échec :
+      corriger sur `main` et poser `v0.2.1` (ne jamais déplacer une étiquette poussée).
+5. **Avant de mettre à jour une instance réelle en 0.2.0** (`docs/operations.md`, « Mise
+   à jour ») : régler `retention.*` (la première nuit réduit l'historique antérieur à
+   90 jours à un instantané par mois) et `containers.purge_after` si d'autres durées sont
+   voulues ; sauvegarder. Après : vérifier la page **Équipes** de chaque organisation
+   (chaque membre dans « Général » avec son ancien rôle, essai fait par la recette sur une
+   copie 0.1.0) ; inviter les comptes à générer leurs codes de secours (**Mon compte ›
+   Second facteur**) ; prévenir que « Changer d'application d'authentification » demande
+   un nouveau mot de passe ; un administrateur qui change le serveur Matrix ou l'URL d'un
+   webhook doit ressaisir le secret ; vérifier `containers.max_per_host` (1 000) sur les
+   hôtes très chargés ; laisser passer 1 Mio sur les routes d'import VEX derrière un
+   mandataire inverse (`docs/operations.md`, « Triage et VEX »).
+6. **Essais sur des services réels**, non faisables dans la session :
+   - conteneurs : **Podman sans root** avec son ACL et Docker avec docker compose sur un
+     hôte réel (`docs/operations.md`, « Conteneurs »), en connaissance de l'équivalence
+     root de la socket ;
+   - **statut de commit** : accorder *Commit statuses : Read and write* à la GitHub App
+     (et l'accepter sur chaque installation), donner la portée `api` et le rôle Developer
+     au compte de service GitLab, poser `status.enabled: true` sur l'agent dépôt et
+     `notify.public_url` sur le serveur, puis vérifier un statut sur un vrai commit
+     ([`operations.md`](../docs/operations.md#statut-de-commit)) ;
+   - **canaux** Matrix, Slack, Mattermost et e-mail (`smtp.*`) : créer un canal de chaque
+     nature et « Envoyer un test » ;
+   - agent dépôt sur une vraie forge (action du lot 1, toujours ouverte :
+     [`operations.md`](../docs/operations.md#recette-sur-une-vraie-forge)).
+7. **Relire les décisions [à relire]** ci-dessus, en particulier les ADR 0034 à 0052, la
+   matrice [`docs/security/permissions.md`](../docs/security/permissions.md), la
+   correspondance des justifications VEX (ADR 0036), le choix d'une page plutôt que du
+   tiroir (ADR 0037), le modèle de menace version 3, et confirmer (ou corriger) au cahier
+   des charges les cibles de performance encore « proposées » (mesures : Journal de T18,
+   `docs/benchmarks.md`).
+8. Décider si les boutons « Confirmer la détection » / « Signaler une erreur » d'un
+   composant trouvé par l'IA (maquette de T12, non livrés) doivent entrer dans un lot
+   ultérieur.
 
 ## Lot 1
 
@@ -325,8 +388,8 @@ forge simulée) : chaque projet a un instantané de moins de 24 h analysé avec 
 Grype, et la recherche (écran et API) renvoie exactement les listes de projets établies à
 la main pour les trois CVE de contrôle. Toutes les cibles chiffrées sont tenues sur une
 machine moins puissante que la référence. Restent à l'utilisateur : la relecture des
-décisions ci-dessous, l'étiquette `v0.1.0` et l'essai de l'agent dépôt sur une vraie
-forge (voir « Actions pour l'utilisateur »).
+décisions ci-dessous et l'essai de l'agent dépôt sur une vraie forge (voir « Actions pour
+l'utilisateur ») ; `v0.1.0` est publiée depuis le 1er novembre 2026.
 
 | Lot | PR | Statut | Décisions à relire |
 | --- | --- | --- | --- |
@@ -344,7 +407,7 @@ forge (voir « Actions pour l'utilisateur »).
 | T11 (1/2, administration) | #13 | Terminé | Administration de l'instance (ADR 0028) : archive téléversée rangée dans PostgreSQL puis installée par un job, jeton CSRF en tête du formulaire présenté à csrfx, archive importée cible même plus ancienne, un import à la fois, état par instance (`vulndb_instances`), purge de toutes les archives non cibles avec confirmation ; `download_timeout` borne aussi le téléversement ; test instable corrigé dans le test (bail simulé complet) ; codes de secours de mfax absents d'open-go-base, reportés à T18 — tous **[à relire]** |
 | T11 (accessibilité) | #14 | Terminé | Audit RGAA : 13 NC corrigées, 100 % des critères applicables ; page de confirmation commune pour les actions irréversibles (abandon d'un traitement compris) ; plan du site plutôt que la recherche pour 12.1 ; préfixe « Erreur : » sur tout écran en 4xx ; abréviations des sévérités — tous **[à relire]** |
 | T11 (sécurité) | #15 | Terminé | Revue de sécurité du lot 1 (14 constats, 0 haut ni critique) : 3 Medium, 6 Low et 2 Note corrigés (SEC-11 et SEC-14 en partie), SEC-13 accepté, SEC-09 (Low) accepté jusqu'à T16 ; open-go-base v1.3.0 (PR #3 fusionnée, étiquette à pousser) ; ADR 0029 à 0031 — tous **[à relire]** |
-| T11 (recette) | #16 | Terminé (v0.1.0 à publier par l'utilisateur) | Parc pilote en conteneurs et forge simulée ; CVE de contrôle ; cibles tenues sur 4 cœurs, valant pour la référence ; publication des versions (ADR 0032) et unité systemd du serveur ; guides de démarrage FR et EN séparés de `utilisation.md` ; outillage de recette hors dépôt — tous **[à relire]** |
+| T11 (recette) | #16 | Terminé (v0.1.0 publiée le 1er novembre 2026) | Parc pilote en conteneurs et forge simulée ; CVE de contrôle ; cibles tenues sur 4 cœurs, valant pour la référence ; publication des versions (ADR 0032) et unité systemd du serveur ; guides de démarrage FR et EN séparés de `utilisation.md` ; outillage de recette hors dépôt — tous **[à relire]** |
 | Renommage en lotor | — | Terminé | Correspondance unique `open-go-sbom`/`ogsbom` → `lotor` partout, migrations réécrites en place avant toute publication, identité visuelle dans `docs/logo/` et l'interface (ADR 0033) — **[à relire]** |
 
 ### Décisions à relire, par thème
@@ -404,8 +467,8 @@ Chaque point renvoie à l'ADR ou au Journal qui le détaille.
 
 ### Actions pour l'utilisateur
 
-Le mandataire git de la session refuse les pushs d'étiquettes (HTTP 403) : `v0.1.0`
-n'est pas posée. À faire, dans l'ordre (les étapes 1 à 3 sont faites) :
+Le mandataire git de la session refuse les pushs d'étiquettes (HTTP 403). À faire, dans
+l'ordre (les étapes 1 à 3 et 6 sont faites) :
 
 1. **Fait.** Renommer le dépôt GitHub `leblanc-simon/open-go-sbom` en `leblanc-simon/lotor`
    (*Settings* → *General* → *Repository name*), puis `git remote set-url origin
@@ -427,7 +490,8 @@ n'est pas posée. À faire, dans l'ordre (les étapes 1 à 3 sont faites) :
 5. Essayer l'agent dépôt sur une vraie GitHub App et un vrai projet GitLab : procédure pas
    à pas dans [`docs/operations.md`](../docs/operations.md#recette-sur-une-vraie-forge)
    (une demi-heure). La recette n'a pu l'exercer que contre une forge simulée.
-6. Publier la préversion **v0.1.0**, une fois les étapes 1 à 3 sur `main` :
+6. **Fait** (étiquette sur `109fa20`, préversion publiée le 1er novembre 2026 à
+   01:10 UTC). Publier la préversion **v0.1.0**, une fois les étapes 1 à 3 sur `main` :
    1. vérifier que la section `## [0.1.0] - 2026-11-01` de `CHANGELOG.md` est à jour (date
       du jour de la pose, ajouts éventuels) et que la CI de `main` est verte ;
    2. `git fetch origin && git tag -a v0.1.0 origin/main -m "lotor 0.1.0 — préversion du lot 1"` ;

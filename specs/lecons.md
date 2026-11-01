@@ -932,3 +932,51 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
 - **Fichier de l'instance d'audit** : l'étiquette `integration && rgaaserve` l'écarte de
   `make test-integration`, mais il ne doit jamais être commité ; le copier dans
   `internal/web` seulement le temps de la compilation.
+
+## Recette du lot 2 (T18, partie 4)
+
+- **Type CycloneDX ignoré par le décodeur du serveur** : l'agent dépôt émettait les
+  composants IA d'image de conteneur (`FROM` d'un Dockerfile) en type `container` ; le
+  décodeur CycloneDX de Syft, celui du serveur, ne garde que `application`, `framework`,
+  `library`, `firmware` et `machine-learning-model` : l'image disparaissait à
+  l'ingestion, sans erreur. Les tests de T12 relisaient le SBOM par le décodeur du
+  serveur, mais seulement avec une bibliothèque JavaScript. Règle : tout composant qu'un
+  agent produit est relu par `sbomsyft.Decode` dans un test, **pour chaque forme**
+  (bibliothèque, image, outil) ; compter les composants relus, pas seulement en chercher
+  un.
+- **Contrôle indépendant du juge** : « aucun composant sans preuve vérifiée » se teste en
+  revérifiant, hors du vérificateur, chaque composant du SBOM final (`checkProof`) contre
+  des centaines de candidats adverses ; c'est ce contrôle qui a trouvé le défaut
+  précédent (composants acceptés, absents du SBOM).
+- **Mesures qui ne tournent qu'à la recette** : `make bench-search` échouait depuis T16
+  dans son dernier pas (`EXPLAIN ANALYZE` sans `db.Visible` : `lotor_team_visible`
+  exécutée sans déclaration ; sur une connexion réutilisée, `lotor.teams` vide donne
+  « malformed array literal "" », sur une neuve « unrecognized configuration
+  parameter ») : `EXPLAIN` seul, en CI, n'exécute pas la fonction. Règle : un lot qui
+  touche une requête mesurée relance la cible de mesure correspondante, ou au moins son
+  test sur un petit jeu ; une erreur SQL « malformed array literal "" » sur une requête
+  d'équipe signale une visibilité non déclarée.
+- **Disque de la session** : le cache de compilation Go atteint 14 Gio sur une longue
+  session à plusieurs lots ; le disque plein fait tomber PostgreSQL en « recovery mode »
+  au milieu d'une mesure et laisse une base jetable orpheline. Règle : `df -h /` avant
+  les mesures (le jeu de référence complété pèse plusieurs Gio), `go clean -cache` si
+  besoin, et supprimer la base jetable et ses deux rôles après un échec.
+- **Échantillon pilote annoté** : sur des dépôts réels, presque tout est déjà déclaré
+  (4 composants attendus sur 4 dépôts) ; ce que Syft voit déjà (actions GitHub des flux
+  de travail) doit être annoté « ignoré », sinon chaque détection juste de l'IA, écartée
+  ensuite par la fusion, compterait comme faux positif.
+- **Clé d'unicité des jobs = jobs en attente seulement** : un job en cours ne bloque pas
+  la mise en file d'un second job de même clé, qu'un autre worker prend aussitôt. Deux
+  envois de notification du même canal envoyaient ainsi le même lot (vu seulement sur une
+  vraie instance, avec quatre workers et une politique qui ouvre 195 violations). Règle :
+  un handler dont l'effet est externe (réseau) réserve son travail sous verrou avant
+  l'appel (ADR 0052) ; le tester avec deux exécutions simultanées et un faux envoi
+  bloquant.
+- **Recette scriptée** : `pkill -f <motif>` tue aussi le shell qui porte le motif dans sa
+  ligne de commande (code 144) ; garder le PID au lancement (`echo $! > x.pid`) ou
+  `pgrep -x`. Un code TOTP ne sert qu'une fois par fenêtre : un client de recette qui se
+  reconnecte vite doit attendre la fenêtre suivante. Les images de Docker Hub tombent vite
+  en 429 depuis la session : passer par `mirror.gcr.io` ou `public.ecr.aws/docker/library`.
+- **Python et l'autorité de test** : Python 3.13 refuse une autorité sans
+  `keyUsage` (« CA cert does not include key usage extension ») ; créer l'autorité de
+  recette avec `basicConstraints=critical,CA:TRUE` et `keyUsage=critical,keyCertSign`.

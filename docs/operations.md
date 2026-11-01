@@ -1313,6 +1313,28 @@ conditionnel, rattrapage de l'agent dépôt).
 Retour arrière : restaurer la sauvegarde prise avant la mise à jour et réinstaller
 l'ancien binaire (un ancien binaire refuse une base migrée par une version plus récente).
 
+**De 0.1.0 à 0.2.0** (lot 2), à décider **avant** la mise à jour :
+
+- les migrations 016 à 023 s'appliquent au démarrage ; la 016 crée l'équipe « Général »
+  de chaque organisation et y place tous les projets, les jetons d'inscription, les agents
+  serveur et tous les membres à leur ancien rôle (`viewer` → lecteur, `analyst` →
+  analyste, `admin` → administrateur d'équipe ; le rôle d'organisation devient « membre »,
+  sauf les administrateurs) : vérifier ensuite la page **Équipes** de chaque organisation
+  (essai de la recette : instance 0.1.0 réelle mise à jour, voir le Journal de T18) ;
+- la première rétention nocturne garde tout depuis 90 jours puis le dernier instantané de
+  chaque mois, et supprime réceptions et SBOM devenus orphelins
+  ([Rétention des instantanés](#rétention-des-instantanés)) : régler `retention.*` avant
+  si une autre politique est voulue (`retention.enabled: false` suspend la réduction) ;
+- les conteneurs archivés pour absence depuis `containers.purge_after` (180 jours) sont
+  supprimés avec leur historique : rien en 0.1.0, qui n'inventoriait pas de conteneurs,
+  mais à régler avant d'activer `containers.enabled` sur les agents ;
+- les comptes existants n'ont pas de codes de secours : les inviter à en générer depuis
+  **Mon compte › Second facteur** ;
+- agents : l'agent serveur 0.1.0 continue de fonctionner (vérifié par la recette ; les
+  conteneurs demandent l'agent 0.2.0 et `containers.enabled`, et l'agent 0.2.0 reprend
+  l'inscription et l'état du 0.1.0) ; l'agent dépôt 0.2.0 est nécessaire pour
+  l'enrichissement IA et le statut de commit, tous deux désactivés par défaut.
+
 ## Supervision
 
 | Quoi | Où | Seuil conseillé |
