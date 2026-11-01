@@ -39,3 +39,6 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0032](0032-publication-des-versions.md) | Publication des versions : étiquette, workflow de préversion, fichiers livrés, unité du serveur | Accepté |
 | [0033](0033-renommage-en-lotor.md) | Renommage du projet en lotor : correspondance unique, migrations réécrites avant toute publication, identité visuelle | Accepté |
 | [0034](0034-equipes-et-droits.md) | Équipes et droits : rôle d'organisation membre ou administrateur, droits par équipe, filtre d'équipe déclaré à la transaction, invitations | Accepté |
+| [0035](0035-decisions-de-triage.md) | Décisions de triage appliquées aux constats, statut effectif rangé sur chaque constat, journal en ajout seul | Accepté |
+| [0036](0036-echanges-vex.md) | Échanges VEX : OpenVEX 0.2.0 et CycloneDX 1.6, correspondance des statuts et des justifications, marques de lotor | Accepté |
+| [0037](0037-ecrans-du-triage.md) | Écrans du triage : fiche du constat au lieu du tiroir, constats masqués par défaut, page VEX, décisions de l'organisation | Accepté |
