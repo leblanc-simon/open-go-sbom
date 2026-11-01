@@ -38,6 +38,7 @@ import (
 	"leblanc.io/lotor/internal/finding"
 	"leblanc.io/lotor/internal/ingest"
 	"leblanc.io/lotor/internal/inventory"
+	"leblanc.io/lotor/internal/jobs"
 	"leblanc.io/lotor/internal/locale"
 	"leblanc.io/lotor/internal/org"
 	"leblanc.io/lotor/internal/project"
@@ -85,6 +86,7 @@ type app struct {
 	agents   *agent.Service
 	ingest   *ingest.Service
 	inv      *inventory.Service
+	history  *inventory.History
 	search   *search.Service
 	exports  *search.ExportLimiter
 	reencode *search.ExportLimiter
@@ -155,6 +157,10 @@ func newApp(t *testing.T, opts ...appOption) *app {
 		exports: search.NewExportLimiter(2, time.Minute), reencode: search.NewExportLimiter(2, time.Minute),
 		dash: dashboard.NewService(tdb.App, dashboard.WithClock(clock.Now))}
 	a.triage = triage.NewService(triage.Options{Pool: tdb.App, Comparer: grypeversion.New(), Now: clock.Now})
+	if a.history, err = inventory.NewHistory(inventory.HistoryOptions{Pool: tdb.App, Comparer: grypeversion.New(),
+		Retention: inventory.DefaultRetention(), Clock: jobs.ClockFunc(clock.Now)}); err != nil {
+		t.Fatal(err)
+	}
 	if a.ingest, err = ingest.NewService(ingest.Options{Pool: tdb.App, Validator: testValidator(t), Logger: logger,
 		Limits: ingest.Limits{MaxUpload: 8 << 20, SBOM: sbom.Limits{MaxBytes: 32 << 20, MaxDepth: 64, MaxComponents: 20_000}}}); err != nil {
 		t.Fatal(err)
@@ -166,7 +172,7 @@ func newApp(t *testing.T, opts ...appOption) *app {
 		CSRFSecure: "off",
 		Identity: &IdentityOptions{
 			Pool: tdb.App, Accounts: a.accounts, Orgs: a.orgs, Projects: a.projects, Agents: a.agents, Secrets: box,
-			Inventory: a.inv, Ingest: a.ingest, Findings: finding.NewService(tdb.App), Triage: a.triage,
+			Inventory: a.inv, History: a.history, Ingest: a.ingest, Findings: finding.NewService(tdb.App), Triage: a.triage,
 			Search: a.search, Exports: a.exports, Reencodes: a.reencode,
 			Dashboard: dashboard.NewService(tdb.App, dashboard.WithClock(clock.Now)),
 			VulnDB: VulnDBOptions{MaxAge: 120 * time.Hour, ListingURL: "https://grype.anchore.io/databases/v6/latest.json",
@@ -177,7 +183,8 @@ func newApp(t *testing.T, opts ...appOption) *app {
 		},
 		AgentAPI: &apiv1.AgentOptions{Agents: a.agents, Ingest: a.ingest},
 		UserAPI: &apiv1.UserOptions{Pool: tdb.App, Accounts: a.accounts, Orgs: a.orgs, Search: a.search,
-			Exports: search.NewExportLimiter(2, time.Minute), Projects: a.projects, Triage: a.triage, Version: "test"},
+			Exports: search.NewExportLimiter(2, time.Minute), Projects: a.projects, Inventory: a.inv, History: a.history,
+			Findings: finding.NewService(tdb.App), Triage: a.triage, Version: "test"},
 	}
 	for _, opt := range opts {
 		opt(&o)

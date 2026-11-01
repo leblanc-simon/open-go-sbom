@@ -555,6 +555,13 @@ error:
   vex_empty:
     title: "Aucune décision à exporter"
     text: "Ce projet n'a aucun constat ouvert portant une décision de triage."
+  diff:
+    no_previous:
+      title: Aucun instantané précédent
+      text: Cet instantané est le premier de sa référence ; choisissez l'instantané de départ.
+    kind_invalid:
+      title: Nature de changement inconnue
+      text: "Le filtre kind accepte added, removed, upgraded ou downgraded."
   search:
     empty:
       title: Requête vide
@@ -1013,6 +1020,16 @@ snapshots:
   col_result: Résultat
   pending: Décodage à venir
   no_ingestions: Aucun SBOM reçu pour ce projet.
+  compare_previous: Comparer avec le précédent
+  no_change: Inventaire identique au précédent
+  changes_pending: Différence avec le précédent en cours de calcul
+  retention_monthly:
+    one: "Rétention : tous les instantanés du dernier jour, puis le dernier de chaque mois, sans limite de durée. Le dernier instantané d'une référence est toujours gardé."
+    other: "Rétention : tous les instantanés des {{.Count}} derniers jours, puis le dernier de chaque mois, sans limite de durée. Le dernier instantané d'une référence est toujours gardé."
+  retention_window:
+    one: "Rétention : tous les instantanés du dernier jour ; au-delà, seul celui en vigueur au début de cette fenêtre. Le dernier instantané d'une référence est toujours gardé."
+    other: "Rétention : tous les instantanés des {{.Count}} derniers jours ; au-delà, seul celui en vigueur au début de cette fenêtre. Le dernier instantané d'une référence est toujours gardé."
+  retention_off: "Rétention désactivée : tous les instantanés sont gardés."
 
 snapshot:
   title: "Instantané du {{.Date}} — {{.Name}}"
@@ -1045,6 +1062,7 @@ snapshot:
   no_license: Aucune
   no_match: Aucun composant ne correspond à ces filtres.
   empty: Cet instantané ne contient aucun composant.
+  changes: Depuis le précédent
 host_agent:
   context_title: Hôte
   last_inventory: Dernier inventaire
@@ -1687,3 +1705,66 @@ org_triage:
   all_versions: "toutes les versions"
   truncated: "Seules les 500 décisions les plus récentes sont affichées."
   none: "Aucune décision d'organisation pour l'instant."
+changes:
+  mark_added: "+"
+  mark_removed: "−"
+  mark_upgraded: "↑"
+  mark_downgraded: "↓"
+  added:
+    one: "{{.Count}} ajouté"
+    other: "{{.Count}} ajoutés"
+  removed:
+    one: "{{.Count}} retiré"
+    other: "{{.Count}} retirés"
+  upgraded:
+    one: "{{.Count}} monté de version"
+    other: "{{.Count}} montés de version"
+  downgraded:
+    one: "{{.Count}} descendu de version"
+    other: "{{.Count}} descendus de version"
+
+compare:
+  title: "Comparaison d'instantanés — {{.Name}}"
+  heading: "Comparaison d'instantanés de {{.Name}}"
+  crumb: Comparaison
+  previous: Instantané précédent
+  form_title: Comparer deux instantanés
+  from: Depuis
+  to: Jusqu'à
+  submit: Comparer
+  no_previous_title: Aucun instantané précédent
+  no_previous_text: Cet instantané est le premier de sa référence. Choisissez l'instantané de départ.
+  sides_title: Instantanés comparés
+  swap: Inverser
+  component_count:
+    one: "{{.Count}} composant"
+    other: "{{.Count}} composants"
+  summary_title: Changements
+  kind_added: Ajouté
+  kind_removed: Retiré
+  kind_upgraded: Monté de version
+  kind_downgraded: Descendu de version
+  effect_title: Effet sur la sécurité
+  effect_meta: Constats des composants changés, d'après les analyses de chaque référence
+  pending_title: Analyse en attente
+  pending_text: "Le second instantané n'est pas encore analysé : des constats introduits peuvent manquer."
+  resolved_title: Constats résolus
+  introduced_title: Constats introduits
+  none_resolved: Aucun constat résolu par ce passage.
+  none_introduced: Aucun constat introduit par ce passage.
+  truncated: "Seuls les {{.Max}} constats au plus grand risque sont listés."
+  changes_title: Composants changés
+  changes_count:
+    one: "{{.Count}} changement"
+    other: "{{.Count}} changements"
+  filter_label: Filtrer par nature de changement
+  all: Tous
+  changes_caption: Composants ajoutés, retirés, montés ou descendus de version entre les deux instantanés
+  col_component: Composant
+  col_change: Changement
+  col_old: Avant
+  col_new: Après
+  col_purl: purl
+  approximate: "Versions incomparables : sens déduit de l'ordre alphabétique"
+  none_of_kind: Aucun changement de cette nature.
+  identical: Les deux instantanés ont le même inventaire.

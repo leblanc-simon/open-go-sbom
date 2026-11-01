@@ -33,6 +33,7 @@
           <dt>{{T "snapshot.agent"}}</dt><dd>{{if $s.AgentName}}{{$s.AgentName}}{{with $s.AgentVer}} <span class="version">{{.}}</span>{{end}}{{else}}<span class="muted">{{T "snapshots.agent_unknown"}}</span>{{end}}</dd>
           <dt>{{T "snapshot.format"}}</dt><dd>{{T (print "format.sbom_" .Format)}} {{.Spec}}</dd>
           <dt>{{T "snapshot.components"}}</dt><dd>{{T "snapshots.components" "Syft" $s.Counts.Syft "IA" $s.Counts.IA}}{{if $s.Counts.Weak}} · {{Tn "snapshots.weak" $s.Counts.Weak}}{{end}}</dd>
+          {{- if $s.CompareHref}}<dt>{{T "snapshot.changes"}}</dt><dd>{{if $s.Changes}}{{if $s.Changes.Total}}{{template "change_counts" $s.Changes}}{{else}}{{T "snapshots.no_change"}}{{end}}{{else}}{{T "snapshots.changes_pending"}}{{end}} <a href="{{$s.CompareHref}}">{{T "snapshots.compare_previous"}}</a></dd>{{end}}
         </dl>
       </div>
     </section>

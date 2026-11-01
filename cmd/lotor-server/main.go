@@ -160,6 +160,15 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		return err
 	}
 	searcher := search.NewService(pool, grypeversion.New())
+	inv := inventory.NewService(pool)
+	projects := project.NewService(pool)
+	findings := finding.NewService(pool)
+	history, err := inventory.NewHistory(inventory.HistoryOptions{Pool: pool, Comparer: grypeversion.New(), Logger: logger,
+		Retention: inventory.RetentionPolicy{Enabled: cfg.Retention.Enabled, Days: cfg.Retention.Days, Count: cfg.Retention.Count,
+			Monthly: cfg.Retention.Monthly}})
+	if err != nil {
+		return err
+	}
 	triager := triage.NewService(triage.Options{Pool: pool, Comparer: grypeversion.New(), Logger: logger})
 	exports := search.NewExportLimiter(cfg.UserAPI.MaxExports, cfg.UserAPI.ExportTimeout)
 	reencodes := search.NewExportLimiter(cfg.Ingest.MaxReencodes, cfg.UserAPI.ExportTimeout)
@@ -180,11 +189,12 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Pool:           pool,
 			Accounts:       accounts,
 			Orgs:           orgs,
-			Projects:       project.NewService(pool),
+			Projects:       projects,
 			Agents:         agents,
-			Inventory:      inventory.NewService(pool),
+			Inventory:      inv,
+			History:        history,
 			Ingest:         ingester,
-			Findings:       finding.NewService(pool),
+			Findings:       findings,
 			Triage:         triager,
 			Search:         searcher,
 			Exports:        exports,
@@ -211,7 +221,10 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			Orgs:             orgs,
 			Search:           searcher,
 			Exports:          exports,
-			Projects:         project.NewService(pool),
+			Projects:         projects,
+			Inventory:        inv,
+			History:          history,
+			Findings:         findings,
 			Triage:           triager,
 			Version:          version,
 			RateLimit:        cfg.UserAPI.RateLimit,
@@ -295,6 +308,9 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		if err := registerDashboard(runner, scheduler, dash); err != nil {
 			return err
 		}
+		if err := registerHistory(runner, scheduler, history); err != nil {
+			return err
+		}
 		services = append(services, runner.Run, scheduler.Run, vulndb.Run)
 	}
 	return runAll(ctx, services...)
@@ -351,6 +367,23 @@ func registerDashboard(runner *jobs.Runner, scheduler *jobs.Scheduler, dash *das
 		return err
 	}
 	return scheduler.Register(dashboard.StatsSchedule())
+}
+
+// registerHistory enregistre les différences d'instantanés et la rétention (T17).
+func registerHistory(runner *jobs.Runner, scheduler *jobs.Scheduler, h *inventory.History) error {
+	for _, r := range []struct {
+		kind string
+		h    jobs.Handler
+	}{
+		{inventory.DiffKind, h.DiffHandler()},
+		{inventory.RetentionAllKind, h.RetentionAllHandler()},
+		{inventory.RetentionOrgKind, h.RetentionOrgHandler()},
+	} {
+		if err := runner.Register(r.kind, r.h); err != nil {
+			return err
+		}
+	}
+	return scheduler.Register(inventory.RetentionSchedule())
 }
 
 // runAll lance les services ensemble et attend qu'ils aient tous rendu la main ; le

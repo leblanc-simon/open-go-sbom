@@ -87,6 +87,45 @@ tout moment, et il ne donne que la lecture de ce que votre compte voit, dans les
 organisations dont vous êtes membre au moment de chaque requête. Le contrat de l'API est
 dans `api/openapi.yaml` (opérations `searchOrganization` et `exportSearch`).
 
+## Historique et comparaison des instantanés
+
+L'onglet **Instantanés** d'un projet présente la **frise** des instantanés de chaque
+référence (branche, tag ou hôte), du plus récent au plus ancien. Chaque instantané
+indique ce qui a changé depuis le précédent de la même référence : composants
+**ajoutés**, **retirés**, **montés** ou **descendus de version** (deux versions d'un même
+paquet forment une montée ou une descente, comparées selon les règles de leur
+écosystème : npm, Maven, PEP 440, Debian…), ou « inventaire identique ».
+
+« Comparer avec le précédent », ou le formulaire **Comparer deux instantanés** (deux
+instantanés quelconques du projet, de références différentes au besoin), ouvre la
+comparaison :
+
+- les décomptes de chaque nature de changement, puis la liste des composants changés,
+  filtrable par nature ; « Inverser » échange départ et arrivée ;
+- l'**effet sur la sécurité** : les **constats résolus** (vulnérabilités des composants
+  retirés ou remplacés, absentes de leur nouvelle version — une montée de version qui
+  corrige une CVE apparaît ici) et les **constats introduits** (vulnérabilités des
+  composants ajoutés ou de leur nouvelle version). Une vulnérabilité présente avant et
+  après n'apparaît dans aucune des deux listes. Tant que le dernier instantané n'est pas
+  analysé, l'écran prévient que des constats introduits peuvent manquer.
+
+Les instantanés anciens sont réduits par la **rétention** : par défaut, tous ceux des
+90 derniers jours sont gardés, puis le dernier de chaque mois, sans limite de durée ; le
+dernier instantané d'une référence n'est jamais supprimé. La frise rappelle la politique
+de l'instance.
+
+La même frise et la même comparaison existent dans l'API (opérations
+`listProjectSnapshots` et `compareSnapshots`) :
+
+```bash
+curl -H "Authorization: Bearer $LOTOR_TOKEN" \
+  "https://lotor.example/api/v1/orgs/<organisation>/projects/<projet>/snapshots"
+curl -H "Authorization: Bearer $LOTOR_TOKEN" \
+  "https://lotor.example/api/v1/orgs/<organisation>/projects/<projet>/compare?to=<instantané>&kind=upgraded"
+```
+
+Sans `from`, la comparaison part de l'instantané précédent de `to`.
+
 ## Équipes, rôles et invitations
 
 Chaque projet appartient à une **équipe**. Vous voyez les projets de vos équipes — dans

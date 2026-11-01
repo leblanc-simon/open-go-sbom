@@ -94,6 +94,7 @@ func orgRoutes(id *identity) []orgRoute {
 		{get, "/projects/{project}/snapshots", tenant.PermProjectView, targetProject, id.snapshots},
 		{get, "/projects/{project}/snapshots/{snapshotID}", tenant.PermProjectView, targetProject, id.snapshotPage},
 		{get, "/projects/{project}/snapshots/{snapshotID}/sbom", tenant.PermProjectView, targetProject, id.downloadSBOM},
+		{get, "/projects/{project}/compare", tenant.PermProjectView, targetProject, id.compare},
 		{post, "/projects/{project}/scan", tenant.PermProjectScan, targetProject, id.requestScan},
 		{get, "/projects/{project}/settings", tenant.PermProjectManage, targetProject, id.projectSettings},
 		{post, "/projects/{project}/settings", tenant.PermProjectManage, targetProject, id.saveProject},

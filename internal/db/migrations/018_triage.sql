@@ -1,4 +1,4 @@
--- 017_triage : décisions de triage des constats et statut effectif (T14, ADR 0035).
+-- 018_triage : décisions de triage des constats et statut effectif (T14, ADR 0035).
 --
 -- Une décision vise un couple (composant, vulnérabilité) : pour un projet, le composant
 -- exact (purl canonique) ; pour toute l'organisation, une famille de composants

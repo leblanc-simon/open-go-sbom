@@ -317,6 +317,112 @@ paths:
           $ref: "#/components/responses/Problem"
         "429":
           $ref: "#/components/responses/Problem"
+  /orgs/{org}/projects/{project}/snapshots:
+    get:
+      operationId: listProjectSnapshots
+      tags: [user]
+      summary: Frise des instantanés d'un projet
+      description: |
+        Instantanés du projet, ou d'une seule de ses références, du plus récent au plus
+        ancien, chacun avec le décompte de ses changements depuis l'instantané précédent
+        de sa référence (absent pour le premier, ou tant que la différence n'est pas
+        calculée : `changes_pending`). La rétention réduit l'historique au-delà de sa
+        fenêtre (un instantané par mois par défaut). Un projet hors des équipes du
+        propriétaire du jeton répond 404.
+      security:
+        - personalToken: []
+      parameters:
+        - $ref: "#/components/parameters/Org"
+        - $ref: "#/components/parameters/Project"
+        - name: ref
+          in: query
+          description: Identifiant d'une référence suivie du projet.
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Cursor"
+        - name: limit
+          in: query
+          description: Instantanés par page (20 par défaut, 100 au plus).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Une page d'instantanés.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SnapshotPage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+  /orgs/{org}/projects/{project}/compare:
+    get:
+      operationId: compareSnapshots
+      tags: [user]
+      summary: Comparaison de deux instantanés d'un projet
+      description: |
+        Composants ajoutés, retirés, montés ou descendus de version entre `from` et `to`
+        (deux versions d'un même `purl_base` forment une montée ou une descente, comparées
+        selon les règles de leur écosystème), et effet sur la sécurité : constats
+        introduits et résolus par ce passage (200 au plus de chaque côté, par risque
+        décroissant). Sans `from`, la comparaison part de l'instantané précédent de la
+        référence de `to` (404 `error.diff.no_previous` pour le premier). Les deux
+        instantanés appartiennent au projet ; ils peuvent être de références différentes.
+      security:
+        - personalToken: []
+      parameters:
+        - $ref: "#/components/parameters/Org"
+        - $ref: "#/components/parameters/Project"
+        - name: to
+          in: query
+          required: true
+          description: Instantané d'arrivée.
+          schema:
+            type: string
+            format: uuid
+        - name: from
+          in: query
+          description: Instantané de départ (par défaut, le précédent de `to`).
+          schema:
+            type: string
+            format: uuid
+        - name: kind
+          in: query
+          description: Ne lister que les changements de cette nature (les décomptes restent complets).
+          schema:
+            type: string
+            enum: [added, removed, upgraded, downgraded]
+        - $ref: "#/components/parameters/Cursor"
+        - name: limit
+          in: query
+          description: Changements par page (100 par défaut, 500 au plus).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+      responses:
+        "200":
+          description: La comparaison et une page de changements.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SnapshotComparison"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
   /orgs/{org}/projects/{project}/vex:
     get:
       operationId: exportProjectVEX
@@ -334,13 +440,7 @@ paths:
         - personalToken: []
       parameters:
         - $ref: "#/components/parameters/Org"
-        - name: project
-          in: path
-          required: true
-          description: Slug du projet.
-          schema:
-            type: string
-            maxLength: 64
+        - $ref: "#/components/parameters/Project"
         - name: format
           in: query
           required: true
@@ -385,6 +485,14 @@ components:
       in: path
       required: true
       description: Slug de l'organisation.
+      schema:
+        type: string
+        maxLength: 64
+    Project:
+      name: project
+      in: path
+      required: true
+      description: Slug du projet.
       schema:
         type: string
         maxLength: 64
@@ -1007,3 +1115,173 @@ components:
           type: array
           items:
             type: object
+    SnapshotPage:
+      type: object
+      required: [snapshots, page]
+      properties:
+        snapshots:
+          type: array
+          items:
+            $ref: "#/components/schemas/SnapshotSummary"
+        page:
+          $ref: "#/components/schemas/PageInfo"
+    SnapshotSummary:
+      type: object
+      required: [id, ref, scanned_at, last_scanned_at, agent_version, format, spec_version, components, current, changes_pending]
+      properties:
+        id:
+          type: string
+          format: uuid
+        ref:
+          $ref: "#/components/schemas/SearchRef"
+        commit:
+          type: string
+          description: Commit d'un dépôt (absent pour un hôte).
+        scanned_at:
+          type: string
+          format: date-time
+        last_scanned_at:
+          type: string
+          format: date-time
+          description: Dernière analyse au même inventaire (hôte).
+        agent_version:
+          type: string
+        format:
+          type: string
+          description: Format du SBOM reçu (`cyclonedx`, `spdx` ou `syft`).
+        spec_version:
+          type: string
+        components:
+          $ref: "#/components/schemas/ComponentCounts"
+        current:
+          type: boolean
+          description: Instantané courant de sa référence.
+        previous_id:
+          type: string
+          format: uuid
+          description: Instantané précédent de la même référence (absent pour le premier).
+        changes:
+          $ref: "#/components/schemas/ChangeCounts"
+        changes_pending:
+          type: boolean
+          description: La différence avec le précédent n'est pas encore calculée.
+    ComponentCounts:
+      type: object
+      required: [total, syft, ia, weak]
+      properties:
+        total:
+          type: integer
+        syft:
+          type: integer
+        ia:
+          type: integer
+        weak:
+          type: integer
+    ChangeCounts:
+      type: object
+      required: [added, removed, upgraded, downgraded]
+      properties:
+        added:
+          type: integer
+        removed:
+          type: integer
+        upgraded:
+          type: integer
+        downgraded:
+          type: integer
+    SnapshotComparison:
+      type: object
+      required: [from, to, counts, changes, page, security]
+      properties:
+        from:
+          $ref: "#/components/schemas/SnapshotSummary"
+        to:
+          $ref: "#/components/schemas/SnapshotSummary"
+        counts:
+          $ref: "#/components/schemas/ChangeCounts"
+        changes:
+          type: array
+          items:
+            $ref: "#/components/schemas/SnapshotChange"
+        page:
+          $ref: "#/components/schemas/PageInfo"
+        security:
+          $ref: "#/components/schemas/SecurityImpact"
+    SnapshotChange:
+      type: object
+      required: [kind, purl_base, name, type, approximate]
+      properties:
+        kind:
+          type: string
+          enum: [added, removed, upgraded, downgraded]
+        purl_base:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        old:
+          $ref: "#/components/schemas/ChangedComponent"
+        new:
+          $ref: "#/components/schemas/ChangedComponent"
+        approximate:
+          type: boolean
+          description: Versions incomparables dans leur écosystème ; sens déduit de l'ordre des chaînes.
+    ChangedComponent:
+      type: object
+      required: [component_id, purl, version]
+      properties:
+        component_id:
+          type: string
+          format: uuid
+        purl:
+          type: string
+        version:
+          type: string
+    SecurityImpact:
+      type: object
+      required: [analysis_pending, introduced_total, resolved_total, introduced, resolved]
+      properties:
+        analysis_pending:
+          type: boolean
+          description: L'instantané d'arrivée, courant, n'est pas encore analysé ; des constats introduits peuvent manquer.
+        introduced_total:
+          type: integer
+        resolved_total:
+          type: integer
+        introduced:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImpactFinding"
+        resolved:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImpactFinding"
+    ImpactFinding:
+      type: object
+      required: [finding_id, vulnerability, severity, kev, risk, status, ref, component, fixed_versions]
+      properties:
+        finding_id:
+          type: string
+          format: uuid
+        vulnerability:
+          type: string
+        severity:
+          type: string
+          description: "`critical`, `high`, `medium`, `low`, `negligible` ou `unknown`."
+        kev:
+          type: boolean
+        risk:
+          type: number
+          format: double
+        status:
+          type: string
+          description: État actuel du constat (`open` ou `resolved`).
+        ref:
+          $ref: "#/components/schemas/SearchRef"
+        component:
+          $ref: "#/components/schemas/SearchComponent"
+        fixed_versions:
+          type: array
+          items:
+            type: string

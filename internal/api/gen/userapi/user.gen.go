@@ -170,6 +170,30 @@ func (e SearchTokenKind) Valid() bool {
 	}
 }
 
+// Defines values for SnapshotChangeKind.
+const (
+	SnapshotChangeKindAdded      SnapshotChangeKind = "added"
+	SnapshotChangeKindDowngraded SnapshotChangeKind = "downgraded"
+	SnapshotChangeKindRemoved    SnapshotChangeKind = "removed"
+	SnapshotChangeKindUpgraded   SnapshotChangeKind = "upgraded"
+)
+
+// Valid indicates whether the value is a known member of the SnapshotChangeKind enum.
+func (e SnapshotChangeKind) Valid() bool {
+	switch e {
+	case SnapshotChangeKindAdded:
+		return true
+	case SnapshotChangeKindDowngraded:
+		return true
+	case SnapshotChangeKindRemoved:
+		return true
+	case SnapshotChangeKindUpgraded:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SearchKEV.
 const (
 	SearchKEVN1 SearchKEV = "1"
@@ -215,6 +239,30 @@ func (e SearchSort) Valid() bool {
 	case SearchSortRisk:
 		return true
 	case SearchSortSnapshot:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CompareSnapshotsParamsKind.
+const (
+	CompareSnapshotsParamsKindAdded      CompareSnapshotsParamsKind = "added"
+	CompareSnapshotsParamsKindDowngraded CompareSnapshotsParamsKind = "downgraded"
+	CompareSnapshotsParamsKindRemoved    CompareSnapshotsParamsKind = "removed"
+	CompareSnapshotsParamsKindUpgraded   CompareSnapshotsParamsKind = "upgraded"
+)
+
+// Valid indicates whether the value is a known member of the CompareSnapshotsParamsKind enum.
+func (e CompareSnapshotsParamsKind) Valid() bool {
+	switch e {
+	case CompareSnapshotsParamsKindAdded:
+		return true
+	case CompareSnapshotsParamsKindDowngraded:
+		return true
+	case CompareSnapshotsParamsKindRemoved:
+		return true
+	case CompareSnapshotsParamsKindUpgraded:
 		return true
 	default:
 		return false
@@ -476,6 +524,46 @@ func (e ExportSearchParamsResolved) Valid() bool {
 	}
 }
 
+// ChangeCounts defines model for ChangeCounts.
+type ChangeCounts struct {
+	Added      int `json:"added"`
+	Downgraded int `json:"downgraded"`
+	Removed    int `json:"removed"`
+	Upgraded   int `json:"upgraded"`
+}
+
+// ChangedComponent defines model for ChangedComponent.
+type ChangedComponent struct {
+	ComponentId openapi_types.UUID `json:"component_id"`
+	Purl        string             `json:"purl"`
+	Version     string             `json:"version"`
+}
+
+// ComponentCounts defines model for ComponentCounts.
+type ComponentCounts struct {
+	Ia    int `json:"ia"`
+	Syft  int `json:"syft"`
+	Total int `json:"total"`
+	Weak  int `json:"weak"`
+}
+
+// ImpactFinding defines model for ImpactFinding.
+type ImpactFinding struct {
+	Component     SearchComponent    `json:"component"`
+	FindingId     openapi_types.UUID `json:"finding_id"`
+	FixedVersions []string           `json:"fixed_versions"`
+	Kev           bool               `json:"kev"`
+	Ref           SearchRef          `json:"ref"`
+	Risk          float64            `json:"risk"`
+
+	// Severity `critical`, `high`, `medium`, `low`, `negligible` ou `unknown`.
+	Severity string `json:"severity"`
+
+	// Status État actuel du constat (`open` ou `resolved`).
+	Status        string `json:"status"`
+	Vulnerability string `json:"vulnerability"`
+}
+
 // PageInfo Pagination d'une liste.
 type PageInfo struct {
 	// NextCursor Curseur de la page suivante ; null sur la dernière page.
@@ -638,11 +726,87 @@ type SearchVersionCount struct {
 	Version     string `json:"version"`
 }
 
+// SecurityImpact defines model for SecurityImpact.
+type SecurityImpact struct {
+	// AnalysisPending L'instantané d'arrivée, courant, n'est pas encore analysé ; des constats introduits peuvent manquer.
+	AnalysisPending bool            `json:"analysis_pending"`
+	Introduced      []ImpactFinding `json:"introduced"`
+	IntroducedTotal int             `json:"introduced_total"`
+	Resolved        []ImpactFinding `json:"resolved"`
+	ResolvedTotal   int             `json:"resolved_total"`
+}
+
+// SnapshotChange defines model for SnapshotChange.
+type SnapshotChange struct {
+	// Approximate Versions incomparables dans leur écosystème ; sens déduit de l'ordre des chaînes.
+	Approximate bool               `json:"approximate"`
+	Kind        SnapshotChangeKind `json:"kind"`
+	Name        string             `json:"name"`
+	New         *ChangedComponent  `json:"new,omitempty"`
+	Old         *ChangedComponent  `json:"old,omitempty"`
+	PurlBase    string             `json:"purl_base"`
+	Type        string             `json:"type"`
+}
+
+// SnapshotChangeKind defines model for SnapshotChange.Kind.
+type SnapshotChangeKind string
+
+// SnapshotComparison defines model for SnapshotComparison.
+type SnapshotComparison struct {
+	Changes []SnapshotChange `json:"changes"`
+	Counts  ChangeCounts     `json:"counts"`
+	From    SnapshotSummary  `json:"from"`
+
+	// Page Pagination d'une liste.
+	Page     PageInfo        `json:"page"`
+	Security SecurityImpact  `json:"security"`
+	To       SnapshotSummary `json:"to"`
+}
+
+// SnapshotPage defines model for SnapshotPage.
+type SnapshotPage struct {
+	// Page Pagination d'une liste.
+	Page      PageInfo          `json:"page"`
+	Snapshots []SnapshotSummary `json:"snapshots"`
+}
+
+// SnapshotSummary defines model for SnapshotSummary.
+type SnapshotSummary struct {
+	AgentVersion string        `json:"agent_version"`
+	Changes      *ChangeCounts `json:"changes,omitempty"`
+
+	// ChangesPending La différence avec le précédent n'est pas encore calculée.
+	ChangesPending bool `json:"changes_pending"`
+
+	// Commit Commit d'un dépôt (absent pour un hôte).
+	Commit     *string         `json:"commit,omitempty"`
+	Components ComponentCounts `json:"components"`
+
+	// Current Instantané courant de sa référence.
+	Current bool `json:"current"`
+
+	// Format Format du SBOM reçu (`cyclonedx`, `spdx` ou `syft`).
+	Format string             `json:"format"`
+	Id     openapi_types.UUID `json:"id"`
+
+	// LastScannedAt Dernière analyse au même inventaire (hôte).
+	LastScannedAt time.Time `json:"last_scanned_at"`
+
+	// PreviousId Instantané précédent de la même référence (absent pour le premier).
+	PreviousId  *openapi_types.UUID `json:"previous_id,omitempty"`
+	Ref         SearchRef           `json:"ref"`
+	ScannedAt   time.Time           `json:"scanned_at"`
+	SpecVersion string              `json:"spec_version"`
+}
+
 // Cursor defines model for Cursor.
 type Cursor = string
 
 // Org defines model for Org.
 type Org = string
+
+// Project defines model for Project.
+type Project = string
 
 // SearchKEV defines model for SearchKEV.
 type SearchKEV string
@@ -667,6 +831,39 @@ type SearchSort string
 
 // SearchType defines model for SearchType.
 type SearchType = []string
+
+// CompareSnapshotsParams defines parameters for CompareSnapshots.
+type CompareSnapshotsParams struct {
+	// To Instantané d'arrivée.
+	To openapi_types.UUID `form:"to" json:"to"`
+
+	// From Instantané de départ (par défaut, le précédent de `to`).
+	From *openapi_types.UUID `form:"from,omitempty" json:"from,omitempty"`
+
+	// Kind Ne lister que les changements de cette nature (les décomptes restent complets).
+	Kind *CompareSnapshotsParamsKind `form:"kind,omitempty" json:"kind,omitempty"`
+
+	// Cursor Curseur renvoyé par la page précédente (`next_cursor`).
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Changements par page (100 par défaut, 500 au plus).
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// CompareSnapshotsParamsKind defines parameters for CompareSnapshots.
+type CompareSnapshotsParamsKind string
+
+// ListProjectSnapshotsParams defines parameters for ListProjectSnapshots.
+type ListProjectSnapshotsParams struct {
+	// Ref Identifiant d'une référence suivie du projet.
+	Ref *openapi_types.UUID `form:"ref,omitempty" json:"ref,omitempty"`
+
+	// Cursor Curseur renvoyé par la page précédente (`next_cursor`).
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Instantanés par page (20 par défaut, 100 au plus).
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
 
 // ExportProjectVEXParams defines parameters for ExportProjectVEX.
 type ExportProjectVEXParams struct {
@@ -775,9 +972,15 @@ type ExportSearchParamsResolved string
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// CompareSnapshots Comparaison de deux instantanés d'un projet
+	// (GET /orgs/{org}/projects/{project}/compare)
+	CompareSnapshots(w http.ResponseWriter, r *http.Request, org Org, project Project, params CompareSnapshotsParams)
+	// ListProjectSnapshots Frise des instantanés d'un projet
+	// (GET /orgs/{org}/projects/{project}/snapshots)
+	ListProjectSnapshots(w http.ResponseWriter, r *http.Request, org Org, project Project, params ListProjectSnapshotsParams)
 	// ExportProjectVEX Export VEX des décisions de triage d'un projet
 	// (GET /orgs/{org}/projects/{project}/vex)
-	ExportProjectVEX(w http.ResponseWriter, r *http.Request, org Org, project string, params ExportProjectVEXParams)
+	ExportProjectVEX(w http.ResponseWriter, r *http.Request, org Org, project Project, params ExportProjectVEXParams)
 	// SearchOrganization Recherche transverse dans une organisation
 	// (GET /orgs/{org}/search)
 	SearchOrganization(w http.ResponseWriter, r *http.Request, org Org, params SearchOrganizationParams)
@@ -790,9 +993,21 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
+// CompareSnapshots Comparaison de deux instantanés d'un projet
+// (GET /orgs/{org}/projects/{project}/compare)
+func (_ Unimplemented) CompareSnapshots(w http.ResponseWriter, r *http.Request, org Org, project Project, params CompareSnapshotsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListProjectSnapshots Frise des instantanés d'un projet
+// (GET /orgs/{org}/projects/{project}/snapshots)
+func (_ Unimplemented) ListProjectSnapshots(w http.ResponseWriter, r *http.Request, org Org, project Project, params ListProjectSnapshotsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ExportProjectVEX Export VEX des décisions de triage d'un projet
 // (GET /orgs/{org}/projects/{project}/vex)
-func (_ Unimplemented) ExportProjectVEX(w http.ResponseWriter, r *http.Request, org Org, project string, params ExportProjectVEXParams) {
+func (_ Unimplemented) ExportProjectVEX(w http.ResponseWriter, r *http.Request, org Org, project Project, params ExportProjectVEXParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -817,6 +1032,186 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
+// CompareSnapshots operation middleware
+func (siw *ServerInterfaceWrapper) CompareSnapshots(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "org" -------------
+	var org Org
+
+	err = runtime.BindStyledParameterWithOptions("simple", "org", chi.URLParam(r, "org"), &org, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "org", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "project" -------------
+	var project Project
+
+	err = runtime.BindStyledParameterWithOptions("simple", "project", chi.URLParam(r, "project"), &project, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "project", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CompareSnapshotsParams
+
+	// ------------- Required query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "kind" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "kind", r.URL.Query(), &params.Kind, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "kind"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "kind", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CompareSnapshots(w, r, org, project, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListProjectSnapshots operation middleware
+func (siw *ServerInterfaceWrapper) ListProjectSnapshots(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "org" -------------
+	var org Org
+
+	err = runtime.BindStyledParameterWithOptions("simple", "org", chi.URLParam(r, "org"), &org, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "org", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "project" -------------
+	var project Project
+
+	err = runtime.BindStyledParameterWithOptions("simple", "project", chi.URLParam(r, "project"), &project, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "project", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListProjectSnapshotsParams
+
+	// ------------- Optional query parameter "ref" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "ref", r.URL.Query(), &params.Ref, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "ref"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ref", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListProjectSnapshots(w, r, org, project, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ExportProjectVEX operation middleware
 func (siw *ServerInterfaceWrapper) ExportProjectVEX(w http.ResponseWriter, r *http.Request) {
 
@@ -833,7 +1228,7 @@ func (siw *ServerInterfaceWrapper) ExportProjectVEX(w http.ResponseWriter, r *ht
 	}
 
 	// ------------- Path parameter "project" -------------
-	var project string
+	var project Project
 
 	err = runtime.BindStyledParameterWithOptions("simple", "project", chi.URLParam(r, "project"), &project, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
 	if err != nil {
@@ -1278,6 +1673,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/orgs/{org}/search/export", wrapper.ExportSearch)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/orgs/{org}/projects/{project}/snapshots", wrapper.ListProjectSnapshots)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/orgs/{org}/projects/{project}/compare", wrapper.CompareSnapshots)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/orgs/{org}/projects/{project}/vex", wrapper.ExportProjectVEX)

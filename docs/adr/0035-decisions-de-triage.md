@@ -32,7 +32,7 @@ toute l'organisation.
   (compte, et libellé : e-mail, `vex:<source>` pour un import, `system` pour une
   échéance), date.
 - **Journal en ajout seul** : le rôle d'exécution n'a ni `UPDATE`, ni `DELETE`, ni
-  `TRUNCATE` sur la table (migration 017), ce que `CheckRuntimeRole` vérifie au démarrage
+  `TRUNCATE` sur la table (migration 018), ce que `CheckRuntimeRole` vérifie au démarrage
   comme pour le journal d'audit (ADR 0030). Une décision, un retrait ou une échéance
   ajoute une ligne ; la décision courante d'une clé (portée, projet, purl ou `purl_base`
   et plage, vulnérabilité) est la plus récente (date, puis UUID v7).
@@ -97,6 +97,8 @@ retour « à analyser » a donc lieu le jour même.
 - Le tableau de bord ne compte plus les constats « non affecté » ni « faux positif »
   parmi les constats ouverts ; « risque accepté », « affecté », « corrigé » (en attente
   de confirmation par un instantané) et « à analyser » comptent toujours.
+- L'effet sur la sécurité d'une comparaison d'instantanés (T17, ADR 0038) ignore les
+  constats « non affecté » et « faux positif ».
 - Un constat résolu garde son statut effectif, recalculé comme les autres ; rouvert, il
   le retrouve.
 - La table `triage_decisions` croît sans purge ; elle ne contient que des décisions

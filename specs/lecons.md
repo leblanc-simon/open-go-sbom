@@ -696,6 +696,32 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
 - **Outil d'isolement des agents (suite)** : `sleep N` suivi d'une autre commande est
   refusé. Règle : `run_in_background` pour une commande longue, puis lecture de sa sortie.
 
+## Différences d'instantanés et rétention (T17)
+
+- **SBOM de test modifié par le seul purl** : `bytes.ReplaceAll(…, "log4j-core@2.14.1",
+  "…@2.17.1")` laisse le champ `version` du composant CycloneDX à 2.14.1 ; le composant
+  normalisé garde cette version, et une « montée » devient un retrait plus un ajout de la
+  même version. Règle : pour simuler un changement de version, remplacer le purl **et**
+  le champ `version` du composant (`sbomWith` des tests de `finding` ne change que le
+  purl : suffisant pour l'identité, pas pour une différence).
+- **Test de concurrence qui bloque au lieu d'échouer** : en retirant `SKIP LOCKED` pour
+  vérifier qu'un test échoue, la suppression a attendu le verrou de l'autre transaction ;
+  le `timeout` de la commande a tué `go test` et laissé une base jetable orpheline.
+  Règle : tout test qui attend qu'une opération **ne** bloque **pas** lui passe un
+  contexte borné (`context.WithTimeout`), pour échouer proprement si elle bloque.
+- **Énumérations de l'API et collisions d'oapi-codegen** : une valeur d'énumération déjà
+  présente ailleurs (`open`, `critical`…) fait préfixer les constantes des deux types, ce
+  qui change des noms utilisés par le code existant. Règle : une donnée seulement lue
+  (sévérité, état d'un constat dans une réponse) est décrite en `string` avec ses valeurs
+  dans la description ; l'énumération est réservée aux paramètres validés.
+- **Suppression en masse et clés étrangères sans index** : chaque ligne supprimée
+  déclenche un contrôle sur les tables qui la référencent (`findings.snapshot_id`,
+  `snapshots.blob_id`…) ; sans index, un parcours complet par ligne. Règle : la migration
+  qui introduit une purge indexe toutes les colonnes qui référencent les tables purgées.
+- **Orphelins et ingestion concurrente** : `NOT EXISTS` lu au début d'un `DELETE` ne voit
+  pas une référence validée pendant l'instruction. Règle : l'écrivain verrouille la ligne
+  qu'il réutilise (`FOR KEY SHARE`), la purge sélectionne `FOR UPDATE SKIP LOCKED` puis
+  supprime dans une instruction suivante qui revérifie la condition.
 ## Triage et VEX (T14)
 
 - **Aller-retour entre deux vocabulaires** : noter la valeur d'origine seulement quand la

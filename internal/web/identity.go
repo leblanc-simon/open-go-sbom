@@ -60,6 +60,9 @@ type IdentityOptions struct {
 	// Inventory et Ingest servent les écrans des instantanés (T05).
 	Inventory *inventory.Service
 	Ingest    *ingest.Service
+	// History sert la frise, les comparaisons d'instantanés et la politique de
+	// rétention affichée (T17).
+	History *inventory.History
 	// Findings sert les constats, les fiches vulnérabilité et composant (T06).
 	Findings *finding.Service
 	// Triage sert le triage des constats et les VEX (T14).
@@ -107,7 +110,7 @@ type identity struct {
 
 func newIdentity(o IdentityOptions, rd *render.Renderer, cat *locale.Catalog, logger *slog.Logger, clientIP func(*http.Request) string) (*identity, error) {
 	if o.Pool == nil || o.Accounts == nil || o.Orgs == nil || o.Projects == nil || o.Agents == nil || o.Inventory == nil ||
-		o.Ingest == nil || o.Findings == nil || o.Triage == nil || o.Search == nil || o.Exports == nil || o.Reencodes == nil || o.Dashboard == nil || o.Secrets == nil || o.VulnDB.MaxAge <= 0 {
+		o.History == nil || o.Ingest == nil || o.Findings == nil || o.Triage == nil || o.Search == nil || o.Exports == nil || o.Reencodes == nil || o.Dashboard == nil || o.Secrets == nil || o.VulnDB.MaxAge <= 0 {
 		return nil, errors.New("web: dépendances de l'identité incomplètes")
 	}
 	if hostCookies(o.Auth.CookieSecure) {

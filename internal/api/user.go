@@ -18,6 +18,8 @@ import (
 	"leblanc.io/lotor/internal/api/gen/userapi"
 	"leblanc.io/lotor/internal/api/problem"
 	"leblanc.io/lotor/internal/db"
+	"leblanc.io/lotor/internal/finding"
+	"leblanc.io/lotor/internal/inventory"
 	"leblanc.io/lotor/internal/locale"
 	"leblanc.io/lotor/internal/org"
 	"leblanc.io/lotor/internal/project"
@@ -35,12 +37,16 @@ type UserOptions struct {
 	Orgs     *org.Service
 	Search   *search.Service
 	Exports  *search.ExportLimiter
-	// Projects et Triage servent l'export VEX d'un projet (T14) ; Version nomme l'outil.
-	Projects *project.Service
-	Triage   *triage.Service
-	Version  string
-	Catalog  *locale.Catalog
-	Logger   *slog.Logger
+	// Projects, Inventory, History et Findings servent la frise et les comparaisons
+	// d'instantanés (T17) ; Triage l'export VEX d'un projet (T14), Version nomme l'outil.
+	Projects  *project.Service
+	Inventory *inventory.Service
+	History   *inventory.History
+	Findings  *finding.Service
+	Triage    *triage.Service
+	Version   string
+	Catalog   *locale.Catalog
+	Logger    *slog.Logger
 	// RateLimit borne les requêtes par minute et par jeton personnel (0 : sans limite).
 	RateLimit int
 	// FailureRateLimit borne les jetons refusés par minute et par IP (0 : sans limite).
@@ -52,7 +58,9 @@ type UserOptions struct {
 // seule, ADR 0025), limitation par jeton, garde d'organisation (404 hors des organisations
 // du compte), puis le serveur généré.
 func MountUser(r chi.Router, o UserOptions) error {
-	if o.Pool == nil || o.Accounts == nil || o.Orgs == nil || o.Search == nil || o.Exports == nil || o.Projects == nil || o.Triage == nil || o.Catalog == nil || o.Logger == nil {
+	if o.Pool == nil || o.Accounts == nil || o.Orgs == nil || o.Search == nil || o.Exports == nil ||
+		o.Projects == nil || o.Inventory == nil || o.History == nil || o.Findings == nil || o.Triage == nil ||
+		o.Catalog == nil || o.Logger == nil {
 		return errors.New("api: dépendances de l'API utilisateur incomplètes")
 	}
 	h := &userAPI{UserOptions: o}
@@ -84,6 +92,8 @@ func MountUser(r chi.Router, o UserOptions) error {
 		r.Get("/search", gen.SearchOrganization)
 		r.Get("/search/export", gen.ExportSearch)
 		r.Get("/projects/{project}/vex", gen.ExportProjectVEX)
+		r.Get("/projects/{project}/snapshots", gen.ListProjectSnapshots)
+		r.Get("/projects/{project}/compare", gen.CompareSnapshots)
 	})
 	return nil
 }

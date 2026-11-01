@@ -82,7 +82,7 @@ sans attendre l'utilisateur, en parallèle de T12, T13 et T17) : les décisions 
 
 ### Livré
 
-- Migration **017** (`017_triage.sql`) : table d'organisation `triage_decisions` (RLS
+- Migration **018** (`018_triage.sql`, numérotée 017 avant la fusion de T17) : table d'organisation `triage_decisions` (RLS
   standard, clés composites vers `projects` et vers elle-même pour une échéance,
   contraintes de cohérence portée / action / statut / justification / échéance), **en
   ajout seul** pour le rôle d'exécution (`REVOKE UPDATE, DELETE, TRUNCATE`, vérifié par
@@ -125,6 +125,16 @@ sans attendre l'utilisateur, en parallèle de T12, T13 et T17) : les décisions 
   `docs/utilisation.md` (triage, VEX, table de correspondance) ; `docs/operations.md`
   (échéances, borne d'import, migration) ; modèle de menace (trois menaces) ;
   `CHANGELOG.md` ; `doc.go` de `triage` et `triage/vex`.
+
+### Intégration avec T17 (fusionné pendant le lot)
+
+- Migration renumérotée **018** après la fusion de T17 (`017_snapshot_history.sql`).
+- L'effet sur la sécurité d'une comparaison d'instantanés (`finding.SnapshotEffect`)
+  ignore les constats « non affecté » et « faux positif » : ni introduits ni résolus
+  (`TestEffectIgnoresMutedFindings`) **[à relire]**.
+- La rétention de T17 met `findings.snapshot_id` à nul quand elle supprime un instantané :
+  le triage n'en dépend pas (décisions rattachées au projet, au purl et à la
+  vulnérabilité ; statut effectif sur le constat, qui reste).
 
 ### Pour T15 (politiques et alertes)
 

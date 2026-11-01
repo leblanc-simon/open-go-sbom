@@ -1,0 +1,49 @@
+/* Changements entre deux instantanés (frise, comparaison) : la nature est dite par un
+   libellé écrit ; le repère (+, −, ↑, ↓) et sa couleur ne font que la souligner. */
+.change {
+  --_fg: var(--color-text-2);
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
+
+  .change__mark {
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.25em;
+    font-family: var(--font-mono);
+    font-weight: var(--weight-bold);
+    color: var(--_fg);
+  }
+
+  &.change--added {
+    --_fg: var(--color-success);
+  }
+
+  &.change--removed {
+    --_fg: var(--color-danger);
+  }
+
+  &.change--upgraded {
+    --_fg: var(--color-accent-text);
+  }
+
+  &.change--downgraded {
+    --_fg: var(--color-warning);
+  }
+}
+
+.changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.subsection-title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+}
