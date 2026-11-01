@@ -106,6 +106,17 @@ appliquées automatiquement, sans retour arrière.
 
 - SEC-09 corrigé : l'ajout d'un membre passe par une invitation à accepter, avec une
   réponse identique que le compte existe ou non.
+- Revue de sécurité du lot 2 (T18, ADR 0051 ; open-go-base v1.4.1) : l'enrôlement du TOTP
+  ne « réactive » plus un second facteur actif et compte ses codes faux dans le
+  verrouillage par compte (SEC2-01) ; « Changer d'application d'authentification » exige
+  un nouveau mot de passe (SEC2-06) ; un jeton d'inscription ne rattache par le nom d'hôte
+  que les projets de son équipe (SEC2-02) ; changer le dépôt d'un projet sans le droit
+  `ai.external` ramène son IA à « désactivée » (SEC2-03) ; le secret d'un canal Matrix ou
+  webhook est à ressaisir quand sa destination change (SEC2-04) ; projets de conteneurs
+  bornés par hôte, réglage `containers.max_per_host` (1 000, SEC2-05) ; les fichiers
+  exclus ne sont plus nommés au fournisseur de modèle (SEC2-07) ; garde SSRF étendue aux
+  adresses NAT64, 6to4 et aux plages réservées (SEC2-08) ; outil de recherche de l'IA
+  sous délai et budget, 20 appels d'outils par réponse (SEC2-09).
 
 ## [0.1.0] - 2026-11-01
 

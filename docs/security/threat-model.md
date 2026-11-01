@@ -1,10 +1,12 @@
 # Modèle de menace
 
-Version 2 (revue de sécurité du lot 1, T11, 31 octobre 2026 ; version 1 : T00). Tenu à jour à chaque lot qui ajoute une frontière de
+Version 3 (revue de sécurité du lot 2, T18, 1er novembre 2026 ; version 2 : revue du
+lot 1, T11 ; version 1 : T00). Tenu à jour à chaque lot qui ajoute une frontière de
 confiance, un actif ou un acteur (§ 19 de l'architecture). Gravité évaluée selon l'OWASP
 Risk Rating au moment où une faiblesse est trouvée ; ce document liste les menaces et les
 parades prévues, et le lot qui les porte. Les constats de la revue du lot 1 (SEC-01 à
-SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T11.
+SEC-14) et du lot 2 (SEC2-01 à SEC2-10) sont rappelés entre parenthèses ; leur suivi est
+dans les Journaux de T11 et de T18 (ADR 0051).
 
 ## Actifs
 
@@ -13,23 +15,34 @@ SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T1
 | Inventaires (SBOM bruts, composants, instantanés) | Cartographie précise du parc : versions vulnérables, paquets internes, noms d'hôtes. Très utile à un attaquant. |
 | Constats et décisions de triage | Liste des failles non corrigées, et de celles qu'on a jugées acceptables. |
 | Comptes, mots de passe, secrets TOTP, sessions | Accès à l'interface et aux données de toutes les organisations d'un compte. |
+| Codes de secours du second facteur | Remplacent un code TOTP à la connexion et pour reconfigurer le second facteur. |
 | Jetons d'agent, d'inscription, personnels | Envoi de faux inventaires, lecture par l'API. |
 | Secrets des forges (clé de GitHub App, jetons GitLab) | Lecture du code des dépôts ; détenus par l'agent dépôt seul. |
+| Secrets des canaux de notification (clé HMAC, jeton Matrix, URL de webhook entrant) | Envoi de messages au nom de lotor, lecture des salons où le robot Matrix se trouve. |
 | Clés de chiffrement des secrets stockés | Déchiffrement des secrets de canaux, OIDC (lots suivants). |
+| Code des dépôts lu par l'IA | Envoyé au fournisseur de modèle externe pour les seuls dépôts autorisés. |
 | Base de vulnérabilités Grype | Une base altérée masque des vulnérabilités ou en invente. |
 | Journal d'audit | Preuve des actions ; doit rester complet et non modifiable par l'application. |
 
 ## Acteurs
 
 - **Visiteur anonyme** sur Internet, face à l'interface et aux API.
-- **Membre d'une organisation** (`viewer`, `analyst`, `admin`) : légitime dans la sienne,
-  hostile ou curieux envers les autres.
+- **Membre d'une organisation** (rôle d'organisation `member` ou `admin`, rôles d'équipe
+  `reader`, `analyst`, `admin` : T16) : légitime dans ses équipes, hostile ou curieux
+  envers les autres équipes de son organisation et envers les autres organisations.
+- **Administrateur d'équipe** : gère les projets, agents et jetons d'inscription de son
+  équipe, distinct de l'administrateur d'organisation (paramètres, membres, canaux, IA
+  externe) ; tenté d'élargir son périmètre.
+- **Porteur d'un jeton d'inscription d'une équipe** : outillage de déploiement où le jeton
+  circule, qui choisit le nom d'hôte déclaré.
 - **Administrateur d'instance** : rôle privilégié assumé, audité.
 - **Agent compromis** : un hôte ou l'agent dépôt dont le jeton est volé.
 - **Contenu hostile** : dépôt analysé, SBOM envoyé, fichier de l'hôte scanné (injection
   d'instructions pour l'IA au lot 2, bombe de décompression, JSON profond, liens
   symboliques piégés).
 - **Fournisseur amont compromis** : distribution de la base Grype, dépendance Go.
+- **Fournisseur de modèle externe** : reçoit ce que l'agent dépôt lui envoie (prompt,
+  extraits, noms de fichiers) ; à ne pas exposer au-delà des dépôts autorisés.
 - **Exploitant de la base** : accès PostgreSQL hors application.
 
 ## Frontières de confiance
@@ -42,6 +55,10 @@ SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T1
 6. Agent dépôt ↔ forges : application installée en lecture seule, webhooks signés.
 7. Agent dépôt ↔ contenu d'un dépôt cloné ; agent serveur ↔ système de fichiers de l'hôte.
 8. Organisation A ↔ organisation B, dans le même serveur et la même base.
+9. Équipe A ↔ équipe B dans une organisation : filtre d'équipe des lectures, matrice des
+   droits, inscription des agents (T16, T18).
+10. Agent dépôt ↔ fournisseur de modèle : ce qui sort (prompt, extraits, noms de
+    fichiers), borné par les exclusions et le réglage par dépôt (T12, T18).
 
 ## Menaces et parades
 
@@ -53,7 +70,7 @@ SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T1
 | Requête forgée (CSRF) | csrfx sur l'interface et l'API utilisateur par session ; jeton lié à la session (HMAC du cookie et du secret de session : écrire le cookie depuis un sous-domaine ou une réponse en clair ne suffit plus) ; protection inter-origines (`Sec-Fetch-Site`, `Origin`) avant csrfx ; cookies `__Host-` quand `auth.cookie_secure` vaut `on` (SEC-08, ADR 0031) | T03, T11 |
 | Cookie de session volé et rejoué indéfiniment | session glissante (`auth.session_ttl`) bornée par une durée absolue depuis la connexion (`login.session_max_age`, 7 jours) (SEC-08) | T11 |
 | Force brute du mot de passe | limitation par IP dédiée à `/login` et `/login/2fa` (une IPv6 compte pour son /64), comparaison bcrypt, journal d'audit des échecs ; pas de verrouillage sur le mot de passe (il laisserait n'importe qui verrouiller un compte par son e-mail) | T03, T11 |
-| Force brute du TOTP avec un mot de passe connu | le plafond de codes par défi ne borne pas l'attaque (un nouveau défi s'obtient en rejouant le mot de passe) : verrouillage **par compte**, tous défis et réauthentifications confondus (10 codes faux en 15 min, verrouillage de 15 min doublé à chaque récidive, 24 h au plus), journalisé (`account.locked`), levé par la réinitialisation du TOTP ; IPv6 regroupée par /64 (SEC-01, ADR 0029) | T11 |
+| Force brute du TOTP avec un mot de passe connu | le plafond de codes par défi ne borne pas l'attaque (un nouveau défi s'obtient en rejouant le mot de passe) : verrouillage **par compte**, tous défis et réauthentifications confondus, **confirmation d'enrôlement comprise** (`EnablePOST`, open-go-base v1.4.1) (10 codes faux en 15 min, verrouillage de 15 min doublé à chaque récidive, 24 h au plus), journalisé (`account.locked`), levé par la réinitialisation du TOTP ; un TOTP actif ne peut pas être « réactivé » (route refusée sans examen du code, dans mfax et dans lotor) ; IPv6 regroupée par /64 (SEC-01, SEC2-01, ADR 0029, 0051) | T11, T18 |
 | Journal d'audit alimenté par un anonyme (échecs de connexion) | une ligne par échec, avec l'e-mail saisi ; borné par la limitation par IP (/64 en IPv6) — risque résiduel accepté (SEC-14) | T11 |
 | Énumération des comptes | message d'échec unique (e-mail inconnu, mot de passe faux, compte désactivé), temps égalisé par une comparaison bcrypt factice | T03 |
 | Énumération des comptes de l'instance par un administrateur d'organisation, ajout d'un compte sans son consentement | **corrigé en T16** (SEC-09, ADR 0034) : un administrateur d'organisation **invite** une adresse, avec la même réponse et le même journal que le compte existe ou non (l'invitation n'est pas liée à `users`) ; le compte ne devient membre qu'en acceptant depuis `/account/invitations` ; une invitation ne vaut que pour l'adresse invitée, une fois, 30 jours au plus, et les invitations en attente sont bornées (200 par organisation). Seul l'administrateur d'instance, qui connaît déjà les comptes, ajoute directement un membre | T11, T16 |
@@ -70,8 +87,8 @@ SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T1
 | Texte arbitraire injecté par un lien (`?error=`) | seuls des codes connus sont affichés (open-go-base v1.1.0, messages `?done=` en liste fermée) | T03 |
 | Usurpation de l'IP journalisée | `X-Forwarded-For` réécrit avec l'IP résolue par les seuls mandataires de confiance | T03 |
 | Rejeu d'un code TOTP | mfax refuse un code déjà utilisé | T03 |
-| Code de secours volé, deviné ou rejoué | 80 bits d'aléa par code, seule l'empreinte SHA-256 liée au compte est gardée ; usage unique (consommation atomique) ; codes faux comptés dans le verrouillage par compte et dans le plafond du défi, compte verrouillé qui refuse aussi les codes de secours ; affichage unique (`Cache-Control: no-store`), régénération soumise à un code TOTP et qui rend caduc l'ancien jeu ; chaque code utilisé ou refusé et chaque jeu généré au journal d'audit ; jamais dans les journaux (open-go-base v1.4.0, ADR 0048) | T18 |
-| Second facteur remplacé depuis une session volée | la reconfiguration exige un code TOTP ou un code de secours, ferme toutes les sessions et impose, à la connexion suivante, le mot de passe puis un nouvel enrôlement ; journalisée (`account.totp_reconfigured`) (ADR 0048) | T18 |
+| Code de secours volé, deviné ou rejoué | 80 bits d'aléa par code, seule l'empreinte SHA-256 liée au compte est gardée ; usage unique (consommation atomique) ; codes faux comptés dans le verrouillage par compte et dans le plafond du défi, compte verrouillé qui refuse aussi les codes de secours ; affichage unique (`Cache-Control: no-store`), régénération soumise à un code TOTP et qui rend caduc l'ancien jeu ; **aucun jeu n'est délivré sans un code TOTP compté dans le verrouillage** (SEC2-01) ; chaque code utilisé ou refusé et chaque jeu généré au journal d'audit ; jamais dans les journaux (open-go-base v1.4.0, ADR 0048) | T18 |
+| Second facteur remplacé depuis une session volée, ou par l'ancien mot de passe pendant une reconfiguration | la reconfiguration exige un code TOTP ou un code de secours **et un nouveau mot de passe** (validé avant la consommation du code), ferme toutes les sessions et impose, à la connexion suivante, ce nouveau mot de passe puis un nouvel enrôlement : **aucun état intermédiaire où l'ancien mot de passe seul enrôle un second facteur** ; journalisée (`account.totp_reconfigured`) (SEC2-06, ADR 0048, 0051) | T18 |
 | Accès à une autre organisation (IDOR) | garde d'organisation, RLS forcée, 404 uniforme, tests d'isolement par route | T03 → |
 | Clickjacking | `frame-ancestors 'none'` | T01 |
 | Compte administrateur unique perdu | procédure de secours auditée, une fois par ticket ; avertissement s'il n'y a qu'un administrateur | T03 |
@@ -82,8 +99,8 @@ SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T1
 
 | Menace | Parade | Lot |
 | --- | --- | --- |
-| Requête vers le réseau interne par une URL de canal (SSRF) : un administrateur d'organisation vise `169.254.169.254`, `localhost` ou un service interne | adresse vérifiée à la connexion, après la résolution DNS (un nom qui change d'adresse ne contourne rien) : bouclage, privé, lien local, partagé, non spécifié et multidiffusion refusés sauf `notify.allow_private_networks` ; aucune redirection suivie, aucun mandataire ; durée et réponse bornées ; l'erreur ne cite pas l'URL (ADR 0046) | T15 |
-| Vol des secrets des canaux (clé HMAC, jeton Matrix, URL de webhook entrant) | chiffrés par `internal/secret`, ligne en données associées (un chiffré recopié ne se déchiffre pas), rechiffrés au démarrage ; jamais réaffichés, jamais journalisés, absents de l'audit (`TestChannelSecretsAreSealed`) | T15 |
+| Requête vers le réseau interne par une URL de canal (SSRF) : un administrateur d'organisation vise `169.254.169.254`, `localhost` ou un service interne | adresse vérifiée à la connexion, après la résolution DNS (un nom qui change d'adresse ne contourne rien) : bouclage, privé, lien local, partagé, non spécifié, multidiffusion et plages réservées refusés sauf `notify.allow_private_networks` ; une adresse IPv6 qui porte une IPv4 (NAT64 `64:ff9b::/96`, 6to4 `2002::/16`, IPv4-compatible) est jugée sur cette IPv4, NAT64 d'usage local et Teredo refusés (SEC2-08) ; aucune redirection suivie, aucun mandataire ; durée et réponse bornées ; l'erreur ne cite pas l'URL. Ports non restreints : le test d'un canal permet à un administrateur d'organisation de savoir si un port d'un hôte public répond depuis le serveur — risque accepté (ADR 0046, 0051) | T15, T18 |
+| Vol des secrets des canaux (clé HMAC, jeton Matrix, URL de webhook entrant) | chiffrés par `internal/secret`, ligne en données associées (un chiffré recopié ne se déchiffre pas), rechiffrés au démarrage ; jamais réaffichés, jamais journalisés, absents de l'audit (`TestChannelSecretsAreSealed`) ; **un secret ne suit jamais une nouvelle destination sans être ressaisi** (serveur Matrix, URL du webhook générique), changement de destination journalisé (SEC2-04, ADR 0051) | T15, T18 |
 | Faux message de lotor ou message rejoué chez le destinataire d'un webhook | `HMAC-SHA256(clé, horodatage + "." + corps)` dans `X-Lotor-Signature`, horodatage dans `X-Lotor-Timestamp`, identifiant de message stable pour écarter un doublon ; vérification documentée (`docs/notifications.md`) | T15 |
 | Règle CEL qui épuise le worker | coût estimé borné à l'enregistrement, même limite au coût réel de chaque évaluation, interruption dans les boucles, expression de 4 000 caractères au plus, 100 politiques par organisation (ADR 0045) | T15 |
 | Injection dans un message (en-têtes de courriel, liens ou mentions Slack) par un nom de projet ou de règle | retours à la ligne retirés des en-têtes, objet encodé ; `& < >` échappés pour Slack et Mattermost ; Matrix en texte brut | T15 |
@@ -125,7 +142,7 @@ SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T1
 | Lecture de la base : jetons de session | jetons en clair dans `sessions` (choix d'authx) : une lecture de la base permet de reprendre une session jusqu'à son expiration ; à faire évoluer dans open-go-base (jeton haché) | ouvert |
 | Journal d'audit modifié ou effacé par l'application (injection SQL, exécution de code, identifiant du rôle d'exécution volé) | `UPDATE`, `DELETE` et `TRUNCATE` retirés au rôle d'exécution sur les deux journaux, vérifiés au démarrage (`CheckRuntimeRole`) (SEC-04, ADR 0030) | T11 |
 | Rôle d'exécution qui crée des objets hors RLS | `CREATE` retiré sur `public` à `PUBLIC`, refus de démarrer si le rôle a `CREATE` sur la base ou sur `public` (SEC-12) | T11 |
-| Fonction inter-organisations trop bavarde | fonctions listées (ADR 0012, 0024), métadonnées seulement, toute nouvelle relue comme un changement de sécurité ; `lotor_list_organizations` et `lotor_org_id_by_slug` n'ont aucune garde SQL (l'appelant vérifie en Go) : une injection SQL future les exposerait, risque accepté (SEC-12) | T03 |
+| Fonction inter-organisations trop bavarde | fonctions listées (ADR 0012, 0024), métadonnées seulement, toute nouvelle relue comme un changement de sécurité ; `lotor_list_organizations`, `lotor_org_id_by_slug` et `lotor_user_invitations` (identifiant du compte en paramètre) n'ont aucune garde SQL (l'appelant vérifie en Go, l'acceptation d'une invitation revérifie tout sous la RLS) : une injection SQL future les exposerait, risque accepté (SEC-12, SEC2-10) | T03, T16 |
 | Fuite par les journaux | jamais de mot de passe, jeton, secret ni contenu de SBOM dans les journaux | tous |
 
 ### Base de vulnérabilités
@@ -148,13 +165,14 @@ SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T1
 | Jeton lisible par d'autres comptes | répertoire d'état en `0700`, fichier en `0600` écrit atomiquement, ou credentials systemd chiffrés ; un fichier secret ouvert au groupe ou aux autres est refusé | T07 |
 | Jeton envoyé à un tiers | HTTPS seulement, aucune redirection suivie, jeton jamais journalisé | T07 |
 | Saturation de l'hôte par le scan | `GOMAXPROCS` et `GOMEMLIMIT` bas, `Nice=19`, `IOSchedulingClass=idle`, `MemoryMax`, durée maximale de scan ; montages réseau et autofs non parcourus | T07 |
-| Jeton d'inscription partagé qui choisit son nom d'hôte | sans `project_id`, l'agent est rattaché au projet hôte non affecté qui porte le nom d'hôte **déclaré** : un porteur du jeton peut prendre un projet hôte créé à la main et encore sans agent. Risque accepté sous l'hypothèse « hôtes non compromis à l'inscription » ; jetons d'inscription bornés en durée et en usages, inscription auditée (SEC-13) | T07 |
+| Jeton d'inscription partagé qui choisit son nom d'hôte | sans `project_id`, l'agent est rattaché au projet hôte non affecté qui porte le nom d'hôte **déclaré**, **dans l'équipe du jeton seulement** : un homonyme d'une autre équipe répond « hôte déjà suivi », sans être pris ni révéler son équipe ou son état ; un projet désigné passé dans une autre équipe n'est plus confié (SEC2-02, ADR 0051). Dans l'équipe, un porteur du jeton peut prendre un projet hôte créé à la main ou libéré et encore sans agent : risque accepté sous l'hypothèse « hôtes non compromis à l'inscription » ; jetons d'inscription bornés en durée et en usages, inscription auditée (SEC-13) | T07, T18 |
 | Jeton d'agent sans expiration | accepté (ADR 0014) : révocation immédiate, date de dernier usage, rotation documentée (SEC-14) | T04 |
 | Confirmation d'inventaire usurpée | un compte rendu n'avance que la date de dernière analyse d'une référence d'hôte confiée à l'agent, et seulement si l'empreinte est celle de l'ensemble courant | T07 |
 | Socket Docker = root | inventaire des conteneurs désactivé par défaut (`containers.enabled`) : sans lui, aucune socket n'est ouverte (testé) ; documenté comme équivalent à root, socket Podman sans root recommandée ; l'unité fournie ne donne aucun accès, à ajouter par un complément explicite (ADR 0041) | T13 |
 | Image de conteneur piégée (contenu tiers) | image exportée puis lue comme fichier par Syft, sans moteur ni registre ; catalogueurs hors ligne (aucun outil exécuté, aucun accès réseau) ; export borné (`containers.max_image_mib`) dans un répertoire `0700`, archive supprimée après le scan ; réponses du moteur bornées ; mêmes bornes d'ingestion qu'un SBOM d'hôte côté serveur | T13 |
 | Agent qui crée ou alimente les conteneurs d'un autre hôte | le signalement ne désigne pas l'hôte : le serveur prend l'hôte actif confié au jeton ; un envoi vers un conteneur passe par `project.RefForAgent`, qui exige l'agent de son hôte (testé) ; 500 identités au plus par signalement, corps borné à 1 Mio (ADR 0040) | T13 |
-| Conteneur visible d'une autre équipe | l'équipe d'un conteneur est celle de son hôte, imposée par une clé étrangère en cascade (ADR 0040) | T13 |
+| Conteneur visible d'une autre équipe | l'équipe d'un conteneur est celle de son hôte, imposée par une clé étrangère en cascade (ADR 0040) ; elle ne protège que si l'hôte lui-même ne peut pas être pris par une autre équipe : inscription bornée à l'équipe du jeton (SEC2-02) | T13, T18 |
+| Déni de service par création de conteneurs (jeton d'agent volé, hôte compromis) | projets enfants d'un hôte, actifs ou archivés, bornés (`containers.max_per_host`, 1 000) : un signalement qui en créerait davantage est refusé sans rien créer ni journaliser ; seule la purge supprime un enfant, la borne totale borne donc les créations dans le temps ; 500 identités par signalement, limitation par jeton (SEC2-05, ADR 0051) | T18 |
 | Serveur usurpé | TLS vérifié (autorité privée possible) ; mTLS facultatif, exigé alors sur toute l'API des agents avant la lecture du jeton | T07 |
 
 ### Agent dépôt
@@ -170,10 +188,10 @@ SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T1
 | Exécution de code du dépôt | aucun crochet git, LFS inerte, Syft sans `go list` ni réseau (`golang.UsePackagesLib=false`) | T08 |
 | Statut de commit falsifié ou droit d'écriture abusé | statut publié par l'agent seul, à partir du verdict du serveur ; jeton GitHub de statut séparé, restreint au dépôt et à `statuses: write` (le jeton du clonage reste en lecture) ; désactivé par défaut (ADR 0047) | T15 |
 | Vol des secrets de forge | détenus par l'agent seul, jamais en base ni en configuration en clair ; credentials systemd ou fichiers `0600` ; jamais dans les arguments de git, l'URL ni les journaux ; jeton GitHub restreint à `contents: read` et au dépôt analysé ; les droits du jeton GitLab bornent ce qu'une organisation peut faire analyser | T08, T11 |
-| Injection d'instructions vers l'IA : le dépôt fait lire au modèle des fichiers hors de l'arborescence ou des secrets | quatre outils seulement (lecture seule, sans réseau ni écriture), tout accès par un `os.Root` sur l'arborescence de l'analyse, chemins absolus et remontées refusés, fichiers sensibles (motifs, clés privées détectées) ni listés, ni lus, ni fouillés et indiscernables d'un fichier absent ; l'analyse ne reçoit aucun secret de l'agent ; prouvé par les dépôts hostiles du corpus avec un faux fournisseur enregistré (ADR 0043, 0044) | T12 |
+| Injection d'instructions vers l'IA : le dépôt fait lire au modèle des fichiers hors de l'arborescence ou des secrets | quatre outils seulement (lecture seule, sans réseau ni écriture), tout accès par un `os.Root` sur l'arborescence de l'analyse, chemins absolus et remontées refusés, fichiers sensibles (motifs, clés privées détectées) ni listés, ni lus, ni fouillés, **ni nommés dans le prompt** (périmètre incrémental filtré, SEC2-07) et indiscernables d'un fichier absent (sauf un fichier de plus de 64 Kio qui contiendrait une clé privée : listé puis refusé à la lecture, reste accepté) ; l'analyse ne reçoit aucun secret de l'agent ; prouvé par les dépôts hostiles du corpus avec un faux fournisseur enregistré (ADR 0043, 0044) | T12 |
 | Injection d'instructions vers l'IA : le dépôt fait inventer ou accepter un composant | seule sortie acceptée : `submit_candidates` validé par schéma ; vérificateur déterministe seul juge (extrait relu à la ligne, nom et version présents, purl cohérent) ; aucune preuve tirée de la documentation, d'un manifeste ou d'un fichier qui s'adresse au modèle, ni d'un extrait qui cite un purl (ADR 0043) | T12 |
-| Fuite de code vers un fournisseur externe non autorisé | IA désactivée par défaut ; fournisseur externe autorisé projet par projet par un administrateur d'organisation, audité ; `ai.forbid_external` sur l'instance ; réglage effectif transmis à l'agent ; client Anthropic sans aucune valeur lue dans l'environnement (ADR 0042, 0043) | T12 |
-| Coût ou durée d'analyse incontrôlés (dépôt piège, boucle du modèle) | budget de tours, de jetons, d'octets lus et de durée ; au-delà, SBOM Syft seul marqué incomplet ; analyse incrémentale ; commits intermédiaires sans appel au modèle | T12 |
+| Fuite de code vers un fournisseur externe non autorisé | IA désactivée par défaut ; fournisseur externe autorisé projet par projet par un administrateur d'organisation, audité ; **l'autorisation vaut pour un dépôt : changer l'URL du dépôt sans le droit `ai.external` la retire** (réglage ramené à « désactivé », journalisé, SEC2-03) ; `ai.forbid_external` sur l'instance ; réglage effectif transmis à l'agent ; client Anthropic sans aucune valeur lue dans l'environnement (ADR 0042, 0043) | T12 |
+| Coût ou durée d'analyse incontrôlés (dépôt piège, boucle du modèle) | budget de tours, de jetons, d'octets lus et de durée ; délai vérifié entre deux appels d'outils et pendant une recherche, chaque recherche décomptée du budget de lecture, 20 appels d'outils au plus par réponse du modèle (SEC2-09) ; au-delà, SBOM Syft seul marqué incomplet ; analyse incrémentale ; commits intermédiaires sans appel au modèle | T12, T18 |
 | Clé d'API du modèle volée | credential systemd ou fichier `0600`, jamais en configuration ni dans les journaux ; erreurs du fournisseur résumées sans corps de réponse | T12 |
 
 ### Chaîne d'approvisionnement du projet
@@ -190,7 +208,9 @@ SEC-14) sont rappelés entre parenthèses ; leur suivi est dans le Journal de T1
 - TLS est terminé par le serveur ou par un mandataire inverse de confiance.
 - L'exploitant de PostgreSQL et l'administrateur d'instance sont de confiance ; la RLS
   protège des erreurs de l'application, pas d'un superutilisateur de la base.
-- Les hôtes qui portent un agent ne sont pas compromis au moment de l'inscription.
+- Les hôtes qui portent un agent ne sont pas compromis au moment de l'inscription. Cette
+  hypothèse ne couvre que l'équipe du jeton d'inscription : une autre équipe ne peut pas
+  prendre un hôte par son nom (SEC2-02).
 - Derrière un mandataire, seuls les mandataires de `web.trusted_proxies` fournissent l'IP
   du client ; un mandataire de confiance qui ne pose pas `X-Forwarded-For` doit écraser
   `X-Real-IP` (repli d'open-go-base) (SEC-14).
