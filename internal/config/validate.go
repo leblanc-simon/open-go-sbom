@@ -209,6 +209,12 @@ func (c Config) Validate() error {
 	v.positive("workers.org_limit", int64(c.Workers.OrgLimit))
 	c.Ingest.validate(&v)
 	c.VulnDB.validate(&v)
+	if c.Retention.Days < 1 || c.Retention.Days > 36500 {
+		v.fail("retention.days", "doit être compris entre 1 et 36500 (reçu %d)", c.Retention.Days)
+	}
+	if c.Retention.Count < 0 || c.Retention.Count > 100000 {
+		v.fail("retention.count", "doit être compris entre 0 et 100000 (reçu %d)", c.Retention.Count)
+	}
 
 	return errors.Join(v.errs...)
 }

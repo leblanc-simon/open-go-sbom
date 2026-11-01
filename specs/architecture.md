@@ -67,7 +67,7 @@ internal/
   token/                 # format des jetons (agt, enr, pat), tirage, lecture, empreinte
   sbom/                  # modèle interne, normalisation purl, empreinte d'inventaire
     syft/                # décodage et encodage via Syft
-  inventory/             # composants, ensembles d'inventaire, instantanés
+  inventory/             # composants, ensembles d'inventaire, instantanés, différences, rétention
   ingest/                # réception, stockage brut, pipeline de décodage
   version/               # comparaison de versions par écosystème, analyse de `vers`
     grypeversion/        # adaptateur vers les comparateurs de Grype
@@ -186,7 +186,8 @@ de chiffrement versionnées, obligatoires depuis T03 : les secrets TOTP sont chi
 tentatives de connexion, T03), `AgentAPI` (débit de l'API des agents par jeton et des
 jetons refusés par IP, T04), `UserAPI` (débit de l'API utilisateur par jeton personnel,
 jetons refusés par IP, durée et nombre simultané des exports de la recherche, T09),
-`Migration`
+`Retention` (rétention des instantanés : fenêtre en jours, nombre gardé, dernier
+instantané de chaque mois au-delà, T17, ADR 0039), `Migration`
 (`migration_dsn` : connexion du rôle propriétaire, utilisée uniquement pour migrer).
 `Database.DSN` est la connexion du rôle d'exécution. `--help` liste toutes les variables
 d'environnement. Un `config.example.yaml` commenté accompagne chaque binaire. Un fragment
@@ -275,7 +276,9 @@ Données **par organisation** (toutes portent `org_id`) :
 | `ingestions` | réception d'un SBOM : statut, erreurs, instantané produit |
 | `snapshots` | instantané d'une référence : commit, date, agent, version d'agent, blob, ensemble d'inventaire |
 | `ref_current` | instantané et ensemble courants de chaque référence (lecture rapide) |
-| `findings`, `finding_events` | constat (référence × composant × vulnérabilité) : première et dernière détection, résolution et motif, risque, base ; historique (ouvert, résolu, rouvert) |
+| `set_diffs`, `set_diff_items` | différence entre deux ensembles d'inventaire d'instantanés consécutifs : décomptes, puis changements (ajout, retrait, montée, descente de version) (T17, ADR 0038) |
+| `snapshot_retention` | dernier passage de la rétention : horizon (plus récente coupure appliquée), bilan (T17, ADR 0039) |
+| `findings`, `finding_events` | constat (référence × composant × vulnérabilité) : première et dernière détection, résolution et motif, risque, base ; historique (ouvert, résolu, rouvert) ; instantané qui l'a vu, mis à nul si la rétention le supprime |
 | `ref_analyses` | dernière analyse de chaque référence : ensemble et base analysés |
 | `audit_events`, `org_daily_stats`, `project_daily_stats` | journal d'audit ; statistiques quotidiennes de l'organisation et de chaque projet actif (une ligne par jour UTC, réécrite à chaque passage horaire, ADR 0027) |
 | `triage_decisions`, `policies`, `notification_channels`… | lots 2 et 3 |
@@ -284,6 +287,20 @@ Les **ensembles d'inventaire** sont adressés par contenu : deux instantanés au
 inventaire partagent le même ensemble. Un nouveau commit sans changement de dépendances
 coûte une ligne, la différence entre instantanés est une différence entre ensembles, et la
 rétention supprime les ensembles orphelins.
+
+**Différences et rétention (T17).** La différence des instantanés consécutifs d'une
+référence est calculée par le job `inventory.diff` (mis en file par l'ingestion d'un
+instantané créé ou remplacé) et enregistrée par couple d'ensembles ; deux versions d'un
+même `purl_base` forment une montée ou une descente, comparées par `internal/version` ;
+une comparaison quelconque est calculée à la demande ; l'effet sur la sécurité (constats
+introduits et résolus) est calculé à la lecture (ADR 0038). La rétention quotidienne
+(`retention.snapshots_all`, puis une par organisation) garde tout `retention.days`
+jours (90), puis le dernier instantané de chaque mois, jamais le dernier d'une référence
+ni celui en vigueur au début de la fenêtre ; elle supprime les réceptions terminées hors
+fenêtre, puis les ensembles et SBOM que plus rien ne référence (l'ingestion verrouille
+ce qu'elle réutilise, la rétention le saute). Son horizon (`snapshot_retention`) dit à la
+recherche à une date passée (T21) en deçà de quelle date l'historique est réduit
+(ADR 0039).
 
 ## 9. Multi-organisation
 

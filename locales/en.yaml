@@ -521,6 +521,13 @@ admin_org:
   unarchive: Reactivate
 
 error:
+  diff:
+    no_previous:
+      title: No previous snapshot
+      text: This snapshot is the first of its reference; choose the snapshot to start from.
+    kind_invalid:
+      title: Unknown change kind
+      text: "The kind filter accepts added, removed, upgraded or downgraded."
   search:
     empty:
       title: Empty query
@@ -978,6 +985,16 @@ snapshots:
   col_result: Result
   pending: Decoding pending
   no_ingestions: No SBOM received for this project.
+  compare_previous: Compare with the previous one
+  no_change: Same inventory as the previous one
+  changes_pending: Difference with the previous one being computed
+  retention_monthly:
+    one: "Retention: every snapshot of the last day, then the last one of each month, with no time limit. The latest snapshot of a reference is always kept."
+    other: "Retention: every snapshot of the last {{.Count}} days, then the last one of each month, with no time limit. The latest snapshot of a reference is always kept."
+  retention_window:
+    one: "Retention: every snapshot of the last day; beyond it, only the one in force at the start of this window. The latest snapshot of a reference is always kept."
+    other: "Retention: every snapshot of the last {{.Count}} days; beyond them, only the one in force at the start of this window. The latest snapshot of a reference is always kept."
+  retention_off: "Retention disabled: every snapshot is kept."
 
 snapshot:
   title: "Snapshot of {{.Date}} — {{.Name}}"
@@ -1010,6 +1027,7 @@ snapshot:
   no_license: None
   no_match: No component matches these filters.
   empty: This snapshot has no component.
+  changes: Since the previous one
 host_agent:
   context_title: Host
   last_inventory: Last inventory
@@ -1516,3 +1534,67 @@ team:
   rename: "Rename"
   delete_text: "A team can only be deleted once all its projects have been moved to another team."
   delete: "Delete the team"
+
+changes:
+  mark_added: "+"
+  mark_removed: "−"
+  mark_upgraded: "↑"
+  mark_downgraded: "↓"
+  added:
+    one: "{{.Count}} added"
+    other: "{{.Count}} added"
+  removed:
+    one: "{{.Count}} removed"
+    other: "{{.Count}} removed"
+  upgraded:
+    one: "{{.Count}} upgraded"
+    other: "{{.Count}} upgraded"
+  downgraded:
+    one: "{{.Count}} downgraded"
+    other: "{{.Count}} downgraded"
+
+compare:
+  title: "Snapshot comparison — {{.Name}}"
+  heading: "Snapshot comparison of {{.Name}}"
+  crumb: Comparison
+  previous: Previous snapshot
+  form_title: Compare two snapshots
+  from: From
+  to: To
+  submit: Compare
+  no_previous_title: No previous snapshot
+  no_previous_text: This snapshot is the first of its reference. Choose the snapshot to start from.
+  sides_title: Compared snapshots
+  swap: Swap
+  component_count:
+    one: "{{.Count}} component"
+    other: "{{.Count}} components"
+  summary_title: Changes
+  kind_added: Added
+  kind_removed: Removed
+  kind_upgraded: Upgraded
+  kind_downgraded: Downgraded
+  effect_title: Security impact
+  effect_meta: Findings of the changed components, from the analyses of each reference
+  pending_title: Analysis pending
+  pending_text: "The second snapshot is not analysed yet: introduced findings may be missing."
+  resolved_title: Resolved findings
+  introduced_title: Introduced findings
+  none_resolved: No finding resolved by this change.
+  none_introduced: No finding introduced by this change.
+  truncated: "Only the {{.Max}} findings with the highest risk are listed."
+  changes_title: Changed components
+  changes_count:
+    one: "{{.Count}} change"
+    other: "{{.Count}} changes"
+  filter_label: Filter by kind of change
+  all: All
+  changes_caption: Components added, removed, upgraded or downgraded between the two snapshots
+  col_component: Component
+  col_change: Change
+  col_old: Before
+  col_new: After
+  col_purl: purl
+  approximate: "Versions not comparable: direction taken from alphabetical order"
+  none_of_kind: No change of this kind.
+  identical: Both snapshots have the same inventory.
