@@ -590,6 +590,15 @@ l'utilisateur `lotor-agent` (et quiconque le compromet) ait ce pouvoir.
   `containers.archive_after` (7 jours ; `LOTOR_CONTAINERS_ARCHIVE_AFTER`) voit son projet
   archivé par une échéance horaire ; il revient de lui-même s'il redémarre. Un projet de
   conteneur archivé à la main n'est plus inventorié, même s'il tourne.
+- **Purge** (T18, ADR 0049) : archivé pour absence depuis `containers.purge_after`
+  (180 jours ; `LOTOR_CONTAINERS_PURGE_AFTER`, `0` : jamais, au moins `retention.days`),
+  le projet d'un conteneur est **supprimé avec tout son historique** (instantanés,
+  réceptions, constats, violations) par la rétention nocturne, qu'elle soit activée ou
+  non (voir « Rétention des instantanés »). Chaque suppression est journalisée dans le
+  journal d'audit de l'organisation (« conteneur … supprimé avec son historique »). Ne
+  sont jamais purgés un conteneur archivé à la main (son archivage dit à l'agent de
+  l'ignorer) ni un conteneur qui porte une décision de triage. S'il revient plus tard,
+  le conteneur est un nouveau projet.
 
 ### Mesures
 
@@ -675,8 +684,11 @@ organisation (jobs `retention.snapshots_all`, puis `retention.snapshots_org`). R
   même `enabled: false`. Les composants restent (les constats les référencent).
 - Une ingestion concurrente n'est jamais gênée : elle verrouille l'ensemble ou le SBOM
   qu'elle réutilise, que la rétention saute alors (ADR 0039).
+- Le même passage **purge les conteneurs archivés pour absence** depuis
+  `containers.purge_after` (180 jours, voir « Conteneurs ») ; leurs ensembles et SBOM
+  partent avec les orphelins.
 - Chaque passage journalise son bilan (`rétention des instantanés`, champs `snapshots`,
-  `ingestions`, `sets`, `blobs`, `diffs`, `recompute`) et l'enregistre dans
+  `ingestions`, `sets`, `blobs`, `diffs`, `containers`, `recompute`) et l'enregistre dans
   `snapshot_retention` avec l'**horizon** (la plus récente coupure appliquée) : avant
   cette date, l'historique d'une référence est réduit à un instantané par mois, et la
   recherche à une date passée (lot 3) avertit que ses résultats sont partiels.

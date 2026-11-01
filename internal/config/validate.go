@@ -221,6 +221,9 @@ func (c Config) Validate() error {
 	}
 	c.Notify.validate(&v)
 	c.SMTP.validate(&v)
+	if c.Containers.PurgeAfter != 0 && c.Containers.PurgeAfter < time.Duration(c.Retention.Days)*24*time.Hour {
+		v.fail("containers.purge_after", "0 (jamais) ou au moins retention.days (%d jours ; reçu %s)", c.Retention.Days, c.Containers.PurgeAfter)
+	}
 	if c.Containers.ArchiveAfter < time.Hour {
 		v.fail("containers.archive_after", "au moins 1h (reçu %s)", c.Containers.ArchiveAfter)
 	}

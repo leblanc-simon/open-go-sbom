@@ -168,7 +168,7 @@ func run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	findings := finding.NewService(pool)
 	history, err := inventory.NewHistory(inventory.HistoryOptions{Pool: pool, Comparer: grypeversion.New(), Logger: logger,
 		Retention: inventory.RetentionPolicy{Enabled: cfg.Retention.Enabled, Days: cfg.Retention.Days, Count: cfg.Retention.Count,
-			Monthly: cfg.Retention.Monthly}})
+			Monthly: cfg.Retention.Monthly, ContainerPurgeAfter: cfg.Containers.PurgeAfter}})
 	if err != nil {
 		return err
 	}

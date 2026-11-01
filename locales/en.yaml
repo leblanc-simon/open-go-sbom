@@ -508,6 +508,7 @@ audit:
     project_updated: "Project {{.Target}} edited ({{.D_fields}})"
     project_archived: "Project {{.Target}} archived"
     project_unarchived: "Project {{.Target}} unarchived"
+    project_purged: "Container {{.Target}} of host {{.D_host}} deleted with its history, archived for absence since {{.D_archived_at}}"
     project_agent_changed: "Agent of project {{.Target}}: {{.D_agent}}"
     project_ai_mode_changed: "AI enrichment of project {{.Target}}: {{.D_from}} → {{.D_to}}"
     agent_created: "Agent {{.Target}} created"
