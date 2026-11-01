@@ -229,3 +229,32 @@ En sens inverse, `component_not_present` et `vulnerable_code_not_present` devien
 note `[lotor:…]` dans `status_notes` ; CycloneDX a `false_positive`, et « risque accepté »
 y devient `exploitable` avec la réponse `will_not_fix` et des propriétés `lotor:`. Le
 détail est dans l'ADR 0036.
+## Composants trouvés par l'IA
+
+Pour un dépôt, l'agent dépôt peut compléter l'inventaire de Syft par les composants
+qu'aucun manifeste ne déclare : bibliothèque JavaScript ou C recopiée, image de base d'un
+Dockerfile, script chargé depuis un CDN, outil installé par un script. Ces composants ont
+l'origine **IA** (badge à bordure tiretée, avec la confiance du modèle) ; ceux de Syft,
+l'origine **Syft**.
+
+**Réglage.** Dans **Paramètres** du dépôt, section **Enrichissement IA** : *IA désactivée*
+(par défaut : aucun modèle n'est appelé), *Modèle local uniquement* (le code ne va qu'au
+modèle que l'exploitant de l'agent fait tourner chez lui), ou *Fournisseur externe
+autorisé* (le code lu par l'analyse peut partir chez le fournisseur configuré sur l'agent,
+hors fichiers sensibles). Seul un administrateur de l'organisation peut autoriser un
+fournisseur externe, et l'instance peut l'interdire à tous ; chaque changement est inscrit
+au journal d'audit. Ce qui part exactement vers le modèle est décrit dans
+[`operations.md`](operations.md#enrichissement-ia).
+
+**Preuve.** Un composant IA n'entre dans l'inventaire que si l'agent a relu sa preuve dans
+le fichier, au commit analysé. La fiche du composant montre, pour chaque projet qui
+l'utilise, le fichier, la ligne, l'extrait, la confiance et le modèle ; la colonne
+**Emplacement** y mène. La preuve garantit que le nom et la version figurent dans le
+fichier, pas que la détection est juste : la confiance est l'estimation du modèle.
+
+**Où les voir.** La fiche projet compte les composants de chaque référence par origine ;
+la liste des composants d'un instantané et la recherche se filtrent par origine. Un
+instantané marqué **Enrichissement IA incomplet** ne contient que les composants de Syft
+(analyse interrompue : budget dépassé ou erreur du fournisseur) ; **Composants IA
+reportés** signale un commit intermédiaire dont les composants IA du commit précédent ont
+été revérifiés sans nouvelle analyse.

@@ -1,0 +1,10 @@
+description: Images de base des étapes d'un Dockerfile ; FROM scratch n'est pas un composant.
+components:
+  - purl: pkg:docker/library/node@20.11.1-alpine3.19
+    file: Dockerfile
+    line: 2
+    excerpt: "FROM node:20.11.1-alpine3.19 AS build"
+  - purl: pkg:docker/library/nginx@1.25.4-alpine
+    file: Dockerfile
+    line: 7
+    excerpt: "FROM nginx:1.25.4-alpine"

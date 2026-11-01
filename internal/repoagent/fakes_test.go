@@ -28,6 +28,7 @@ type fakeForge struct {
 	resolves int
 	compares int
 	failCmp  bool
+	files    []string // fichiers modifiés renvoyés par Compare
 }
 
 func (f *fakeForge) Name() string     { return f.name }
@@ -62,7 +63,7 @@ func (f *fakeForge) Compare(_ context.Context, _ string, base, head string) (for
 	if f.failCmp {
 		return forge.Comparison{}, errors.New("comparaison impossible")
 	}
-	var c forge.Comparison
+	c := forge.Comparison{Files: append([]string(nil), f.files...)}
 	in := false
 	for _, x := range f.history {
 		if in {
@@ -109,6 +110,16 @@ type fakeServer struct {
 	heartbeats int
 	listErr    error
 	uploadErr  error
+	ai         map[string][]PreviousComponent // composants IA par référence
+	aiCalls    int
+	aiErr      error
+}
+
+func (s *fakeServer) AIComponents(_ context.Context, refID string) ([]PreviousComponent, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.aiCalls++
+	return append([]PreviousComponent(nil), s.ai[refID]...), s.aiErr
 }
 
 func (s *fakeServer) Projects(context.Context) ([]Project, error) {

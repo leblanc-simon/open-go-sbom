@@ -59,6 +59,10 @@ type Record struct {
 	SpecVersion  string
 	// Components sont normalisés (sbom.Normalize) : purl uniques.
 	Components []sbom.Component
+	// Enrichment et EnrichmentModel : statut de l'enrichissement IA déclaré par le SBOM
+	// (vide sans enrichissement), repris par l'instantané à chaque envoi.
+	Enrichment      sbom.Enrichment
+	EnrichmentModel string
 }
 
 // Result décrit ce que Store a écrit.
@@ -303,10 +307,10 @@ func insertSnapshot(ctx context.Context, tx *db.OrgTx, r Record, setID uuid.UUID
 	}
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO snapshots (org_id, id, project_id, ref_id, commit_sha, agent_id, agent_version, scanned_at, last_scanned_at,
-		                       blob_id, set_id, format, spec_version, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $7, $8, $8, $9, $10, $11, $12, $13, $13)`,
+		                       blob_id, set_id, format, spec_version, created_at, updated_at, enrichment, enrichment_model)
+		VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $7, $8, $8, $9, $10, $11, $12, $13, $13, NULLIF($14, ''), $15)`,
 		tx.OrgID(), id, r.ProjectID, r.RefID, r.Commit, nullUUID(r.AgentID), r.AgentVersion, r.ScannedAt,
-		r.BlobID, setID, string(r.Format), r.SpecVersion, now)
+		r.BlobID, setID, string(r.Format), r.SpecVersion, now, string(r.Enrichment), r.EnrichmentModel)
 	return id, err
 }
 
@@ -324,10 +328,19 @@ func touch(ctx context.Context, tx *db.OrgTx, snapshotID uuid.UUID, scannedAt, n
 	return err
 }
 
+// touchSent fait de même pour un SBOM reçu à inventaire inchangé, et reprend son statut
+// d'enrichissement IA.
+func touchSent(ctx context.Context, tx *db.OrgTx, snapshotID uuid.UUID, r Record, now time.Time) error {
+	_, err := tx.ExecContext(ctx, `UPDATE snapshots SET last_scanned_at = GREATEST(last_scanned_at, $2), updated_at = $3,
+		enrichment = NULLIF($4, ''), enrichment_model = $5
+		WHERE id = $1`, snapshotID, r.ScannedAt, now, string(r.Enrichment), r.EnrichmentModel)
+	return err
+}
+
 func storeHostSnapshot(ctx context.Context, tx *db.OrgTx, r Record, cur current, now time.Time, res *Result) error {
 	if cur.exists && cur.setID == res.SetID {
 		res.SnapshotID, res.Outcome = cur.snapshotID, OutcomeUnchanged
-		return touch(ctx, tx, cur.snapshotID, r.ScannedAt, now)
+		return touchSent(ctx, tx, cur.snapshotID, r, now)
 	}
 	id, err := insertSnapshot(ctx, tx, r, res.SetID, now)
 	res.SnapshotID, res.Outcome = id, OutcomeCreated
@@ -347,16 +360,17 @@ func storeRepoSnapshot(ctx context.Context, tx *db.OrgTx, r Record, now time.Tim
 		return err
 	case setID == res.SetID:
 		res.SnapshotID, res.Outcome = id, OutcomeUnchanged
-		return touch(ctx, tx, id, r.ScannedAt, now)
+		return touchSent(ctx, tx, id, r, now)
 	}
 	// Même commit, autre inventaire (agent mis à jour, enrichissement) : le dernier envoi
 	// fait foi. ref_current suit par ON UPDATE CASCADE s'il désigne cet instantané.
 	res.SnapshotID, res.Outcome = id, OutcomeReplaced
 	_, err = tx.ExecContext(ctx, `
 		UPDATE snapshots SET set_id = $2, blob_id = $3, agent_id = $4, agent_version = $5, format = $6, spec_version = $7,
-		       scanned_at = $8, last_scanned_at = $8, updated_at = $9
+		       scanned_at = $8, last_scanned_at = $8, updated_at = $9, enrichment = NULLIF($10, ''), enrichment_model = $11
 		 WHERE id = $1`,
-		id, res.SetID, r.BlobID, nullUUID(r.AgentID), r.AgentVersion, string(r.Format), r.SpecVersion, r.ScannedAt, now)
+		id, res.SetID, r.BlobID, nullUUID(r.AgentID), r.AgentVersion, string(r.Format), r.SpecVersion, r.ScannedAt, now,
+		string(r.Enrichment), r.EnrichmentModel)
 	return err
 }
 

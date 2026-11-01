@@ -25,6 +25,9 @@ const (
 	PropOrigin     = "lotor:origin"
 	PropConfidence = "lotor:confidence"
 	PropModel      = "lotor:model"
+	// Propriétés des métadonnées du document : statut et modèle de l'enrichissement IA.
+	PropEnrichment      = "lotor:enrichment"
+	PropEnrichmentModel = "lotor:enrichment-model"
 )
 
 // Decode décode un SBOM dont sbom.Precheck a reconnu le format, puis le normalise
@@ -42,7 +45,7 @@ func Decode(format sbom.Format, data []byte) (sbom.Document, error) {
 	if err != nil {
 		return sbom.Document{}, sbom.Reject(sbom.KeyDecodeFailed, "", err)
 	}
-	raw := sbom.RawDocument{Format: format, SpecVersion: version}
+	raw := sbom.RawDocument{Format: format, SpecVersion: version, Enrichment: extra.enrichment, EnrichmentModel: extra.enrichmentModel}
 	if d := s.Artifacts.LinuxDistribution; d != nil && d.ID != "" {
 		raw.Distro = &sbom.Distro{ID: d.ID, VersionID: d.VersionID, Name: d.PrettyName}
 	}
@@ -111,6 +114,8 @@ func licenses(p pkg.Package) []string {
 type extras struct {
 	byID      map[string]extra
 	described map[string]bool
+	// enrichment et enrichmentModel : propriétés lotor: des métadonnées (CycloneDX).
+	enrichment, enrichmentModel string
 }
 
 type extra struct {
@@ -148,7 +153,8 @@ type cdxComponent struct {
 
 type cdxDocument struct {
 	Metadata *struct {
-		Component *cdxComponent `json:"component"`
+		Component  *cdxComponent `json:"component"`
+		Properties []cdxProperty `json:"properties"`
 	} `json:"metadata"`
 	Components []cdxComponent `json:"components"`
 }
@@ -174,6 +180,16 @@ func readExtras(format sbom.Format, data []byte) (extras, error) {
 		}
 		if d.Metadata != nil && d.Metadata.Component != nil && d.Metadata.Component.BOMRef != "" {
 			x.described[d.Metadata.Component.BOMRef] = true
+		}
+		if d.Metadata != nil {
+			for _, p := range d.Metadata.Properties {
+				switch p.Name {
+				case PropEnrichment:
+					x.enrichment = p.Value
+				case PropEnrichmentModel:
+					x.enrichmentModel = p.Value
+				}
+			}
 		}
 		x.addCycloneDX(d.Components)
 	case sbom.FormatSPDX:

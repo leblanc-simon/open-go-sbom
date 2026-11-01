@@ -13,12 +13,16 @@ type Project struct {
 	ID       string
 	Slug     string
 	ForgeURL string
-	Refs     []TrackedRef
+	// AIMode est le réglage d'enrichissement IA transmis par le serveur ; vide vaut
+	// AIDisabled.
+	AIMode AIMode
+	Refs   []TrackedRef
 }
 
 // TrackedRef est une référence suivie et le commit de son instantané courant (vide tant
 // qu'aucun SBOM n'a été rangé).
 type TrackedRef struct {
+	ID         string
 	Ref        forge.Ref
 	LastCommit string
 }
@@ -44,6 +48,9 @@ type Server interface {
 	// Upload envoie un SBOM ; il revient dès que le serveur l'a accepté (202, ou 200 pour
 	// un renvoi identique). Une erreur qui enveloppe ErrRejected est définitive.
 	Upload(ctx context.Context, u Upload) error
+	// AIComponents renvoie les composants IA de l'instantané courant d'une référence
+	// (analyse incrémentale après un redémarrage).
+	AIComponents(ctx context.Context, refID string) ([]PreviousComponent, error)
 }
 
 // ErrRejected signale un envoi refusé définitivement par le serveur (référence inconnue,

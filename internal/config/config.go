@@ -28,6 +28,7 @@ type Config struct {
 	Login      Login           `yaml:"login"      env-prefix:"LOTOR_"`
 	AgentAPI   AgentAPI        `yaml:"agent_api"  env-prefix:"LOTOR_"`
 	UserAPI    UserAPI         `yaml:"user_api"   env-prefix:"LOTOR_"`
+	AI         AI              `yaml:"ai"         env-prefix:"LOTOR_"`
 	Bootstrap  Bootstrap       `yaml:"bootstrap"  env-prefix:"LOTOR_"`
 	Workers    Workers         `yaml:"workers"    env-prefix:"LOTOR_"`
 	Ingest     Ingest          `yaml:"ingest"     env-prefix:"LOTOR_"`
@@ -101,6 +102,13 @@ type UserAPI struct {
 	FailureRateLimit int           `yaml:"failure_rate_limit" env:"USER_API_FAILURE_RATE_LIMIT" env-default:"30" env-description:"Refused personal tokens per minute and per IP (0: unlimited)"`
 	ExportTimeout    time.Duration `yaml:"export_timeout"     env:"USER_API_EXPORT_TIMEOUT"     env-default:"5m" env-description:"Maximum duration of one search export (CSV or JSON)"`
 	MaxExports       int           `yaml:"max_exports"        env:"USER_API_MAX_EXPORTS"        env-default:"4"  env-description:"Search exports running at once on this instance, beyond which 429 is returned"`
+}
+
+// AI est la politique de l'instance sur l'enrichissement IA des agents dépôt (T12,
+// ADR 0043) : elle peut interdire tout fournisseur de modèle externe, quels que soient
+// les réglages des projets (le réglage « external » est alors transmis comme « local »).
+type AI struct {
+	ForbidExternal bool `yaml:"forbid_external" env:"AI_FORBID_EXTERNAL" env-default:"false" env-description:"Forbid any external model provider for the AI enrichment of repository agents (projects set to external are treated as local)"`
 }
 
 // Bootstrap crée le premier administrateur d'instance sur une base sans compte (ignoré dès

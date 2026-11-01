@@ -42,3 +42,6 @@ décision contraire fait l'objet d'un nouvel ADR qui le remplace.
 | [0035](0035-decisions-de-triage.md) | Décisions de triage appliquées aux constats, statut effectif rangé sur chaque constat, journal en ajout seul | Accepté |
 | [0036](0036-echanges-vex.md) | Échanges VEX : OpenVEX 0.2.0 et CycloneDX 1.6, correspondance des statuts et des justifications, marques de lotor | Accepté |
 | [0037](0037-ecrans-du-triage.md) | Écrans du triage : fiche du constat au lieu du tiroir, constats masqués par défaut, page VEX, décisions de l'organisation | Accepté |
+| [0042](0042-fournisseurs-de-modeles.md) | Fournisseurs de modèles : SDK Go officiel d'Anthropic sans environnement, Ollama par HTTP | Accepté |
+| [0043](0043-enrichissement-ia-prouve.md) | Enrichissement IA prouvé : réglage par projet, politique d'envoi de code, vérificateur, statut | Accepté |
+| [0044](0044-confinement-de-l-analyse-ia.md) | Confinement de l'analyse IA : os.Root et surface d'outils, sans processus fils | Accepté |

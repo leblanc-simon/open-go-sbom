@@ -71,9 +71,7 @@ func localGit(t *testing.T, dir string, args ...string) string {
 // commitFile ajoute un fichier dans la copie de travail, valide et publie dans le dépôt nu.
 func commitFile(t *testing.T, work, bare, name, content string) string {
 	t.Helper()
-	if err := os.WriteFile(filepath.Join(work, name), []byte(content), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeRepoFile(t, filepath.Join(work, name), content)
 	localGit(t, work, "add", "-A")
 	localGit(t, work, "commit", "--quiet", "-m", name)
 	localGit(t, work, "push", "--quiet", bare, "main")

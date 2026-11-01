@@ -1,0 +1,10 @@
+description: Outils téléchargés et installés par un script (curl | sh, binaire d'une version GitHub).
+components:
+  - purl: pkg:github/golangci/golangci-lint@v1.59.1
+    file: scripts/install-tools.sh
+    line: 4
+    excerpt: "golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/local/bin v1.59.1"
+  - purl: pkg:github/hadolint/hadolint@v2.12.0
+    file: scripts/install-tools.sh
+    line: 5
+    excerpt: "hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64"

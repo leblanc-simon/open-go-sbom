@@ -38,6 +38,7 @@ dérivent de la même table.
 | `teams.manage` | organisation | Créer, renommer et supprimer une équipe | oui | — | — | — | — |
 | `org.manage` | organisation | Paramètres et journal d'audit de l'organisation | oui | — | — | — | — |
 | `triage.org` | organisation | Décider du triage pour toute l'organisation, importer un VEX d'organisation, retirer une décision d'organisation | oui | — | — | — | — |
+| `ai.external` | organisation | Autoriser l'envoi du code d'un dépôt à un fournisseur de modèle externe (enrichissement IA, audité) | oui | — | — | — | — |
 | `team.view` | équipe | Voir l'équipe, ses membres et ses projets | oui | oui | oui | oui | — |
 | `team.members` | équipe | Ajouter ou retirer un membre de l'équipe, changer son rôle d'équipe | oui | oui | — | — | — |
 | `project.view` | équipe | Fiche, constats, instantanés, composants et SBOM d'un projet de l'équipe | oui | oui | oui | oui | — |

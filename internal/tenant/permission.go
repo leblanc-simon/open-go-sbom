@@ -14,6 +14,7 @@ const (
 	PermTeamsManage   Permission = "teams.manage"   // créer, renommer, supprimer une équipe
 	PermOrgManage     Permission = "org.manage"     // paramètres et journal d'audit de l'organisation
 	PermTriageOrg     Permission = "triage.org"     // décisions de triage et import de VEX pour toute l'organisation (T14)
+	PermAIExternal    Permission = "ai.external"    // autoriser l'envoi du code d'un dépôt à un fournisseur de modèle externe
 )
 
 // Permissions d'équipe.
@@ -58,6 +59,7 @@ var matrix = []Rule{
 	{PermTeamsManage, ScopeOrg, RoleAdmin, TeamNone, "Créer, renommer et supprimer une équipe"},
 	{PermOrgManage, ScopeOrg, RoleAdmin, TeamNone, "Paramètres et journal d'audit de l'organisation"},
 	{PermTriageOrg, ScopeOrg, RoleAdmin, TeamNone, "Décider du triage pour toute l'organisation, importer un VEX d'organisation, retirer une décision d'organisation"},
+	{PermAIExternal, ScopeOrg, RoleAdmin, TeamNone, "Autoriser l'envoi du code d'un dépôt à un fournisseur de modèle externe (enrichissement IA, audité)"},
 	{PermTeamView, ScopeTeam, "", TeamReader, "Voir l'équipe, ses membres et ses projets"},
 	{PermTeamMembers, ScopeTeam, "", TeamAdmin, "Ajouter ou retirer un membre de l'équipe, changer son rôle d'équipe"},
 	{PermProjectView, ScopeTeam, "", TeamReader, "Fiche, constats, instantanés, composants et SBOM d'un projet de l'équipe"},

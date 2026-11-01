@@ -1,0 +1,7 @@
+description: Code du dépôt qui porte le nom d'un paquet connu (request) et sa propre version.
+components: []
+forbidden:
+  - purl: pkg:npm/request@2.0.1
+    why: module interne homonyme du paquet npm
+  - purl: pkg:generic/lib@1.8.0
+    why: version du dépôt lui-même

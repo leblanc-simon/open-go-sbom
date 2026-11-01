@@ -101,6 +101,7 @@ func orgRoutes(id *identity) []orgRoute {
 		{post, "/projects/{project}/archive", tenant.PermProjectManage, targetProject, id.setProjectArchived(true, "project_archived")},
 		{post, "/projects/{project}/unarchive", tenant.PermProjectManage, targetProject, id.setProjectArchived(false, "project_unarchived")},
 		{post, "/projects/{project}/agent", tenant.PermProjectManage, targetProject, id.assignAgent},
+		{post, "/projects/{project}/ai", tenant.PermProjectManage, targetProject, id.setProjectAI},
 		{post, "/projects/{project}/team", tenant.PermProjectMove, targetProject, id.moveProject},
 
 		{get, "/agents/new", tenant.PermAgentManage, targetAnyTeam, id.newAgent},

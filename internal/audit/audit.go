@@ -62,6 +62,7 @@ const (
 	ProjectArchived        Action = "project.archived"
 	ProjectUnarchived      Action = "project.unarchived"
 	ProjectAgentChanged    Action = "project.agent_changed"
+	ProjectAIModeChanged   Action = "project.ai_mode_changed"
 	AgentCreated           Action = "agent.created"
 	AgentEnrolled          Action = "agent.enrolled"
 	AgentDisabled          Action = "agent.disabled"
@@ -95,7 +96,7 @@ func Actions() []Action {
 		MemberAdded, MemberRoleChanged, MemberRemoved,
 		MemberInvited, InvitationRevoked, InvitationAccepted, InvitationDeclined,
 		TeamCreated, TeamRenamed, TeamDeleted, TeamMemberAdded, TeamMemberRoleChanged, TeamMemberRemoved, ProjectTeamChanged,
-		ProjectCreated, ProjectUpdated, ProjectArchived, ProjectUnarchived, ProjectAgentChanged,
+		ProjectCreated, ProjectUpdated, ProjectArchived, ProjectUnarchived, ProjectAgentChanged, ProjectAIModeChanged,
 		AgentCreated, AgentEnrolled, AgentDisabled, AgentScanRequested, AgentTokenCreated, AgentTokenRevoked,
 		EnrollmentTokenCreated, EnrollmentTokenRevoked, PersonalTokenCreated, PersonalTokenRevoked,
 		JobRetried, JobDiscarded, VulnDBImportRequested, VulnDBImported, VulnDBImportFailed, VulnDBArchivesPurged,

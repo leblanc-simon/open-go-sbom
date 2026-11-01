@@ -750,3 +750,45 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
 - **Statut matérialisé et CHECK** : une contrainte « décision nulle ⇒ à analyser » oblige
   les jeux de test qui posent un statut à insérer d'abord une décision ; prévoir l'aide
   dans le jeu de test du paquet qui lit le statut (tableau de bord).
+
+## Enrichissement IA (T12)
+
+- **SDK d'Anthropic et environnement** : `anthropic.NewClient()` lit `ANTHROPIC_API_KEY`,
+  `ANTHROPIC_BASE_URL`, `ANTHROPIC_CUSTOM_HEADERS`, les profils sur disque et la
+  fédération d'identité ; une variable posée sur la machine redirigerait le code. Règle :
+  `option.WithoutEnvironmentDefaults()` en premier, puis clé, adresse et client explicites,
+  et un test qui pose de fausses variables `ANTHROPIC_*`. La clé part en
+  `Authorization: Bearer` dans la v2 du SDK, pas en `X-Api-Key` : un test ne fixe pas
+  l'en-tête.
+- **Choix d'outil forcé refusé** : `tool_choice` `any` ou `tool` répond 400 sur
+  `claude-sonnet-5-5`. Règle : `auto`, l'outil final demandé par le prompt, une relance
+  unique, et la validation de la soumission par schéma côté agent.
+- **Soumission vide sérialisée `null`** : un faux modèle qui soumet `[]Candidate(nil)`
+  envoie `"candidates": null`, refusé par le schéma ; les cas sans composant attendu
+  échouaient en « scénario épuisé ». Règle : construire les listes JSON non nulles
+  (`[]T{}`) dans les assistants de test comme dans le code.
+- **Une instruction injectée est aussi une « preuve »** : le README hostile contient
+  littéralement le purl qu'il demande de soumettre ; nom et version y figurent, le
+  vérificateur de la fiche l'aurait accepté. Règle : refuser toute preuve tirée de la
+  documentation, d'un fichier qui s'adresse à un modèle, ou d'un extrait qui cite un purl,
+  et éprouver chaque règle par un faux modèle qui obéit au dépôt.
+- **Enregistreur et fuite** : chercher un témoin dans tout l'échange trouve aussi les
+  arguments que le modèle a lui-même écrits (sa recherche de « PRIVATE KEY »). Règle :
+  `Recorder.Sent` ne rend que ce que l'agent envoie (système, outils, messages de
+  l'utilisateur, résultats d'outils) ; chercher un marqueur de contenu
+  (`-----BEGIN`) plutôt qu'un mot que le modèle peut taper.
+- **`.gitignore` de la racine et corpus** : `.env` est ignoré à la racine ; les fichiers
+  sensibles factices du corpus ne partaient pas dans le commit. Règle : un `.gitignore`
+  local (`!.env`) dans `testdata/ai-corpus`, et `git check-ignore -v` sur chaque fichier
+  piège ; secrets factices sans matériau de clé valide (analyse des secrets de GitHub).
+- **`os.Root` et « / »** : `clean` ramène « / » à la racine du dépôt, pas du système ; un
+  test qui attend un refus de `list_dir("/")` se trompe d'attente. Règle : tester que le
+  contenu renvoyé est celui du dépôt.
+- **Fonction utilisée par les seuls tests étiquetés** : `scanner.scan` n'était plus appelé
+  que par un test `integration` (U1000 de staticcheck). Règle : déplacer l'assistant dans
+  le fichier étiqueté ; et ajouter toute nouvelle étiquette (`evalai`) à `TEST_TAGS`.
+- **Place libérée par `defer` après la réponse** : le téléchargement réencodé libérait sa
+  place (`Reencodes`) au retour du gestionnaire, donc après l'envoi du corps ; sous charge,
+  `TestSnapshotScreens` reprenait la place avant sa libération (« place de réencodage »).
+  Règle : une place qui borne un calcul se libère dès la fin du calcul, avant l'écriture
+  de la réponse, pas par `defer`.

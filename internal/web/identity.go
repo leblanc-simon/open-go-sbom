@@ -86,6 +86,9 @@ type IdentityOptions struct {
 	// SessionMaxAge est la durée absolue d'une session authentifiée, comptée depuis la
 	// connexion, quelle que soit son activité (0 : sans).
 	SessionMaxAge time.Duration
+	// ForbidExternalAI : l'instance interdit tout fournisseur de modèle externe
+	// (ai.forbid_external) ; le réglage « external » d'un projet n'est pas proposé.
+	ForbidExternalAI bool
 
 	// routeStub, s'il est posé (tests seulement, depuis le paquet), remplace le
 	// gestionnaire de chaque route de l'organisation derrière sa garde de droit : le test
