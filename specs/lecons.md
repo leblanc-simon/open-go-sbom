@@ -787,3 +787,8 @@ les pièges découverts, pour ne pas les reproduire. Une entrée = le constat, p
 - **Fonction utilisée par les seuls tests étiquetés** : `scanner.scan` n'était plus appelé
   que par un test `integration` (U1000 de staticcheck). Règle : déplacer l'assistant dans
   le fichier étiqueté ; et ajouter toute nouvelle étiquette (`evalai`) à `TEST_TAGS`.
+- **Place libérée par `defer` après la réponse** : le téléchargement réencodé libérait sa
+  place (`Reencodes`) au retour du gestionnaire, donc après l'envoi du corps ; sous charge,
+  `TestSnapshotScreens` reprenait la place avant sa libération (« place de réencodage »).
+  Règle : une place qui borne un calcul se libère dès la fin du calcul, avant l'écriture
+  de la réponse, pas par `defer`.

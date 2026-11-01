@@ -371,8 +371,10 @@ func (id *identity) downloadSBOM(w http.ResponseWriter, r *http.Request) {
 			id.rd.Error(w, r, http.StatusTooManyRequests)
 			return
 		}
-		defer release()
+		// La place ne couvre que le réencodage : libérée avant l'écriture de la réponse, pour
+		// qu'un client qui a reçu le document puisse aussitôt en demander un autre.
 		data, err = id.Ingest.Export(r.Context(), acc.Org, s.BlobID, s.Format, target)
+		release()
 		name += "." + string(target) + ".json"
 	default:
 		id.rd.Error(w, r, http.StatusNotFound)
