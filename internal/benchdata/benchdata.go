@@ -85,11 +85,7 @@ func Generate(ctx context.Context, pool *db.Pool, org tenant.OrgID, slug string,
 	}); err != nil {
 		return Stats{}, fmt.Errorf("benchdata: catalogue : %w", err)
 	}
-	steps := []struct {
-		what  string
-		query string
-		args  []any
-	}{
+	steps := []step{
 		{"organisation", `INSERT INTO organizations (id, slug, name, default_language) VALUES ($1, $2, $2, 'fr')`,
 			[]any{org, slug}},
 		// Une seule équipe, d'identifiant celui de l'organisation : tous les projets lui
@@ -109,50 +105,8 @@ func Generate(ctx context.Context, pool *db.Pool, org tenant.OrgID, slug string,
 			[]any{org, p.Components}},
 		{"SBOM", `INSERT INTO sbom_blobs (org_id, id, sha256, size, compressed_size, content)
 			VALUES ($1, gen_random_uuid(), sha256('bench'::bytea), 2, 1, '\x00'::bytea)`, []any{org}},
-		{"ensembles", `INSERT INTO component_sets (org_id, id, fingerprint, component_count, syft_count, ia_count, weak_count)
-			SELECT org_id, gen_random_uuid(), sha256(id::text::bytea), $1, $1, 0, 0 FROM projects`, []any{perSet}},
-		// Ensemble k (rang du projet) : composants (j × a + k × b) mod C, j < perSet, tous
-		// distincts quand a est premier avec C.
-		{"liens", `INSERT INTO component_set_items (org_id, set_id, component_id, origin)
-			SELECT s.org_id, s.id, c.id, 'syft'
-			  FROM (SELECT cs.org_id, cs.id, row_number() OVER (ORDER BY p.slug) AS k
-			          FROM component_sets cs JOIN projects p ON sha256(p.id::text::bytea) = cs.fingerprint) s
-			  CROSS JOIN generate_series(0, $1 - 1) j
-			  JOIN components c ON c.name = 'lib-' || ((j::bigint * 7919 + s.k * 104729) % $2)
-			ON CONFLICT DO NOTHING`, []any{perSet, p.Components}},
-		{"instantanés", `INSERT INTO snapshots (org_id, id, project_id, ref_id, commit_sha, scanned_at, last_scanned_at, blob_id, set_id,
-			                       format, spec_version, created_at, updated_at)
-			SELECT r.org_id, gen_random_uuid(), r.project_id, r.id, encode(sha256(r.id::text::bytea), 'hex'),
-			       now() - interval '1 hour', now() - interval '1 hour', b.id, cs.id, 'cyclonedx', '1.6', now(), now()
-			  FROM tracked_refs r
-			  JOIN component_sets cs ON cs.fingerprint = sha256(r.project_id::text::bytea)
-			  CROSS JOIN (SELECT id FROM sbom_blobs LIMIT 1) b`, nil},
-		{"état courant", `INSERT INTO ref_current (org_id, ref_id, project_id, snapshot_id, set_id, updated_at)
-			SELECT org_id, ref_id, project_id, id, set_id, now() FROM snapshots`, nil},
-		{"constats", `INSERT INTO findings (org_id, id, project_id, ref_id, component_id, vuln_id, status, resolution, severity,
-			                      cvss_score, epss, epss_percentile, kev, risk, fixed_versions, fix_state, match_type,
-			                      first_seen_at, last_seen_at, resolved_at, snapshot_id, vulndb_archive, vulndb_built, updated_at)
-			SELECT s.org_id, gen_random_uuid(), s.project_id, s.ref_id, c.id, v.id,
-			       CASE WHEN h % 10 = 0 THEN 'resolved' ELSE 'open' END,
-			       CASE WHEN h % 10 = 0 THEN 'component_removed' END,
-			       v.severity, v.cvss_score, v.epss, v.epss_percentile, v.kev, v.risk, ARRAY['9.9.9'], 'fixed', 'exact-direct',
-			       now() - interval '30 days', now() - interval '1 hour',
-			       CASE WHEN h % 10 = 0 THEN now() - interval '2 hours' END,
-			       s.id, $3, now(), now()
-			  FROM snapshots s
-			  JOIN component_set_items i ON i.org_id = s.org_id AND i.set_id = s.set_id
-			  JOIN components c ON c.org_id = i.org_id AND c.id = i.component_id
-			  CROSS JOIN LATERAL (SELECT substr(c.name, 5)::int AS idx) n
-			  CROSS JOIN LATERAL (VALUES (n.idx % $1), ((n.idx * 7) % $1 + 1)) AS pick(v)
-			  JOIN vulnerabilities v ON v.id = 'CVE-2099-' || lpad((pick.v % $4 + 1)::text, 5, '0')
-			  CROSS JOIN LATERAL (SELECT abs(hashtext(s.id::text || c.id::text || v.id)) AS h) hh
-			 WHERE n.idx % $2 = 0 AND (pick.v = n.idx % $1 OR n.idx % ($2 * 2) = 0)
-			ON CONFLICT DO NOTHING`,
-			[]any{p.Vulnerabilities, p.VulnerableEvery, org.UUID(), p.Vulnerabilities}},
-		{"analyses", `INSERT INTO ref_analyses (org_id, ref_id, project_id, set_id, snapshot_id, vulndb_archive, vulndb_built,
-			                          analyzed_at, match_count, unmatched_count)
-			SELECT org_id, ref_id, project_id, set_id, snapshot_id, $1, now(), now(), 0, 0 FROM ref_current`, []any{org.UUID()}},
 	}
+	steps = append(steps, inventorySteps(org, perSet, p)...)
 	err := pool.InOrg(ctx, org, func(tx *db.OrgTx) error {
 		for _, s := range steps {
 			if _, err := tx.ExecContext(ctx, s.query, s.args...); err != nil {
@@ -171,6 +125,70 @@ func Generate(ctx context.Context, pool *db.Pool, org tenant.OrgID, slug string,
 			Scan(&st.Projects, &st.Links, &st.Components, &st.Findings, &st.Open)
 	}, db.ReadOnly())
 	return st, err
+}
+
+// step est une requête de génération, nommée pour les erreurs.
+type step struct {
+	what  string
+	query string
+	args  []any
+}
+
+// inventorySteps range l'inventaire, les constats et les analyses des projets qui n'en ont
+// pas encore (perSet composants par ensemble) : Generate pour les dépôts,
+// AddTeamsAndContainers pour les hôtes et les conteneurs.
+func inventorySteps(org tenant.OrgID, perSet int, p Params) []step {
+	return []step{
+		{"ensembles", `INSERT INTO component_sets (org_id, id, fingerprint, component_count, syft_count, ia_count, weak_count)
+			SELECT org_id, gen_random_uuid(), sha256(id::text::bytea), $1, $1, 0, 0 FROM projects p
+			 WHERE NOT EXISTS (SELECT 1 FROM component_sets cs WHERE cs.fingerprint = sha256(p.id::text::bytea))`, []any{perSet}},
+		// Ensemble k (rang du projet parmi les nouveaux) : composants (j × a + k × b) mod C,
+		// j < perSet, tous distincts quand a est premier avec C.
+		{"liens", `INSERT INTO component_set_items (org_id, set_id, component_id, origin)
+			SELECT s.org_id, s.id, c.id, 'syft'
+			  FROM (SELECT cs.org_id, cs.id, row_number() OVER (ORDER BY p.slug) AS k
+			          FROM component_sets cs JOIN projects p ON sha256(p.id::text::bytea) = cs.fingerprint
+			         WHERE NOT EXISTS (SELECT 1 FROM component_set_items i WHERE i.set_id = cs.id)) s
+			  CROSS JOIN generate_series(0, $1 - 1) j
+			  JOIN components c ON c.name = 'lib-' || ((j::bigint * 7919 + s.k * 104729) % $2)
+			ON CONFLICT DO NOTHING`, []any{perSet, p.Components}},
+		{"instantanés", `INSERT INTO snapshots (org_id, id, project_id, ref_id, commit_sha, scanned_at, last_scanned_at, blob_id, set_id,
+			                       format, spec_version, created_at, updated_at)
+			SELECT r.org_id, gen_random_uuid(), r.project_id, r.id, encode(sha256(r.id::text::bytea), 'hex'),
+			       now() - interval '1 hour', now() - interval '1 hour', b.id, cs.id, 'cyclonedx', '1.6', now(), now()
+			  FROM tracked_refs r
+			  JOIN component_sets cs ON cs.fingerprint = sha256(r.project_id::text::bytea)
+			  CROSS JOIN (SELECT id FROM sbom_blobs LIMIT 1) b
+			 WHERE NOT EXISTS (SELECT 1 FROM snapshots s WHERE s.ref_id = r.id)`, nil},
+		{"état courant", `INSERT INTO ref_current (org_id, ref_id, project_id, snapshot_id, set_id, updated_at)
+			SELECT org_id, ref_id, project_id, id, set_id, now() FROM snapshots s
+			 WHERE NOT EXISTS (SELECT 1 FROM ref_current rc WHERE rc.ref_id = s.ref_id)`, nil},
+		{"constats", `INSERT INTO findings (org_id, id, project_id, ref_id, component_id, vuln_id, status, resolution, severity,
+			                      cvss_score, epss, epss_percentile, kev, risk, fixed_versions, fix_state, match_type,
+			                      first_seen_at, last_seen_at, resolved_at, snapshot_id, vulndb_archive, vulndb_built, updated_at)
+			SELECT s.org_id, gen_random_uuid(), s.project_id, s.ref_id, c.id, v.id,
+			       CASE WHEN h % 10 = 0 THEN 'resolved' ELSE 'open' END,
+			       CASE WHEN h % 10 = 0 THEN 'component_removed' END,
+			       v.severity, v.cvss_score, v.epss, v.epss_percentile, v.kev, v.risk, ARRAY['9.9.9'], 'fixed', 'exact-direct',
+			       now() - interval '30 days', now() - interval '1 hour',
+			       CASE WHEN h % 10 = 0 THEN now() - interval '2 hours' END,
+			       s.id, $3, now(), now()
+			  FROM snapshots s
+			  JOIN component_set_items i ON i.org_id = s.org_id AND i.set_id = s.set_id
+			  JOIN components c ON c.org_id = i.org_id AND c.id = i.component_id
+			  CROSS JOIN LATERAL (SELECT substr(c.name, 5)::int AS idx) n
+			  CROSS JOIN LATERAL (VALUES (n.idx % $1), ((n.idx * 7) % $1 + 1)) AS pick(v)
+			  JOIN vulnerabilities v ON v.id = 'CVE-2099-' || lpad((pick.v % $4 + 1)::text, 5, '0')
+			  CROSS JOIN LATERAL (SELECT abs(hashtext(s.id::text || c.id::text || v.id)) AS h) hh
+			 WHERE n.idx % $2 = 0 AND (pick.v = n.idx % $1 OR n.idx % ($2 * 2) = 0)
+			   AND NOT EXISTS (SELECT 1 FROM ref_analyses a WHERE a.ref_id = s.ref_id)
+			ON CONFLICT DO NOTHING`,
+			[]any{p.Vulnerabilities, p.VulnerableEvery, org.UUID(), p.Vulnerabilities}},
+		{"analyses", `INSERT INTO ref_analyses (org_id, ref_id, project_id, set_id, snapshot_id, vulndb_archive, vulndb_built,
+			                          analyzed_at, match_count, unmatched_count)
+			SELECT org_id, ref_id, project_id, set_id, snapshot_id, $1, now(), now(), 0, 0 FROM ref_current rc
+			 WHERE NOT EXISTS (SELECT 1 FROM ref_analyses a WHERE a.ref_id = rc.ref_id)`, []any{org.UUID()}},
+	}
 }
 
 // String résume le jeu pour les journaux de mesure.
