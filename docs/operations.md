@@ -394,8 +394,10 @@ empreinte est gardée (table `mfa_recovery_codes`). Un code de secours remplace 
 verrouillage comme des codes TOTP faux. Depuis **Mon compte → Second facteur**, le
 titulaire voit le nombre de codes restants, en régénère un jeu (code TOTP exigé, l'ancien
 jeu devient caduc) ou **reconfigure** son application : un code TOTP ou un code de secours
-retire le second facteur et ferme ses sessions, la connexion suivante impose un nouvel
-enrôlement. Un titulaire qui a perdu à la fois son application et ses codes passe toujours
+et un nouveau mot de passe retirent le second facteur, remplacent le mot de passe et ferment
+ses sessions ; la connexion suivante impose un nouvel enrôlement (le nouveau mot de passe
+ferme la fenêtre où l'ancien, peut-être dérobé, suffirait à enrôler un second facteur :
+SEC2-06, ADR 0051). Un titulaire qui a perdu à la fois son application et ses codes passe toujours
 par un administrateur (réinitialisation du TOTP). Les comptes enrôlés avant la mise à jour
 n'ont pas de codes : la page **Second facteur** les invite à en générer. Le journal d'audit
 enregistre chaque jeu généré, chaque code utilisé (avec le nombre restant) ou refusé, et

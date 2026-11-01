@@ -296,7 +296,7 @@ func TestTOTPSecretsAreSealedAndRotated(t *testing.T) {
 	}
 
 	// Reconfiguration par le titulaire : TOTP et codes retirés, sessions fermées, mot de
-	// passe gardé.
+	// passe remplacé (SEC2-06).
 	if err := inner.Set(u.ID, "JBSWY3DPEHPK3PXP", true); err != nil {
 		t.Fatal(err)
 	}
@@ -312,7 +312,13 @@ func TestTOTPSecretsAreSealedAndRotated(t *testing.T) {
 	if err := recovery.Replace(u.ID, []string{"h4"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.ReconfigureTOTP(ctx, audit.Actor{UserID: u.ID, Email: u.Email}, u.ID); err != nil {
+	if err := s.ReconfigureTOTP(ctx, audit.Actor{UserID: u.ID, Email: u.Email}, u.ID, "court", "court"); err == nil {
+		t.Fatal("reconfiguration avec un mot de passe trop court acceptée")
+	}
+	if got, _ := s.Get(ctx, u.ID); !got.TOTPEnabled {
+		t.Fatal("mot de passe refusé, TOTP retiré quand même")
+	}
+	if err := s.ReconfigureTOTP(ctx, audit.Actor{UserID: u.ID, Email: u.Email}, u.ID, "nouvelle phrase de passe", "nouvelle phrase de passe"); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := s.Get(ctx, u.ID); got.TOTPEnabled {
@@ -321,7 +327,7 @@ func TestTOTPSecretsAreSealedAndRotated(t *testing.T) {
 	if n, _ := recovery.Remaining(u.ID); n != 0 {
 		t.Fatalf("codes de secours après la reconfiguration : %d", n)
 	}
-	if err := s.ReconfigureTOTP(ctx, audit.System, 99999); !errors.Is(err, account.ErrNotFound) {
+	if err := s.ReconfigureTOTP(ctx, audit.System, 99999, "nouvelle phrase de passe", "nouvelle phrase de passe"); !errors.Is(err, account.ErrNotFound) {
 		t.Fatalf("compte inconnu : %v", err)
 	}
 }

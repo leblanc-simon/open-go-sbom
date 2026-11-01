@@ -58,6 +58,15 @@
           <input class="input input--code" id="sec-reconfigure" name="reconfigure_code" type="text" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false" required aria-describedby="sec-reconfigure-hint"{{if eq .Error.Field "reconfigure_code"}} aria-invalid="true"{{end}}>
           <p class="field__hint" id="sec-reconfigure-hint">{{T "security.reconfigure_hint"}}</p>
         </div>
+        <div class="field">
+          <label class="field__label" for="sec-reconfigure-password">{{T "security.reconfigure_password"}}</label>
+          <input class="input" id="sec-reconfigure-password" name="password" type="password" autocomplete="new-password" minlength="{{.MinLength}}" required aria-describedby="sec-reconfigure-password-hint"{{if eq .Error.Field "password"}} aria-invalid="true"{{end}}>
+          <p class="field__hint" id="sec-reconfigure-password-hint">{{T "security.reconfigure_password_hint" "Min" .MinLength}}</p>
+        </div>
+        <div class="field">
+          <label class="field__label" for="sec-reconfigure-confirm">{{T "password.confirm"}}</label>
+          <input class="input" id="sec-reconfigure-confirm" name="confirm" type="password" autocomplete="new-password" required{{if eq .Error.Field "confirm"}} aria-invalid="true"{{end}}>
+        </div>
         <p><button class="btn btn--danger" type="submit">{{T "security.reconfigure"}}</button></p>
       </form>
     </div>

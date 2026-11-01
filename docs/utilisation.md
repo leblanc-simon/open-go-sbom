@@ -384,10 +384,13 @@ les réafficher.
 - **génère un nouveau jeu** de codes contre un code de l'application : les anciens codes,
   utilisés ou non, cessent alors de valoir ;
 - **change d'application d'authentification** (nouveau téléphone, application perdue) :
-  saisissez un code de l'application ou, à défaut, un code de secours ; votre second
-  facteur actuel est retiré et toutes vos sessions sont fermées. À la connexion suivante,
-  votre mot de passe vous mène à la configuration de la nouvelle application, puis à un
-  nouveau jeu de codes. Vos jetons d'accès personnels sont gardés.
+  saisissez un code de l'application ou, à défaut, un code de secours, et choisissez un
+  nouveau mot de passe ; votre second facteur actuel est retiré et toutes vos sessions sont
+  fermées. À la connexion suivante, ce nouveau mot de passe vous mène à la configuration de
+  la nouvelle application, puis à un nouveau jeu de codes. Le nouveau mot de passe est
+  obligatoire : tant que la nouvelle application n'est pas configurée, le mot de passe seul
+  ouvre l'enrôlement, et l'ancien a pu être dérobé. Vos jetons d'accès personnels sont
+  gardés.
 
 Après une connexion par code de secours, lotor ouvre directement cette page. Les codes
 faux comptent dans le verrouillage du compte comme les codes de l'application. Chaque jeu

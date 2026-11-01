@@ -274,7 +274,7 @@ login:
   submit: Continuer
   help: "Mot de passe oublié ? Adressez-vous à un administrateur de l'instance. Appareil perdu : utilisez un code de secours à l'étape suivante."
   info_title: "Information"
-  totp_reconfigured: "Votre second facteur a été retiré et vos sessions fermées. Connectez-vous pour configurer votre nouvelle application d'authentification."
+  totp_reconfigured: "Votre second facteur a été retiré et vos sessions fermées. Connectez-vous avec votre nouveau mot de passe pour configurer votre nouvelle application d'authentification."
   error:
     title: Connexion refusée
     invalid_credentials: Adresse e-mail ou mot de passe incorrect.
@@ -311,6 +311,7 @@ totp_setup:
   submit: Activer
   error:
     invalid_code: "Ce code est incorrect : une nouvelle clé a été générée, scannez à nouveau le code QR."
+    locked: "Trop de codes incorrects : le compte est verrouillé pour un temps, réessayez plus tard avec la nouvelle clé ci-dessous."
 
 profile:
   title: Mon compte
@@ -1607,9 +1608,11 @@ security:
   regenerate_hint: "Confirmez par le code de votre application d'authentification."
   regenerate: "Générer de nouveaux codes"
   reconfigure_title: "Changer d'application d'authentification"
-  reconfigure_text: "Nouveau téléphone, application perdue : retirez votre second facteur actuel. Toutes vos sessions seront fermées ; à la connexion suivante, votre mot de passe vous mènera à la configuration d'une nouvelle application et de nouveaux codes de secours. Vos jetons d'accès personnels sont gardés."
+  reconfigure_text: "Nouveau téléphone, application perdue : retirez votre second facteur actuel et choisissez un nouveau mot de passe. Toutes vos sessions seront fermées ; à la connexion suivante, ce nouveau mot de passe vous mènera à la configuration d'une nouvelle application et de nouveaux codes de secours. Vos jetons d'accès personnels sont gardés."
   reconfigure_code: "Code TOTP ou code de secours"
   reconfigure_hint: "Le code à six chiffres de votre application ou, si vous l'avez perdue, un code de secours (il sera consommé)."
+  reconfigure_password: "Nouveau mot de passe"
+  reconfigure_password_hint: "{{.Min}} caractères au moins. Obligatoire : tant que la nouvelle application n'est pas configurée, le mot de passe seul y donne accès ; l'ancien a pu être dérobé."
   reconfigure: "Retirer et reconfigurer"
   error:
     invalid_code: "Ce code est incorrect, expiré ou déjà utilisé."

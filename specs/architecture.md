@@ -415,8 +415,10 @@ grandes tables par `org_id` donnerait la même séparation physique en gardant l
   seule fois à l'enrôlement et à chaque régénération (code TOTP exigé) ; un code de secours
   remplace un code TOTP à la connexion et compte dans le verrouillage. Le titulaire
   reconfigure lui-même son application (`account.ReconfigureTOTP`, après un code TOTP ou
-  un code de secours) : sessions fermées, nouvel enrôlement imposé par le mot de passe ; le
-  TOTP reste obligatoire.
+  un code de secours, et un **nouveau mot de passe** : SEC2-06, ADR 0051) : sessions fermées,
+  nouvel enrôlement imposé par le nouveau mot de passe ; le TOTP reste obligatoire.
+  `POST /account/totp/enable` ne « réactive » jamais un TOTP actif et ses codes faux comptent
+  dans le verrouillage (open-go-base v1.4.1, SEC2-01).
 - `session_auth` enregistre, pour chaque session (clé : SHA-256 du jeton de session), la
   méthode d'authentification : `local_totp`, ou `sso` avec l'organisation dont le
   fournisseur a authentifié. La garde d'organisation s'en sert pour imposer le SSO d'une
@@ -900,5 +902,6 @@ dupliquer.
 | Gestionnaire d'échec configurable dans csrfx | Page 403 traduite et au format du projet | Fait en T03 (PR #1 d'open-go-base) |
 | Clé de limitation configurable dans `ratelimit` (par jeton) | Évite le limiteur maison de `internal/ratelimit` | Fait en T04 (`WithKeyFunc`, PR #2 d'open-go-base) |
 | Codes de secours dans mfax | Récupération sans administrateur d'instance | Fait en T18 (PR #5 d'open-go-base, commit `a0f777f`, étiquette `v1.4.0` à pousser ; ADR 0048) |
+| `EnablePOST` de mfax sous verrouillage par compte, refusé sur un TOTP actif | Revue de sécurité du lot 2 (SEC2-01) | Fait en T18 (PR #6 d'open-go-base, commit `0900e0c`, étiquette `v1.4.1` à pousser) |
 | Verrouillage par compte et réauthentification dans mfax ; jeton CSRF lié à la session ; nom du cookie de défi | Revue de sécurité du lot 1 (SEC-01, SEC-02, SEC-08) | Fait en T11 (PR #3 d'open-go-base, commit `9a7b91f`, étiquette `v1.3.0` à pousser) |
 | Composant `oidcx` | SSO réutilisable par les projets open-go | T25 |
